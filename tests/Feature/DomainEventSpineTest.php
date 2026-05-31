@@ -145,7 +145,7 @@ class DomainEventSpineTest extends TestCase
         $event->refresh();
 
         $this->assertNotNull($event->processed_at);
-        $this->assertSame(3, DomainEventProjectorRun::query()->where('event_uuid', $event->uuid)->where('status', 'completed')->count());
+        $this->assertSame(4, DomainEventProjectorRun::query()->where('event_uuid', $event->uuid)->where('status', 'completed')->count());
         $this->assertSame(1, ActivityLog::query()->where('properties->domain_event_uuid', $event->uuid)->count());
         $this->assertSame(1, IntelligenceSignal::query()->where('dedupe_key', "domain-event:{$event->uuid}:signal")->count());
         $this->assertSame(1, Recommendation::query()->whereHas('signal', fn ($query) => $query->where('dedupe_key', "domain-event:{$event->uuid}:signal"))->count());

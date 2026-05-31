@@ -7,6 +7,7 @@ return [
     'modules' => 'Modules',
     'integrations' => 'Integraties',
     'social_profiles' => 'Sociale profielen',
+    'email_providers' => 'E-mailproviders',
     'connectors' => 'Connectorinstellingen',
     'properties' => 'Properties',
     'channels' => 'Kanalen',

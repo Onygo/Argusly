@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->uuid('uuid')->unique();
             $table->foreignId('account_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('brand_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('brand_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('campaign_id')->nullable()->constrained()->nullOnDelete();
             $table->string('related_type')->nullable();
             $table->unsignedBigInteger('related_id')->nullable();

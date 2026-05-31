@@ -1,21 +1,34 @@
 <?php
 
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AudienceController;
 use App\Http\Controllers\AnswerBlockController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\BriefingController;
 use App\Http\Controllers\CampaignController;
+use App\Http\Controllers\CampaignBoardController;
 use App\Http\Controllers\CompetitorController;
 use App\Http\Controllers\ConnectorController;
 use App\Http\Controllers\ContentAssetController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\DomainEventController;
+use App\Http\Controllers\EmailProviderController;
+use App\Http\Controllers\GoogleIntegrationController;
 use App\Http\Controllers\IntelligenceSignalController;
 use App\Http\Controllers\KnowledgeGraphController;
 use App\Http\Controllers\LinkedInIntegrationController;
 use App\Http\Controllers\MarketingCalendarController;
+use App\Http\Controllers\MarketingOsController;
+use App\Http\Controllers\MarketingTaskController;
 use App\Http\Controllers\MentionController;
+use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecommendationController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RelationshipController;
+use App\Http\Controllers\SearchPerformanceController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SocialPostController;
 use App\Http\Controllers\SocialRepurposingController;
@@ -64,13 +77,31 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
     Route::post('/recommendations/{recommendation}/accept', [RecommendationController::class, 'accept'])
         ->middleware(['module.active:core', 'permission:view_dashboard'])
         ->name('app.recommendations.accept');
+    Route::post('/recommendations/{recommendation}/execute', [RecommendationController::class, 'execute'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.recommendations.execute');
+    Route::post('/recommendations/{recommendation}/task', [MarketingTaskController::class, 'storeFromRecommendation'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.recommendations.task');
     Route::post('/recommendations/{recommendation}/dismiss', [RecommendationController::class, 'dismiss'])
         ->middleware(['module.active:core', 'permission:view_dashboard'])
         ->name('app.recommendations.dismiss');
+    Route::get('/notifications', [NotificationController::class, 'index'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.notifications');
+    Route::post('/notifications/preferences', [NotificationController::class, 'preferences'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.notifications.preferences');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markRead'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.notifications.read');
 
     Route::get('/visibility', [VisibilityController::class, 'index'])
         ->middleware(['module.active:visibility', 'permission:view_visibility'])
         ->name('app.visibility');
+    Route::get('/search-performance', SearchPerformanceController::class)
+        ->middleware(['module.active:visibility', 'permission:view_visibility'])
+        ->name('app.search-performance');
     Route::post('/visibility/checks', [VisibilityController::class, 'store'])
         ->middleware(['module.active:visibility', 'permission:manage_visibility'])
         ->name('app.visibility.checks.store');
@@ -107,6 +138,102 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
     Route::get('/agents', AgentController::class)
         ->middleware(['module.active:agentic_content,agentic_social', 'permission:view_agents'])
         ->name('app.agents');
+
+    Route::get('/reports', [ReportController::class, 'index'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.reports');
+    Route::post('/reports', [ReportController::class, 'store'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.reports.store');
+    Route::get('/reports/{report}', [ReportController::class, 'show'])
+        ->middleware(['module.active:core', 'permission:view_dashboard'])
+        ->name('app.reports.show');
+
+    Route::get('/marketing', [MarketingOsController::class, 'index'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.marketing');
+    Route::post('/marketing/workspaces', [MarketingOsController::class, 'storeWorkspace'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.marketing.workspaces.store');
+    Route::post('/marketing/objectives', [MarketingOsController::class, 'storeObjective'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.marketing.objectives.store');
+    Route::post('/marketing/tasks', [MarketingTaskController::class, 'store'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.marketing.tasks.store');
+    Route::get('/marketing/audiences', [AudienceController::class, 'index'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.audiences');
+    Route::post('/marketing/audiences', [AudienceController::class, 'store'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.audiences.store');
+    Route::get('/marketing/audiences/{audience}', [AudienceController::class, 'show'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.audiences.show');
+    Route::post('/marketing/audiences/{audience}/members', [AudienceController::class, 'storeMember'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.audiences.members.store');
+    Route::post('/marketing/segments', [AudienceController::class, 'storeSegment'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.segments.store');
+    Route::get('/marketing/briefings', [BriefingController::class, 'index'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.briefings');
+    Route::post('/marketing/briefings', [BriefingController::class, 'store'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.briefings.store');
+    Route::get('/marketing/briefings/{briefing}', [BriefingController::class, 'show'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.briefings.show');
+    Route::post('/marketing/briefings/{briefing}/approval', [BriefingController::class, 'requestApproval'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.briefings.approval.request');
+    Route::post('/marketing/briefings/{briefing}/approve', [BriefingController::class, 'approve'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.briefings.approve');
+    Route::get('/marketing/newsletters', [NewsletterController::class, 'index'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.newsletters');
+    Route::post('/marketing/newsletters', [NewsletterController::class, 'store'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.newsletters.store');
+    Route::get('/marketing/newsletters/{newsletter}', [NewsletterController::class, 'show'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.newsletters.show');
+    Route::put('/marketing/newsletters/{newsletter}', [NewsletterController::class, 'update'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.newsletters.update');
+    Route::post('/marketing/newsletters/{newsletter}/sections', [NewsletterController::class, 'storeSection'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.newsletters.sections.store');
+    Route::post('/marketing/newsletters/{newsletter}/sections/reorder', [NewsletterController::class, 'reorderSections'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.newsletters.sections.reorder');
+    Route::post('/marketing/newsletters/{newsletter}/draft', [NewsletterController::class, 'saveDraft'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.newsletters.draft');
+    Route::post('/marketing/newsletters/{newsletter}/approval', [NewsletterController::class, 'requestApproval'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.newsletters.approval.request');
+
+    Route::get('/distribution', [DistributionController::class, 'index'])
+        ->middleware(['module.active:content', 'permission:view_content'])
+        ->name('app.distribution');
+    Route::post('/distribution/content/{contentAsset}/publish-website', [DistributionController::class, 'publishWebsite'])
+        ->middleware(['module.active:content', 'permission:publish_content'])
+        ->name('app.distribution.publish-website');
+    Route::post('/distribution/social-posts/{socialPost}/schedule', [DistributionController::class, 'scheduleSocial'])
+        ->middleware(['module.active:content', 'permission:create_content'])
+        ->name('app.distribution.social.schedule');
+    Route::post('/distribution/content/{contentAsset}/audit', [DistributionController::class, 'runAudit'])
+        ->middleware(['module.active:content', 'permission:edit_content'])
+        ->name('app.distribution.audit');
+    Route::post('/distribution/content/{contentAsset}/translate', [DistributionController::class, 'translate'])
+        ->middleware(['module.active:content', 'permission:edit_content'])
+        ->name('app.distribution.translate');
+    Route::post('/distribution/content/{contentAsset}/reviewed', [DistributionController::class, 'markReviewed'])
+        ->middleware(['module.active:content', 'permission:edit_content'])
+        ->name('app.distribution.reviewed');
 
     Route::prefix('topics')->name('app.topics.')->middleware(['module.active:core'])->group(function (): void {
         Route::get('/', [TopicController::class, 'index'])
@@ -233,6 +360,15 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
     Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])
         ->middleware(['module.active:campaigns', 'permission:view_campaigns'])
         ->name('app.campaigns.show');
+    Route::get('/campaigns/{campaign}/board', [CampaignBoardController::class, 'show'])
+        ->middleware(['module.active:campaigns', 'permission:view_campaigns'])
+        ->name('app.campaigns.board');
+    Route::post('/campaigns/{campaign}/board/items', [CampaignBoardController::class, 'storeItem'])
+        ->middleware(['module.active:campaigns', 'permission:manage_campaigns'])
+        ->name('app.campaigns.board.items.store');
+    Route::patch('/campaigns/{campaign}/board/items/{item}/move', [CampaignBoardController::class, 'moveItem'])
+        ->middleware(['module.active:campaigns', 'permission:manage_campaigns'])
+        ->name('app.campaigns.board.items.move');
     Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])
         ->middleware(['module.active:campaigns', 'permission:manage_campaigns'])
         ->name('app.campaigns.update');
@@ -271,13 +407,19 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
             ->name('publish');
     });
 
-    Route::view('/reports', 'app.module-page', ['title' => 'Reports', 'module' => 'Core'])
-        ->middleware(['module.active:core', 'permission:view_dashboard'])
-        ->name('app.reports');
-
     Route::get('/calendar', [MarketingCalendarController::class, 'index'])
-        ->middleware(['module.active:content', 'permission:view_content'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
         ->name('app.calendar');
+    Route::get('/calendar/{item}', [MarketingCalendarController::class, 'show'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:view_campaigns'])
+        ->name('app.calendar.show');
+    Route::post('/calendar/tasks', [MarketingCalendarController::class, 'storeTask'])
+        ->middleware(['module.active:campaigns,marketing_os', 'permission:manage_campaigns'])
+        ->name('app.calendar.tasks.store');
+
+    Route::get('/analytics', AnalyticsController::class)
+        ->middleware(['module.active:content', 'permission:view_content'])
+        ->name('app.analytics');
 
     Route::prefix('relationships')->middleware(['module.active:core'])->group(function (): void {
         Route::get('/', [RelationshipController::class, 'index'])
@@ -340,6 +482,18 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
         Route::get('/integrations/linkedin', [SettingsController::class, 'linkedinIntegration'])
             ->middleware('permission:manage_account')
             ->name('integrations.linkedin');
+        Route::get('/integrations/google-analytics', [SettingsController::class, 'googleAnalyticsIntegration'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.google-analytics');
+        Route::post('/integrations/google-analytics/properties', [SettingsController::class, 'storeGoogleAnalyticsProperties'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.google-analytics.properties.store');
+        Route::get('/integrations/search-console', [SettingsController::class, 'searchConsoleIntegration'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.search-console');
+        Route::post('/integrations/search-console/sites', [SettingsController::class, 'storeSearchConsoleSites'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.search-console.sites.store');
         Route::get('/integrations/linkedin/connect', [LinkedInIntegrationController::class, 'connect'])
             ->middleware('permission:manage_account')
             ->name('integrations.linkedin.connect');
@@ -349,10 +503,29 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
         Route::post('/integrations/linkedin/disconnect/{connection}', [LinkedInIntegrationController::class, 'disconnect'])
             ->middleware('permission:manage_account')
             ->name('integrations.linkedin.disconnect');
+        Route::get('/integrations/google/connect', [GoogleIntegrationController::class, 'connect'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.google.connect');
+        Route::get('/integrations/google/callback', [GoogleIntegrationController::class, 'callback'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.google.callback');
+        Route::post('/integrations/google/disconnect/{connection}', [GoogleIntegrationController::class, 'disconnect'])
+            ->middleware('permission:manage_account')
+            ->name('integrations.google.disconnect');
 
         Route::get('/social-profiles', [SettingsController::class, 'socialProfiles'])
             ->middleware('permission:manage_account')
             ->name('social-profiles');
+
+        Route::get('/email-providers', [EmailProviderController::class, 'index'])
+            ->middleware('permission:manage_account')
+            ->name('email-providers');
+        Route::post('/email-providers', [EmailProviderController::class, 'store'])
+            ->middleware('permission:manage_account')
+            ->name('email-providers.store');
+        Route::post('/email-providers/{emailProvider}/test', [EmailProviderController::class, 'sendTest'])
+            ->middleware('permission:manage_account')
+            ->name('email-providers.test');
 
         Route::get('/connectors', [ConnectorController::class, 'index'])
             ->middleware(['module.active:connectors', 'permission:manage_account'])
@@ -380,6 +553,9 @@ Route::middleware(['auth', 'current.account', 'current.brand'])->group(function 
         Route::get('/channels', [SettingsController::class, 'channels'])
             ->middleware(['module.active:content', 'permission:manage_account'])
             ->name('channels');
+        Route::patch('/channels/{channel}', [SettingsController::class, 'updateChannel'])
+            ->middleware(['module.active:content', 'permission:manage_account'])
+            ->name('channels.update');
 
         Route::get('/knowledge-graph', [KnowledgeGraphController::class, 'index'])
             ->middleware('permission:manage_account')

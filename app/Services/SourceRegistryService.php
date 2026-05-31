@@ -8,6 +8,7 @@ use App\Models\IntegrationConnection;
 use App\Models\Source;
 use App\Models\SourceConnection;
 use App\Models\SourceSync;
+use App\Services\Integrations\Google\GoogleTokenService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -95,6 +96,8 @@ class SourceRegistryService
 
     public function createPlannedSync(Source $source): SourceSync
     {
+        $this->assertSourceCanSync($source);
+
         return $source->syncs()->create([
             'status' => 'planned',
             'started_at' => null,
@@ -102,6 +105,30 @@ class SourceRegistryService
             'records_found' => null,
             'error' => null,
         ]);
+    }
+
+    private function assertSourceCanSync(Source $source): void
+    {
+        if ($source->provider !== 'google') {
+            return;
+        }
+
+        $source->loadMissing('connections.integrationConnection.integration');
+
+        $connection = $source->connections
+            ->map(fn (SourceConnection $sourceConnection) => $sourceConnection->integrationConnection)
+            ->filter(fn (?IntegrationConnection $connection) => $connection?->integration?->key === 'google')
+            ->first();
+
+        if (! $connection) {
+            throw new InvalidArgumentException('Reconnect Google integration before syncing GA4 or Search Console.');
+        }
+
+        $connection = app(GoogleTokenService::class)->refreshIfPossible($connection);
+
+        if ($connection->status !== 'active' || app(GoogleTokenService::class)->isExpired($connection)) {
+            throw new InvalidArgumentException('Reconnect Google integration before syncing GA4 or Search Console.');
+        }
     }
 
     public function completeSync(SourceSync $sync, int $recordsFound = 0): SourceSync

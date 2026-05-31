@@ -14,6 +14,7 @@ use InvalidArgumentException;
     'account_id',
     'brand_id',
     'property_id',
+    'connector_installation_id',
     'provider',
     'name',
     'status',
@@ -54,6 +55,8 @@ class PublishingChannel extends Model
 
         static::saving(function (PublishingChannel $channel): void {
             if ($channel->property_id === null) {
+                self::assertConnectorInstallation($channel);
+
                 return;
             }
 
@@ -62,6 +65,21 @@ class PublishingChannel extends Model
             if (! $property || $property->account_id !== $channel->account_id || $property->brand_id !== $channel->brand_id) {
                 throw new InvalidArgumentException('Publishing channel property must belong to the same account and brand.');
             }
+
+            self::assertConnectorInstallation($channel);
+        });
+
+        static::saved(function (PublishingChannel $channel): void {
+            if (! $channel->connector_installation_id) {
+                return;
+            }
+
+            ConnectorInstallation::withoutEvents(function () use ($channel): void {
+                ConnectorInstallation::query()
+                    ->whereKey($channel->connector_installation_id)
+                    ->where('channel_id', '!=', $channel->id)
+                    ->update(['channel_id' => $channel->id]);
+            });
         });
     }
 
@@ -90,6 +108,14 @@ class PublishingChannel extends Model
     }
 
     /**
+     * @return BelongsTo<ConnectorInstallation, $this>
+     */
+    public function connectorInstallation(): BelongsTo
+    {
+        return $this->belongsTo(ConnectorInstallation::class, 'connector_installation_id');
+    }
+
+    /**
      * @return HasMany<ContentAsset, $this>
      */
     public function contentAssets(): HasMany
@@ -112,5 +138,29 @@ class PublishingChannel extends Model
             'settings' => 'array',
             'last_connected_at' => 'datetime',
         ];
+    }
+
+    private static function assertConnectorInstallation(PublishingChannel $channel): void
+    {
+        if ($channel->connector_installation_id === null) {
+            return;
+        }
+
+        $installation = ConnectorInstallation::query()
+            ->with('manifest')
+            ->find($channel->connector_installation_id);
+
+        if (
+            ! $installation
+            || $installation->account_id !== $channel->account_id
+            || $installation->brand_id !== $channel->brand_id
+            || ($installation->property_id !== null && $installation->property_id !== $channel->property_id)
+        ) {
+            throw new InvalidArgumentException('Connector installation must belong to the same account, brand and property scope as the publishing channel.');
+        }
+
+        if ($installation->manifest?->type !== $channel->provider) {
+            throw new InvalidArgumentException('Connector installation type must match the publishing channel provider.');
+        }
     }
 }

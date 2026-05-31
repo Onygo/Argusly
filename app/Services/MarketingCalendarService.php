@@ -3,14 +3,16 @@
 namespace App\Services;
 
 use App\Models\Account;
+use App\Models\Approval;
 use App\Models\Brand;
 use App\Models\Campaign;
 use App\Models\MarketingCalendarItem;
+use App\Models\MarketingTask;
 use App\Models\PublishingAction;
 use App\Models\SocialPost;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -18,19 +20,35 @@ use InvalidArgumentException;
 class MarketingCalendarService
 {
     /**
-     * @param  array{type?: string|null, status?: string|null, mode?: string|null, starts?: mixed, ends?: mixed}  $filters
+     * @param  array{brand_id?: mixed, campaign_id?: mixed, type?: string|null, status?: string|null, assigned_to?: mixed, mode?: string|null, starts?: mixed, ends?: mixed}  $filters
      * @return LengthAwarePaginator<int, MarketingCalendarItem>
      */
-    public function paginatedForTenant(Account $account, Brand $brand, array $filters = [], int $perPage = 40): LengthAwarePaginator
+    public function paginatedForTenant(Account $account, ?Brand $brand, array $filters = [], int $perPage = 40): LengthAwarePaginator
     {
-        return $this->tenantQuery($account, $brand)
-            ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('type', $type))
-            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
+        return $this->filteredQuery($account, $brand, $filters)
             ->whereBetween('start_at', $this->range($filters['mode'] ?? 'month', $filters['starts'] ?? null, $filters['ends'] ?? null))
-            ->with(['campaign', 'assignee'])
             ->orderBy('start_at')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * @param  array{brand_id?: mixed, campaign_id?: mixed, type?: string|null, status?: string|null, assigned_to?: mixed, mode?: string|null, starts?: mixed, ends?: mixed}  $filters
+     * @return Collection<int, MarketingCalendarItem>
+     */
+    public function itemsForTenant(Account $account, ?Brand $brand, array $filters = []): Collection
+    {
+        return $this->filteredQuery($account, $brand, $filters)
+            ->whereBetween('start_at', $this->range($filters['mode'] ?? 'month', $filters['starts'] ?? null, $filters['ends'] ?? null))
+            ->orderBy('start_at')
+            ->get();
+    }
+
+    public function findForTenant(Account $account, ?Brand $brand, int $id): MarketingCalendarItem
+    {
+        return $this->tenantQuery($account, $brand)
+            ->with(['brand', 'campaign', 'assignee', 'related'])
+            ->findOrFail($id);
     }
 
     public function syncSocialPost(SocialPost $post): ?MarketingCalendarItem
@@ -110,10 +128,67 @@ class MarketingCalendarService
         ]);
     }
 
+    public function syncTask(MarketingTask $task): ?MarketingCalendarItem
+    {
+        if ($task->due_at === null) {
+            MarketingCalendarItem::query()
+                ->where('related_type', $task->getMorphClass())
+                ->where('related_id', $task->id)
+                ->delete();
+
+            return null;
+        }
+
+        return $this->upsertForRelated($task, [
+            'account_id' => $task->account_id,
+            'brand_id' => $task->brand_id,
+            'campaign_id' => $task->campaign_id,
+            'title' => 'Task: '.$task->title,
+            'description' => $task->description,
+            'type' => 'marketing_task',
+            'status' => $this->taskStatus($task),
+            'start_at' => $task->due_at,
+            'end_at' => null,
+            'assigned_to' => $task->assigned_to,
+            'metadata' => [
+                'marketing_task_id' => $task->id,
+                'priority' => $task->priority,
+                'task_status' => $task->status,
+                'objective_id' => $task->marketing_objective_id,
+            ],
+        ]);
+    }
+
+    public function syncApproval(Approval $approval): ?MarketingCalendarItem
+    {
+        if ($approval->requested_at === null) {
+            return null;
+        }
+
+        return $this->upsertForRelated($approval, [
+            'account_id' => $approval->account_id,
+            'brand_id' => $approval->brand_id,
+            'campaign_id' => null,
+            'title' => 'Approval: '.class_basename($approval->subject_type),
+            'description' => $approval->notes,
+            'type' => 'approval',
+            'status' => $this->approvalStatus($approval),
+            'start_at' => $approval->requested_at,
+            'end_at' => null,
+            'assigned_to' => $approval->requested_by,
+            'metadata' => [
+                'approval_id' => $approval->id,
+                'approval_status' => $approval->status,
+                'subject_type' => $approval->subject_type,
+                'subject_id' => $approval->subject_id,
+            ],
+        ]);
+    }
+
     /**
      * @return Collection<int, MarketingCalendarItem>
      */
-    public function upcoming(Account $account, Brand $brand, int $limit = 12): Collection
+    public function upcoming(Account $account, ?Brand $brand, int $limit = 12): Collection
     {
         return $this->tenantQuery($account, $brand)
             ->where('start_at', '>=', now()->startOfDay())
@@ -126,15 +201,37 @@ class MarketingCalendarService
     /**
      * @return Builder<MarketingCalendarItem>
      */
-    private function tenantQuery(Account $account, Brand $brand): Builder
+    /**
+     * @param  array{brand_id?: mixed, campaign_id?: mixed, type?: string|null, status?: string|null, assigned_to?: mixed}  $filters
+     * @return Builder<MarketingCalendarItem>
+     */
+    private function filteredQuery(Account $account, ?Brand $brand, array $filters): Builder
     {
-        if ($brand->account_id !== $account->id) {
+        return $this->tenantQuery($account, $brand)
+            ->when($filters['type'] ?? null, fn (Builder $query, string $type) => $query->where('type', $type))
+            ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
+            ->when($filters['campaign_id'] ?? null, fn (Builder $query, mixed $campaignId) => $query->where('campaign_id', (int) $campaignId))
+            ->when($filters['assigned_to'] ?? null, fn (Builder $query, mixed $assignedTo) => $query->where('assigned_to', (int) $assignedTo))
+            ->with(['brand', 'campaign', 'assignee', 'related']);
+    }
+
+    /**
+     * @return Builder<MarketingCalendarItem>
+     */
+    private function tenantQuery(Account $account, ?Brand $brand): Builder
+    {
+        if ($brand !== null && $brand->account_id !== $account->id) {
             throw new InvalidArgumentException('Calendar brand must belong to the account.');
         }
 
         return MarketingCalendarItem::query()
             ->where('account_id', $account->id)
-            ->where('brand_id', $brand->id);
+            ->when(
+                $brand !== null,
+                fn (Builder $query) => $query->where(fn (Builder $scope) => $scope
+                    ->whereNull('brand_id')
+                    ->orWhere('brand_id', $brand->id)),
+            );
     }
 
     /**
@@ -195,6 +292,25 @@ class MarketingCalendarService
             'completed', 'archived' => 'completed',
             'paused' => 'cancelled',
             default => 'planned',
+        };
+    }
+
+    private function taskStatus(MarketingTask $task): string
+    {
+        return match ($task->status) {
+            'completed' => 'completed',
+            'cancelled' => 'cancelled',
+            'in_progress', 'waiting_review' => 'in_progress',
+            default => 'planned',
+        };
+    }
+
+    private function approvalStatus(Approval $approval): string
+    {
+        return match ($approval->status) {
+            'approved' => 'completed',
+            'rejected', 'cancelled' => 'cancelled',
+            default => 'in_progress',
         };
     }
 }

@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Jobs\ProcessOutboxMessageJob;
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\ConnectorInstallation;
+use App\Models\ConnectorVersion;
 use App\Models\ContentAsset;
 use App\Models\OutboxMessage;
 use App\Models\PublishingChannel;
@@ -14,6 +16,7 @@ use App\Services\CreditService;
 use App\Services\OutboxService;
 use App\Services\PublishingService;
 use App\Services\Subscriptions\SubscriptionService;
+use Database\Seeders\ConnectorCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -60,6 +63,7 @@ class OutboxPatternTest extends TestCase
         [$publisher, , $brand] = $this->tenantUser('publisher');
         $asset = ContentAsset::factory()->forBrand($brand)->create(['status' => 'approved']);
         $channel = PublishingChannel::factory()->forBrand($brand)->create(['provider' => 'wordpress']);
+        $this->connectorInstallation($publisher, $channel);
         $asset->forceFill(['channel_id' => $channel->id])->save();
 
         $action = app(PublishingService::class)->request($asset, $publisher, ['action' => 'publish']);
@@ -112,5 +116,27 @@ class OutboxPatternTest extends TestCase
         app(CreditService::class)->grant($account, 1000, $user, 'Test credits');
 
         return [$user, $account, $brand];
+    }
+
+    private function connectorInstallation(User $user, PublishingChannel $channel): ConnectorInstallation
+    {
+        $this->seed(ConnectorCatalogSeeder::class);
+
+        $version = ConnectorVersion::query()
+            ->whereHas('manifest', fn ($query) => $query->where('type', $channel->provider))
+            ->firstOrFail();
+
+        return ConnectorInstallation::query()->create([
+            'account_id' => $channel->account_id,
+            'brand_id' => $channel->brand_id,
+            'property_id' => $channel->property_id,
+            'channel_id' => $channel->id,
+            'connector_manifest_id' => $version->connector_manifest_id,
+            'connector_version_id' => $version->id,
+            'installed_by_user_id' => $user->id,
+            'name' => 'WordPress Connector',
+            'status' => 'active',
+            'enabled_capabilities' => ['publish_content', 'health_check'],
+        ]);
     }
 }

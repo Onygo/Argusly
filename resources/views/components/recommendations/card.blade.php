@@ -7,6 +7,12 @@
         'dismissed' => 'border-slate-200 bg-slate-50 text-slate-500',
         'completed' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
     ];
+    $executionClasses = [
+        'pending' => 'border-amber-200 bg-amber-50 text-amber-700',
+        'queued' => 'border-blue/15 bg-blue/5 text-blue',
+        'completed' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        'failed' => 'border-red-200 bg-red-50 text-red-700',
+    ];
 @endphp
 
 <article {{ $attributes->merge(['class' => 'rounded-lg border border-line bg-white p-4']) }}>
@@ -18,6 +24,16 @@
                 </span>
                 @if ($recommendation->brand)
                     <span class="text-xs text-muted">{{ $recommendation->brand->name }}</span>
+                @endif
+                @if ($recommendation->action_type)
+                    <span class="rounded-full border border-line bg-panel px-2.5 py-1 text-xs font-semibold text-muted">
+                        {{ str($recommendation->action_type)->replace('_', ' ')->headline() }}
+                    </span>
+                @endif
+                @if ($recommendation->execution_status)
+                    <span class="rounded-full border px-2.5 py-1 text-xs font-semibold {{ $executionClasses[$recommendation->execution_status] ?? $executionClasses['pending'] }}">
+                        {{ str($recommendation->execution_status)->headline() }}
+                    </span>
                 @endif
             </div>
             <h3 class="mt-3 text-sm font-semibold text-ink">{{ $recommendation->title }}</h3>
@@ -55,6 +71,14 @@
                     <form method="POST" action="{{ route('app.recommendations.accept', $recommendation) }}">
                         @csrf
                         <x-ui.button type="submit" variant="light" size="sm">Accept</x-ui.button>
+                    </form>
+                @endif
+                @if ($recommendation->action_type && ! in_array($recommendation->execution_status, ['queued', 'completed'], true))
+                    <form method="POST" action="{{ route('app.recommendations.execute', $recommendation) }}">
+                        @csrf
+                        <x-ui.button type="submit" size="sm">
+                            {{ $recommendation->status === 'accepted' ? 'Run action' : 'Accept & run' }}
+                        </x-ui.button>
                     </form>
                 @endif
                 @if ($recommendation->status !== 'dismissed')

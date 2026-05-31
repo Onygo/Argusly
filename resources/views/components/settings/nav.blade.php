@@ -9,6 +9,7 @@
         ['label' => 'settings.modules', 'route' => 'settings.modules'],
         ['label' => 'settings.integrations', 'route' => 'settings.integrations'],
         ['label' => 'settings.social_profiles', 'route' => 'settings.social-profiles'],
+        ['label' => 'settings.email_providers', 'route' => 'settings.email-providers'],
         ['label' => 'settings.connectors', 'route' => 'settings.connectors', 'modules' => ['connectors']],
         ['label' => 'settings.knowledge_graph', 'route' => 'settings.knowledge-graph'],
         ['label' => 'settings.properties', 'route' => 'settings.properties', 'modules' => ['content']],

@@ -26,7 +26,7 @@ class Source extends Model
 
     public const TYPES = ['social', 'news', 'blog', 'forum', 'video', 'podcast', 'website', 'ai', 'search'];
 
-    public const PROVIDERS = ['linkedin', 'reddit', 'youtube', 'chatgpt', 'claude', 'gemini', 'perplexity', 'google', 'rss', 'wordpress'];
+    public const PROVIDERS = ['linkedin', 'reddit', 'youtube', 'chatgpt', 'claude', 'gemini', 'perplexity', 'google', 'google_search_console', 'rss', 'wordpress'];
 
     public const STATUSES = ['active', 'paused', 'archived'];
 

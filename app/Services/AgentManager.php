@@ -86,6 +86,7 @@ class AgentManager
             ['key' => 'campaign', 'name' => 'Campaign Agent', 'description' => 'Coordinates multi-step campaign work across content, social and reporting.', 'status' => 'idle', 'capabilities' => ['campaign_planning', 'handoffs', 'qa']],
             ['key' => 'lifecycle', 'name' => 'Lifecycle Agent', 'description' => 'Watches lifecycle scores and schedules refresh or audit work.', 'status' => 'idle', 'capabilities' => ['content_decay', 'refresh_priority', 'audit_requests']],
             ['key' => 'competitor', 'name' => 'Competitor Agent', 'description' => 'Tracks competitor intelligence signals and prepares comparison tasks.', 'status' => 'idle', 'capabilities' => ['competitor_snapshots', 'gap_detection', 'market_watch']],
+            ['key' => 'monitoring', 'name' => 'Monitoring Agent', 'description' => 'Tracks integration health and prepares reconnect or recovery tasks.', 'status' => 'idle', 'capabilities' => ['integration_health', 'reconnect_handoffs', 'alert_review']],
         ];
     }
 }

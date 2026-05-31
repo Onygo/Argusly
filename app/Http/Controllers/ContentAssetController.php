@@ -73,6 +73,8 @@ class ContentAssetController extends Controller
                 'audits' => fn ($query) => $query->with('evidenceItems.source')->latest()->limit(10),
                 'answerBlocks' => fn ($query) => $query->orderBy('position')->orderBy('id'),
                 'lifecycleScores' => fn ($query) => $query->latest('scored_at')->latest()->limit(5),
+                'ga4MetricSnapshots' => fn ($query) => $query->with('ga4Property')->latest('date')->latest()->limit(5),
+                'searchConsoleQuerySnapshots' => fn ($query) => $query->with('searchConsoleSite')->latest('date')->latest()->limit(5),
                 'publishingActions' => fn ($query) => $query->with('publishingChannel')->latest()->limit(10),
                 'sourceTranslations' => fn ($query) => $query->with('translatedContentAsset')->latest(),
                 'translatedFrom' => fn ($query) => $query->with('sourceContentAsset')->latest(),

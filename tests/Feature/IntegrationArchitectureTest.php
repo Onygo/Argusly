@@ -27,13 +27,15 @@ class IntegrationArchitectureTest extends TestCase
     {
         $this->seed(IntegrationCatalogSeeder::class);
 
-        $this->assertSame(7, Integration::query()->count());
+        $this->assertSame(count(config('integrations.providers')), Integration::query()->count());
         $this->assertDatabaseHas('integrations', ['key' => 'linkedin', 'auth_type' => 'oauth2']);
         $this->assertSame(
             ['openid', 'profile', 'email', 'w_member_social'],
             Integration::query()->where('key', 'linkedin')->firstOrFail()->default_scopes,
         );
         $this->assertDatabaseHas('integrations', ['key' => 'google', 'auth_type' => 'oauth2']);
+        $this->assertDatabaseHas('integrations', ['key' => 'google_analytics', 'auth_type' => 'oauth2']);
+        $this->assertDatabaseHas('integrations', ['key' => 'google_search_console', 'auth_type' => 'oauth2']);
         $this->assertDatabaseHas('integrations', ['key' => 'laravel', 'auth_type' => 'api_key']);
         $this->assertDatabaseHas('integrations', ['key' => 'youtube', 'auth_type' => 'oauth2']);
     }

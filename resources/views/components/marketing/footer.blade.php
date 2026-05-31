@@ -22,7 +22,7 @@
             @endforeach
         </div>
         <div class="mt-12 flex flex-col gap-4 border-t border-line pt-8 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
-            <p>&copy; {{ date('Y') }} Argusly. Formerly PublishLayer.</p>
+            <p>&copy; {{ date('Y') }} Argusly.</p>
             <div class="flex gap-5"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Status</a></div>
         </div>
     </div>

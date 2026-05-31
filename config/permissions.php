@@ -15,6 +15,7 @@ return [
             'create_content',
             'edit_content',
             'publish_content',
+            'bypass_approval',
         ],
         'visibility' => [
             'view_visibility',
@@ -48,6 +49,7 @@ return [
             'create_content',
             'edit_content',
             'publish_content',
+            'bypass_approval',
         ],
         'visibility' => [
             'view_visibility',
@@ -60,6 +62,10 @@ return [
             'view_lead_intelligence',
         ],
         'campaigns' => [
+            'view_campaigns',
+            'manage_campaigns',
+        ],
+        'marketing_os' => [
             'view_campaigns',
             'manage_campaigns',
         ],
@@ -95,6 +101,7 @@ return [
                 'create_content',
                 'edit_content',
                 'publish_content',
+                'bypass_approval',
                 'view_visibility',
                 'manage_visibility',
                 'view_competitive_intelligence',
@@ -116,6 +123,7 @@ return [
                 'create_content',
                 'edit_content',
                 'publish_content',
+                'bypass_approval',
                 'view_visibility',
                 'manage_visibility',
                 'view_competitive_intelligence',
@@ -152,6 +160,7 @@ return [
                 'create_content',
                 'edit_content',
                 'publish_content',
+                'bypass_approval',
                 'view_visibility',
                 'view_competitive_intelligence',
                 'view_campaigns',

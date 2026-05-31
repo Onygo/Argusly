@@ -110,6 +110,22 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<Ga4Property, $this>
+     */
+    public function ga4Properties(): HasMany
+    {
+        return $this->hasMany(Ga4Property::class);
+    }
+
+    /**
+     * @return HasMany<SearchConsoleSite, $this>
+     */
+    public function searchConsoleSites(): HasMany
+    {
+        return $this->hasMany(SearchConsoleSite::class);
+    }
+
+    /**
      * @return HasOne<CreditBalance, $this>
      */
     public function creditBalance(): HasOne

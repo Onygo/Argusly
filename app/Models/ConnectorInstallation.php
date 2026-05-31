@@ -54,6 +54,22 @@ class ConnectorInstallation extends Model
             self::assertTenantReferences($installation);
             self::assertVersionMatchesManifest($installation);
         });
+
+        static::saved(function (ConnectorInstallation $installation): void {
+            if (! $installation->channel_id) {
+                return;
+            }
+
+            PublishingChannel::withoutEvents(function () use ($installation): void {
+                PublishingChannel::query()
+                    ->whereKey($installation->channel_id)
+                    ->where(function ($query) use ($installation): void {
+                        $query->whereNull('connector_installation_id')
+                            ->orWhere('connector_installation_id', $installation->id);
+                    })
+                    ->update(['connector_installation_id' => $installation->id]);
+            });
+        });
     }
 
     /**
@@ -164,6 +180,16 @@ class ConnectorInstallation extends Model
 
             if (! $channel || $channel->account_id !== $installation->account_id || $channel->brand_id !== $installation->brand_id) {
                 throw new InvalidArgumentException('Connector channel must belong to the same account and brand.');
+            }
+
+            if ($channel->property_id !== null && $installation->property_id !== null && $channel->property_id !== $installation->property_id) {
+                throw new InvalidArgumentException('Connector channel must belong to the same property scope.');
+            }
+
+            $manifest = ConnectorManifest::query()->find($installation->connector_manifest_id);
+
+            if ($manifest?->type !== $channel->provider) {
+                throw new InvalidArgumentException('Connector channel provider must match the connector type.');
             }
         }
     }

@@ -19,6 +19,7 @@ class PublishingService
         private readonly ActivityLogger $activity,
         private readonly SignalManager $signals,
         private readonly CreditService $credits,
+        private readonly ApprovalService $approvals,
     ) {}
 
     /**
@@ -28,6 +29,7 @@ class PublishingService
     {
         $action = $attributes['action'] ?? 'publish';
         $this->ensureAction($action);
+        $this->approvals->assertApprovedForPublish($contentAsset, $user);
 
         $channel = $this->channelFor($contentAsset, $attributes['publishing_channel_id'] ?? $contentAsset->channel_id);
 
@@ -256,7 +258,26 @@ class PublishingService
             throw new InvalidArgumentException('Publishing channel must belong to the same account and brand as the content asset.');
         }
 
+        $this->assertPublishableConnector($channel);
+
         return $channel;
+    }
+
+    private function assertPublishableConnector(PublishingChannel $channel): void
+    {
+        if (! in_array($channel->provider, array_keys(config('connectors.types', [])), true)) {
+            return;
+        }
+
+        $installation = $this->activeConnectorFor($channel);
+
+        if (! $installation) {
+            throw new InvalidArgumentException('Publishing channel has no active connector installation.');
+        }
+
+        if (! in_array('publish_content', $installation->enabled_capabilities ?? [], true)) {
+            throw new InvalidArgumentException('Connector installation does not have the publish_content capability.');
+        }
     }
 
     private function updateContentAsset(ContentAsset $contentAsset, PublishingAction $publishingAction, Carbon $publishedAt): void
@@ -323,13 +344,23 @@ class PublishingService
             return false;
         }
 
+        return $this->activeConnectorFor($channel) !== null;
+    }
+
+    private function activeConnectorFor(PublishingChannel $channel): ?ConnectorInstallation
+    {
+        if (! $channel->connector_installation_id) {
+            return null;
+        }
+
         return ConnectorInstallation::query()
             ->where('account_id', $channel->account_id)
             ->where('brand_id', $channel->brand_id)
+            ->whereKey($channel->connector_installation_id)
             ->where('channel_id', $channel->id)
-            ->whereIn('status', ['pending', 'active', 'unhealthy'])
+            ->where('status', 'active')
             ->whereNull('revoked_at')
-            ->exists();
+            ->first();
     }
 
     /**
@@ -370,6 +401,7 @@ class PublishingService
                 'name' => $channel->name,
                 'language' => $contentAsset->language,
                 'locale' => $contentAsset->locale,
+                'connector_installation_id' => $channel->connector_installation_id,
             ] : null,
         ];
     }

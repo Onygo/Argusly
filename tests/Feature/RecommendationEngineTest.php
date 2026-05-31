@@ -2,17 +2,27 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\RunContentAuditJob;
+use App\Jobs\RunVisibilityCheckJob;
 use App\Models\Account;
+use App\Models\AnswerBlock;
 use App\Models\Brand;
+use App\Models\ContentAsset;
+use App\Models\ContentAudit;
 use App\Models\Recommendation;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\VisibilityCheck;
+use App\Services\CreditService;
+use App\Services\RecommendationActionService;
 use App\Services\RecommendationEngineService;
 use App\Services\SignalManager;
 use App\Services\Subscriptions\SubscriptionService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use InvalidArgumentException;
 use Tests\TestCase;
 
 class RecommendationEngineTest extends TestCase
@@ -134,6 +144,8 @@ class RecommendationEngineTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('accepted', $recommendation->refresh()->status);
+        $this->assertSame($user->id, $recommendation->accepted_by);
+        $this->assertNotNull($recommendation->accepted_at);
 
         $this->actingAs($user)
             ->post(route('app.recommendations.dismiss', $recommendation))
@@ -144,6 +156,131 @@ class RecommendationEngineTest extends TestCase
         $this->actingAs($user)
             ->post(route('app.recommendations.accept', $hiddenRecommendation))
             ->assertNotFound();
+    }
+
+    public function test_executable_recommendation_accepts_and_queues_content_audit_action(): void
+    {
+        Queue::fake();
+
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        app(CreditService::class)->grant($account, 100, $user, 'Test credits');
+        $asset = ContentAsset::factory()->forBrand($brand)->create(['title' => 'Actionable guide']);
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Run content audit',
+            'summary' => 'Audit the content.',
+            'recommended_action' => 'Run a fresh content audit.',
+            'action_type' => 'run_content_audit',
+            'action_payload' => ['content_asset_id' => $asset->id],
+            'status' => 'new',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('app.recommendations.execute', $recommendation))
+            ->assertRedirect();
+
+        $recommendation->refresh();
+        $audit = ContentAudit::query()->where('content_asset_id', $asset->id)->firstOrFail();
+
+        $this->assertSame('accepted', $recommendation->status);
+        $this->assertSame('queued', $recommendation->execution_status);
+        $this->assertSame($user->id, $recommendation->accepted_by);
+        $this->assertNotNull($recommendation->executed_at);
+        $this->assertSame('queued', $audit->status);
+
+        Queue::assertPushed(RunContentAuditJob::class, fn (RunContentAuditJob $job) => $job->contentAuditId === $audit->id);
+        $this->assertDatabaseHas('domain_events', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'event_type' => 'RecommendationActionExecuted',
+            'subject_id' => $recommendation->id,
+        ]);
+    }
+
+    public function test_executable_recommendation_can_create_answer_block_immediately(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $asset = ContentAsset::factory()->forBrand($brand)->create([
+            'title' => 'Answer source',
+            'excerpt' => 'A concise answer can be extracted from this source.',
+        ]);
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Create Answer Block',
+            'summary' => 'Create a reusable answer.',
+            'recommended_action' => 'Create an answer block.',
+            'action_type' => 'create_answer_block',
+            'action_payload' => [
+                'content_asset_id' => $asset->id,
+                'question' => 'What is this source about?',
+            ],
+            'status' => 'new',
+        ]);
+
+        app(RecommendationActionService::class)->execute($recommendation, $user);
+
+        $recommendation->refresh();
+        $answer = AnswerBlock::query()->where('content_asset_id', $asset->id)->firstOrFail();
+
+        $this->assertSame('completed', $recommendation->status);
+        $this->assertSame('completed', $recommendation->execution_status);
+        $this->assertSame('What is this source about?', $answer->question);
+        $this->assertSame('draft', $answer->status);
+    }
+
+    public function test_visibility_action_queues_visibility_check(): void
+    {
+        Queue::fake();
+
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Improve AI visibility',
+            'summary' => 'Run a visibility check.',
+            'recommended_action' => 'Run a visibility check.',
+            'action_type' => 'run_visibility_check',
+            'action_payload' => [
+                'provider' => 'ChatGPT',
+                'query' => 'best answer intelligence platform',
+            ],
+            'status' => 'new',
+        ]);
+
+        app(RecommendationActionService::class)->execute($recommendation, $user);
+
+        $check = VisibilityCheck::query()->where('query', 'best answer intelligence platform')->firstOrFail();
+
+        $this->assertSame('queued', $recommendation->refresh()->execution_status);
+        $this->assertSame('ChatGPT', $check->provider);
+        Queue::assertPushed(RunVisibilityCheckJob::class, fn (RunVisibilityCheckJob $job) => $job->visibilityCheckId === $check->id);
+    }
+
+    public function test_recommendation_actions_reject_cross_tenant_payloads(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        [, , $otherBrand] = $this->tenantWithRole('owner');
+        $otherAsset = ContentAsset::factory()->forBrand($otherBrand)->create();
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Create Answer Block',
+            'summary' => 'Create a reusable answer.',
+            'recommended_action' => 'Create an answer block.',
+            'action_type' => 'create_answer_block',
+            'action_payload' => ['content_asset_id' => $otherAsset->id],
+            'status' => 'new',
+        ]);
+
+        try {
+            app(RecommendationActionService::class)->execute($recommendation, $user);
+            $this->fail('Expected cross-tenant recommendation action to fail.');
+        } catch (InvalidArgumentException) {
+            $this->assertSame('failed', $recommendation->refresh()->execution_status);
+        }
+        $this->assertSame(0, AnswerBlock::query()->where('content_asset_id', $otherAsset->id)->count());
     }
 
     /**

@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
 use App\Models\User;
-use App\Services\DomainEventService;
+use App\Services\RecommendationActionService;
 use App\Services\RecommendationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Throwable;
 
 class RecommendationController extends Controller
 {
@@ -17,6 +18,7 @@ class RecommendationController extends Controller
         CurrentAccountContract $currentAccount,
         CurrentBrandContract $currentBrand,
         RecommendationService $recommendations,
+        RecommendationActionService $actions,
         int $recommendation,
     ): RedirectResponse {
         /** @var User $user */
@@ -27,16 +29,34 @@ class RecommendationController extends Controller
         abort_unless($account, 403);
 
         $recommendationModel = $recommendations->findForTenant($account, $brand, $recommendation);
-        $recommendationModel->accept();
-
-        app(DomainEventService::class)->recordForSubject('RecommendationAccepted', $recommendationModel->refresh(), $user, [
-            'title' => $recommendationModel->title,
-            'signal_id' => $recommendationModel->signal_id,
-            'impact_score' => $recommendationModel->impact_score,
-            'confidence_score' => $recommendationModel->confidence_score,
-        ]);
+        $actions->accept($recommendationModel, $user);
 
         return back()->with('status', 'Recommendation accepted.');
+    }
+
+    public function execute(
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        RecommendationService $recommendations,
+        RecommendationActionService $actions,
+        int $recommendation,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account, 403);
+
+        $recommendationModel = $recommendations->findForTenant($account, $brand, $recommendation);
+        try {
+            $actions->execute($recommendationModel, $user);
+        } catch (Throwable $exception) {
+            return back()->withErrors(['recommendation_action' => $exception->getMessage()]);
+        }
+
+        return back()->with('status', 'Recommendation action started.');
     }
 
     public function dismiss(

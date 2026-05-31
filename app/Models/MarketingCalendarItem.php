@@ -34,6 +34,8 @@ class MarketingCalendarItem extends Model
         'social_post',
         'content_asset',
         'campaign_task',
+        'marketing_task',
+        'approval',
         'newsletter',
         'event',
         'reminder',
@@ -61,6 +63,10 @@ class MarketingCalendarItem extends Model
 
             if (! in_array($item->status, self::STATUSES, true)) {
                 throw new InvalidArgumentException("Invalid marketing calendar item status [{$item->status}].");
+            }
+
+            if ($item->brand_id === null) {
+                return;
             }
 
             $brand = Brand::query()->find($item->brand_id);

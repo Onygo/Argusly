@@ -6,7 +6,10 @@
                 <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{{ $campaign->name }}</h1>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">{{ $campaign->objective ?: $campaign->description ?: 'No objective yet.' }}</p>
             </div>
-            <x-ui.button href="{{ route('app.campaigns') }}" variant="secondary">Back to campaigns</x-ui.button>
+            <div class="flex flex-wrap gap-2">
+                <x-ui.button href="{{ route('app.campaigns.board', $campaign) }}">Planning board</x-ui.button>
+                <x-ui.button href="{{ route('app.campaigns') }}" variant="secondary">Back to campaigns</x-ui.button>
+            </div>
         </div>
 
         @if (session('status'))

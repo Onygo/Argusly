@@ -79,6 +79,14 @@ class Property extends Model
         return $this->hasMany(ContentAsset::class);
     }
 
+    /**
+     * @return HasMany<Ga4Property, $this>
+     */
+    public function ga4Properties(): HasMany
+    {
+        return $this->hasMany(Ga4Property::class);
+    }
+
     protected function casts(): array
     {
         return [

@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\ConnectorInstallation;
+use App\Models\ConnectorVersion;
 use App\Models\Integration;
 use App\Models\IntegrationConnection;
 use App\Models\Module;
@@ -14,6 +16,7 @@ use App\Models\SocialProfile;
 use App\Models\User;
 use App\Services\Subscriptions\SubscriptionService;
 use Database\Seeders\IntegrationCatalogSeeder;
+use Database\Seeders\ConnectorCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,7 +99,7 @@ class SettingsScreensTest extends TestCase
             ->assertSee('No payment integration yet');
     }
 
-    public function test_integrations_settings_show_scoped_connections_and_placeholder(): void
+    public function test_integrations_settings_show_scoped_connections_and_google_oauth_status(): void
     {
         $this->seed(IntegrationCatalogSeeder::class);
         [$user, $account, $brand] = $this->tenantWithRole('owner');
@@ -113,6 +116,15 @@ class SettingsScreensTest extends TestCase
         IntegrationConnection::query()->create([
             'integration_id' => $integration->id,
             'owner_user_id' => $user->id,
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Stale Google',
+            'status' => 'expired',
+            'metadata' => ['token_error_message' => 'Google token refresh failed.'],
+        ]);
+        IntegrationConnection::query()->create([
+            'integration_id' => $integration->id,
+            'owner_user_id' => $user->id,
             'account_id' => Account::query()->create(['name' => 'Other', 'slug' => 'other'])->id,
             'name' => 'Other Google',
             'status' => 'active',
@@ -124,7 +136,10 @@ class SettingsScreensTest extends TestCase
             ->assertSee('LinkedIn')
             ->assertSee('Manage LinkedIn')
             ->assertSee('Alpha Google')
-            ->assertSee('No OAuth yet')
+            ->assertSee('Google OAuth')
+            ->assertSee('Reconnect Google integration to restore GA4 and Search Console sync.')
+            ->assertSee('Google token refresh failed.')
+            ->assertSee('Connect Google')
             ->assertDontSee('Other Google');
     }
 
@@ -261,14 +276,33 @@ class SettingsScreensTest extends TestCase
     public function test_channels_settings_are_brand_scoped_and_hide_credentials(): void
     {
         [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $this->seed(ConnectorCatalogSeeder::class);
+
         $otherBrand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Other Brand', 'slug' => 'other-brand']);
         $property = Property::factory()->forBrand($brand)->create(['name' => 'Main Website']);
+        $version = ConnectorVersion::query()
+            ->whereHas('manifest', fn ($query) => $query->where('type', 'wordpress'))
+            ->firstOrFail();
 
-        PublishingChannel::factory()->forProperty($property)->create([
+        $channel = PublishingChannel::factory()->forProperty($property)->create([
             'provider' => 'wordpress',
             'name' => 'Visible WordPress',
             'status' => 'draft',
             'credentials' => ['token' => 'super-secret-token'],
+        ]);
+        ConnectorInstallation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'property_id' => $property->id,
+            'channel_id' => $channel->id,
+            'connector_manifest_id' => $version->connector_manifest_id,
+            'connector_version_id' => $version->id,
+            'installed_by_user_id' => $user->id,
+            'name' => 'Production WordPress Connector',
+            'status' => 'active',
+            'enabled_capabilities' => ['publish_content', 'preview_url'],
+            'last_health_check' => ['status' => 'ok', 'message' => 'Healthy'],
+            'last_health_checked_at' => now()->subMinutes(5),
         ]);
         PublishingChannel::factory()->forBrand($otherBrand)->create([
             'provider' => 'linkedin',
@@ -281,7 +315,11 @@ class SettingsScreensTest extends TestCase
             ->assertOk()
             ->assertSee('Visible WordPress')
             ->assertSee('Main Website')
-            ->assertSee('No OAuth or publishing yet')
+            ->assertSee('Production WordPress Connector')
+            ->assertSee('Connector ready')
+            ->assertSee('Publish Content')
+            ->assertSee('Preview Url')
+            ->assertSee('ok')
             ->assertDontSee('Hidden LinkedIn')
             ->assertDontSee('super-secret-token')
             ->assertDontSee('hidden-secret-token');

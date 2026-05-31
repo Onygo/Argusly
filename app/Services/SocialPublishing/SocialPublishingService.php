@@ -34,6 +34,7 @@ class SocialPublishingService
         private readonly MarketingCalendarService $calendar,
         private readonly LinkedInTokenService $linkedInTokens,
         private readonly LinkedInPublishingService $linkedInPublisher,
+        private readonly \App\Services\ApprovalService $approvals,
     ) {}
 
     /**
@@ -153,6 +154,8 @@ class SocialPublishingService
         if (! $this->profiles->canPublish($user, $post->socialProfile, $post->account, $post->brand)) {
             throw new InvalidArgumentException('User cannot publish with this social profile.');
         }
+
+        $this->approvals->assertApprovedForPublish($post, $user);
 
         $this->assertProviderTokenHealthy($post);
 

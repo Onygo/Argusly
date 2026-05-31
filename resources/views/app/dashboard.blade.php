@@ -112,6 +112,48 @@
         </div>
 
         <div class="mt-6">
+            <x-dashboard.section title="GA4 performance" description="Google Analytics performance for the last 30 days in the current brand context.">
+                @if (($ga4Stats['sessions'] + $ga4Stats['users'] + $ga4Stats['pageviews']) === 0)
+                    <x-dashboard.empty-state
+                        title="No GA4 metrics yet"
+                        message="Sync GA4 to populate sessions, users and pageviews here."
+                    />
+                @else
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <x-dashboard.info-card label="Sessions" :value="number_format($ga4Stats['sessions'])" />
+                        <x-dashboard.info-card label="Users" :value="number_format($ga4Stats['users'])" />
+                        <x-dashboard.info-card label="Pageviews" :value="number_format($ga4Stats['pageviews'])" />
+                        <x-dashboard.info-card label="Conversions" :value="number_format($ga4Stats['conversions'])" />
+                    </div>
+                    <div class="mt-5">
+                        <x-ui.button href="{{ route('app.analytics') }}" variant="secondary">Open analytics</x-ui.button>
+                    </div>
+                @endif
+            </x-dashboard.section>
+        </div>
+
+        <div class="mt-6">
+            <x-dashboard.section title="Search performance" description="Search Console performance for the last 30 days in the current brand context.">
+                @if (($searchConsoleStats['clicks'] + $searchConsoleStats['impressions']) === 0)
+                    <x-dashboard.empty-state
+                        title="No Search Console metrics yet"
+                        message="Sync Search Console to populate clicks, impressions, CTR and ranking here."
+                    />
+                @else
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <x-dashboard.info-card label="Clicks" :value="number_format($searchConsoleStats['clicks'])" />
+                        <x-dashboard.info-card label="Impressions" :value="number_format($searchConsoleStats['impressions'])" />
+                        <x-dashboard.info-card label="CTR" :value="$searchConsoleStats['ctr'] !== null ? number_format($searchConsoleStats['ctr'] * 100, 2).'%' : 'n/a'" />
+                        <x-dashboard.info-card label="Avg position" :value="$searchConsoleStats['position'] !== null ? number_format($searchConsoleStats['position'], 2) : 'n/a'" />
+                    </div>
+                    <div class="mt-5">
+                        <x-ui.button href="{{ route('app.search-performance') }}" variant="secondary">Open search performance</x-ui.button>
+                    </div>
+                @endif
+            </x-dashboard.section>
+        </div>
+
+        <div class="mt-6">
             <x-dashboard.section :title="__('dashboard.top_topics')" description="First-class topic priorities for this account and current brand context.">
                 @if ($topTopics->isEmpty())
                     <x-dashboard.empty-state

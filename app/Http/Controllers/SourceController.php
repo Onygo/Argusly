@@ -130,7 +130,12 @@ class SourceController extends Controller
         Gate::authorize('sync', $source);
 
         $source = $sources->findForTenant($account, $brand, $source->id);
-        $sources->createPlannedSync($source);
+
+        try {
+            $sources->createPlannedSync($source);
+        } catch (InvalidArgumentException $exception) {
+            return redirect()->route('app.sources.show', $source)->withErrors(['sync' => $exception->getMessage()]);
+        }
 
         return redirect()->route('app.sources.show', $source)->with('status', 'Planned sync record created. No sync was executed.');
     }

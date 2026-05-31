@@ -20,9 +20,15 @@ use InvalidArgumentException;
     'title',
     'summary',
     'recommended_action',
+    'action_type',
+    'action_payload',
     'impact_score',
     'confidence_score',
     'status',
+    'accepted_by',
+    'accepted_at',
+    'executed_at',
+    'execution_status',
     'completed_at',
 ])]
 class Recommendation extends Model
@@ -32,6 +38,28 @@ class Recommendation extends Model
     public const UPDATED_AT = null;
 
     public const STATUSES = ['new', 'accepted', 'dismissed', 'completed'];
+
+    public const ACTION_TYPES = [
+        'run_content_audit',
+        'refresh_content',
+        'create_answer_block',
+        'translate_content',
+        'create_social_post',
+        'schedule_social_post',
+        'run_visibility_check',
+        'reconnect_integration',
+        'create_campaign_task_plan',
+        'create_campaign_briefing',
+        'create_newsletter_digest',
+        'create_audience_newsletter',
+        'submit_newsletter_for_approval',
+        'schedule_newsletter',
+        'attach_content_to_campaign',
+        'attach_social_post_to_campaign',
+        'create_objective_actions',
+    ];
+
+    public const EXECUTION_STATUSES = ['pending', 'queued', 'completed', 'failed'];
 
     protected static function booted(): void
     {
@@ -43,6 +71,14 @@ class Recommendation extends Model
         static::saving(function (Recommendation $recommendation): void {
             if (! in_array($recommendation->status, self::STATUSES, true)) {
                 throw new InvalidArgumentException("Invalid recommendation status [{$recommendation->status}].");
+            }
+
+            if ($recommendation->action_type !== null && ! in_array($recommendation->action_type, self::ACTION_TYPES, true)) {
+                throw new InvalidArgumentException("Invalid recommendation action type [{$recommendation->action_type}].");
+            }
+
+            if ($recommendation->execution_status !== null && ! in_array($recommendation->execution_status, self::EXECUTION_STATUSES, true)) {
+                throw new InvalidArgumentException("Invalid recommendation execution status [{$recommendation->execution_status}].");
             }
 
             if ($recommendation->brand_id !== null) {
@@ -88,6 +124,14 @@ class Recommendation extends Model
     }
 
     /**
+     * @return BelongsTo<User, $this>
+     */
+    public function acceptedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'accepted_by');
+    }
+
+    /**
      * @param  Builder<Recommendation>  $query
      * @return Builder<Recommendation>
      */
@@ -96,9 +140,14 @@ class Recommendation extends Model
         return $query->whereIn('status', ['new', 'accepted']);
     }
 
-    public function accept(): bool
+    public function accept(?User $user = null): bool
     {
-        return $this->forceFill(['status' => 'accepted'])->save();
+        return $this->forceFill([
+            'status' => 'accepted',
+            'accepted_by' => $user?->id,
+            'accepted_at' => now(),
+            'execution_status' => $this->action_type ? ($this->execution_status ?? 'pending') : $this->execution_status,
+        ])->save();
     }
 
     public function dismiss(): bool
@@ -122,6 +171,9 @@ class Recommendation extends Model
         return [
             'impact_score' => 'integer',
             'confidence_score' => 'integer',
+            'action_payload' => 'array',
+            'accepted_at' => 'datetime',
+            'executed_at' => 'datetime',
             'completed_at' => 'datetime',
             'created_at' => 'datetime',
         ];

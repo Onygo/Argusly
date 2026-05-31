@@ -21,6 +21,12 @@ return [
             'permission' => 'view_visibility',
         ],
         [
+            'label' => 'navigation.search_performance',
+            'route' => 'app.search-performance',
+            'modules' => ['visibility'],
+            'permission' => 'view_visibility',
+        ],
+        [
             'label' => 'navigation.competitors',
             'route' => 'app.competitors',
             'modules' => ['competitive_intelligence'],
@@ -45,6 +51,36 @@ return [
             'permission' => 'view_content',
         ],
         [
+            'label' => 'navigation.distribution',
+            'route' => 'app.distribution',
+            'modules' => ['content'],
+            'permission' => 'view_content',
+        ],
+        [
+            'label' => 'navigation.marketing',
+            'route' => 'app.marketing',
+            'modules' => ['campaigns', 'marketing_os'],
+            'permission' => 'view_campaigns',
+        ],
+        [
+            'label' => 'navigation.audiences',
+            'route' => 'app.audiences',
+            'modules' => ['campaigns', 'marketing_os'],
+            'permission' => 'view_campaigns',
+        ],
+        [
+            'label' => 'navigation.briefings',
+            'route' => 'app.briefings',
+            'modules' => ['campaigns', 'marketing_os'],
+            'permission' => 'view_campaigns',
+        ],
+        [
+            'label' => 'navigation.newsletters',
+            'route' => 'app.newsletters',
+            'modules' => ['campaigns', 'marketing_os'],
+            'permission' => 'view_campaigns',
+        ],
+        [
             'label' => 'navigation.campaigns',
             'route' => 'app.campaigns',
             'modules' => ['campaigns'],
@@ -59,6 +95,12 @@ return [
         [
             'label' => 'navigation.calendar',
             'route' => 'app.calendar',
+            'modules' => ['campaigns', 'marketing_os'],
+            'permission' => 'view_campaigns',
+        ],
+        [
+            'label' => 'navigation.analytics',
+            'route' => 'app.analytics',
             'modules' => ['content'],
             'permission' => 'view_content',
         ],
@@ -78,6 +120,12 @@ return [
         [
             'label' => 'navigation.reports',
             'route' => 'app.reports',
+            'modules' => ['core'],
+            'permission' => 'view_dashboard',
+        ],
+        [
+            'label' => 'navigation.notifications',
+            'route' => 'app.notifications',
             'modules' => ['core'],
             'permission' => 'view_dashboard',
         ],

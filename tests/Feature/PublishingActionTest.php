@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Jobs\PublishContentAssetJob;
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\ConnectorInstallation;
+use App\Models\ConnectorVersion;
 use App\Models\ContentAsset;
 use App\Models\IntelligenceSignal;
 use App\Models\PublishingAction;
@@ -15,9 +17,11 @@ use App\Services\CreditService;
 use App\Services\PublishingService;
 use App\Services\Subscriptions\SubscriptionService;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Database\Seeders\ConnectorCatalogSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use InvalidArgumentException;
 use Tests\TestCase;
 
 class PublishingActionTest extends TestCase
@@ -141,6 +145,80 @@ class PublishingActionTest extends TestCase
         ]);
     }
 
+    public function test_connector_channel_requires_active_connector_before_publishing_action_is_created(): void
+    {
+        Queue::fake();
+
+        [$publisher, , $brand] = $this->tenantWithRole('publisher');
+        $asset = ContentAsset::factory()->forBrand($brand)->create(['status' => 'approved']);
+        $channel = PublishingChannel::factory()->forBrand($brand)->create(['provider' => 'wordpress']);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Publishing channel has no active connector installation.');
+
+        try {
+            app(PublishingService::class)->request($asset, $publisher, [
+                'action' => 'publish',
+                'publishing_channel_id' => $channel->id,
+            ]);
+        } finally {
+            $this->assertDatabaseMissing('publishing_actions', [
+                'content_asset_id' => $asset->id,
+                'publishing_channel_id' => $channel->id,
+            ]);
+            Queue::assertNothingPushed();
+        }
+    }
+
+    public function test_connector_channel_requires_publish_content_capability(): void
+    {
+        Queue::fake();
+
+        [$publisher, , $brand] = $this->tenantWithRole('publisher');
+        $asset = ContentAsset::factory()->forBrand($brand)->create(['status' => 'approved']);
+        $channel = PublishingChannel::factory()->forBrand($brand)->create(['provider' => 'wordpress']);
+
+        $this->connectorInstallation($publisher, $channel, [
+            'status' => 'active',
+            'enabled_capabilities' => ['preview_url', 'health_check'],
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Connector installation does not have the publish_content capability.');
+
+        try {
+            app(PublishingService::class)->request($asset, $publisher, [
+                'action' => 'publish',
+                'publishing_channel_id' => $channel->id,
+            ]);
+        } finally {
+            $this->assertDatabaseMissing('publishing_actions', [
+                'content_asset_id' => $asset->id,
+                'publishing_channel_id' => $channel->id,
+            ]);
+            Queue::assertNothingPushed();
+        }
+    }
+
+    public function test_active_connector_channel_queues_for_connector_delivery(): void
+    {
+        Queue::fake();
+
+        [$publisher, , $brand] = $this->tenantWithRole('publisher');
+        $asset = ContentAsset::factory()->forBrand($brand)->create(['status' => 'approved']);
+        $channel = PublishingChannel::factory()->forBrand($brand)->create(['provider' => 'wordpress']);
+        $installation = $this->connectorInstallation($publisher, $channel);
+
+        $action = app(PublishingService::class)->request($asset, $publisher, [
+            'action' => 'publish',
+            'publishing_channel_id' => $channel->id,
+        ]);
+
+        $this->assertSame($channel->id, $action->publishing_channel_id);
+        $this->assertSame($installation->id, $action->request_payload['publishing_channel']['connector_installation_id']);
+        Queue::assertNotPushed(PublishContentAssetJob::class);
+    }
+
     public function test_publishing_history_is_tenant_and_brand_scoped(): void
     {
         [$publisher, $account, $brand] = $this->tenantWithRole('publisher');
@@ -191,5 +269,30 @@ class PublishingActionTest extends TestCase
         }
 
         return [$user, $account, $brand];
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function connectorInstallation(User $user, PublishingChannel $channel, array $attributes = []): ConnectorInstallation
+    {
+        $this->seed(ConnectorCatalogSeeder::class);
+
+        $version = ConnectorVersion::query()
+            ->whereHas('manifest', fn ($query) => $query->where('type', $channel->provider))
+            ->firstOrFail();
+
+        return ConnectorInstallation::query()->create(array_merge([
+            'account_id' => $channel->account_id,
+            'brand_id' => $channel->brand_id,
+            'property_id' => $channel->property_id,
+            'channel_id' => $channel->id,
+            'connector_manifest_id' => $version->connector_manifest_id,
+            'connector_version_id' => $version->id,
+            'installed_by_user_id' => $user->id,
+            'name' => str($channel->provider)->headline().' Connector',
+            'status' => 'active',
+            'enabled_capabilities' => ['publish_content', 'preview_url', 'health_check'],
+        ], $attributes));
     }
 }

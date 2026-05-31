@@ -27,7 +27,7 @@ class AgentTask extends Model
 {
     use HasFactory;
 
-    public const STATUSES = ['pending', 'dispatched', 'running', 'completed', 'failed', 'cancelled'];
+    public const STATUSES = ['pending', 'approved', 'queued', 'dispatched', 'running', 'completed', 'failed', 'cancelled'];
 
     protected static function booted(): void
     {
@@ -46,6 +46,14 @@ class AgentTask extends Model
 
                 if (! $brand || $brand->account_id !== $task->account_id) {
                     throw new InvalidArgumentException('Agent task brand must belong to the task account.');
+                }
+            }
+
+            if ($task->recommendation_id !== null) {
+                $recommendation = Recommendation::query()->find($task->recommendation_id);
+
+                if (! $recommendation || $recommendation->account_id !== $task->account_id || $recommendation->brand_id !== $task->brand_id) {
+                    throw new InvalidArgumentException('Agent task recommendation must belong to the same account and brand scope.');
                 }
             }
         });
@@ -97,7 +105,7 @@ class AgentTask extends Model
      */
     public function scopeOpen(Builder $query): Builder
     {
-        return $query->whereIn('status', ['pending', 'dispatched', 'running']);
+        return $query->whereIn('status', ['pending', 'approved', 'queued', 'dispatched', 'running']);
     }
 
     protected function casts(): array

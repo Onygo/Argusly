@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Integrations\Google\GoogleProvider;
 use App\Services\Integrations\LinkedIn\LinkedInProvider;
 
 return [
@@ -29,7 +30,45 @@ return [
         'google' => [
             'name' => 'Google',
             'auth_type' => 'oauth2',
-            'scopes' => ['openid', 'email', 'profile'],
+            'provider' => GoogleProvider::class,
+            'scopes' => [
+                'https://www.googleapis.com/auth/analytics.readonly',
+                'https://www.googleapis.com/auth/webmasters.readonly',
+            ],
+            'future_scopes' => ['openid', 'email', 'profile'],
+            'oauth' => [
+                'authorization_url' => 'https://accounts.google.com/o/oauth2/v2/auth',
+                'token_url' => 'https://oauth2.googleapis.com/token',
+                'client_id' => env('GOOGLE_CLIENT_ID'),
+                'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+                'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+                'redirect_route' => 'settings.integrations.google.callback',
+                'enabled' => (bool) env('GOOGLE_CLIENT_ID') && (bool) env('GOOGLE_CLIENT_SECRET'),
+            ],
+            'supports' => [
+                'analytics' => true,
+                'search_console' => true,
+            ],
+        ],
+        'google_analytics' => [
+            'name' => 'Google Analytics 4',
+            'auth_type' => 'oauth2',
+            'scopes' => [
+                'openid',
+                'email',
+                'profile',
+                'https://www.googleapis.com/auth/analytics.readonly',
+            ],
+        ],
+        'google_search_console' => [
+            'name' => 'Google Search Console',
+            'auth_type' => 'oauth2',
+            'scopes' => [
+                'openid',
+                'email',
+                'profile',
+                'https://www.googleapis.com/auth/webmasters.readonly',
+            ],
         ],
         'wordpress' => [
             'name' => 'WordPress',

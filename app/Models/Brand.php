@@ -98,6 +98,22 @@ class Brand extends Model
         return $this->hasMany(PublishingChannel::class);
     }
 
+    /**
+     * @return HasMany<Ga4Property, $this>
+     */
+    public function ga4Properties(): HasMany
+    {
+        return $this->hasMany(Ga4Property::class);
+    }
+
+    /**
+     * @return HasMany<SearchConsoleSite, $this>
+     */
+    public function searchConsoleSites(): HasMany
+    {
+        return $this->hasMany(SearchConsoleSite::class);
+    }
+
     protected function casts(): array
     {
         return [

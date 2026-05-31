@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -77,6 +78,16 @@ class Campaign extends Model
         return $this->belongsToMany(ContentAsset::class, 'campaign_assets')
             ->withTimestamps()
             ->latest('content_assets.updated_at');
+    }
+
+    public function stages(): HasMany
+    {
+        return $this->hasMany(CampaignStage::class)->orderBy('position');
+    }
+
+    public function boardItems(): HasMany
+    {
+        return $this->hasMany(CampaignItem::class)->orderBy('position')->latest();
     }
 
     /**

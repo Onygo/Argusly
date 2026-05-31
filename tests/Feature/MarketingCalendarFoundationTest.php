@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\Approval;
 use App\Models\Brand;
 use App\Models\ContentAsset;
+use App\Models\MarketingTask;
 use App\Models\Role;
 use App\Models\SocialPost;
 use App\Models\SocialProfile;
@@ -13,6 +15,7 @@ use App\Services\CampaignService;
 use App\Services\CreditService;
 use App\Services\Integrations\IntegrationConnectionService;
 use App\Services\MarketingCalendarService;
+use App\Services\MarketingTaskService;
 use App\Services\PublishingService;
 use App\Services\SocialProfiles\SocialProfileService;
 use App\Services\SocialPublishing\SocialPublishingService;
@@ -96,6 +99,31 @@ class MarketingCalendarFoundationTest extends TestCase
         ]);
     }
 
+    public function test_approval_items_appear_on_calendar(): void
+    {
+        [$owner, $user, $account, $brand] = $this->context();
+        $asset = $this->asset($account, $brand);
+
+        $approval = Approval::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'subject_type' => $asset->getMorphClass(),
+            'subject_id' => $asset->id,
+            'requested_by' => $user->id,
+            'status' => 'pending',
+            'requested_at' => '2026-06-18 09:00:00',
+        ]);
+
+        $this->assertDatabaseHas('marketing_calendar_items', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'related_type' => $approval->getMorphClass(),
+            'related_id' => $approval->id,
+            'type' => 'approval',
+            'status' => 'in_progress',
+        ]);
+    }
+
     public function test_calendar_is_tenant_and_brand_safe(): void
     {
         [, , $account, $brand] = $this->context();
@@ -122,7 +150,7 @@ class MarketingCalendarFoundationTest extends TestCase
         $this->assertSame(['Visible campaign'], collect($items->items())->pluck('title')->all());
     }
 
-    public function test_calendar_ui_shows_monthly_and_weekly_placeholder(): void
+    public function test_calendar_ui_shows_monthly_weekly_and_list_views(): void
     {
         [$owner, $user, $account, $brand] = $this->context(withRole: true);
         app(CampaignService::class)->create($account, $brand, [
@@ -135,13 +163,111 @@ class MarketingCalendarFoundationTest extends TestCase
         $this->actingAs($user)
             ->get(route('app.calendar', ['mode' => 'month']))
             ->assertOk()
-            ->assertSee('Monthly calendar placeholder')
+            ->assertSee('Monthly view')
             ->assertSee('Calendar campaign');
 
         $this->actingAs($user)
             ->get(route('app.calendar', ['mode' => 'week']))
             ->assertOk()
-            ->assertSee('Weekly calendar placeholder');
+            ->assertSee('Weekly view');
+
+        $this->actingAs($user)
+            ->get(route('app.calendar', ['mode' => 'list']))
+            ->assertOk()
+            ->assertSee('List view')
+            ->assertSee('Calendar campaign');
+    }
+
+    public function test_calendar_filters_by_brand_campaign_type_and_assignee(): void
+    {
+        [$owner, $user, $account, $brand] = $this->context(withRole: true);
+        $otherBrand = Brand::query()->create([
+            'account_id' => $account->id,
+            'name' => 'Other Calendar Brand',
+            'slug' => 'other-calendar-brand',
+            'enabled_content_languages' => ['en'],
+            'default_content_language' => 'en',
+        ]);
+        $user->brands()->attach($otherBrand, ['account_id' => $account->id, 'status' => 'active']);
+
+        $campaign = app(CampaignService::class)->create($account, $brand, [
+            'name' => 'Filtered campaign',
+            'status' => 'planned',
+            'campaign_type' => 'social',
+            'start_date' => '2026-06-20',
+        ]);
+        app(CampaignService::class)->create($account, $otherBrand, [
+            'name' => 'Other brand campaign',
+            'status' => 'planned',
+            'campaign_type' => 'social',
+            'start_date' => '2026-06-20',
+        ]);
+        app(MarketingTaskService::class)->create($account, $brand, $user, [
+            'scope' => 'brand',
+            'campaign_id' => $campaign->id,
+            'title' => 'Assigned calendar task',
+            'status' => 'todo',
+            'priority' => 'high',
+            'assigned_to' => $user->id,
+            'due_at' => '2026-06-21 11:00:00',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('app.calendar', [
+                'mode' => 'list',
+                'brand_id' => $brand->id,
+                'campaign_id' => $campaign->id,
+                'type' => 'marketing_task',
+                'assigned_to' => $user->id,
+                'starts' => '2026-06-01',
+                'ends' => '2026-06-30',
+            ]))
+            ->assertOk()
+            ->assertSee('Assigned calendar task')
+            ->assertDontSee('Other brand campaign');
+    }
+
+    public function test_calendar_detail_opens_and_calendar_can_create_task(): void
+    {
+        [$owner, $user, $account, $brand] = $this->context(withRole: true);
+        $task = app(MarketingTaskService::class)->create($account, $brand, $user, [
+            'scope' => 'brand',
+            'title' => 'Open this calendar task',
+            'status' => 'todo',
+            'priority' => 'medium',
+            'assigned_to' => $user->id,
+            'due_at' => '2026-06-22 13:00:00',
+        ]);
+        $item = \App\Models\MarketingCalendarItem::query()
+            ->where('related_type', $task->getMorphClass())
+            ->where('related_id', $task->id)
+            ->firstOrFail();
+
+        $this->actingAs($user)
+            ->get(route('app.calendar.show', $item))
+            ->assertOk()
+            ->assertSee('Open this calendar task')
+            ->assertSee('Calendar detail');
+
+        $this->actingAs($user)
+            ->post(route('app.calendar.tasks.store'), [
+                'scope' => 'brand',
+                'title' => 'Created from calendar',
+                'status' => 'todo',
+                'priority' => 'urgent',
+                'assigned_to' => $user->id,
+                'due_at' => '2026-06-23 10:00:00',
+            ])
+            ->assertRedirect();
+
+        $created = MarketingTask::query()->where('title', 'Created from calendar')->firstOrFail();
+        $this->assertDatabaseHas('marketing_calendar_items', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'related_type' => $created->getMorphClass(),
+            'related_id' => $created->id,
+            'type' => 'marketing_task',
+        ]);
     }
 
     /**

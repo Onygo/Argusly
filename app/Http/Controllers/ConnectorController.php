@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ConnectorController extends Controller
@@ -156,7 +157,17 @@ class ConnectorController extends Controller
         ]);
 
         /** @var ConnectorVersion $version */
-        $version = ConnectorVersion::query()->with('capabilities')->findOrFail($validated['connector_version_id']);
+        $version = ConnectorVersion::query()->with(['capabilities', 'manifest'])->findOrFail($validated['connector_version_id']);
+        $channel = isset($validated['channel_id'])
+            ? PublishingChannel::query()->find((int) $validated['channel_id'])
+            : null;
+
+        if ($channel && $version->manifest?->type !== $channel->provider) {
+            throw ValidationException::withMessages([
+                'channel_id' => 'The selected channel provider must match the connector type.',
+            ]);
+        }
+
         $enabledCapabilities = $this->allowedCapabilities($version, $validated['enabled_capabilities'] ?? []);
         $brandId = $validated['scope'] === 'brand' ? $brand?->id : null;
 

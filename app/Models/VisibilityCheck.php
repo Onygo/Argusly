@@ -82,7 +82,7 @@ class VisibilityCheck extends Model
      */
     public function latestResult(): HasMany
     {
-        return $this->hasMany(VisibilityResult::class)->latest('captured_at')->latest();
+        return $this->hasMany(VisibilityResult::class)->latest('captured_at')->latest('id');
     }
 
     /**
@@ -98,7 +98,7 @@ class VisibilityCheck extends Model
      */
     public function latestProviderRun(): HasMany
     {
-        return $this->hasMany(VisibilityProviderRun::class)->latest('captured_at')->latest();
+        return $this->hasMany(VisibilityProviderRun::class)->latest('captured_at')->latest('id');
     }
 
     /**

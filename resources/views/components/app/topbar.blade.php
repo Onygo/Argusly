@@ -3,6 +3,9 @@
     $brand = current_brand();
     $user = auth()->user();
     $initials = $user ? collect(explode(' ', $user->name))->map(fn ($part) => str($part)->substr(0, 1))->take(2)->implode('') : 'A';
+    $unreadNotifications = ($user && $account)
+        ? app(\App\Services\NotificationService::class)->unreadCount($user, $account, $brand)
+        : 0;
 @endphp
 
 <header class="border-b border-line bg-white">
@@ -15,6 +18,12 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('app.notifications') }}" class="relative rounded-full border border-line bg-white px-3 py-2 text-xs font-semibold text-muted transition hover:border-slate-300 hover:text-ink">
+                Notifications
+                @if ($unreadNotifications > 0)
+                    <span class="ml-1 rounded-full bg-blue px-1.5 py-0.5 text-[10px] font-bold text-white">{{ $unreadNotifications }}</span>
+                @endif
+            </a>
             <span class="hidden rounded-full border border-line bg-white px-3 py-2 text-xs font-semibold text-muted sm:inline">{{ $user?->email }}</span>
             <form method="POST" action="{{ route('user.locale.update') }}">
                 @csrf

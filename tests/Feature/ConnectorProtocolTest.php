@@ -47,7 +47,10 @@ class ConnectorProtocolTest extends TestCase
             ->whereHas('manifest', fn ($query) => $query->where('key', 'wordpress'))
             ->firstOrFail();
         $property = Property::factory()->forBrand($brand)->create(['name' => 'Main Site']);
-        $channel = PublishingChannel::factory()->forProperty($property)->create(['name' => 'WordPress Production']);
+        $channel = PublishingChannel::factory()->forProperty($property)->create([
+            'provider' => 'wordpress',
+            'name' => 'WordPress Production',
+        ]);
 
         $this->actingAs($user)
             ->post(route('settings.connectors.store'), [
@@ -87,9 +90,11 @@ class ConnectorProtocolTest extends TestCase
     {
         [$user, $account, $brand] = $this->tenantWithRole('owner');
         $this->seed(ConnectorCatalogSeeder::class);
-        $version = ConnectorVersion::query()->firstOrFail();
+        $version = ConnectorVersion::query()
+            ->whereHas('manifest', fn ($query) => $query->where('type', 'wordpress'))
+            ->firstOrFail();
         $property = Property::factory()->forBrand($brand)->create();
-        $channel = PublishingChannel::factory()->forProperty($property)->create();
+        $channel = PublishingChannel::factory()->forProperty($property)->create(['provider' => 'wordpress']);
         $installation = ConnectorInstallation::query()->create([
             'account_id' => $account->id,
             'brand_id' => $brand->id,

@@ -6,13 +6,20 @@ use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
 use App\Models\Agent;
 use App\Models\AnswerBlock;
+use App\Models\Audience;
+use App\Models\Briefing;
 use App\Models\Campaign;
 use App\Models\Competitor;
 use App\Models\Contact;
 use App\Models\ContentAsset;
 use App\Models\Mention;
+use App\Models\MarketingObjective;
+use App\Models\MarketingTask;
+use App\Models\MarketingWorkspace;
+use App\Models\Newsletter;
 use App\Models\Organization;
 use App\Models\Relationship;
+use App\Models\Segment;
 use App\Models\SocialPost;
 use App\Models\Source;
 use App\Models\SourceConnection;
@@ -22,13 +29,20 @@ use App\Models\User;
 use App\Models\VisibilityCheck;
 use App\Policies\AgentPolicy;
 use App\Policies\AnswerBlockPolicy;
+use App\Policies\AudiencePolicy;
+use App\Policies\BriefingPolicy;
 use App\Policies\CampaignPolicy;
 use App\Policies\CompetitorPolicy;
 use App\Policies\ContactPolicy;
 use App\Policies\ContentAssetPolicy;
 use App\Policies\MentionPolicy;
+use App\Policies\MarketingObjectivePolicy;
+use App\Policies\MarketingTaskPolicy;
+use App\Policies\MarketingWorkspacePolicy;
+use App\Policies\NewsletterPolicy;
 use App\Policies\OrganizationPolicy;
 use App\Policies\RelationshipPolicy;
+use App\Policies\SegmentPolicy;
 use App\Policies\SocialPostPolicy;
 use App\Policies\SourceConnectionPolicy;
 use App\Policies\SourcePolicy;
@@ -38,6 +52,7 @@ use App\Policies\UserPolicy;
 use App\Policies\VisibilityCheckPolicy;
 use App\Services\ActivityLogger;
 use App\Services\DomainEvents\ActivityLogProjector;
+use App\Services\DomainEvents\NotificationProjector;
 use App\Services\DomainEvents\ProjectorRegistry;
 use App\Services\DomainEvents\RecommendationProjector;
 use App\Services\DomainEvents\SignalProjector;
@@ -89,6 +104,7 @@ class AppServiceProvider extends ServiceProvider
             $app->make(ActivityLogProjector::class),
             $app->make(SignalProjector::class),
             $app->make(RecommendationProjector::class),
+            $app->make(NotificationProjector::class),
         ]));
     }
 
@@ -129,6 +145,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Audience::class, AudiencePolicy::class);
+        Gate::policy(Briefing::class, BriefingPolicy::class);
         Gate::policy(ContentAsset::class, ContentAssetPolicy::class);
         Gate::policy(AnswerBlock::class, AnswerBlockPolicy::class);
         Gate::policy(Source::class, SourcePolicy::class);
@@ -136,9 +154,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SourceConnection::class, SourceConnectionPolicy::class);
         Gate::policy(SourceSync::class, SourceSyncPolicy::class);
         Gate::policy(Campaign::class, CampaignPolicy::class);
+        Gate::policy(MarketingWorkspace::class, MarketingWorkspacePolicy::class);
+        Gate::policy(MarketingObjective::class, MarketingObjectivePolicy::class);
+        Gate::policy(MarketingTask::class, MarketingTaskPolicy::class);
+        Gate::policy(Newsletter::class, NewsletterPolicy::class);
         Gate::policy(Topic::class, TopicPolicy::class);
         Gate::policy(Mention::class, MentionPolicy::class);
         Gate::policy(Relationship::class, RelationshipPolicy::class);
+        Gate::policy(Segment::class, SegmentPolicy::class);
         Gate::policy(Contact::class, ContactPolicy::class);
         Gate::policy(Organization::class, OrganizationPolicy::class);
         Gate::policy(Competitor::class, CompetitorPolicy::class);

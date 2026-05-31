@@ -215,6 +215,38 @@ class ContentAsset extends Model
     }
 
     /**
+     * @return HasMany<Ga4MetricSnapshot, $this>
+     */
+    public function ga4MetricSnapshots(): HasMany
+    {
+        return $this->hasMany(Ga4MetricSnapshot::class);
+    }
+
+    /**
+     * @return HasMany<Ga4MetricSnapshot, $this>
+     */
+    public function latestGa4MetricSnapshots(): HasMany
+    {
+        return $this->hasMany(Ga4MetricSnapshot::class)->latest('date')->latest();
+    }
+
+    /**
+     * @return HasMany<SearchConsoleQuerySnapshot, $this>
+     */
+    public function searchConsoleQuerySnapshots(): HasMany
+    {
+        return $this->hasMany(SearchConsoleQuerySnapshot::class);
+    }
+
+    /**
+     * @return HasMany<SearchConsoleQuerySnapshot, $this>
+     */
+    public function latestSearchConsoleQuerySnapshots(): HasMany
+    {
+        return $this->hasMany(SearchConsoleQuerySnapshot::class)->latest('date')->latest();
+    }
+
+    /**
      * @return BelongsToMany<Campaign, $this>
      */
     public function campaigns(): BelongsToMany

@@ -221,6 +221,61 @@
             </div>
         </x-ui.card>
 
+        @php
+            $latestGa4Snapshot = $asset->ga4MetricSnapshots->first();
+            $latestSearchSnapshot = $asset->searchConsoleQuerySnapshots->first();
+        @endphp
+
+        <x-ui.card class="mt-6 p-5">
+            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                <div>
+                    <h2 class="text-sm font-semibold text-ink">GA4 analytics</h2>
+                    <p class="mt-1 text-sm text-muted">Latest synced Google Analytics performance for matched content URLs.</p>
+                </div>
+                <x-ui.button href="{{ route('app.analytics') }}" size="md" variant="secondary">Analytics dashboard</x-ui.button>
+            </div>
+
+            @if ($latestGa4Snapshot)
+                <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <x-settings.field label="Sessions" :value="number_format((int) $latestGa4Snapshot->sessions)" />
+                    <x-settings.field label="Users" :value="number_format((int) $latestGa4Snapshot->users)" />
+                    <x-settings.field label="Pageviews" :value="number_format((int) $latestGa4Snapshot->pageviews)" />
+                    <x-settings.field label="Engagement" :value="$latestGa4Snapshot->engagement_rate !== null ? $latestGa4Snapshot->engagement_rate.'%' : null" empty="n/a" />
+                    <x-settings.field label="Conversions" :value="number_format((int) $latestGa4Snapshot->conversions)" />
+                </div>
+                <p class="mt-4 text-sm text-muted">{{ $latestGa4Snapshot->ga4Property?->display_name ?? 'GA4 property' }} · {{ $latestGa4Snapshot->date?->toFormattedDateString() }} · {{ $latestGa4Snapshot->page_path ?? 'No page path' }}</p>
+            @else
+                <div class="mt-5">
+                    <x-dashboard.empty-state title="No GA4 metrics yet" message="Connect Google Analytics and sync GA4 snapshots to show content performance here." />
+                </div>
+            @endif
+        </x-ui.card>
+
+        <x-ui.card class="mt-6 p-5">
+            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                <div>
+                    <h2 class="text-sm font-semibold text-ink">SEO performance</h2>
+                    <p class="mt-1 text-sm text-muted">Latest synced Search Console performance for matched content URLs.</p>
+                </div>
+                <x-ui.button href="{{ route('app.search-performance') }}" size="md" variant="secondary">Search performance</x-ui.button>
+            </div>
+
+            @if ($latestSearchSnapshot)
+                <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <x-settings.field label="Clicks" :value="number_format((int) $latestSearchSnapshot->clicks)" />
+                    <x-settings.field label="Impressions" :value="number_format((int) $latestSearchSnapshot->impressions)" />
+                    <x-settings.field label="CTR" :value="$latestSearchSnapshot->ctr !== null ? number_format(((float) $latestSearchSnapshot->ctr) * 100, 2).'%' : null" empty="n/a" />
+                    <x-settings.field label="Position" :value="$latestSearchSnapshot->position" empty="n/a" />
+                    <x-settings.field label="Query" :value="$latestSearchSnapshot->query" empty="No query" />
+                </div>
+                <p class="mt-4 truncate text-sm text-muted">{{ $latestSearchSnapshot->searchConsoleSite?->site_url ?? 'Search Console site' }} · {{ $latestSearchSnapshot->date?->toFormattedDateString() }} · {{ $latestSearchSnapshot->page ?? 'No page dimension' }}</p>
+            @else
+                <div class="mt-5">
+                    <x-dashboard.empty-state title="No SEO metrics yet" message="Connect Search Console and sync query snapshots to show organic search performance here." />
+                </div>
+            @endif
+        </x-ui.card>
+
         <x-ui.card class="mt-6 p-5">
             <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                 <div>
@@ -308,6 +363,17 @@
                     </div>
                     <p class="mt-3 text-sm leading-6 text-muted">{{ $latestLifecycle->reason }}</p>
                 </div>
+
+                @if (! empty($latestLifecycle->signals['recommendations'] ?? []))
+                    <div class="mt-5 rounded-lg border border-line bg-panel p-4">
+                        <h3 class="text-sm font-semibold text-ink">Lifecycle recommendations</h3>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            @foreach ($latestLifecycle->signals['recommendations'] as $recommendation)
+                                <x-ui.badge variant="default">{{ str($recommendation)->headline() }}</x-ui.badge>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 <div class="mt-5 space-y-3">
                     <h3 class="text-sm font-semibold text-ink">Lifecycle history</h3>
