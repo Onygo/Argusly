@@ -1,0 +1,333 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Account;
+use App\Models\Brand;
+use App\Models\Integration;
+use App\Models\IntegrationConnection;
+use App\Models\Module;
+use App\Models\Property;
+use App\Models\PublishingChannel;
+use App\Models\Role;
+use App\Models\SocialProfile;
+use App\Models\User;
+use App\Services\Subscriptions\SubscriptionService;
+use Database\Seeders\IntegrationCatalogSeeder;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Database\Seeders\SubscriptionCatalogSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class SettingsScreensTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_account_settings_show_current_account_fields(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+
+        $account->update(['settings' => ['timezone' => 'Europe/Amsterdam']]);
+
+        $this->actingAs($user)
+            ->get(route('settings.account'))
+            ->assertOk()
+            ->assertSee('Account settings')
+            ->assertSee($account->name)
+            ->assertSee($account->slug)
+            ->assertSee('Europe/Amsterdam')
+            ->assertSee($brand->name);
+    }
+
+    public function test_brand_settings_are_scoped_to_current_account(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $brand->update([
+            'description' => 'Primary brand profile.',
+            'website_url' => 'https://alpha.example',
+            'market' => 'Netherlands',
+            'language' => 'nl',
+        ]);
+        Brand::query()->create([
+            'account_id' => Account::query()->create(['name' => 'Other', 'slug' => 'other'])->id,
+            'name' => 'Other Brand',
+            'slug' => 'other-brand',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('settings.brands'))
+            ->assertOk()
+            ->assertSee('Primary brand profile.')
+            ->assertSee('https://alpha.example')
+            ->assertSee('Netherlands')
+            ->assertSee('Competitors placeholder')
+            ->assertDontSee('Other Brand');
+    }
+
+    public function test_team_settings_show_account_and_brand_members_with_roles(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $member = User::factory()->create(['name' => 'Brand Editor']);
+        $editor = Role::query()->where('name', 'editor')->firstOrFail();
+
+        $member->accounts()->attach($account, ['status' => 'active']);
+        $member->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
+        $member->roles()->attach($editor, ['account_id' => $account->id, 'brand_id' => $brand->id]);
+
+        $this->actingAs($user)
+            ->get(route('settings.team'))
+            ->assertOk()
+            ->assertSee('Brand Editor')
+            ->assertSee('Editor')
+            ->assertSee('Invite placeholder');
+    }
+
+    public function test_modules_settings_show_active_and_inactive_modules(): void
+    {
+        [$user] = $this->tenantWithRole('owner', 'starter_monthly');
+
+        $this->actingAs($user)
+            ->get(route('settings.modules'))
+            ->assertOk()
+            ->assertSee('Core')
+            ->assertSee('Active')
+            ->assertSee('Agentic Social')
+            ->assertSee('Inactive')
+            ->assertSee('No payment integration yet');
+    }
+
+    public function test_integrations_settings_show_scoped_connections_and_placeholder(): void
+    {
+        $this->seed(IntegrationCatalogSeeder::class);
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $integration = Integration::query()->where('key', 'google')->firstOrFail();
+
+        IntegrationConnection::query()->create([
+            'integration_id' => $integration->id,
+            'owner_user_id' => $user->id,
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Alpha Google',
+            'status' => 'active',
+        ]);
+        IntegrationConnection::query()->create([
+            'integration_id' => $integration->id,
+            'owner_user_id' => $user->id,
+            'account_id' => Account::query()->create(['name' => 'Other', 'slug' => 'other'])->id,
+            'name' => 'Other Google',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('settings.integrations'))
+            ->assertOk()
+            ->assertSee('LinkedIn')
+            ->assertSee('Manage LinkedIn')
+            ->assertSee('Alpha Google')
+            ->assertSee('No OAuth yet')
+            ->assertDontSee('Other Google');
+    }
+
+    public function test_linkedin_integration_settings_show_placeholders_permissions_and_scoped_profiles(): void
+    {
+        $this->seed(IntegrationCatalogSeeder::class);
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $integration = Integration::query()->where('key', 'linkedin')->firstOrFail();
+
+        IntegrationConnection::query()->create([
+            'integration_id' => $integration->id,
+            'owner_user_id' => $user->id,
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Maria LinkedIn',
+            'status' => 'active',
+            'provider_account_id' => 'linkedin-person-123',
+            'provider_account_name' => 'Maria LinkedIn',
+            'scopes' => ['openid', 'profile', 'email', 'w_member_social'],
+            'metadata' => ['linkedin_account_type' => 'personal_profile'],
+        ]);
+        IntegrationConnection::query()->create([
+            'integration_id' => $integration->id,
+            'owner_user_id' => $user->id,
+            'account_id' => Account::query()->create(['name' => 'Other', 'slug' => 'other-linkedin'])->id,
+            'name' => 'Hidden LinkedIn',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('settings.integrations.linkedin'))
+            ->assertOk()
+            ->assertSee('LinkedIn integration')
+            ->assertSee('OAuth credentials not configured yet')
+            ->assertSee('Connect LinkedIn')
+            ->assertSee('Pages')
+            ->assertSee('Organization publishing requires LinkedIn approval')
+            ->assertSee('Placeholder list of pages')
+            ->assertSee('Connected profiles')
+            ->assertSee('Maria LinkedIn')
+            ->assertSee('Disconnect')
+            ->assertSee('openid')
+            ->assertSee('profile')
+            ->assertSee('email')
+            ->assertSee('w_member_social')
+            ->assertSee('r_member_social')
+            ->assertSee('r_organization_social')
+            ->assertSee('w_organization_social')
+            ->assertDontSee('Hidden LinkedIn');
+    }
+
+    public function test_social_profile_settings_show_accessible_profiles_and_permissions(): void
+    {
+        $this->seed(IntegrationCatalogSeeder::class);
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $integration = Integration::query()->where('key', 'linkedin')->firstOrFail();
+        $connection = IntegrationConnection::query()->create([
+            'integration_id' => $integration->id,
+            'owner_user_id' => $user->id,
+            'account_id' => null,
+            'brand_id' => null,
+            'name' => 'Ricardo LinkedIn',
+            'status' => 'active',
+            'provider_account_id' => 'linkedin-ricardo',
+        ]);
+        $profile = SocialProfile::query()->create([
+            'integration_connection_id' => $connection->id,
+            'owner_user_id' => $user->id,
+            'provider' => 'linkedin',
+            'provider_profile_id' => 'linkedin-ricardo',
+            'display_name' => 'Ricardo LinkedIn',
+            'type' => 'person',
+            'status' => 'connected',
+        ]);
+        $profile->permissions()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'can_view' => true,
+            'can_prepare' => true,
+            'can_schedule' => false,
+            'can_publish' => false,
+        ]);
+        SocialProfile::query()->create([
+            'integration_connection_id' => $connection->id,
+            'owner_user_id' => User::factory()->create()->id,
+            'provider' => 'linkedin',
+            'display_name' => 'Hidden LinkedIn',
+            'type' => 'person',
+            'status' => 'connected',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('settings.social-profiles'))
+            ->assertOk()
+            ->assertSee('Social profiles')
+            ->assertSee('Ricardo LinkedIn')
+            ->assertSee('Prepare')
+            ->assertSee('Publish')
+            ->assertSee('Sharing editor placeholder')
+            ->assertDontSee('Hidden LinkedIn');
+    }
+
+    public function test_properties_settings_are_brand_scoped_and_content_module_gated(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $otherBrand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Other Brand', 'slug' => 'other-brand']);
+        $user->brands()->attach($otherBrand, ['account_id' => $account->id, 'status' => 'active']);
+
+        Property::factory()->forBrand($brand)->create([
+            'name' => 'Visible Website',
+            'type' => 'website',
+            'url' => 'https://visible.example',
+        ]);
+        Property::factory()->forBrand($otherBrand)->create([
+            'name' => 'Hidden Website',
+            'type' => 'blog',
+            'url' => 'https://hidden.example',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('settings.properties'))
+            ->assertOk()
+            ->assertSee('Visible Website')
+            ->assertSee('https://visible.example')
+            ->assertDontSee('Hidden Website');
+
+        [$ownerNoContent] = $this->tenantWithRole('owner', 'core_only');
+
+        $this->actingAs($ownerNoContent)
+            ->get(route('settings.properties'))
+            ->assertForbidden();
+    }
+
+    public function test_channels_settings_are_brand_scoped_and_hide_credentials(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $otherBrand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Other Brand', 'slug' => 'other-brand']);
+        $property = Property::factory()->forBrand($brand)->create(['name' => 'Main Website']);
+
+        PublishingChannel::factory()->forProperty($property)->create([
+            'provider' => 'wordpress',
+            'name' => 'Visible WordPress',
+            'status' => 'draft',
+            'credentials' => ['token' => 'super-secret-token'],
+        ]);
+        PublishingChannel::factory()->forBrand($otherBrand)->create([
+            'provider' => 'linkedin',
+            'name' => 'Hidden LinkedIn',
+            'credentials' => ['token' => 'hidden-secret-token'],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('settings.channels'))
+            ->assertOk()
+            ->assertSee('Visible WordPress')
+            ->assertSee('Main Website')
+            ->assertSee('No OAuth or publishing yet')
+            ->assertDontSee('Hidden LinkedIn')
+            ->assertDontSee('super-secret-token')
+            ->assertDontSee('hidden-secret-token');
+    }
+
+    public function test_settings_routes_require_permissions_and_active_core_module(): void
+    {
+        [$viewer] = $this->tenantWithRole('viewer');
+        [$ownerNoCore] = $this->tenantWithRole('owner', null);
+
+        $this->actingAs($viewer)
+            ->get(route('settings.account'))
+            ->assertForbidden();
+
+        $this->actingAs($ownerNoCore)
+            ->get(route('settings.account'))
+            ->assertForbidden();
+    }
+
+    /**
+     * @return array{0: User, 1: Account, 2: Brand}
+     */
+    private function tenantWithRole(string $roleName, ?string $plan = 'scale_monthly'): array
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(SubscriptionCatalogSeeder::class);
+
+        $user = User::factory()->create();
+        $account = Account::query()->create(['name' => fake()->company(), 'slug' => fake()->unique()->slug()]);
+        $brand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Alpha Brand', 'slug' => fake()->unique()->slug()]);
+        $role = Role::query()->where('name', $roleName)->firstOrFail();
+
+        $user->accounts()->attach($account, ['status' => 'active']);
+        $user->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
+        $user->roles()->attach($role, ['account_id' => $account->id]);
+
+        if ($plan) {
+            if ($plan === 'core_only') {
+                app(SubscriptionService::class)->activatePlan($account, 'starter_monthly');
+                $contentModuleId = Module::query()->where('key', 'content')->value('id');
+                $account->subscriptionModules()->where('module_id', $contentModuleId)->update(['status' => 'canceled']);
+            } else {
+                app(SubscriptionService::class)->activatePlan($account, $plan);
+            }
+        }
+
+        return [$user, $account, $brand];
+    }
+}

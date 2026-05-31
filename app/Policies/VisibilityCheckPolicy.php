@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\User;
+use App\Models\VisibilityCheck;
+use App\Policies\Concerns\AuthorizesTenantModels;
+use Illuminate\Auth\Access\Response;
+
+class VisibilityCheckPolicy
+{
+    use AuthorizesTenantModels;
+
+    public function viewAny(User $user): Response
+    {
+        return $this->allows($user, 'view_visibility') ? Response::allow() : Response::deny();
+    }
+
+    public function view(User $user, VisibilityCheck $check): Response
+    {
+        return $this->allows($user, 'view_visibility', $check) ? Response::allow() : Response::deny();
+    }
+
+    public function create(User $user): Response
+    {
+        return $this->allows($user, 'manage_visibility') ? Response::allow() : Response::deny();
+    }
+
+    public function update(User $user, VisibilityCheck $check): Response
+    {
+        return $this->allows($user, 'manage_visibility', $check) ? Response::allow() : Response::deny();
+    }
+
+    public function delete(User $user, VisibilityCheck $check): Response
+    {
+        return $this->update($user, $check);
+    }
+}
