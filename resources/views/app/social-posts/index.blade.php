@@ -1,5 +1,5 @@
 <x-app.layout title="Social posts | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Social publishing</p>
@@ -16,7 +16,7 @@
             <form method="GET" action="{{ route('app.social-posts.index') }}" class="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1fr_auto]">
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Brand</span>
-                    <select name="brand_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">Current brand</option>
                         @foreach ($brands as $optionBrand)
                             <option value="{{ $optionBrand->id }}" @selected((string) ($filters['brand_id'] ?? '') === (string) $optionBrand->id)>{{ $optionBrand->name }}</option>
@@ -25,7 +25,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Provider</span>
-                    <select name="provider" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="provider" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All providers</option>
                         @foreach ($providers as $provider)
                             <option value="{{ $provider }}" @selected(($filters['provider'] ?? '') === $provider)>{{ str($provider)->headline() }}</option>
@@ -34,7 +34,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
-                    <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All statuses</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>
@@ -43,7 +43,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Language</span>
-                    <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All languages</option>
                         @foreach ($contentLanguages as $language)
                             <option value="{{ $language->code }}" @selected(($filters['language'] ?? '') === $language->code)>{{ $language->name }}</option>
@@ -57,7 +57,7 @@
             </form>
         </x-ui.card>
 
-        <div class="mt-6 overflow-hidden rounded-2xl border border-line bg-white">
+        <div class="mt-6 overflow-hidden rounded-md border border-line bg-white">
             <div class="hidden grid-cols-[1.2fr_0.6fr_0.7fr_0.7fr_0.8fr] gap-4 border-b border-line px-5 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted md:grid">
                 <span>Post</span>
                 <span>Provider</span>

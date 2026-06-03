@@ -41,6 +41,13 @@ class Campaign extends Model
             $campaign->status ??= 'draft';
         });
 
+        static::created(function (Campaign $campaign): void {
+            app(\App\Services\DomainEventService::class)->recordForSubject('CampaignCreated', $campaign, null, [
+                'name' => $campaign->name,
+            ], dispatch: false);
+            app(\App\Services\Graph\GraphProjectionService::class)->project($campaign);
+        });
+
         static::saving(function (Campaign $campaign): void {
             if (! in_array($campaign->status, self::STATUSES, true)) {
                 throw new InvalidArgumentException("Invalid campaign status [{$campaign->status}].");

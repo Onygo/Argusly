@@ -26,7 +26,7 @@ class BrandKnowledgeGraphTest extends TestCase
         $this->actingAs($user)
             ->post(route('settings.knowledge-graph.entities.store'), [
                 'name' => 'Argusly',
-                'entity_type' => 'Company',
+                'entity_type' => 'company',
                 'aliases' => 'Argusly AI, Argusly Platform',
                 'description' => 'Agentic marketing intelligence platform.',
             ])
@@ -35,7 +35,7 @@ class BrandKnowledgeGraphTest extends TestCase
         $entity = Entity::query()->where('account_id', $account->id)->firstOrFail();
 
         $this->assertSame('Argusly', $entity->name);
-        $this->assertSame('Company', $entity->entity_type);
+        $this->assertSame('company', $entity->entity_type);
         $this->assertSame(['Argusly AI', 'Argusly Platform'], $entity->aliases);
         $this->assertDatabaseHas('brand_entities', [
             'account_id' => $account->id,
@@ -60,12 +60,12 @@ class BrandKnowledgeGraphTest extends TestCase
 
         $company = $service->createForBrand($account, $brand, [
             'name' => 'Argusly',
-            'entity_type' => 'Company',
+            'entity_type' => 'company',
             'description' => 'Company entity.',
         ])->entity;
         $product = $service->createForBrand($account, $brand, [
             'name' => 'Intelligence Feed',
-            'entity_type' => 'Product',
+            'entity_type' => 'product',
             'description' => 'Product entity.',
         ])->entity;
 
@@ -103,15 +103,15 @@ class BrandKnowledgeGraphTest extends TestCase
 
         $service->createForBrand($account, $brand, [
             'name' => 'Visible Topic',
-            'entity_type' => 'Topic',
+            'entity_type' => 'topic',
         ]);
         $service->createForBrand($account, $otherBrand, [
             'name' => 'Hidden Same Account Topic',
-            'entity_type' => 'Topic',
+            'entity_type' => 'topic',
         ]);
         $service->createForBrand($otherAccount, $thirdBrand, [
             'name' => 'Hidden Other Account Topic',
-            'entity_type' => 'Topic',
+            'entity_type' => 'topic',
         ]);
 
         $this->actingAs($user)
@@ -129,7 +129,7 @@ class BrandKnowledgeGraphTest extends TestCase
         $foreignEntity = Entity::query()->create([
             'account_id' => $otherAccount->id,
             'name' => 'Foreign Topic',
-            'entity_type' => 'Topic',
+            'entity_type' => 'topic',
         ]);
 
         $this->expectException(InvalidArgumentException::class);

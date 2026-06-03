@@ -1,9 +1,9 @@
 @props(['title', 'description' => null])
 
 <x-app.layout :title="$title.' | Argusly'">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div>
-            <p class="eyebrow">{{ __('settings.account') }}</p>
+            <p class="eyebrow">Administration</p>
             <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{{ $title }}</h1>
             @if ($description)
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">{{ $description }}</p>

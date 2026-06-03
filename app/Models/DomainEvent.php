@@ -25,6 +25,9 @@ class DomainEvent extends Model
     use HasFactory;
 
     public const TYPES = [
+        'BrandCreated',
+        'TopicCreated',
+        'EntityCreated',
         'ContentAssetCreated',
         'ContentAssetPublished',
         'ContentAssetTranslationCreated',
@@ -85,7 +88,13 @@ class DomainEvent extends Model
         'ConnectorTokenRevoked',
         'ConnectorTokenRotated',
         'ConnectorEventReceived',
+        'CreditBalanceAdjusted',
         'CreditsLow',
+        'NarrativeCreated',
+        'NarrativeObserved',
+        'NarrativeObservationCaptured',
+        'CampaignCreated',
+        'NarrativeGapDetected',
     ];
 
     protected static function booted(): void

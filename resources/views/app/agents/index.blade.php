@@ -1,5 +1,5 @@
 <x-app.layout title="Agents | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Agent framework</p>
@@ -32,7 +32,7 @@
                     @else
                         <div class="space-y-3">
                             @foreach ($latestRuns as $run)
-                                <div class="rounded-lg border border-line bg-white p-4">
+                                <div class="rounded-md border border-line bg-white p-4">
                                     <div class="flex items-start justify-between gap-4">
                                         <div class="min-w-0">
                                             <p class="truncate text-sm font-semibold text-ink">{{ $run->agent->name }}</p>

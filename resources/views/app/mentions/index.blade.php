@@ -1,5 +1,5 @@
 <x-app.layout title="Mentions | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Mention intelligence</p>
@@ -14,7 +14,7 @@
                 <form method="GET" action="{{ route('app.mentions') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Source</span>
-                        <select name="source_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="source_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="">All sources</option>
                             @foreach ($sources as $source)
                                 <option value="{{ $source->id }}" @selected((string) ($filters['source_id'] ?? '') === (string) $source->id)>{{ $source->name }}</option>
@@ -23,7 +23,7 @@
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Sentiment</span>
-                        <select name="sentiment" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="sentiment" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="">All sentiments</option>
                             @foreach ($sentiments as $sentiment)
                                 <option value="{{ $sentiment }}" @selected(($filters['sentiment'] ?? '') === $sentiment)>{{ str($sentiment)->headline() }}</option>
@@ -32,15 +32,15 @@
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">From</span>
-                        <input name="date_from" type="date" value="{{ $filters['date_from'] ?? '' }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="date_from" type="date" value="{{ $filters['date_from'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">To</span>
-                        <input name="date_to" type="date" value="{{ $filters['date_to'] ?? '' }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="date_to" type="date" value="{{ $filters['date_to'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Brand</span>
-                        <select name="brand_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="">Current context</option>
                             <option value="account" @selected(($filters['brand_id'] ?? '') === 'account')>Account-level</option>
                             @foreach ($brands as $filterBrand)
@@ -57,7 +57,7 @@
             <x-dashboard.section title="Sentiment overview" description="Distribution across the current mention context.">
                 <div class="grid grid-cols-2 gap-3">
                     @foreach (['positive' => 'success', 'neutral' => 'default', 'negative' => 'default', 'mixed' => 'blue'] as $sentiment => $variant)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <div class="flex items-center justify-between gap-3">
                                 <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ str($sentiment)->headline() }}</p>
                                 <x-ui.badge variant="{{ $variant }}">{{ $sentimentOverview[$sentiment] }}</x-ui.badge>
@@ -76,7 +76,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($mentions as $mention)
-                            <a href="{{ route('app.mentions.show', $mention) }}" class="block rounded-lg border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
+                            <a href="{{ route('app.mentions.show', $mention) }}" class="block rounded-md border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
                                 <div class="flex flex-col justify-between gap-3 md:flex-row md:items-start">
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">

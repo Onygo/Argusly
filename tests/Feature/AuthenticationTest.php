@@ -21,8 +21,15 @@ class AuthenticationTest extends TestCase
     {
         $this->get(route('login'))
             ->assertOk()
-            ->assertSee('Sign in to your workspace')
-            ->assertSee('alpha.owner@example.com');
+            ->assertSee('Sign in to continue to your workspace.')
+            ->assertSee('you@company.com')
+            ->assertDontSee('alpha.owner@example.com')
+            ->assertSee(route('marketing.home'), false)
+            ->assertSee(route('marketing.signup'), false)
+            ->assertSee(route('marketing.page', 'privacy'), false)
+            ->assertSee(route('marketing.page', 'terms'), false)
+            ->assertSee('Back to the marketing site')
+            ->assertDontSee('Continue with Google');
     }
 
     public function test_user_can_login_and_logout(): void

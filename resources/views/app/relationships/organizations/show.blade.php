@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $organization->name }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Organization detail</p>
@@ -10,7 +10,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-4 md:grid-cols-3">
@@ -21,7 +21,7 @@
 
         <div class="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
             <x-dashboard.section title="Organization profile">
-                <div class="rounded-lg border border-line bg-panel p-4">
+                <div class="rounded-md border border-line bg-panel p-4">
                     <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Description</p>
                     <p class="mt-2 text-sm leading-6 text-ink">{{ $organization->description ?: 'No description yet.' }}</p>
                 </div>

@@ -52,7 +52,7 @@ return [
     'enabled' => env('ARGUSLY_CONNECTOR_ENABLED', true),
 
     'api' => [
-        'base_url' => env('ARGUSLY_API_URL', 'https://app.argusly.com/api/v1'),
+        'base_url' => env('ARGUSLY_API_URL', 'https://api.argusly.com/v1'),
         'token' => env('ARGUSLY_CONNECTOR_TOKEN'),
         'timeout' => env('ARGUSLY_CONNECTOR_TIMEOUT', 10),
         'retry_times' => env('ARGUSLY_CONNECTOR_RETRY_TIMES', 3),
@@ -116,7 +116,7 @@ return [
 
 ```dotenv
 ARGUSLY_CONNECTOR_ENABLED=true
-ARGUSLY_API_URL=https://app.argusly.com/api/v1
+ARGUSLY_API_URL=https://api.argusly.com/v1
 ARGUSLY_CONNECTOR_TOKEN=argusly_ct_...
 ARGUSLY_CONNECTOR_NAME="Production Laravel App"
 ARGUSLY_CONNECTOR_VERSION=1.0.0
@@ -478,7 +478,7 @@ Recommended setup:
 2. Run a separate Laravel test app with the package installed by path repository.
 3. Create a connector installation in Argusly Settings > Connectors.
 4. Create a connector token and place it in the external app `.env`.
-5. Configure `ARGUSLY_API_URL=http://argusly.test/api/v1`.
+5. Configure `ARGUSLY_API_URL=http://api.argusly.test/v1`.
 6. Use queue workers in both apps where needed.
 7. Use `php artisan argusly:connector:health` to verify auth.
 8. Create an approved content asset in Argusly and publish to the Laravel channel.

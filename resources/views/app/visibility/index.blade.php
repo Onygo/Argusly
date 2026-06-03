@@ -1,5 +1,5 @@
 <x-app.layout :title="__('visibility.title').' | Argusly'">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">{{ __('visibility.eyebrow') }}</p>
@@ -16,10 +16,10 @@
             <x-dashboard.info-card label="Providers" :value="$stats['providers']" />
         </div>
 
-        <form method="GET" action="{{ route('app.visibility') }}" class="mt-6 flex flex-col gap-3 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-end">
+        <form method="GET" action="{{ route('app.visibility') }}" class="mt-6 flex flex-col gap-3 rounded-md border border-line bg-white p-4 sm:flex-row sm:items-end">
             <label class="block sm:w-48">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.language') }}</span>
-                <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     <option value="">{{ __('common.all_languages') }}</option>
                     @foreach ($contentLanguages as $language)
                         <option value="{{ $language->code }}" @selected(($filters['language'] ?? null) === $language->code)>{{ $language->name }}</option>
@@ -28,7 +28,7 @@
             </label>
             <label class="block sm:w-48">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.market') }}</span>
-                <input name="market" value="{{ $filters['market'] ?? '' }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm uppercase text-ink" placeholder="US">
+                <input name="market" value="{{ $filters['market'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm uppercase text-ink" placeholder="US">
             </label>
             <x-ui.button type="submit">{{ __('common.filter') }}</x-ui.button>
             @if (($filters['language'] ?? null) || ($filters['market'] ?? null))
@@ -39,7 +39,7 @@
         @if ($latestRunsByLanguage->isNotEmpty())
             <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 @foreach ($latestRunsByLanguage as $language => $run)
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('visibility.latest', ['language' => strtoupper($language)]) }}</p>
                         <p class="mt-2 text-sm font-semibold text-ink">{{ $run->provider }} · {{ $run->metadata['visibility_score'] ?? '-' }} score</p>
                         <p class="mt-1 text-xs text-muted">{{ $run->market ?? __('visibility.no_market') }} · {{ $run->captured_at?->diffForHumans() }}</p>
@@ -54,7 +54,7 @@
                     @csrf
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.provider') }}</span>
-                        <select name="provider" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="provider" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             @foreach ($providers as $provider)
                                 <option value="{{ $provider }}" @selected(old('provider') === $provider)>{{ $provider }}</option>
                             @endforeach
@@ -62,11 +62,11 @@
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('visibility.brand_text') }}</span>
-                        <input name="brand" value="{{ old('brand', $brand->name) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="brand" value="{{ old('brand', $brand->name) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('visibility.query') }}</span>
-                        <textarea name="query" rows="4" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('query') }}</textarea>
+                        <textarea name="query" rows="4" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('query') }}</textarea>
                     </label>
                     <x-ui.button type="submit">{{ __('visibility.create_check') }}</x-ui.button>
                 </form>
@@ -75,7 +75,7 @@
             <x-dashboard.section :title="__('visibility.provider_architecture')" description="Each provider lane is ready for a future worker, credential layer and parser.">
                 <div class="grid gap-3 sm:grid-cols-2">
                     @foreach ($providers as $provider)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-sm font-semibold text-ink">{{ $provider }}</p>
                             <p class="mt-1 text-xs text-muted">Prompt, run, citation and entity schema ready</p>
                         </div>
@@ -103,7 +103,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($timeline as $snapshot)
-                            <div class="rounded-lg border border-line bg-white p-4">
+                            <div class="rounded-md border border-line bg-white p-4">
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
                                         <p class="text-sm font-semibold text-ink">{{ $snapshot->provider ?? 'All providers' }}</p>
@@ -114,15 +114,15 @@
                                     </time>
                                 </div>
                                 <div class="mt-4 grid grid-cols-3 gap-2 text-right">
-                                    <div class="rounded-lg bg-panel p-3">
+                                    <div class="rounded-md bg-panel p-3">
                                         <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Score</p>
                                         <p class="mt-1 text-lg font-semibold text-ink">{{ $snapshot->score ?? '-' }}</p>
                                     </div>
-                                    <div class="rounded-lg bg-panel p-3">
+                                    <div class="rounded-md bg-panel p-3">
                                         <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Pos.</p>
                                         <p class="mt-1 text-lg font-semibold text-ink">{{ $snapshot->position ?? '-' }}</p>
                                     </div>
-                                    <div class="rounded-lg bg-panel p-3">
+                                    <div class="rounded-md bg-panel p-3">
                                         <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Mention</p>
                                         <p class="mt-1 text-lg font-semibold text-ink">{{ $snapshot->mention_found ? 'Yes' : 'No' }}</p>
                                     </div>
@@ -136,16 +136,16 @@
 
         <div class="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
             <x-dashboard.section :title="__('visibility.prompt_library')" description="Create reusable AI visibility prompts, assign them to brand context, and run fake-provider tests before real adapters are enabled.">
-                <form method="POST" action="{{ route('app.visibility.prompts.store') }}" class="space-y-4 rounded-lg border border-line bg-panel p-4">
+                <form method="POST" action="{{ route('app.visibility.prompts.store') }}" class="space-y-4 rounded-md border border-line bg-panel p-4">
                     @csrf
                     <div class="grid gap-3 md:grid-cols-2">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.name') }}</span>
-                            <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Best AI visibility tools">
+                            <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Best AI visibility tools">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.brand') }}</span>
-                            <select name="brand_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($brands as $brandOption)
                                     <option value="{{ $brandOption->id }}" @selected($brandOption->id === $brand->id)>{{ $brandOption->name }}</option>
                                 @endforeach
@@ -154,12 +154,12 @@
                     </div>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('visibility.prompt') }}</span>
-                        <textarea name="prompt" rows="3" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Who are the leading competitors of {brand}?">{{ old('prompt') }}</textarea>
+                        <textarea name="prompt" rows="3" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Who are the leading competitors of {brand}?">{{ old('prompt') }}</textarea>
                     </label>
                     <div class="grid gap-3 md:grid-cols-5">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.language') }}</span>
-                            <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($contentLanguages as $language)
                                     <option value="{{ $language->code }}" @selected(old('language', $brand->default_content_language ?? 'en') === $language->code)>{{ $language->name }}</option>
                                 @endforeach
@@ -167,19 +167,19 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.intent') }}</span>
-                            <input name="intent" value="{{ old('intent') }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="commercial">
+                            <input name="intent" value="{{ old('intent') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="commercial">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.locale') }}</span>
-                            <input name="locale" value="{{ old('locale', 'en_US') }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="en_US">
+                            <input name="locale" value="{{ old('locale', 'en_US') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="en_US">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.market') }}</span>
-                            <input name="market" value="{{ old('market') }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="US">
+                            <input name="market" value="{{ old('market') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="US">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.status') }}</span>
-                            <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach (\App\Models\VisibilityPromptTemplate::STATUSES as $status)
                                     <option value="{{ $status }}" @selected($status === 'active')>{{ str($status)->headline() }}</option>
                                 @endforeach
@@ -204,7 +204,7 @@
                 @else
                     <div class="mt-5 space-y-4">
                         @foreach ($promptTemplates as $template)
-                            <div class="rounded-lg border border-line bg-white p-4">
+                            <div class="rounded-md border border-line bg-white p-4">
                                 <form method="POST" action="{{ route('app.visibility.prompts.update', $template) }}" class="space-y-3">
                                     @csrf
                                     @method('PUT')
@@ -212,11 +212,11 @@
                                         <div class="grid flex-1 gap-3 md:grid-cols-2">
                                             <label class="block">
                                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.name') }}</span>
-                                                <input name="name" value="{{ $template->name }}" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                                <input name="name" value="{{ $template->name }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                             </label>
                                             <label class="block">
                                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.brand') }}</span>
-                                                <select name="brand_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                                <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                                     @foreach ($brands as $brandOption)
                                                         <option value="{{ $brandOption->id }}" @selected($brandOption->id === $template->brand_id)>{{ $brandOption->name }}</option>
                                                     @endforeach
@@ -227,18 +227,18 @@
                                     </div>
                                     <label class="block">
                                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('visibility.prompt') }}</span>
-                                        <textarea name="prompt" rows="3" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">{{ $template->prompt }}</textarea>
+                                        <textarea name="prompt" rows="3" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ $template->prompt }}</textarea>
                                     </label>
                                     <div class="grid gap-3 md:grid-cols-5">
-                                        <select name="language" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                        <select name="language" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                             @foreach ($contentLanguages as $language)
                                                 <option value="{{ $language->code }}" @selected($language->code === $template->language)>{{ $language->name }}</option>
                                             @endforeach
                                         </select>
-                                        <input name="intent" value="{{ $template->intent }}" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Intent">
-                                        <input name="locale" value="{{ $template->locale }}" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Locale">
-                                        <input name="market" value="{{ $template->market }}" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Market">
-                                        <select name="status" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                        <input name="intent" value="{{ $template->intent }}" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Intent">
+                                        <input name="locale" value="{{ $template->locale }}" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Locale">
+                                        <input name="market" value="{{ $template->market }}" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Market">
+                                        <select name="status" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                             @foreach (\App\Models\VisibilityPromptTemplate::STATUSES as $status)
                                                 <option value="{{ $status }}" @selected($status === $template->status)>{{ str($status)->headline() }}</option>
                                             @endforeach
@@ -259,7 +259,7 @@
                                     @endif
                                     <form method="POST" action="{{ route('app.visibility.prompts.run', $template) }}" class="flex gap-2">
                                         @csrf
-                                        <select name="provider" class="h-8 rounded-lg border border-line bg-white px-2 text-xs font-semibold text-ink">
+                                        <select name="provider" class="h-8 rounded-md border border-line bg-white px-2 text-xs font-semibold text-ink">
                                             @foreach ($adapterProviders as $provider)
                                                 <option value="{{ $provider->key() }}">{{ $provider->name() }}</option>
                                             @endforeach
@@ -290,7 +290,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($providerRuns as $run)
-                            <div class="rounded-lg border border-line bg-white p-4">
+                            <div class="rounded-md border border-line bg-white p-4">
                                 <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                                     <div>
                                         <div class="flex flex-wrap items-center gap-2">

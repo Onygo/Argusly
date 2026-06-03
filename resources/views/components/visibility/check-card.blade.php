@@ -10,7 +10,7 @@
     ];
 @endphp
 
-<article {{ $attributes->merge(['class' => 'rounded-lg border border-line bg-white p-5']) }}>
+<article {{ $attributes->merge(['class' => 'rounded-md border border-line bg-white p-5']) }}>
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
@@ -23,15 +23,15 @@
             <p class="mt-2 text-sm leading-6 text-muted">{{ $check->query }}</p>
         </div>
         <div class="grid shrink-0 grid-cols-3 gap-2 text-right sm:w-48">
-            <div class="rounded-lg bg-panel p-3">
+            <div class="rounded-md bg-panel p-3">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Score</p>
                 <p class="mt-1 text-lg font-semibold text-ink">{{ $result?->score ?? '-' }}</p>
             </div>
-            <div class="rounded-lg bg-panel p-3">
+            <div class="rounded-md bg-panel p-3">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Pos.</p>
                 <p class="mt-1 text-lg font-semibold text-ink">{{ $result?->position ?? '-' }}</p>
             </div>
-            <div class="rounded-lg bg-panel p-3">
+            <div class="rounded-md bg-panel p-3">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Mention</p>
                 <p class="mt-1 text-lg font-semibold text-ink">{{ $result?->mention_found ? 'Yes' : '-' }}</p>
             </div>
@@ -50,7 +50,7 @@
     @endif
 
     @if ($providerRun)
-        <div class="mt-4 rounded-lg border border-line bg-panel p-4">
+        <div class="mt-4 rounded-md border border-line bg-panel p-4">
             <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Provider run</p>

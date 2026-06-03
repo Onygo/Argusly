@@ -1,0 +1,182 @@
+<x-app.settings.layout title="Knowledge Center" description="The canonical brand source of truth for AI visibility, content generation, recommendations, campaigns, creators, relationships and agents.">
+    @if (! $brand)
+        <x-dashboard.empty-state title="No brand selected" message="Select a brand before managing its knowledge center." />
+    @else
+        @if (session('status'))
+            <div class="mb-6 rounded-md border border-line bg-panel px-4 py-3 text-sm font-semibold text-ink">
+                {{ session('status') }}
+            </div>
+        @endif
+
+        <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+            <x-dashboard.section title="Brand profile" description="Define how this brand should be understood and represented across channels and systems.">
+                <form method="POST" action="{{ route('settings.knowledge-center.profile.update') }}" class="grid gap-4 md:grid-cols-2">
+                    @csrf
+                    @method('PATCH')
+                    @php $profile = $center['profile']; @endphp
+
+                    <label class="block">
+                        <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Official name</span>
+                        <input name="official_name" value="{{ old('official_name', $profile->official_name) }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    </label>
+                    <label class="block">
+                        <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Tagline</span>
+                        <input name="tagline" value="{{ old('tagline', $profile->tagline) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    </label>
+                    <label class="block md:col-span-2">
+                        <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Website</span>
+                        <input name="website" value="{{ old('website', $profile->website) }}" placeholder="https://example.com" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    </label>
+                    @foreach ([
+                        'short_description' => ['Short description', 3],
+                        'long_description' => ['Long description', 5],
+                        'mission' => ['Mission', 3],
+                        'vision' => ['Vision', 3],
+                        'positioning' => ['Positioning', 3],
+                        'value_proposition' => ['Value proposition', 3],
+                        'tone_of_voice' => ['Tone of voice', 3],
+                        'primary_audience' => ['Primary audience', 3],
+                        'secondary_audience' => ['Secondary audience', 3],
+                    ] as $field => [$label, $rows])
+                        <label class="block md:col-span-2">
+                            <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ $label }}</span>
+                            <textarea name="{{ $field }}" rows="{{ $rows }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old($field, $profile->{$field}) }}</textarea>
+                        </label>
+                    @endforeach
+                    <div class="md:col-span-2">
+                        <x-ui.button type="submit">Save brand profile</x-ui.button>
+                    </div>
+                </form>
+            </x-dashboard.section>
+
+            <div class="space-y-6">
+                <x-dashboard.section title="Brand Profile Completeness" description="Readiness of the current brand profile for downstream intelligence and generation.">
+                    <div class="rounded-md border border-line bg-panel p-5">
+                        <div class="flex items-end justify-between gap-4">
+                            <div>
+                                <p class="text-4xl font-semibold tracking-tight text-ink">{{ $center['completeness']['percentage'] }}%</p>
+                                <p class="mt-1 text-sm text-muted">{{ $center['completeness']['completed'] }} of {{ $center['completeness']['total'] }} fields complete</p>
+                            </div>
+                            <x-ui.badge variant="{{ $center['completeness']['percentage'] >= 80 ? 'success' : 'blue' }}">{{ $center['completeness']['percentage'] >= 80 ? 'Ready' : 'Needs input' }}</x-ui.badge>
+                        </div>
+                        <div class="mt-5 h-2 overflow-hidden rounded-full bg-white">
+                            <div class="h-full bg-blue" style="width: {{ $center['completeness']['percentage'] }}%"></div>
+                        </div>
+                    </div>
+
+                    @if ($center['completeness']['recommendations'])
+                        <div class="mt-5 space-y-3">
+                            @foreach ($center['completeness']['recommendations'] as $recommendation)
+                                <div class="rounded-md border border-line bg-white p-4 text-sm leading-6 text-muted">{{ $recommendation }}</div>
+                            @endforeach
+                        </div>
+                    @else
+                        <x-dashboard.empty-state title="Profile complete" message="This profile is ready to support AI visibility, content generation and recommendation workflows." />
+                    @endif
+                </x-dashboard.section>
+
+                <x-dashboard.section title="Prepared for">
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        @foreach ($center['futureUseCases'] as $useCase)
+                            <div class="rounded-md border border-line bg-panel p-4">
+                                <p class="text-sm font-semibold text-ink">{{ $useCase['label'] }}</p>
+                                <p class="mt-1 text-xs text-muted">{{ str($useCase['status'])->headline() }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </x-dashboard.section>
+            </div>
+        </div>
+
+        <div class="mt-6 grid gap-6 xl:grid-cols-3">
+            <x-dashboard.section title="Products" description="Products the brand offers.">
+                <form method="POST" action="{{ route('settings.knowledge-center.products.store') }}" class="space-y-4">
+                    @csrf
+                    <input name="name" value="{{ old('name') }}" placeholder="Product name" required class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <textarea name="description" rows="3" placeholder="Description" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description') }}</textarea>
+                    <input name="category" value="{{ old('category') }}" placeholder="Category" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <input name="website" value="{{ old('website') }}" placeholder="https://example.com/product" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status }}">{{ str($status)->headline() }}</option>
+                        @endforeach
+                    </select>
+                    <x-ui.button type="submit" size="sm">Add product</x-ui.button>
+                </form>
+                <div class="mt-5 space-y-3">
+                    @forelse ($center['products'] as $product)
+                        <div class="rounded-md border border-line bg-panel p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <p class="text-sm font-semibold text-ink">{{ $product->name }}</p>
+                                <x-ui.badge>{{ str($product->status)->headline() }}</x-ui.badge>
+                            </div>
+                            <p class="mt-2 text-xs leading-5 text-muted">{{ $product->description ?: 'No description yet.' }}</p>
+                        </div>
+                    @empty
+                        <x-dashboard.empty-state title="No products" message="Add products to help generation and recommendation systems understand the offer." />
+                    @endforelse
+                </div>
+            </x-dashboard.section>
+
+            <x-dashboard.section title="Services" description="Services the brand provides.">
+                <form method="POST" action="{{ route('settings.knowledge-center.services.store') }}" class="space-y-4">
+                    @csrf
+                    <input name="name" value="{{ old('name') }}" placeholder="Service name" required class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <textarea name="description" rows="3" placeholder="Description" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description') }}</textarea>
+                    <input name="category" value="{{ old('category') }}" placeholder="Category" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status }}">{{ str($status)->headline() }}</option>
+                        @endforeach
+                    </select>
+                    <x-ui.button type="submit" size="sm">Add service</x-ui.button>
+                </form>
+                <div class="mt-5 space-y-3">
+                    @forelse ($center['services'] as $service)
+                        <div class="rounded-md border border-line bg-panel p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <p class="text-sm font-semibold text-ink">{{ $service->name }}</p>
+                                <x-ui.badge>{{ str($service->status)->headline() }}</x-ui.badge>
+                            </div>
+                            <p class="mt-2 text-xs leading-5 text-muted">{{ $service->description ?: 'No description yet.' }}</p>
+                        </div>
+                    @empty
+                        <x-dashboard.empty-state title="No services" message="Add services to support creator matching, content and relationship intelligence." />
+                    @endforelse
+                </div>
+            </x-dashboard.section>
+
+            <x-dashboard.section title="Narratives" description="Core stories and claims that should guide representation.">
+                <form method="POST" action="{{ route('settings.knowledge-center.narratives.store') }}" class="space-y-4">
+                    @csrf
+                    <input name="title" value="{{ old('title') }}" placeholder="Narrative title" required class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <textarea name="description" rows="3" placeholder="Narrative description" required class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description') }}</textarea>
+                    <select name="importance" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        @foreach ($importanceLevels as $importance)
+                            <option value="{{ $importance }}">{{ str($importance)->headline() }}</option>
+                        @endforeach
+                    </select>
+                    <select name="status" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status }}">{{ str($status)->headline() }}</option>
+                        @endforeach
+                    </select>
+                    <x-ui.button type="submit" size="sm">Add narrative</x-ui.button>
+                </form>
+                <div class="mt-5 space-y-3">
+                    @forelse ($center['narratives'] as $narrative)
+                        <div class="rounded-md border border-line bg-panel p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <p class="text-sm font-semibold text-ink">{{ $narrative->title }}</p>
+                                <x-ui.badge variant="{{ $narrative->importance === 'critical' || $narrative->importance === 'high' ? 'blue' : 'default' }}">{{ str($narrative->importance)->headline() }}</x-ui.badge>
+                            </div>
+                            <p class="mt-2 text-xs leading-5 text-muted">{{ $narrative->description }}</p>
+                        </div>
+                    @empty
+                        <x-dashboard.empty-state title="No narratives" message="Add narratives to prepare for narrative intelligence and campaign planning." />
+                    @endforelse
+                </div>
+            </x-dashboard.section>
+        </div>
+    @endif
+</x-app.settings.layout>

@@ -14,7 +14,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -24,7 +24,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($audience->members as $member)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <div class="flex flex-wrap items-center gap-2">
                                     <p class="text-sm font-semibold text-ink">{{ trim("{$member->first_name} {$member->last_name}") ?: $member->contact?->display_name ?: $member->email }}</p>
                                     <x-ui.badge variant="{{ $member->status === 'active' ? 'success' : 'default' }}">{{ str($member->status)->headline() }}</x-ui.badge>
@@ -45,7 +45,7 @@
                     @csrf
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Existing contact</span>
-                        <select name="contact_id" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="contact_id" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="">Match by email</option>
                             @foreach ($contacts as $contact)
                                 <option value="{{ $contact->id }}">{{ $contact->display_name ?: trim("{$contact->first_name} {$contact->last_name}") }} · {{ $contact->email }}</option>
@@ -54,22 +54,22 @@
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Email</span>
-                        <input name="email" type="email" required class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="maya@example.com">
+                        <input name="email" type="email" required class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="maya@example.com">
                     </label>
                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">First name</span>
-                            <input name="first_name" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="first_name" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Last name</span>
-                            <input name="last_name" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="last_name" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                     </div>
                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Status</span>
-                            <select name="status" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="status" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status }}">{{ str($status)->headline() }}</option>
                                 @endforeach
@@ -77,7 +77,7 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Source</span>
-                            <input name="source" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="manual">
+                            <input name="source" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="manual">
                         </label>
                     </div>
                     <x-ui.button type="submit">Add member</x-ui.button>
@@ -92,7 +92,7 @@
                 @else
                     <div class="grid gap-3 md:grid-cols-2">
                         @foreach ($audience->segments as $segment)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <p class="text-sm font-semibold text-ink">{{ $segment->name }}</p>
                                 <p class="mt-2 line-clamp-2 text-sm leading-6 text-muted">{{ $segment->description ?: 'No description yet.' }}</p>
                             </div>

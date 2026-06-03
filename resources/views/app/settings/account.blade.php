@@ -15,7 +15,7 @@
             @if (blank($account->settings))
                 <x-dashboard.empty-state title="No settings configured" message="Account-level settings JSON is available for future product preferences." />
             @else
-                <pre class="overflow-x-auto rounded-lg bg-ink p-4 text-xs leading-6 text-white">{{ json_encode($account->settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                <pre class="overflow-x-auto rounded-md bg-ink p-4 text-xs leading-6 text-white">{{ json_encode($account->settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
             @endif
         </x-dashboard.section>
     </div>

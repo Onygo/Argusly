@@ -1,17 +1,8 @@
-<x-app.layout :title="__('dashboard.eyebrow').' | Argusly'">
-    <div class="mx-auto max-w-7xl">
-        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-                <p class="eyebrow">{{ __('dashboard.eyebrow') }}</p>
-                <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{{ __('dashboard.title') }}</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">{{ __('dashboard.description') }}</p>
-            </div>
-            <x-ui.badge variant="{{ $account ? 'success' : 'default' }}">
-                {{ $account ? __('dashboard.tenant_active') : __('dashboard.no_account_context') }}
-            </x-ui.badge>
-        </div>
-
-        <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+<x-app.layout
+    :title="__('dashboard.eyebrow').' | Argusly'"
+>
+    <div>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <x-dashboard.info-card :label="__('dashboard.current_account')" :value="$account?->name" :empty="__('dashboard.no_account_selected')" />
             <x-dashboard.info-card :label="__('dashboard.current_brand')" :value="$brand?->name" :empty="__('dashboard.no_brand_selected')" />
             <x-dashboard.info-card :label="__('dashboard.account_role')" :value="$accountRole" :empty="__('dashboard.no_account_role')" />
@@ -64,7 +55,7 @@
                 @if (! $brand)
                     <x-dashboard.empty-state :title="__('dashboard.no_brand_selected')" message="Select or join a brand in this account before brand-specific intelligence appears." />
                 @else
-                    <div class="rounded-lg border border-line bg-panel p-5">
+                    <div class="rounded-md border border-line bg-panel p-5">
                         <p class="text-sm font-semibold text-ink">{{ $brand->name }}</p>
                         <p class="mt-1 text-sm text-muted">{{ $brand->domain ?: 'No brand domain configured' }}</p>
                     </div>
@@ -80,7 +71,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($recentActivity as $activity)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-ink">{{ $activity->description }}</p>
@@ -92,6 +83,88 @@
                                 </div>
                             </div>
                         @endforeach
+                    </div>
+                @endif
+            </x-dashboard.section>
+        </div>
+
+        <div class="mt-6">
+            <x-dashboard.section title="Brand Profile Completeness" description="Knowledge Center readiness for AI visibility, content generation, recommendations, campaigns, creators, relationships and agents.">
+                @if (! $brand || ! $brandProfileCompleteness)
+                    <x-dashboard.empty-state title="No brand profile" message="Select a brand to see Knowledge Center readiness." />
+                @else
+                    <div class="grid gap-4 lg:grid-cols-[0.35fr_0.65fr]">
+                        <div class="rounded-md border border-line bg-panel p-5">
+                            <p class="text-4xl font-semibold tracking-tight text-ink">{{ $brandProfileCompleteness['percentage'] }}%</p>
+                            <p class="mt-1 text-sm text-muted">{{ $brandProfileCompleteness['completed'] }} of {{ $brandProfileCompleteness['total'] }} fields complete</p>
+                            <div class="mt-5 h-2 overflow-hidden rounded-full bg-white">
+                                <div class="h-full bg-blue" style="width: {{ $brandProfileCompleteness['percentage'] }}%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            @if ($brandProfileCompleteness['recommendations'])
+                                <div class="grid gap-3 md:grid-cols-2">
+                                    @foreach ($brandProfileCompleteness['recommendations'] as $recommendation)
+                                        <div class="rounded-md border border-line bg-panel p-4 text-sm leading-6 text-muted">{{ $recommendation }}</div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <x-dashboard.empty-state title="Profile complete" message="The current brand profile is ready for downstream workflows." />
+                            @endif
+                            <div class="mt-5">
+                                <x-ui.button href="{{ route('settings.knowledge-center') }}" variant="secondary">Open Knowledge Center</x-ui.button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </x-dashboard.section>
+        </div>
+
+        <div class="mt-6">
+            <x-dashboard.section title="Knowledge Graph Health" description="Projected relationship intelligence for AI visibility, narrative coverage, creators and recommendations.">
+                @if (! $knowledgeGraphDashboard)
+                    <x-dashboard.empty-state title="No graph data" message="The graph projection will appear after intelligence domains are projected." />
+                @else
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <x-dashboard.info-card label="Nodes" :value="$knowledgeGraphDashboard['health']['nodes']" />
+                        <x-dashboard.info-card label="Edges" :value="$knowledgeGraphDashboard['health']['edges']" />
+                        <x-dashboard.info-card label="Relationship Growth" :value="$knowledgeGraphDashboard['relationshipGrowth']" />
+                        <x-dashboard.info-card label="Narrative Coverage" :value="$knowledgeGraphDashboard['narrativeCoverage']['referenced'].'/'.$knowledgeGraphDashboard['narrativeCoverage']['narratives']" />
+                    </div>
+                    <div class="mt-5 grid gap-5 lg:grid-cols-3">
+                        <div class="rounded-md border border-line bg-panel p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Most Connected Topics</p>
+                            <div class="mt-3 space-y-2">
+                                @forelse ($knowledgeGraphDashboard['topics'] as $topic)
+                                    <p class="truncate text-sm text-ink">{{ $topic->label }} <span class="text-muted">({{ (int) ($topic->connections_count ?? 0) }})</span></p>
+                                @empty
+                                    <p class="text-sm text-muted">No topic connections yet.</p>
+                                @endforelse
+                            </div>
+                        </div>
+                        <div class="rounded-md border border-line bg-panel p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Most Connected Entities</p>
+                            <div class="mt-3 space-y-2">
+                                @forelse ($knowledgeGraphDashboard['entities'] as $entity)
+                                    <p class="truncate text-sm text-ink">{{ $entity->label }} <span class="text-muted">({{ (int) ($entity->connections_count ?? 0) }})</span></p>
+                                @empty
+                                    <p class="text-sm text-muted">No entity connections yet.</p>
+                                @endforelse
+                            </div>
+                        </div>
+                        <div class="rounded-md border border-line bg-panel p-4">
+                            <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Graph Opportunities</p>
+                            <div class="mt-3 space-y-2">
+                                @forelse ($graphOpportunities as $opportunity)
+                                    <p class="truncate text-sm text-ink">{{ $opportunity->title }}</p>
+                                @empty
+                                    <p class="text-sm text-muted">No graph opportunities found.</p>
+                                @endforelse
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-5">
+                        <x-ui.button href="{{ route('app.intelligence.graph') }}" variant="secondary">Open Knowledge Graph</x-ui.button>
                     </div>
                 @endif
             </x-dashboard.section>
@@ -166,7 +239,7 @@
                 @else
                     <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                         @foreach ($topTopics as $topic)
-                            <a href="{{ route('app.topics.show', $topic) }}" class="rounded-lg border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
+                            <a href="{{ route('app.topics.show', $topic) }}" class="rounded-md border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-ink">{{ $topic->name }}</p>
@@ -194,7 +267,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($recentMentions as $mention)
-                            <a href="{{ route('app.mentions.show', $mention) }}" class="block rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                            <a href="{{ route('app.mentions.show', $mention) }}" class="block rounded-md border border-line bg-panel p-4 hover:bg-white">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-ink">{{ $mention->title ?: str($mention->content)->limit(70) ?: 'Untitled mention' }}</p>
@@ -214,7 +287,7 @@
             <x-dashboard.section :title="__('dashboard.sentiment_overview')" description="Mention sentiment distribution in this tenant context.">
                 <div class="grid grid-cols-2 gap-3">
                     @foreach (['positive' => 'success', 'neutral' => 'default', 'negative' => 'default', 'mixed' => 'blue'] as $sentiment => $variant)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <div class="flex items-center justify-between gap-3">
                                 <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ str($sentiment)->headline() }}</p>
                                 <x-ui.badge variant="{{ $variant }}">{{ $mentionSentimentOverview[$sentiment] }}</x-ui.badge>

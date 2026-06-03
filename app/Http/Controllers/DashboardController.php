@@ -14,6 +14,9 @@ use App\Models\Module;
 use App\Models\SubscriptionModule;
 use App\Models\User;
 use App\Services\CreditService;
+use App\Services\BrandKnowledgeCenterService;
+use App\Services\Graph\GraphOpportunityService;
+use App\Services\Graph\GraphQueryService;
 use App\Services\Integrations\IntegrationPermissionService;
 use App\Services\IntelligenceSignalService;
 use App\Services\MentionIntelligenceService;
@@ -38,6 +41,9 @@ class DashboardController extends Controller
         CreditService $credits,
         TopicIntelligenceService $topics,
         MentionIntelligenceService $mentions,
+        BrandKnowledgeCenterService $knowledgeCenter,
+        GraphQueryService $graph,
+        GraphOpportunityService $graphOpportunities,
     ): View {
         /** @var User $user */
         $user = $request->user();
@@ -63,6 +69,9 @@ class DashboardController extends Controller
             'mentionSentimentOverview' => $account ? $mentions->sentimentOverview($account, $brand) : ['positive' => 0, 'neutral' => 0, 'negative' => 0, 'mixed' => 0, 'unknown' => 0, 'total' => 0],
             'ga4Stats' => $account ? $this->ga4Stats($account, $brand) : ['sessions' => 0, 'users' => 0, 'pageviews' => 0, 'conversions' => 0],
             'searchConsoleStats' => $account ? $this->searchConsoleStats($account, $brand) : ['clicks' => 0, 'impressions' => 0, 'ctr' => null, 'position' => null],
+            'brandProfileCompleteness' => $account && $brand ? $knowledgeCenter->centerForBrand($account, $brand)['completeness'] : null,
+            'knowledgeGraphDashboard' => $account ? $graph->dashboard($account, $brand) : null,
+            'graphOpportunities' => $account ? $graphOpportunities->discover($account, $brand)->take(5) : collect(),
         ]);
     }
 

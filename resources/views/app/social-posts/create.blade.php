@@ -18,7 +18,7 @@
 
                 <label class="block">
                     <span class="text-sm font-semibold text-ink">Social profile</span>
-                    <select name="social_profile_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                    <select name="social_profile_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                         <option value="">Select a profile</option>
                         @foreach ($profiles as $profile)
                             <option value="{{ $profile->id }}" @selected((string) old('social_profile_id') === (string) $profile->id)>{{ $profile->display_name }} · {{ str($profile->provider)->headline() }}</option>
@@ -31,7 +31,7 @@
 
                 <label class="block">
                     <span class="text-sm font-semibold text-ink">Post text</span>
-                    <textarea name="post_text" rows="8" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm leading-6 text-ink" required>{{ old('post_text', $asset?->excerpt ?: $asset?->title) }}</textarea>
+                    <textarea name="post_text" rows="8" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm leading-6 text-ink" required>{{ old('post_text', $asset?->excerpt ?: $asset?->title) }}</textarea>
                     @error('post_text')
                         <span class="mt-2 block text-sm font-medium text-red-600">{{ $message }}</span>
                     @enderror
@@ -40,7 +40,7 @@
                 <div class="grid gap-4 sm:grid-cols-3">
                     <label>
                         <span class="text-sm font-semibold text-ink">Language</span>
-                        <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             @foreach ($contentLanguages as $language)
                                 <option value="{{ $language->code }}" @selected(old('language', $asset?->language ?? $brand->default_content_language) === $language->code)>{{ $language->name }}</option>
                             @endforeach
@@ -48,14 +48,14 @@
                     </label>
                     <label>
                         <span class="text-sm font-semibold text-ink">Status</span>
-                        <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="draft" @selected(old('status') === 'draft')>Draft</option>
                             <option value="review" @selected(old('status') === 'review')>Review</option>
                         </select>
                     </label>
                     <label>
                         <span class="text-sm font-semibold text-ink">Market</span>
-                        <input name="market" value="{{ old('market', $brand->market) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="market" value="{{ old('market', $brand->market) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                 </div>
 

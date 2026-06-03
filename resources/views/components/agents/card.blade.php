@@ -8,7 +8,7 @@
     ];
 @endphp
 
-<article {{ $attributes->merge(['class' => 'rounded-lg border border-line bg-white p-5']) }}>
+<article {{ $attributes->merge(['class' => 'rounded-md border border-line bg-white p-5']) }}>
     <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
@@ -28,11 +28,11 @@
     </div>
 
     <div class="mt-5 grid grid-cols-2 gap-2 text-right">
-        <div class="rounded-lg bg-panel p-3">
+        <div class="rounded-md bg-panel p-3">
             <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Runs</p>
             <p class="mt-1 text-lg font-semibold text-ink">{{ $agent->runs_count }}</p>
         </div>
-        <div class="rounded-lg bg-panel p-3">
+        <div class="rounded-md bg-panel p-3">
             <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Tasks</p>
             <p class="mt-1 text-lg font-semibold text-ink">{{ $agent->tasks_count }}</p>
         </div>

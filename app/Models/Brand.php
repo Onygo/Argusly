@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Services\ActivityLogger;
+use App\Services\DomainEventService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'account_id',
@@ -37,6 +39,11 @@ class Brand extends Model
                 brand: $brand,
                 subject: $brand,
             );
+
+            app(DomainEventService::class)->recordForSubject('BrandCreated', $brand, null, [
+                'name' => $brand->name,
+            ], dispatch: false);
+            app(\App\Services\Graph\GraphProjectionService::class)->project($brand);
         });
     }
 
@@ -63,6 +70,48 @@ class Brand extends Model
     {
         return $this->belongsToMany(User::class, 'brand_memberships')
             ->withPivot(['account_id', 'status', 'joined_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * @return HasOne<BrandProfile, $this>
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(BrandProfile::class);
+    }
+
+    /**
+     * @return HasMany<BrandProduct, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(BrandProduct::class);
+    }
+
+    /**
+     * @return HasMany<BrandService, $this>
+     */
+    public function services(): HasMany
+    {
+        return $this->hasMany(BrandService::class);
+    }
+
+    /**
+     * @return HasMany<BrandNarrative, $this>
+     */
+    public function narratives(): HasMany
+    {
+        return $this->hasMany(BrandNarrative::class);
+    }
+
+    /**
+     * @return BelongsToMany<Topic, $this>
+     */
+    public function topics(): BelongsToMany
+    {
+        return $this->belongsToMany(Topic::class, 'brand_topics')
+            ->withPivot(['priority', 'importance_score'])
             ->withTimestamps();
     }
 

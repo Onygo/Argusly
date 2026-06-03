@@ -8,7 +8,7 @@
 @else
     <div class="space-y-3">
         @foreach ($outgoing as $relationship)
-            <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+            <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-ink">
                         {{ $relationship->to instanceof \App\Models\Contact ? $relationship->to->display_name : $relationship->to->name }}
@@ -19,7 +19,7 @@
             </div>
         @endforeach
         @foreach ($incoming as $relationship)
-            <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+            <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                 <div class="min-w-0">
                     <p class="truncate text-sm font-semibold text-ink">
                         {{ $relationship->from instanceof \App\Models\Contact ? $relationship->from->display_name : $relationship->from->name }}

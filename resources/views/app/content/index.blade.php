@@ -1,5 +1,5 @@
 <x-app.layout :title="__('content.title').' | Argusly'">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Argusly Content Engine</p>
@@ -19,7 +19,7 @@
             <form method="GET" action="{{ route('app.content.index') }}" class="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.status') }}</span>
-                    <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">{{ __('common.all_statuses') }}</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->replace('_', ' ')->headline() }}</option>
@@ -29,7 +29,7 @@
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.type') }}</span>
-                    <select name="type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">{{ __('common.all_types') }}</option>
                         @foreach ($types as $type)
                             <option value="{{ $type }}" @selected(($filters['type'] ?? '') === $type)>{{ str($type)->replace('_', ' ')->headline() }}</option>
@@ -39,7 +39,7 @@
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('content.language') }}</span>
-                    <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">{{ __('common.all_languages') }}</option>
                         @foreach ($contentLanguages as $language)
                             <option value="{{ $language->code }}" @selected(($filters['language'] ?? '') === $language->code)>{{ $language->name }}</option>
@@ -54,7 +54,7 @@
             </form>
         </x-ui.card>
 
-        <div class="mt-6 overflow-hidden rounded-2xl border border-line bg-white">
+        <div class="mt-6 overflow-hidden rounded-md border border-line bg-white">
             <div class="hidden grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_0.7fr] gap-4 border-b border-line px-5 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted md:grid">
                 <span>Asset</span>
                 <span>{{ __('common.type') }}</span>

@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $mention->title ?: 'Mention' }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Mention detail</p>
@@ -41,7 +41,7 @@
                     @else
                         <div class="space-y-3">
                             @foreach ($mention->entities as $entity)
-                                <div class="flex items-center justify-between gap-3 rounded-lg border border-line bg-panel p-4">
+                                <div class="flex items-center justify-between gap-3 rounded-md border border-line bg-panel p-4">
                                     <p class="text-sm font-semibold text-ink">{{ $entity->entity_name }}</p>
                                     <x-ui.badge>{{ str($entity->entity_type)->headline() }}</x-ui.badge>
                                 </div>
@@ -56,13 +56,13 @@
                     @else
                         <div class="space-y-3">
                             @foreach ($mention->topics as $topic)
-                                <a href="{{ route('app.topics.show', $topic) }}" class="flex items-center justify-between rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                                <a href="{{ route('app.topics.show', $topic) }}" class="flex items-center justify-between rounded-md border border-line bg-panel p-4 hover:bg-white">
                                     <span class="text-sm font-semibold text-ink">{{ $topic->name }}</span>
                                     <x-ui.badge>Topic</x-ui.badge>
                                 </a>
                             @endforeach
                             @foreach ($mention->relationships as $relationship)
-                                <div class="rounded-lg border border-line bg-panel p-4">
+                                <div class="rounded-md border border-line bg-panel p-4">
                                     <p class="text-sm font-semibold text-ink">{{ class_basename($relationship->related_type) }} #{{ $relationship->related_id }}</p>
                                 </div>
                             @endforeach

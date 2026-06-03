@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Brand;
 use App\Models\BrandEntity;
 use App\Models\Entity;
+use App\Models\EntityAlias;
 use App\Models\EntityRelationship;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -18,22 +19,31 @@ class BrandKnowledgeGraphService
     public function createEntity(Account $account, array $attributes): Entity
     {
         $entityType = $attributes['entity_type'] ?? null;
+        $entityType = is_string($entityType) ? str($entityType)->snake()->lower()->toString() : $entityType;
 
         if (! in_array($entityType, Entity::TYPES, true)) {
             throw new InvalidArgumentException("Invalid entity type [{$entityType}].");
         }
 
-        return Entity::query()->updateOrCreate(
+        $aliases = $this->aliases($attributes['aliases'] ?? null);
+        $entity = Entity::query()->updateOrCreate(
             [
                 'account_id' => $account->id,
+                'brand_id' => null,
                 'name' => trim($attributes['name']),
                 'entity_type' => $entityType,
             ],
             [
+                'slug' => str($attributes['name'])->slug()->toString(),
                 'description' => $attributes['description'] ?? null,
-                'aliases' => $this->aliases($attributes['aliases'] ?? null),
+                'aliases' => $aliases,
+                'status' => 'active',
             ],
         );
+
+        $this->syncAliases($entity, $aliases);
+
+        return $entity;
     }
 
     /**
@@ -136,6 +146,21 @@ class BrandKnowledgeGraphService
             ->unique()
             ->values()
             ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $aliases
+     */
+    private function syncAliases(Entity $entity, array $aliases): void
+    {
+        EntityAlias::query()->where('entity_id', $entity->id)->delete();
+
+        foreach ($aliases as $alias) {
+            EntityAlias::query()->create([
+                'entity_id' => $entity->id,
+                'alias' => $alias,
+            ]);
+        }
     }
 
     private function ensureBrandBelongsToAccount(Account $account, Brand $brand): void

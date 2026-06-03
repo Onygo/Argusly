@@ -18,7 +18,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">

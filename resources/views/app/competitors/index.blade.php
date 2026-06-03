@@ -1,5 +1,5 @@
 <x-app.layout title="Competitors | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Competitive intelligence</p>
@@ -15,19 +15,19 @@
                     @csrf
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Name</span>
-                        <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Website</span>
-                        <input name="website" value="{{ old('website') }}" required placeholder="example.com" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="website" value="{{ old('website') }}" required placeholder="example.com" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Industry</span>
-                        <input name="industry" value="{{ old('industry') }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="industry" value="{{ old('industry') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
-                        <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             @foreach ($statuses as $status)
                                 <option value="{{ $status }}" @selected(old('status', 'active') === $status)>{{ str($status)->headline() }}</option>
                             @endforeach
@@ -45,15 +45,15 @@
                 </div>
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-3">
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Visibility leader</p>
                         <p class="mt-2 truncate text-sm font-semibold text-ink">{{ $comparison['leaders']['visibility']?->name ?? 'No data' }}</p>
                     </div>
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Mention leader</p>
                         <p class="mt-2 truncate text-sm font-semibold text-ink">{{ $comparison['leaders']['mentions']?->name ?? 'No data' }}</p>
                     </div>
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">SOV leader</p>
                         <p class="mt-2 truncate text-sm font-semibold text-ink">{{ $comparison['leaders']['share_of_voice']?->name ?? 'No data' }}</p>
                     </div>
@@ -77,7 +77,7 @@
             <x-dashboard.section title="Tracking architecture" description="These source lanes are prepared for later workers and external integrations.">
                 <div class="space-y-3">
                     @foreach ($comparison['tracking'] as $source)
-                        <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+                        <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                             <div>
                                 <p class="text-sm font-semibold text-ink">{{ $source['label'] }}</p>
                                 <p class="mt-1 text-xs text-muted">{{ $source['key'] }}</p>

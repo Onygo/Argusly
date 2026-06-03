@@ -6,6 +6,7 @@ return [
             'view_dashboard',
         ],
         'account' => [
+            'manage_platform',
             'manage_account',
             'manage_users',
             'manage_billing',
@@ -39,6 +40,7 @@ return [
 
     'module_requirements' => [
         'core' => [
+            'manage_platform',
             'view_dashboard',
             'manage_account',
             'manage_users',
@@ -84,6 +86,12 @@ return [
     ],
 
     'roles' => [
+        'platform_admin' => [
+            'display_name' => 'Platform Admin',
+            'priority' => 110,
+            'all_permissions' => true,
+            'permissions' => [],
+        ],
         'owner' => [
             'display_name' => 'Owner',
             'priority' => 100,

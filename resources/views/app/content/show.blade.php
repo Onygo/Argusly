@@ -1,5 +1,5 @@
 <x-app.layout :title="$asset->title.' | Argusly'">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
             <div>
                 <p class="eyebrow">Argusly Content Engine</p>
@@ -53,13 +53,13 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+            <div class="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
                 {{ session('status') }}
             </div>
         @endif
 
         @if ($errors->has('credits'))
-            <div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            <div class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                 {{ $errors->first('credits') }}
             </div>
         @endif
@@ -138,7 +138,7 @@
                             @csrf
                             <label>
                                 <span class="sr-only">Target languages</span>
-                                <select name="target_languages[]" multiple size="{{ min(4, max(2, $missingTranslationTargets->count())) }}" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="target_languages[]" multiple size="{{ min(4, max(2, $missingTranslationTargets->count())) }}" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($missingTranslationTargets as $language)
                                         <option value="{{ $language->code }}">{{ $language->name }} · {{ $language->native_name }}</option>
                                     @endforeach
@@ -151,7 +151,7 @@
             </div>
 
             @if ($errors->has('translations'))
-                <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                <div class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                     {{ $errors->first('translations') }}
                 </div>
             @endif
@@ -161,7 +161,7 @@
                     <h3 class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Linked translated assets</h3>
                     <div class="mt-3 space-y-3">
                         @forelse ($activeTranslations as $translation)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                                     <div>
                                         <div class="flex flex-wrap items-center gap-2">
@@ -194,7 +194,7 @@
                     </div>
 
                     @if ($asset->translatedFrom->isNotEmpty())
-                        <div class="mt-5 rounded-lg border border-line bg-panel p-4">
+                        <div class="mt-5 rounded-md border border-line bg-panel p-4">
                             <h3 class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Translated from</h3>
                             @foreach ($asset->translatedFrom as $translation)
                                 <a href="{{ route('app.content.show', $translation->sourceContentAsset) }}" class="mt-2 block text-sm font-semibold text-ink hover:underline">{{ $translation->sourceContentAsset?->title }}</a>
@@ -207,7 +207,7 @@
             <div class="mt-5 space-y-3">
                 <h3 class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Translation history</h3>
                 @forelse ($asset->sourceTranslations as $translation)
-                    <div class="flex flex-col justify-between gap-3 rounded-lg border border-line bg-panel p-4 sm:flex-row sm:items-center">
+                    <div class="flex flex-col justify-between gap-3 rounded-md border border-line bg-panel p-4 sm:flex-row sm:items-center">
                         <div class="flex flex-wrap items-center gap-2">
                             <x-ui.badge>{{ strtoupper($translation->source_language) }} to {{ strtoupper($translation->target_language) }}</x-ui.badge>
                             <x-ui.badge :variant="$translation->status === 'completed' ? 'success' : ($translation->status === 'failed' ? 'dark' : 'default')">{{ str($translation->status)->headline() }}</x-ui.badge>
@@ -287,7 +287,7 @@
                         @csrf
                         <label>
                             <span class="sr-only">Publishing action</span>
-                            <select name="action" class="h-10 rounded-lg border border-line bg-white px-3 text-sm text-ink">
+                            <select name="action" class="h-10 rounded-md border border-line bg-white px-3 text-sm text-ink">
                                 @foreach (\App\Models\PublishingAction::ACTIONS as $action)
                                     <option value="{{ $action }}" @selected($action === 'publish')>{{ str($action)->headline() }}</option>
                                 @endforeach
@@ -300,7 +300,7 @@
 
             <div class="mt-5 space-y-3">
                 @forelse ($asset->publishingActions as $publishingAction)
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
@@ -354,7 +354,7 @@
                     <x-settings.field label="Priority" :value="$latestLifecycle->refresh_priority.'/100'" />
                 </div>
 
-                <div class="mt-5 rounded-lg border border-line bg-panel p-4">
+                <div class="mt-5 rounded-md border border-line bg-panel p-4">
                     <div class="flex flex-wrap items-center gap-2">
                         <x-ui.badge :variant="in_array($latestLifecycle->status, ['healthy'], true) ? 'success' : (in_array($latestLifecycle->status, ['critical', 'needs_refresh'], true) ? 'dark' : 'default')">
                             {{ str($latestLifecycle->status)->replace('_', ' ')->headline() }}
@@ -365,7 +365,7 @@
                 </div>
 
                 @if (! empty($latestLifecycle->signals['recommendations'] ?? []))
-                    <div class="mt-5 rounded-lg border border-line bg-panel p-4">
+                    <div class="mt-5 rounded-md border border-line bg-panel p-4">
                         <h3 class="text-sm font-semibold text-ink">Lifecycle recommendations</h3>
                         <div class="mt-3 flex flex-wrap gap-2">
                             @foreach ($latestLifecycle->signals['recommendations'] as $recommendation)
@@ -378,7 +378,7 @@
                 <div class="mt-5 space-y-3">
                     <h3 class="text-sm font-semibold text-ink">Lifecycle history</h3>
                     @foreach ($asset->lifecycleScores as $score)
-                        <div class="flex flex-col justify-between gap-3 rounded-lg border border-line bg-panel p-4 sm:flex-row sm:items-center">
+                        <div class="flex flex-col justify-between gap-3 rounded-md border border-line bg-panel p-4 sm:flex-row sm:items-center">
                             <div class="flex flex-wrap items-center gap-2">
                                 <x-ui.badge :variant="in_array($score->status, ['healthy'], true) ? 'success' : (in_array($score->status, ['critical', 'needs_refresh'], true) ? 'dark' : 'default')">
                                     {{ str($score->status)->replace('_', ' ')->headline() }}
@@ -410,7 +410,7 @@
 
             <div class="mt-5 space-y-3">
                 @forelse ($asset->answerBlocks as $answerBlock)
-                    <a href="{{ route('app.content.answer-blocks.show', $answerBlock) }}" class="block rounded-lg border border-line bg-panel p-4 transition hover:bg-white">
+                    <a href="{{ route('app.content.answer-blocks.show', $answerBlock) }}" class="block rounded-md border border-line bg-panel p-4 transition hover:bg-white">
                         <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
@@ -457,7 +457,7 @@
                 </div>
 
                 <div class="mt-5 grid gap-4 lg:grid-cols-2">
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <h3 class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Issues</h3>
                         <ul class="mt-3 space-y-2 text-sm leading-6 text-muted">
                             @forelse ($latestAudit->issues ?? [] as $issue)
@@ -467,7 +467,7 @@
                             @endforelse
                         </ul>
                     </div>
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <h3 class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Recommendations</h3>
                         <ul class="mt-3 space-y-2 text-sm leading-6 text-muted">
                             @forelse ($latestAudit->recommendations ?? [] as $recommendation)
@@ -490,7 +490,7 @@
             <div class="mt-5 space-y-3">
                 <h3 class="text-sm font-semibold text-ink">Audit history</h3>
                 @forelse ($asset->audits as $audit)
-                    <div class="flex flex-col justify-between gap-3 rounded-lg border border-line bg-panel p-4 sm:flex-row sm:items-center">
+                    <div class="flex flex-col justify-between gap-3 rounded-md border border-line bg-panel p-4 sm:flex-row sm:items-center">
                         <div>
                             <div class="flex flex-wrap items-center gap-2">
                                 <x-ui.badge :variant="$audit->status === 'completed' ? 'success' : ($audit->status === 'failed' ? 'dark' : 'default')">
@@ -519,7 +519,7 @@
                         @csrf
                         <label>
                             <span class="sr-only">Generation type</span>
-                            <select name="type" class="h-10 rounded-lg border border-line bg-white px-3 text-sm text-ink">
+                            <select name="type" class="h-10 rounded-md border border-line bg-white px-3 text-sm text-ink">
                                 @foreach ($generationTypes as $type)
                                     <option value="{{ $type }}" @selected($type === 'refresh')>{{ str($type)->replace('_', ' ')->headline() }}</option>
                                 @endforeach
@@ -527,7 +527,7 @@
                         </label>
                         <label>
                             <span class="sr-only">Generation language</span>
-                            <select name="language" class="h-10 rounded-lg border border-line bg-white px-3 text-sm text-ink">
+                            <select name="language" class="h-10 rounded-md border border-line bg-white px-3 text-sm text-ink">
                                 @foreach ($contentLanguages as $language)
                                     <option value="{{ $language->code }}" @selected($language->code === $asset->language)>{{ $language->name }}</option>
                                 @endforeach
@@ -540,7 +540,7 @@
 
             <div class="mt-5 space-y-3">
                 @forelse ($asset->generatedAssets as $run)
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">

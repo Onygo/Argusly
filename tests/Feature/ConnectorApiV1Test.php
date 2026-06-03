@@ -54,6 +54,18 @@ class ConnectorApiV1Test extends TestCase
         ]);
     }
 
+    public function test_connector_api_is_available_on_configured_api_domain_without_api_prefix(): void
+    {
+        [$installation, $token] = $this->connectorInstallation();
+
+        $this->withToken($token)
+            ->getJson('http://api.argusly.test/v1/connector/manifest')
+            ->assertOk()
+            ->assertJsonPath('data.manifest.key', 'wordpress')
+            ->assertJsonPath('data.manifest.api_base_path', '/v1')
+            ->assertJsonPath('data.connector.channel_id', $installation->channel_id);
+    }
+
     public function test_connector_register_health_capabilities_and_events_are_scoped(): void
     {
         [$installation, $token] = $this->connectorInstallation();

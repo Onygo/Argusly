@@ -57,6 +57,10 @@ class Recommendation extends Model
         'attach_content_to_campaign',
         'attach_social_post_to_campaign',
         'create_objective_actions',
+        'create_content',
+        'refresh_positioning',
+        'launch_campaign',
+        'improve_citations',
     ];
 
     public const EXECUTION_STATUSES = ['pending', 'queued', 'completed', 'failed'];

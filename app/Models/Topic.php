@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Support\Str;
+use App\Services\DomainEventService;
 use InvalidArgumentException;
 
 #[Fillable([
@@ -36,7 +37,16 @@ class Topic extends Model
             $topic->status ??= 'active';
         });
 
+        static::created(function (Topic $topic): void {
+            app(DomainEventService::class)->recordForSubject('TopicCreated', $topic, null, [
+                'name' => $topic->name,
+            ], dispatch: false);
+            app(\App\Services\Graph\GraphProjectionService::class)->project($topic);
+        });
+
         static::saving(function (Topic $topic): void {
+            $topic->status ??= 'active';
+
             if (! in_array($topic->status, self::STATUSES, true)) {
                 throw new InvalidArgumentException("Invalid topic status [{$topic->status}].");
             }

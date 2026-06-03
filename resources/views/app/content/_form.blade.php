@@ -9,25 +9,25 @@
         <div class="space-y-4">
             <label class="block">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Title</span>
-                <input name="title" value="{{ old('title', $asset->title) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                <input name="title" value="{{ old('title', $asset->title) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                 @error('title') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
 
             <label class="block">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Slug</span>
-                <input name="slug" value="{{ old('slug', $asset->slug) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                <input name="slug" value="{{ old('slug', $asset->slug) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                 @error('slug') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
 
             <label class="block">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Excerpt</span>
-                <textarea name="excerpt" rows="3" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('excerpt', $asset->excerpt) }}</textarea>
+                <textarea name="excerpt" rows="3" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('excerpt', $asset->excerpt) }}</textarea>
                 @error('excerpt') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
 
             <label class="block">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Body</span>
-                <textarea name="body" rows="12" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm leading-6 text-ink">{{ old('body', $asset->body) }}</textarea>
+                <textarea name="body" rows="12" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm leading-6 text-ink">{{ old('body', $asset->body) }}</textarea>
                 @error('body') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
         </div>
@@ -38,7 +38,7 @@
             <div class="space-y-4">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                    <select name="type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                    <select name="type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                         @foreach ($types as $type)
                             <option value="{{ $type }}" @selected(old('type', $asset->type) === $type)>{{ str($type)->replace('_', ' ')->headline() }}</option>
                         @endforeach
@@ -51,7 +51,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Content language</span>
-                        <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                        <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                             @foreach ($contentLanguages as $language)
                                 <option value="{{ $language->code }}" @selected(old('language', $asset->language) === $language->code)>{{ $language->name }} · {{ $language->native_name }}</option>
                             @endforeach
@@ -61,14 +61,14 @@
 
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Locale</span>
-                        <input name="locale" value="{{ old('locale', $asset->locale ?: 'en_US') }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                        <input name="locale" value="{{ old('locale', $asset->locale ?: 'en_US') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                         @error('locale') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
                     </label>
                 </div>
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Source</span>
-                    <input name="source" value="{{ old('source', $asset->source ?: 'manual') }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                    <input name="source" value="{{ old('source', $asset->source ?: 'manual') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                     @error('source') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
                 </label>
             </div>
@@ -78,13 +78,13 @@
             <div class="space-y-4">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Source URL</span>
-                    <input name="source_url" value="{{ old('source_url', $asset->source_url) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <input name="source_url" value="{{ old('source_url', $asset->source_url) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     @error('source_url') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
                 </label>
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Canonical URL</span>
-                    <input name="canonical_url" value="{{ old('canonical_url', $asset->canonical_url) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <input name="canonical_url" value="{{ old('canonical_url', $asset->canonical_url) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     @error('canonical_url') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
                 </label>
             </div>

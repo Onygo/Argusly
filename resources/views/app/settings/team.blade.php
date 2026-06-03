@@ -3,7 +3,7 @@
         <x-dashboard.section title="Account members">
             <div class="space-y-3">
                 @forelse ($accountMembers as $member)
-                    <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+                    <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                         <div class="min-w-0">
                             <p class="truncate text-sm font-semibold text-ink">{{ $member['user']->name }}</p>
                             <p class="truncate text-xs text-muted">{{ $member['user']->email }}</p>
@@ -25,7 +25,7 @@
             @else
                 <div class="space-y-3">
                     @forelse ($brandMembers as $member)
-                        <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+                        <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                             <div class="min-w-0">
                                 <p class="truncate text-sm font-semibold text-ink">{{ $member['user']->name }}</p>
                                 <p class="truncate text-xs text-muted">{{ $member['user']->email }}</p>

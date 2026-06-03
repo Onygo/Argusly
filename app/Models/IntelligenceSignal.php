@@ -40,7 +40,7 @@ class IntelligenceSignal extends Model
 
     public const PRIORITIES = ['low', 'medium', 'high', 'critical'];
 
-    public const CATEGORIES = ['content', 'visibility', 'competitor', 'social', 'system', 'billing', 'integration'];
+    public const CATEGORIES = ['content', 'visibility', 'competitor', 'social', 'system', 'billing', 'integration', 'narrative'];
 
     public const TYPES = [
         'visibility_change',
@@ -58,6 +58,7 @@ class IntelligenceSignal extends Model
         'integration_connected',
         'publishing_failed',
         'publishing_completed',
+        'narrative_gap_detected',
     ];
 
     protected static function booted(): void

@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $topic->name }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Topic detail</p>
@@ -13,7 +13,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-6 lg:grid-cols-4">
@@ -30,7 +30,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($topic->childRelationships as $relationship)
-                            <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+                            <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                                 <div>
                                     <p class="text-sm font-semibold text-ink">{{ $relationship->childTopic->name }}</p>
                                     <p class="mt-1 text-xs text-muted">Outgoing relationship</p>
@@ -39,7 +39,7 @@
                             </div>
                         @endforeach
                         @foreach ($topic->parentRelationships as $relationship)
-                            <div class="flex items-center justify-between gap-4 rounded-lg border border-line bg-panel p-4">
+                            <div class="flex items-center justify-between gap-4 rounded-md border border-line bg-panel p-4">
                                 <div>
                                     <p class="text-sm font-semibold text-ink">{{ $relationship->parentTopic->name }}</p>
                                     <p class="mt-1 text-xs text-muted">Incoming relationship</p>
@@ -58,7 +58,7 @@
                         <input type="hidden" name="parent_topic_id" value="{{ $topic->id }}">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Related topic</span>
-                            <select name="child_topic_id" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="child_topic_id" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($availableTopics as $availableTopic)
                                     <option value="{{ $availableTopic->id }}">{{ $availableTopic->name }}</option>
                                 @endforeach
@@ -66,7 +66,7 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                            <select name="relationship_type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="relationship_type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($relationshipTypes as $type)
                                     <option value="{{ $type }}">{{ str($type)->headline() }}</option>
                                 @endforeach
@@ -79,7 +79,7 @@
                 <x-dashboard.section title="Future links" description="Prepared relationship lanes for later modules.">
                     <div class="grid gap-2">
                         @foreach (['Content Assets', 'Visibility Checks', 'Competitors', 'Mentions', 'Recommendations', 'Agents'] as $lane)
-                            <div class="flex items-center justify-between rounded-lg border border-line bg-panel px-4 py-3">
+                            <div class="flex items-center justify-between rounded-md border border-line bg-panel px-4 py-3">
                                 <span class="text-sm font-semibold text-ink">{{ $lane }}</span>
                                 <x-ui.badge>Ready</x-ui.badge>
                             </div>

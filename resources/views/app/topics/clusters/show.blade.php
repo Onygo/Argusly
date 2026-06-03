@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $cluster->name }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Topic cluster</p>
@@ -10,7 +10,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -20,15 +20,15 @@
                     @method('PUT')
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Name</span>
-                        <input name="name" value="{{ old('name', $cluster->name) }}" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="name" value="{{ old('name', $cluster->name) }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Description</span>
-                        <textarea name="description" rows="4" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description', $cluster->description) }}</textarea>
+                        <textarea name="description" rows="4" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description', $cluster->description) }}</textarea>
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Topics</span>
-                        <select name="topic_ids[]" multiple size="8" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="topic_ids[]" multiple size="8" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             @foreach ($availableTopics as $topic)
                                 <option value="{{ $topic->id }}" @selected($cluster->topics->contains('id', $topic->id))>{{ $topic->name }}</option>
                             @endforeach
@@ -52,7 +52,7 @@
                 @else
                     <div class="grid gap-3 lg:grid-cols-2">
                         @foreach ($cluster->topics as $topic)
-                            <a href="{{ route('app.topics.show', $topic) }}" class="rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                            <a href="{{ route('app.topics.show', $topic) }}" class="rounded-md border border-line bg-panel p-4 hover:bg-white">
                                 <div class="flex items-start justify-between gap-3">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-ink">{{ $topic->name }}</p>

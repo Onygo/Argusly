@@ -15,7 +15,7 @@
     ];
 @endphp
 
-<article {{ $attributes->merge(['class' => 'rounded-lg border border-line bg-white p-4']) }}>
+<article {{ $attributes->merge(['class' => 'rounded-md border border-line bg-white p-4']) }}>
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
@@ -41,11 +41,11 @@
         </div>
 
         <div class="grid shrink-0 grid-cols-2 gap-2 text-right sm:w-32">
-            <div class="rounded-lg bg-panel p-3">
+            <div class="rounded-md bg-panel p-3">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Impact</p>
                 <p class="mt-1 text-lg font-semibold text-ink">{{ $recommendation->impact_score ?? '-' }}</p>
             </div>
-            <div class="rounded-lg bg-panel p-3">
+            <div class="rounded-md bg-panel p-3">
                 <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Conf.</p>
                 <p class="mt-1 text-lg font-semibold text-ink">{{ $recommendation->confidence_score ?? '-' }}</p>
             </div>
@@ -53,7 +53,7 @@
     </div>
 
     @if (! $compact)
-        <div class="mt-4 rounded-lg border border-line bg-panel p-4">
+        <div class="mt-4 rounded-md border border-line bg-panel p-4">
             <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Recommended action</p>
             <p class="mt-1 text-sm leading-6 text-ink">{{ $recommendation->recommended_action }}</p>
         </div>

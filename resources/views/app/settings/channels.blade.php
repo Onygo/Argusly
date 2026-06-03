@@ -1,12 +1,12 @@
 <x-app.settings.layout title="Publishing channel settings" description="External publishing targets prepared for future WordPress, Laravel, social, email and API publishing.">
     @if (session('status'))
-        <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+        <div class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
             {{ session('status') }}
         </div>
     @endif
 
     @if ($errors->any())
-        <div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <p class="font-semibold">Could not update channel</p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
                 @foreach ($errors->all() as $error)
@@ -62,7 +62,7 @@
 
                             <label class="block text-sm font-semibold text-ink">
                                 Connector installation
-                                <select name="connector_installation_id" class="mt-1 w-full rounded-lg border-line text-sm">
+                                <select name="connector_installation_id" class="mt-1 w-full rounded-md border-line text-sm">
                                     <option value="">No connector selected</option>
                                     @foreach ($availableConnectors as $installation)
                                         <option value="{{ $installation->id }}" @selected($channel->connector_installation_id === $installation->id)>

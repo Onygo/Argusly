@@ -1,5 +1,5 @@
 <x-app.layout title="Marketing calendar | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Marketing OS</p>
@@ -13,14 +13,14 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
-        <div class="mt-8 rounded-lg border border-line bg-white p-4">
+        <div class="mt-8 rounded-md border border-line bg-white p-4">
             <form method="GET" action="{{ route('app.calendar') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.9fr_0.9fr_0.9fr_0.9fr_0.9fr_auto]">
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">View</span>
-                    <select name="mode" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="mode" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="month" @selected($mode === 'month')>Monthly</option>
                         <option value="week" @selected($mode === 'week')>Weekly</option>
                         <option value="list" @selected($mode === 'list')>List</option>
@@ -28,7 +28,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Brand</span>
-                    <select name="brand_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="0" @selected(($filters['brand_id'] ?? null) === null)>All brands</option>
                         @foreach ($brands as $filterBrand)
                             <option value="{{ $filterBrand->id }}" @selected((int) ($filters['brand_id'] ?? $currentBrand->id) === $filterBrand->id)>{{ $filterBrand->name }}</option>
@@ -37,7 +37,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Campaign</span>
-                    <select name="campaign_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="campaign_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All campaigns</option>
                         @foreach ($campaigns as $campaign)
                             <option value="{{ $campaign->id }}" @selected((int) ($filters['campaign_id'] ?? 0) === $campaign->id)>{{ $campaign->name }}</option>
@@ -46,7 +46,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                    <select name="type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All types</option>
                         @foreach ($types as $type)
                             <option value="{{ $type }}" @selected(($filters['type'] ?? '') === $type)>{{ str($type)->replace('_', ' ')->headline() }}</option>
@@ -55,7 +55,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Assignee</span>
-                    <select name="assigned_to" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="assigned_to" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">Everyone</option>
                         @foreach ($assignableUsers as $assignableUser)
                             <option value="{{ $assignableUser->id }}" @selected((int) ($filters['assigned_to'] ?? 0) === $assignableUser->id)>{{ $assignableUser->name }}</option>
@@ -68,11 +68,11 @@
                 </div>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Starts</span>
-                    <input type="date" name="starts" value="{{ $filters['starts'] ?? '' }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <input type="date" name="starts" value="{{ $filters['starts'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Ends</span>
-                    <input type="date" name="ends" value="{{ $filters['ends'] ?? '' }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <input type="date" name="ends" value="{{ $filters['ends'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                 </label>
             </form>
         </div>
@@ -81,7 +81,7 @@
             <div>
                 <x-dashboard.section :title="$mode === 'week' ? 'Weekly view' : ($mode === 'list' ? 'List view' : 'Monthly view')" description="Click any item to inspect ownership, related records and scheduling details.">
                     @if ($mode === 'list')
-                        <div class="overflow-hidden rounded-lg border border-line">
+                        <div class="overflow-hidden rounded-md border border-line">
                             <div class="hidden grid-cols-[0.8fr_1.3fr_0.7fr_0.7fr_0.8fr] gap-4 border-b border-line bg-panel px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted md:grid">
                                 <span>Date</span>
                                 <span>Item</span>
@@ -106,7 +106,7 @@
                         </div>
                         <div class="mt-5">{{ $items->links() }}</div>
                     @else
-                        <div class="grid grid-cols-7 rounded-lg border border-line bg-white text-center text-xs font-semibold uppercase tracking-[0.08em] text-muted">
+                        <div class="grid grid-cols-7 rounded-md border border-line bg-white text-center text-xs font-semibold uppercase tracking-[0.08em] text-muted">
                             @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayName)
                                 <div class="border-r border-line px-2 py-3 last:border-r-0">{{ $dayName }}</div>
                             @endforeach
@@ -114,7 +114,7 @@
                         <div class="mt-2 grid grid-cols-1 gap-2 md:grid-cols-7">
                             @foreach ($calendarDays as $day)
                                 @php($dayItems = $itemsByDay->get($day->toDateString(), collect()))
-                                <div class="min-h-[138px] rounded-lg border border-line bg-white p-3 {{ $day->isCurrentMonth() || $mode === 'week' ? '' : 'opacity-60' }}">
+                                <div class="min-h-[138px] rounded-md border border-line bg-white p-3 {{ $day->isCurrentMonth() || $mode === 'week' ? '' : 'opacity-60' }}">
                                     <div class="flex items-center justify-between">
                                         <p class="text-sm font-semibold text-ink">{{ $day->format('j') }}</p>
                                         <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">{{ $day->format('M') }}</p>
@@ -144,25 +144,25 @@
                         <input type="hidden" name="mode" value="{{ $mode }}">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Title</span>
-                            <input name="title" required class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Prepare launch post">
+                            <input name="title" required class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Prepare launch post">
                         </label>
                         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Scope</span>
-                                <select name="scope" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="scope" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     <option value="brand">{{ $currentBrand->name }}</option>
                                     <option value="account">Account-wide</option>
                                 </select>
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Due</span>
-                                <input name="due_at" type="datetime-local" required class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <input name="due_at" type="datetime-local" required class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             </label>
                         </div>
                         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Status</span>
-                                <select name="status" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="status" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($taskStatuses as $status)
                                         <option value="{{ $status }}" @selected($status === 'todo')>{{ str($status)->headline() }}</option>
                                     @endforeach
@@ -170,7 +170,7 @@
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Priority</span>
-                                <select name="priority" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="priority" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($taskPriorities as $priority)
                                         <option value="{{ $priority }}" @selected($priority === 'medium')>{{ str($priority)->headline() }}</option>
                                     @endforeach
@@ -179,7 +179,7 @@
                         </div>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Assignee</span>
-                            <select name="assigned_to" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="assigned_to" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 <option value="">Unassigned</option>
                                 @foreach ($assignableUsers as $assignableUser)
                                     <option value="{{ $assignableUser->id }}">{{ $assignableUser->name }}</option>
@@ -188,14 +188,14 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Campaign</span>
-                            <select name="campaign_id" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="campaign_id" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 <option value="">No campaign</option>
                                 @foreach ($campaigns as $campaign)
                                     <option value="{{ $campaign->id }}">{{ $campaign->name }}</option>
                                 @endforeach
                             </select>
                         </label>
-                        <textarea name="description" rows="2" class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Task notes"></textarea>
+                        <textarea name="description" rows="2" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Task notes"></textarea>
                         <x-ui.button type="submit">Create task</x-ui.button>
                     </form>
                 </x-dashboard.section>
@@ -203,7 +203,7 @@
                 <x-dashboard.section title="Upcoming" description="Next dated work in this calendar scope.">
                     <div class="space-y-3">
                         @forelse ($upcoming as $item)
-                            <a href="{{ route('app.calendar.show', $item) }}" class="block rounded-lg border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
+                            <a href="{{ route('app.calendar.show', $item) }}" class="block rounded-md border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
                                 <div class="flex items-start justify-between gap-3">
                                     <p class="text-sm font-semibold text-ink">{{ $item->title }}</p>
                                     <x-ui.badge>{{ str($item->type)->replace('_', ' ')->headline() }}</x-ui.badge>

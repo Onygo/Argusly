@@ -36,10 +36,21 @@ class ConnectorApiController extends Controller
                     'name' => $installation->manifest->name,
                     'description' => $installation->manifest->description,
                     'version' => $installation->version->version,
-                    'api_base_path' => '/api/v1',
+                    'api_base_path' => $this->apiBasePath($request),
                 ],
             ],
         ]);
+    }
+
+    private function apiBasePath(Request $request): string
+    {
+        $apiDomain = config('argusly.api_domain');
+
+        if (is_string($apiDomain) && $apiDomain !== '' && $request->getHost() === $apiDomain) {
+            return '/v1';
+        }
+
+        return '/api/v1';
     }
 
     public function register(Request $request): JsonResponse

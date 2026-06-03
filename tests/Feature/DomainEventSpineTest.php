@@ -112,7 +112,7 @@ class DomainEventSpineTest extends TestCase
             ->assertSee('Visible event asset')
             ->assertDontSee('Hidden event asset');
 
-        $this->assertSame(2, DomainEvent::query()->count());
+        $this->assertSame(2, DomainEvent::query()->where('event_type', 'ContentAssetCreated')->count());
         $this->assertTrue(DomainEvent::query()->where('account_id', $otherAccount->id)->exists());
     }
 
@@ -145,7 +145,7 @@ class DomainEventSpineTest extends TestCase
         $event->refresh();
 
         $this->assertNotNull($event->processed_at);
-        $this->assertSame(4, DomainEventProjectorRun::query()->where('event_uuid', $event->uuid)->where('status', 'completed')->count());
+        $this->assertSame(app(ProjectorRegistry::class)->projectors()->count(), DomainEventProjectorRun::query()->where('event_uuid', $event->uuid)->where('status', 'completed')->count());
         $this->assertSame(1, ActivityLog::query()->where('properties->domain_event_uuid', $event->uuid)->count());
         $this->assertSame(1, IntelligenceSignal::query()->where('dedupe_key', "domain-event:{$event->uuid}:signal")->count());
         $this->assertSame(1, Recommendation::query()->whereHas('signal', fn ($query) => $query->where('dedupe_key', "domain-event:{$event->uuid}:signal"))->count());

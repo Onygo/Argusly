@@ -1,5 +1,5 @@
 <x-app.layout title="Sources | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Source registry</p>
@@ -10,7 +10,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -18,16 +18,16 @@
                 <form method="POST" action="{{ route('app.sources.store') }}" class="space-y-4">
                     @csrf
                     @if ($errors->any())
-                        <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $errors->first() }}</div>
+                        <div class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ $errors->first() }}</div>
                     @endif
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Name</span>
-                        <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                            <select name="type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($types as $type)
                                     <option value="{{ $type }}" @selected(old('type') === $type)>{{ str($type)->headline() }}</option>
                                 @endforeach
@@ -35,7 +35,7 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Provider</span>
-                            <select name="provider" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="provider" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($providers as $provider)
                                     <option value="{{ $provider }}" @selected(old('provider') === $provider)>{{ str($provider)->headline() }}</option>
                                 @endforeach
@@ -45,7 +45,7 @@
                     <div class="grid gap-3 sm:grid-cols-2">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
-                            <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status }}" @selected(old('status', 'active') === $status)>{{ str($status)->headline() }}</option>
                                 @endforeach
@@ -53,7 +53,7 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Scope</span>
-                            <select name="scope" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="scope" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 <option value="brand" @selected(old('scope', 'brand') === 'brand')>Current brand</option>
                                 <option value="account" @selected(old('scope') === 'account')>Account</option>
                                 <option value="global" @selected(old('scope') === 'global')>Global</option>
@@ -62,7 +62,7 @@
                     </div>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Credential</span>
-                        <select name="integration_connection_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <select name="integration_connection_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="">No credential</option>
                             @foreach ($connections as $connection)
                                 <option value="{{ $connection->id }}" @selected((string) old('integration_connection_id') === (string) $connection->id)>{{ $connection->name }} · {{ $connection->integration?->name ?? 'Integration' }}</option>
@@ -75,25 +75,25 @@
 
             <x-dashboard.section title="Source Registry" description="Filter configured source lanes by provider, type, status and scope.">
                 <form method="GET" action="{{ route('app.sources.index') }}" class="mb-5 grid gap-3 md:grid-cols-4">
-                    <select name="type" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="type" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All types</option>
                         @foreach ($types as $type)
                             <option value="{{ $type }}" @selected(($filters['type'] ?? '') === $type)>{{ str($type)->headline() }}</option>
                         @endforeach
                     </select>
-                    <select name="provider" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="provider" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All providers</option>
                         @foreach ($providers as $provider)
                             <option value="{{ $provider }}" @selected(($filters['provider'] ?? '') === $provider)>{{ str($provider)->headline() }}</option>
                         @endforeach
                     </select>
-                    <select name="status" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All statuses</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>
                         @endforeach
                     </select>
-                    <select name="scope" class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="scope" class="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All scopes</option>
                         <option value="brand" @selected(($filters['scope'] ?? '') === 'brand')>Brand</option>
                         <option value="account" @selected(($filters['scope'] ?? '') === 'account')>Account</option>
@@ -109,7 +109,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($sources as $source)
-                            <a href="{{ route('app.sources.show', $source) }}" class="block rounded-lg border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
+                            <a href="{{ route('app.sources.show', $source) }}" class="block rounded-md border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
                                 <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
@@ -121,11 +121,11 @@
                                         <p class="mt-2 text-xs text-muted">{{ $source->brand?->name ?? ($source->account_id ? 'Account scope' : 'Global scope') }}</p>
                                     </div>
                                     <div class="grid shrink-0 grid-cols-2 gap-2 text-center">
-                                        <div class="rounded-lg border border-line bg-white px-3 py-2">
+                                        <div class="rounded-md border border-line bg-white px-3 py-2">
                                             <p class="text-sm font-semibold text-ink">{{ $source->connections_count }}</p>
                                             <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Connections</p>
                                         </div>
-                                        <div class="rounded-lg border border-line bg-white px-3 py-2">
+                                        <div class="rounded-md border border-line bg-white px-3 py-2">
                                             <p class="text-sm font-semibold text-ink">{{ $source->syncs_count }}</p>
                                             <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Syncs</p>
                                         </div>

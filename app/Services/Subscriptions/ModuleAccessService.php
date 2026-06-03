@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Gate;
 
 class ModuleAccessService
 {
+    /**
+     * @var array<int, array<int, string>>
+     */
+    private array $activeModuleKeysByAccount = [];
+
     public function accountHasModule(Account $account, string $moduleKey): bool
     {
         return $this->accountHasModuleId($account->id, $moduleKey);
@@ -38,13 +43,7 @@ class ModuleAccessService
             return false;
         }
 
-        return SubscriptionModule::query()
-            ->active()
-            ->where('account_id', $accountId)
-            ->whereHas('account', fn ($query) => $query->where('status', 'active'))
-            ->whereHas('module', fn ($query) => $query->whereIn('key', $moduleKeys)->where('is_active', true))
-            ->whereHas('subscription', fn ($query) => $query->active())
-            ->exists();
+        return count(array_intersect($this->activeModuleKeysForAccountId($accountId), $moduleKeys)) > 0;
     }
 
     /**
@@ -61,11 +60,25 @@ class ModuleAccessService
      */
     public function activeModuleKeys(Account $account): array
     {
-        return SubscriptionModule::query()
+        return $this->activeModuleKeysForAccountId($account->id);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function activeModuleKeysForAccountId(int $accountId): array
+    {
+        if (array_key_exists($accountId, $this->activeModuleKeysByAccount)) {
+            return $this->activeModuleKeysByAccount[$accountId];
+        }
+
+        return $this->activeModuleKeysByAccount[$accountId] = SubscriptionModule::query()
             ->active()
-            ->where('account_id', $account->id)
+            ->where('account_id', $accountId)
+            ->whereHas('account', fn ($query) => $query->where('status', 'active'))
             ->whereHas('subscription', fn ($query) => $query->active())
-            ->with('module')
+            ->whereHas('module', fn ($query) => $query->where('is_active', true))
+            ->with('module:id,key')
             ->get()
             ->pluck('module.key')
             ->filter()

@@ -1,5 +1,5 @@
 <x-app.layout title="Content Distribution | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Content Distribution Hub</p>
@@ -14,13 +14,13 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+            <div class="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
                 {{ session('status') }}
             </div>
         @endif
 
         @if ($errors->any())
-            <div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <p class="font-semibold">Distribution action could not be completed</p>
                 <ul class="mt-2 list-disc space-y-1 pl-5">
                     @foreach ($errors->all() as $error)
@@ -34,7 +34,7 @@
             <form method="GET" action="{{ route('app.distribution') }}" class="grid gap-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Publishing status</span>
-                    <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All statuses</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>
@@ -43,7 +43,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Language</span>
-                    <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All languages</option>
                         @foreach ($contentLanguages as $language)
                             <option value="{{ $language->code }}" @selected(($filters['language'] ?? '') === $language->code)>{{ $language->name }}</option>
@@ -52,7 +52,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Distribution</span>
-                    <select name="distribution" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="distribution" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All assets</option>
                         <option value="needs_website" @selected(($filters['distribution'] ?? '') === 'needs_website')>Needs website publishing</option>
                         <option value="needs_social" @selected(($filters['distribution'] ?? '') === 'needs_social')>Needs social distribution</option>
@@ -104,7 +104,7 @@
                     </div>
 
                     <div class="mt-5 grid gap-4 lg:grid-cols-5">
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Website</p>
                             <p class="mt-2 text-sm font-semibold text-ink">{{ $asset->publishingChannel?->name ?? 'No channel' }}</p>
                             <p class="mt-1 text-xs text-muted">{{ $latestPublishing ? str($latestPublishing->status)->headline().' · '.str($latestPublishing->action)->headline() : 'No publishing action' }}</p>
@@ -113,19 +113,19 @@
                             </div>
                         </div>
 
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">LinkedIn</p>
                             <p class="mt-2 text-sm font-semibold text-ink">{{ $asset->socialPosts->where('provider', 'linkedin')->first()?->socialProfile?->display_name ?? 'No LinkedIn post' }}</p>
                             <p class="mt-1 text-xs text-muted">{{ $asset->socialPosts->where('provider', 'linkedin')->first() ? str($asset->socialPosts->where('provider', 'linkedin')->first()->status)->headline() : 'Not created' }}</p>
                         </div>
 
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Campaign</p>
                             <p class="mt-2 text-sm font-semibold text-ink">{{ $campaigns->first()?->name ?? 'Unassigned' }}</p>
                             <p class="mt-1 text-xs text-muted">{{ $campaigns->count() > 1 ? ($campaigns->count() - 1).' more campaign(s)' : ($campaigns->first() ? str($campaigns->first()->status)->headline() : 'No campaign assignment') }}</p>
                         </div>
 
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Recommendations</p>
                             @forelse ($recommendations->take(3) as $recommendation)
                                 <p class="{{ $loop->first ? 'mt-2' : 'mt-3' }} text-sm font-semibold text-ink">{{ $recommendation->title }}</p>
@@ -136,7 +136,7 @@
                             @endforelse
                         </div>
 
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Audit</p>
                             <p class="mt-2 text-sm font-semibold text-ink">{{ $asset->latestAudit->first()?->status ? str($asset->latestAudit->first()->status)->headline() : 'No audit' }}</p>
                             <p class="mt-1 text-xs text-muted">{{ $asset->latestAudit->first()?->audited_at?->diffForHumans() ?? 'Run an audit before refreshing.' }}</p>
@@ -147,7 +147,7 @@
                         @can('publish', $asset)
                             <form method="POST" action="{{ route('app.distribution.publish-website', $asset) }}" class="flex flex-wrap gap-2">
                                 @csrf
-                                <select name="publishing_channel_id" class="h-8 rounded-full border border-line bg-white px-3 text-xs font-semibold text-ink">
+                                <select name="publishing_channel_id" class="h-8 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink">
                                     <option value="">Default channel</option>
                                     @foreach ($rowChannels as $channel)
                                         <option value="{{ $channel->id }}" @selected($asset->channel_id === $channel->id)>{{ $channel->name }}</option>
@@ -165,7 +165,7 @@
                             @can('schedule', $schedulableSocial)
                                 <form method="POST" action="{{ route('app.distribution.social.schedule', $schedulableSocial) }}" class="flex flex-wrap gap-2">
                                     @csrf
-                                    <input name="scheduled_at" type="datetime-local" value="{{ now()->addDay()->format('Y-m-d\TH:i') }}" class="h-8 rounded-full border border-line bg-white px-3 text-xs font-semibold text-ink">
+                                    <input name="scheduled_at" type="datetime-local" value="{{ now()->addDay()->format('Y-m-d\TH:i') }}" class="h-8 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink">
                                     <x-ui.button size="sm" variant="secondary">Schedule social post</x-ui.button>
                                 </form>
                             @endcan
@@ -182,7 +182,7 @@
                             @if ($defaultTranslationTarget)
                                 <form method="POST" action="{{ route('app.distribution.translate', $asset) }}" class="flex flex-wrap gap-2">
                                     @csrf
-                                    <select name="target_language" class="h-8 rounded-full border border-line bg-white px-3 text-xs font-semibold text-ink">
+                                    <select name="target_language" class="h-8 rounded-md border border-line bg-white px-3 text-xs font-semibold text-ink">
                                         @foreach ($contentLanguages->where('code', '!=', $asset->language) as $language)
                                             <option value="{{ $language->code }}" @selected($defaultTranslationTarget === $language->code)>{{ $language->name }}</option>
                                         @endforeach

@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\Account;
+use App\Models\Brand;
 use App\Models\IntegrationConnection;
 use App\Models\Ga4Property;
 use App\Models\SearchConsoleSite;
+use App\Services\Graph\GraphProjectionService;
 use App\Services\Integrations\Google\GoogleTokenService;
 use App\Services\Integrations\Google\GA4DataService;
 use App\Services\Integrations\Google\SearchConsolePerformanceService;
@@ -23,6 +26,44 @@ Artisan::command('visibility:run-due {--limit=50}', function (RunScheduleService
 
     return self::SUCCESS;
 })->purpose('Run due AI visibility prompt schedules');
+
+Artisan::command('graph:rebuild {--account=} {--brand=}', function (GraphProjectionService $graph): int {
+    $account = $this->option('account')
+        ? Account::query()->where('id', is_numeric($this->option('account')) ? (int) $this->option('account') : 0)->orWhere('slug', $this->option('account'))->firstOrFail()
+        : null;
+
+    $brand = $this->option('brand')
+        ? Brand::query()
+            ->when($account, fn ($query) => $query->where('account_id', $account->id))
+            ->where(fn ($query) => $query->where('id', is_numeric($this->option('brand')) ? (int) $this->option('brand') : 0)->orWhere('slug', $this->option('brand')))
+            ->firstOrFail()
+        : null;
+
+    $result = $graph->rebuild($account, $brand);
+
+    $this->info("Knowledge graph rebuilt: {$result['nodes']} node(s), {$result['edges']} edge(s), {$result['invalidEdges']} invalid edge(s).");
+
+    return $result['invalidEdges'] === 0 ? self::SUCCESS : self::FAILURE;
+})->purpose('Rebuild the knowledge graph projection from source tables');
+
+Artisan::command('graph:verify {--account=} {--brand=}', function (GraphProjectionService $graph): int {
+    $account = $this->option('account')
+        ? Account::query()->where('id', is_numeric($this->option('account')) ? (int) $this->option('account') : 0)->orWhere('slug', $this->option('account'))->firstOrFail()
+        : null;
+
+    $brand = $this->option('brand')
+        ? Brand::query()
+            ->when($account, fn ($query) => $query->where('account_id', $account->id))
+            ->where(fn ($query) => $query->where('id', is_numeric($this->option('brand')) ? (int) $this->option('brand') : 0)->orWhere('slug', $this->option('brand')))
+            ->firstOrFail()
+        : null;
+
+    $result = $graph->verify($account, $brand);
+
+    $this->info("Knowledge graph verified: {$result['nodes']} node(s), {$result['edges']} edge(s), {$result['invalidEdges']} invalid edge(s).");
+
+    return $result['invalidEdges'] === 0 ? self::SUCCESS : self::FAILURE;
+})->purpose('Verify knowledge graph projection tenant and edge integrity');
 
 Artisan::command('linkedin:check-token-health {--limit=100}', function (LinkedInTokenService $tokens): int {
     $connections = IntegrationConnection::query()

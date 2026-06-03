@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -18,15 +17,9 @@ class DatabaseSeeder extends Seeder
         $this->call(IntegrationCatalogSeeder::class);
         $this->call(ConnectorCatalogSeeder::class);
         $this->call(TenantIsolationSeeder::class);
+        $this->call(RoleDemoUsersSeeder::class);
         $this->call(PublishingFoundationSeeder::class);
         $this->call(IntelligenceSignalSeeder::class);
         $this->call(ContentAssetSeeder::class);
-
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
     }
 }

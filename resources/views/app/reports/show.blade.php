@@ -32,7 +32,7 @@
 
                     <dl class="mt-5 grid gap-3 sm:grid-cols-2">
                         @foreach (($section->payload ?? []) as $key => $value)
-                            <div class="rounded-lg border border-line bg-panel p-3">
+                            <div class="rounded-md border border-line bg-panel p-3">
                                 <dt class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">{{ str($key)->replace('_', ' ')->headline() }}</dt>
                                 <dd class="mt-1 text-sm font-semibold text-ink">
                                     @if (is_array($value))
@@ -60,7 +60,7 @@
                     </div>
                     <x-ui.badge>{{ $snapshot->generated_at?->toDayDateTimeString() }}</x-ui.badge>
                 </div>
-                <div class="mt-5 overflow-auto rounded-lg border border-line bg-white p-4 text-sm leading-6 text-ink">
+                <div class="mt-5 overflow-auto rounded-md border border-line bg-white p-4 text-sm leading-6 text-ink">
                     {!! $snapshot->html !!}
                 </div>
             </x-ui.card>

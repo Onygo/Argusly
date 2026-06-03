@@ -1,5 +1,5 @@
 <x-app.layout title="Answer Blocks | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Argusly Content Engine</p>
@@ -18,7 +18,7 @@
             <form method="GET" action="{{ route('app.content.answer-blocks.index') }}" class="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
-                    <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All statuses</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status }}" @selected(($filters['status'] ?? '') === $status)>{{ str($status)->headline() }}</option>
@@ -28,7 +28,7 @@
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                    <select name="type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All types</option>
                         @foreach ($types as $type)
                             <option value="{{ $type }}" @selected(($filters['type'] ?? '') === $type)>{{ str($type)->replace('_', ' ')->headline() }}</option>
@@ -45,7 +45,7 @@
 
         <div class="mt-6 space-y-4">
             @forelse ($answerBlocks as $answerBlock)
-                <a href="{{ route('app.content.answer-blocks.show', $answerBlock) }}" class="block rounded-2xl border border-line bg-white p-5 transition hover:bg-panel">
+                <a href="{{ route('app.content.answer-blocks.show', $answerBlock) }}" class="block rounded-md border border-line bg-white p-5 transition hover:bg-panel">
                     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                         <div>
                             <div class="flex flex-wrap items-center gap-2">

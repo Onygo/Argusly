@@ -1,20 +1,20 @@
 <x-app.settings.layout :title="__('connectors.title')" :description="__('connectors.description')">
     @if (session('status'))
-        <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+        <div class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
             {{ session('status') }}
         </div>
     @endif
 
     @if (session('connector_plain_token'))
-        <div class="mb-5 rounded-lg border border-blue/20 bg-blue/5 px-4 py-3">
+        <div class="mb-5 rounded-md border border-blue/20 bg-blue/5 px-4 py-3">
             <p class="text-sm font-semibold text-ink">{{ __('connectors.token') }}</p>
             <p class="mt-1 text-sm text-muted">{{ __('connectors.token_once') }}</p>
-            <code class="mt-3 block overflow-x-auto rounded-lg bg-ink px-3 py-2 text-sm text-white">{{ session('connector_plain_token') }}</code>
+            <code class="mt-3 block overflow-x-auto rounded-md bg-ink px-3 py-2 text-sm text-white">{{ session('connector_plain_token') }}</code>
         </div>
     @endif
 
     @if ($errors->any())
-        <div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div class="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <p class="font-semibold">{{ __('connectors.could_not_save') }}</p>
             <ul class="mt-2 list-disc space-y-1 pl-5">
                 @foreach ($errors->all() as $error)
@@ -49,7 +49,7 @@
                                 @method('PATCH')
                                 <label class="text-xs font-semibold text-muted">
                                     {{ __('common.status') }}
-                                    <select name="status" class="mt-1 rounded-lg border-line text-sm">
+                                    <select name="status" class="mt-1 rounded-md border-line text-sm">
                                         @foreach (\App\Models\ConnectorInstallation::STATUSES as $status)
                                             <option value="{{ $status }}" @selected($installation->status === $status)>{{ str($status)->headline() }}</option>
                                         @endforeach
@@ -57,7 +57,7 @@
                                 </label>
                                 <label class="text-xs font-semibold text-muted">
                                     {{ __('common.health') }}
-                                    <input name="last_health_status" value="{{ $installation->last_health_check['status'] ?? '' }}" class="mt-1 w-28 rounded-lg border-line text-sm" placeholder="ok">
+                                    <input name="last_health_status" value="{{ $installation->last_health_check['status'] ?? '' }}" class="mt-1 w-28 rounded-md border-line text-sm" placeholder="ok">
                                 </label>
                                 <x-ui.button size="sm" variant="secondary">{{ __('common.update') }}</x-ui.button>
                             </form>
@@ -83,7 +83,7 @@
                         @endif
 
                         @if ($installation->tokens->isNotEmpty())
-                            <div class="mt-5 divide-y divide-line rounded-lg border border-line">
+                            <div class="mt-5 divide-y divide-line rounded-md border border-line">
                                 @foreach ($installation->tokens as $token)
                                     <div class="flex flex-col justify-between gap-3 px-3 py-3 md:flex-row md:items-center">
                                         <div>
@@ -120,7 +120,7 @@
                         @endif
 
                         @if ($installation->logs->isNotEmpty())
-                            <div class="mt-5 divide-y divide-line rounded-lg border border-line">
+                            <div class="mt-5 divide-y divide-line rounded-md border border-line">
                                 @foreach ($installation->logs as $log)
                                     <div class="grid gap-2 px-3 py-2 text-sm md:grid-cols-[10rem_8rem_1fr]">
                                         <span class="font-semibold text-ink">{{ $log->occurred_at?->diffForHumans() }}</span>
@@ -143,7 +143,7 @@
 
                 <label class="block text-sm font-semibold text-ink">
                     {{ __('common.connector') }}
-                    <select name="connector_version_id" class="mt-1 w-full rounded-lg border-line text-sm" required>
+                    <select name="connector_version_id" class="mt-1 w-full rounded-md border-line text-sm" required>
                         @foreach ($manifests as $manifest)
                             @foreach ($manifest->versions as $version)
                                 <option value="{{ $version->id }}">{{ $manifest->name }} v{{ $version->version }}</option>
@@ -154,13 +154,13 @@
 
                 <label class="block text-sm font-semibold text-ink">
                     {{ __('common.name') }}
-                    <input name="name" class="mt-1 w-full rounded-lg border-line text-sm" placeholder="Production WordPress" required>
+                    <input name="name" class="mt-1 w-full rounded-md border-line text-sm" placeholder="Production WordPress" required>
                 </label>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <label class="block text-sm font-semibold text-ink">
                         {{ __('connectors.scope') }}
-                        <select name="scope" class="mt-1 w-full rounded-lg border-line text-sm">
+                        <select name="scope" class="mt-1 w-full rounded-md border-line text-sm">
                             @if ($brand)
                                 <option value="brand" selected>{{ __('common.current_brand') }}</option>
                             @endif
@@ -169,7 +169,7 @@
                     </label>
                     <label class="block text-sm font-semibold text-ink">
                         {{ __('common.status') }}
-                        <select name="status" class="mt-1 w-full rounded-lg border-line text-sm">
+                        <select name="status" class="mt-1 w-full rounded-md border-line text-sm">
                             <option value="pending">{{ __('common.pending') }}</option>
                             <option value="active">{{ __('common.active') }}</option>
                             <option value="disabled">{{ __('common.disabled') }}</option>
@@ -179,13 +179,13 @@
 
                 <label class="block text-sm font-semibold text-ink">
                     {{ __('connectors.endpoint_url') }}
-                    <input name="endpoint_url" type="url" class="mt-1 w-full rounded-lg border-line text-sm" placeholder="https://example.com">
+                    <input name="endpoint_url" type="url" class="mt-1 w-full rounded-md border-line text-sm" placeholder="https://example.com">
                 </label>
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <label class="block text-sm font-semibold text-ink">
                         {{ __('connectors.property') }}
-                        <select name="property_id" class="mt-1 w-full rounded-lg border-line text-sm">
+                        <select name="property_id" class="mt-1 w-full rounded-md border-line text-sm">
                             <option value="">{{ __('common.none') }}</option>
                             @foreach ($properties as $property)
                                 <option value="{{ $property->id }}">{{ $property->name }}</option>
@@ -194,7 +194,7 @@
                     </label>
                     <label class="block text-sm font-semibold text-ink">
                         {{ __('connectors.channel') }}
-                        <select name="channel_id" class="mt-1 w-full rounded-lg border-line text-sm">
+                        <select name="channel_id" class="mt-1 w-full rounded-md border-line text-sm">
                             <option value="">{{ __('common.none') }}</option>
                             @foreach ($channels as $channel)
                                 <option value="{{ $channel->id }}">{{ $channel->name }}</option>
@@ -226,7 +226,7 @@
 
                 <label class="block text-sm font-semibold text-ink">
                     Connector installation
-                    <select name="connector_installation_id" class="mt-1 w-full rounded-lg border-line text-sm" required>
+                    <select name="connector_installation_id" class="mt-1 w-full rounded-md border-line text-sm" required>
                         @foreach ($installations as $installation)
                             <option value="{{ $installation->id }}">{{ $installation->name }}{{ $installation->channel ? ' · '.$installation->channel->name : '' }}</option>
                         @endforeach
@@ -235,12 +235,12 @@
 
                 <label class="block text-sm font-semibold text-ink">
                     Token name
-                    <input name="name" class="mt-1 w-full rounded-lg border-line text-sm" placeholder="Production connector" required>
+                    <input name="name" class="mt-1 w-full rounded-md border-line text-sm" placeholder="Production connector" required>
                 </label>
 
                 <label class="block text-sm font-semibold text-ink">
                     Expires at
-                    <input name="expires_at" type="datetime-local" class="mt-1 w-full rounded-lg border-line text-sm">
+                    <input name="expires_at" type="datetime-local" class="mt-1 w-full rounded-md border-line text-sm">
                 </label>
 
                 <fieldset>

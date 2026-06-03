@@ -1,5 +1,5 @@
 <x-app.layout title="Relationships | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Relationship intelligence</p>
@@ -10,7 +10,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-3 sm:grid-cols-3">
@@ -27,20 +27,20 @@
                         <div class="grid gap-3 sm:grid-cols-2">
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">First name</span>
-                                <input name="first_name" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <input name="first_name" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Last name</span>
-                                <input name="last_name" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <input name="last_name" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             </label>
                         </div>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Email</span>
-                            <input name="email" type="email" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="email" type="email" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">LinkedIn URL</span>
-                            <input name="linkedin_url" type="url" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="linkedin_url" type="url" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <x-ui.button type="submit">Create contact</x-ui.button>
                     </form>
@@ -51,15 +51,15 @@
                         @csrf
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Name</span>
-                            <input name="name" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="name" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Website</span>
-                            <input name="website" type="url" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="website" type="url" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Industry</span>
-                            <input name="industry" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="industry" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <x-ui.button type="submit">Create organization</x-ui.button>
                     </form>
@@ -75,33 +75,33 @@
                             @csrf
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">From</span>
-                                <select name="from_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="from_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($nodes as $node)
                                         <option value="{{ $node->id }}" data-type="{{ $node instanceof \App\Models\Contact ? 'contact' : 'organization' }}">
                                             {{ $node instanceof \App\Models\Contact ? $node->display_name : $node->name }}
                                         </option>
                                     @endforeach
                                 </select>
-                                <select name="from_type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="from_type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     <option value="contact">Contact</option>
                                     <option value="organization">Organization</option>
                                 </select>
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">To</span>
-                                <select name="to_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="to_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($nodes as $node)
                                         <option value="{{ $node->id }}">{{ $node instanceof \App\Models\Contact ? $node->display_name : $node->name }}</option>
                                     @endforeach
                                 </select>
-                                <select name="to_type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="to_type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     <option value="organization">Organization</option>
                                     <option value="contact">Contact</option>
                                 </select>
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Relationship</span>
-                                <select name="relationship_type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="relationship_type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($relationshipTypes as $type)
                                         <option value="{{ $type }}">{{ str($type)->headline() }}</option>
                                     @endforeach
@@ -109,7 +109,7 @@
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Strength</span>
-                                <input name="strength" type="number" min="0" max="100" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <input name="strength" type="number" min="0" max="100" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             </label>
                             <div class="md:col-span-2">
                                 <x-ui.button type="submit">Create relationship</x-ui.button>
@@ -124,7 +124,7 @@
                     @else
                         <div class="space-y-3">
                             @foreach ($relationships as $relationship)
-                                <div class="rounded-lg border border-line bg-panel p-4">
+                                <div class="rounded-md border border-line bg-panel p-4">
                                     <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                                         <div class="min-w-0">
                                             <p class="truncate text-sm font-semibold text-ink">
@@ -151,7 +151,7 @@
                 @else
                     <div class="grid gap-3 md:grid-cols-2">
                         @foreach ($contacts as $contact)
-                            <a href="{{ route('app.relationships.contacts.show', $contact) }}" class="rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                            <a href="{{ route('app.relationships.contacts.show', $contact) }}" class="rounded-md border border-line bg-panel p-4 hover:bg-white">
                                 <p class="truncate text-sm font-semibold text-ink">{{ $contact->display_name }}</p>
                                 <p class="mt-1 truncate text-xs text-muted">{{ $contact->email ?: 'No email' }}</p>
                             </a>
@@ -167,7 +167,7 @@
                 @else
                     <div class="grid gap-3 md:grid-cols-2">
                         @foreach ($organizations as $organization)
-                            <a href="{{ route('app.relationships.organizations.show', $organization) }}" class="rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                            <a href="{{ route('app.relationships.organizations.show', $organization) }}" class="rounded-md border border-line bg-panel p-4 hover:bg-white">
                                 <p class="truncate text-sm font-semibold text-ink">{{ $organization->name }}</p>
                                 <p class="mt-1 truncate text-xs text-muted">{{ $organization->industry ?: 'No industry' }}</p>
                             </a>
@@ -182,7 +182,7 @@
             <x-dashboard.section title="Prepared relationship lanes" description="No social integrations yet; the graph is ready for specialized relationship workflows.">
                 <div class="grid gap-3 md:grid-cols-5">
                     @foreach ($graph['futureLanes'] as $lane)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-sm font-semibold text-ink">{{ $lane['label'] }}</p>
                             <p class="mt-1 text-xs text-muted">{{ str($lane['status'])->headline() }}</p>
                         </div>

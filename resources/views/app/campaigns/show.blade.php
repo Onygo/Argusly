@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $campaign->name }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Campaign detail</p>
@@ -13,7 +13,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -46,7 +46,7 @@
                     @else
                         <div class="space-y-3">
                             @foreach ($timeline as $event)
-                                <div class="rounded-lg border border-line bg-panel p-4">
+                                <div class="rounded-md border border-line bg-panel p-4">
                                     <div class="flex items-start justify-between gap-4">
                                         <div class="min-w-0">
                                             <p class="text-sm font-semibold text-ink">{{ $event['label'] }}</p>
@@ -70,7 +70,7 @@
                         @else
                             <div class="space-y-3">
                                 @foreach ($campaign->contentAssets as $asset)
-                                    <a href="{{ route('app.content.show', $asset) }}" class="block rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                                    <a href="{{ route('app.content.show', $asset) }}" class="block rounded-md border border-line bg-panel p-4 hover:bg-white">
                                         <p class="truncate text-sm font-semibold text-ink">{{ $asset->title }}</p>
                                         <p class="mt-1 text-xs text-muted">{{ str($asset->status)->headline() }} · {{ str($asset->type)->headline() }}</p>
                                     </a>
@@ -98,7 +98,7 @@
                     @else
                         <div class="grid gap-3 lg:grid-cols-2">
                             @foreach ($campaign->signals as $signal)
-                                <div class="rounded-lg border border-line bg-panel p-4">
+                                <div class="rounded-md border border-line bg-panel p-4">
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="min-w-0">
                                             <p class="truncate text-sm font-semibold text-ink">{{ $signal->title }}</p>

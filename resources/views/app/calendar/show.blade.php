@@ -58,7 +58,7 @@
                 @if ($item->metadata)
                     <dl class="grid gap-3 text-sm sm:grid-cols-2">
                         @foreach ($item->metadata as $key => $value)
-                            <div class="rounded-lg border border-line bg-panel p-3">
+                            <div class="rounded-md border border-line bg-panel p-3">
                                 <dt class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ str($key)->replace('_', ' ')->headline() }}</dt>
                                 <dd class="mt-1 break-words font-medium text-ink">{{ is_scalar($value) ? $value : json_encode($value) }}</dd>
                             </div>

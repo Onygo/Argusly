@@ -9,11 +9,11 @@
                         @csrf
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Name</span>
-                            <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="name" value="{{ old('name') }}" required class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                            <select name="entity_type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="entity_type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($entityTypes as $type)
                                     <option value="{{ $type }}" @selected(old('entity_type') === $type)>{{ $type }}</option>
                                 @endforeach
@@ -21,11 +21,11 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Aliases</span>
-                            <input name="aliases" value="{{ old('aliases') }}" placeholder="Comma-separated aliases" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <input name="aliases" value="{{ old('aliases') }}" placeholder="Comma-separated aliases" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Description</span>
-                            <textarea name="description" rows="4" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description') }}</textarea>
+                            <textarea name="description" rows="4" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">{{ old('description') }}</textarea>
                         </label>
                         <x-ui.button type="submit">Add entity</x-ui.button>
                     </form>
@@ -39,7 +39,7 @@
                             @csrf
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Source</span>
-                                <select name="source_entity_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="source_entity_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($graph['brandEntities'] as $brandEntity)
                                         <option value="{{ $brandEntity->entity_id }}">{{ $brandEntity->entity->name }} · {{ $brandEntity->entity->entity_type }}</option>
                                     @endforeach
@@ -47,7 +47,7 @@
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Relationship</span>
-                                <select name="relationship_type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="relationship_type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($relationshipTypes as $type)
                                         <option value="{{ $type }}">{{ str($type)->replace('_', ' ')->headline() }}</option>
                                     @endforeach
@@ -55,7 +55,7 @@
                             </label>
                             <label class="block">
                                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Target</span>
-                                <select name="target_entity_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                                <select name="target_entity_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                     @foreach ($graph['brandEntities'] as $brandEntity)
                                         <option value="{{ $brandEntity->entity_id }}">{{ $brandEntity->entity->name }} · {{ $brandEntity->entity->entity_type }}</option>
                                     @endforeach
@@ -76,7 +76,7 @@
                     </div>
                     <div class="mt-5 grid gap-3 sm:grid-cols-3">
                         @foreach ($graph['futureUseCases'] as $useCase)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <p class="text-sm font-semibold text-ink">{{ $useCase['label'] }}</p>
                                 <p class="mt-1 text-xs text-muted">{{ str($useCase['status'])->headline() }}</p>
                             </div>
@@ -90,7 +90,7 @@
                     @else
                         <div class="grid gap-4 lg:grid-cols-2">
                             @foreach ($graph['brandEntities'] as $brandEntity)
-                                <article class="rounded-lg border border-line bg-white p-5">
+                                <article class="rounded-md border border-line bg-white p-5">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <h3 class="text-base font-semibold text-ink">{{ $brandEntity->entity->name }}</h3>
                                         <x-ui.badge variant="blue">{{ $brandEntity->entity->entity_type }}</x-ui.badge>
@@ -115,7 +115,7 @@
                     @else
                         <div class="space-y-3">
                             @foreach ($graph['relationships'] as $relationship)
-                                <div class="rounded-lg border border-line bg-white p-4">
+                                <div class="rounded-md border border-line bg-white p-4">
                                     <p class="text-sm font-semibold text-ink">
                                         {{ $relationship->sourceEntity->name }}
                                         <span class="text-muted">{{ str($relationship->relationship_type)->replace('_', ' ')->headline() }}</span>

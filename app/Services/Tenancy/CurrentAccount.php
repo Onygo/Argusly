@@ -15,9 +15,16 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class CurrentAccount implements CurrentAccountContract
 {
+    private ?bool $accountsTableExists = null;
+
     private ?Account $resolved = null;
 
     private ?int $resolvedForUserId = null;
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $accessCache = [];
 
     public function __construct(
         private readonly AuthFactory $auth,
@@ -29,12 +36,16 @@ class CurrentAccount implements CurrentAccountContract
     {
         $user ??= $this->auth->guard()->user();
 
-        if (! $user instanceof User || ! Schema::hasTable('accounts')) {
+        if (! $user instanceof User) {
             return null;
         }
 
-        if ($this->resolvedForUserId === $user->id && $this->resolved && $this->userCanAccess($user, $this->resolved)) {
+        if ($this->resolvedForUserId === $user->id && $this->resolved) {
             return $this->resolved;
+        }
+
+        if (! $this->accountsTableExists()) {
+            return null;
         }
 
         $accountId = $this->storedId($user);
@@ -118,8 +129,13 @@ class CurrentAccount implements CurrentAccountContract
     public function userCanAccess(User $user, Account|int $account): bool
     {
         $accountId = $account instanceof Account ? $account->id : $account;
+        $cacheKey = "{$user->id}:{$accountId}";
 
-        return $user->memberships()
+        if (array_key_exists($cacheKey, $this->accessCache)) {
+            return $this->accessCache[$cacheKey];
+        }
+
+        return $this->accessCache[$cacheKey] = $user->memberships()
             ->where('account_id', $accountId)
             ->where('status', 'active')
             ->whereHas('account', fn ($query) => $query->where('status', 'active'))
@@ -150,6 +166,11 @@ class CurrentAccount implements CurrentAccountContract
     private function sessionKey(): string
     {
         return 'tenant.current_account_id';
+    }
+
+    private function accountsTableExists(): bool
+    {
+        return $this->accountsTableExists ??= Schema::hasTable('accounts');
     }
 
     private function cacheKey(User $user): string

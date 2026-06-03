@@ -1,5 +1,5 @@
 <x-app.layout title="Notifications | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Notification center</p>
@@ -49,7 +49,7 @@
 
                 <form method="POST" action="{{ route('app.notifications.preferences') }}" class="mt-5 space-y-4">
                     @csrf
-                    <div class="overflow-hidden rounded-lg border border-line">
+                    <div class="overflow-hidden rounded-md border border-line">
                         <div class="grid grid-cols-[1fr_repeat(4,72px)] gap-2 border-b border-line bg-panel px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted">
                             <span>Type</span>
                             @foreach ($channels as $channel)

@@ -1,5 +1,5 @@
 <x-app.layout :title="$title.' | Argusly'">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div>
             <p class="eyebrow">{{ $module }}</p>
             <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{{ $title }}</h1>

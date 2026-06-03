@@ -14,7 +14,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -24,20 +24,20 @@
                     @method('PUT')
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Title</span>
-                        <input name="title" value="{{ old('title', $newsletter->title) }}" required class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="title" value="{{ old('title', $newsletter->title) }}" required class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Subject</span>
-                        <input name="subject" value="{{ old('subject', $newsletter->subject) }}" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Subject line">
+                        <input name="subject" value="{{ old('subject', $newsletter->subject) }}" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Subject line">
                     </label>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Preheader</span>
-                        <input name="preheader" value="{{ old('preheader', $newsletter->preheader) }}" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Inbox preview text">
+                        <input name="preheader" value="{{ old('preheader', $newsletter->preheader) }}" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Inbox preview text">
                     </label>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Language</span>
-                            <select name="language" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="language" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($languages as $language)
                                     <option value="{{ $language->code }}" @selected($newsletter->language === $language->code)>{{ $language->name }}</option>
                                 @endforeach
@@ -45,7 +45,7 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Status</span>
-                            <select name="status" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="status" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach (\App\Models\Newsletter::STATUSES as $status)
                                     <option value="{{ $status }}" @selected($newsletter->status === $status)>{{ str($status)->headline() }}</option>
                                 @endforeach
@@ -68,7 +68,7 @@
                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Type</span>
-                            <select name="type" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="type" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                                 @foreach ($sectionTypes as $type)
                                     <option value="{{ $type }}">{{ str($type)->headline() }}</option>
                                 @endforeach
@@ -76,23 +76,23 @@
                         </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Position</span>
-                            <input name="position" type="number" min="0" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="{{ $newsletter->sections->count() + 1 }}">
+                            <input name="position" type="number" min="0" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="{{ $newsletter->sections->count() + 1 }}">
                         </label>
                     </div>
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Title</span>
-                        <input name="title" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Lead story">
+                        <input name="title" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Lead story">
                     </label>
                         <label class="block">
                             <span class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Content asset</span>
-                            <select name="content_asset_id" class="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                            <select name="content_asset_id" class="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                             <option value="">No content asset</option>
                             @foreach ($contentAssets as $asset)
                                 <option value="{{ $asset->id }}">{{ $asset->title }} · {{ strtoupper($asset->language) }}</option>
                             @endforeach
                         </select>
                     </label>
-                    <textarea name="body" rows="5" class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Section body"></textarea>
+                    <textarea name="body" rows="5" class="w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" placeholder="Section body"></textarea>
                     <x-ui.button type="submit">Add section</x-ui.button>
                 </form>
             </x-dashboard.section>

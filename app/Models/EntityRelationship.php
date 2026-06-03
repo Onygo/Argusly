@@ -15,12 +15,24 @@ use InvalidArgumentException;
     'source_entity_id',
     'target_entity_id',
     'relationship_type',
+    'strength',
+    'metadata',
 ])]
 class EntityRelationship extends Model
 {
     use HasFactory;
 
-    public const TYPES = ['owns', 'offers', 'uses', 'competes_with', 'located_in', 'related_to'];
+    public const TYPES = [
+        'owns',
+        'offers',
+        'uses',
+        'works_for',
+        'competes_with',
+        'mentions',
+        'located_in',
+        'related_to',
+        'partner_of',
+    ];
 
     protected static function booted(): void
     {
@@ -40,8 +52,20 @@ class EntityRelationship extends Model
             $source = Entity::query()->find($relationship->source_entity_id);
             $target = Entity::query()->find($relationship->target_entity_id);
 
-            if (! $source || ! $target || $source->account_id !== $relationship->account_id || $target->account_id !== $relationship->account_id) {
-                throw new InvalidArgumentException('Entity relationship entities must belong to the same account.');
+            if (! $source || ! $target) {
+                throw new InvalidArgumentException('Entity relationship entities must exist.');
+            }
+
+            if ($source->account_id !== null && $target->account_id !== null && $source->account_id !== $target->account_id) {
+                throw new InvalidArgumentException('Entity relationship entities must belong to the same account scope.');
+            }
+
+            if ($source->brand_id !== null && $target->brand_id !== null && $source->brand_id !== $target->brand_id) {
+                throw new InvalidArgumentException('Entity relationship entities must belong to the same brand scope.');
+            }
+
+            if ($relationship->account_id !== null && ($source->account_id !== null && $source->account_id !== $relationship->account_id || $target->account_id !== null && $target->account_id !== $relationship->account_id)) {
+                throw new InvalidArgumentException('Entity relationship account must match scoped entities.');
             }
 
             if ($relationship->brand_id !== null) {
@@ -84,5 +108,13 @@ class EntityRelationship extends Model
     public function targetEntity(): BelongsTo
     {
         return $this->belongsTo(Entity::class, 'target_entity_id');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'strength' => 'integer',
+            'metadata' => 'array',
+        ];
     }
 }

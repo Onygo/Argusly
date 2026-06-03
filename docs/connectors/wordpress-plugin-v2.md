@@ -42,7 +42,7 @@ In WordPress:
 
 1. Install and activate **Argusly Connector**.
 2. Open Settings > Argusly Connector.
-3. Enter the Argusly API base URL, usually `https://app.argusly.com/api/v1`.
+3. Enter the Argusly API base URL, usually `https://api.argusly.com/v1`.
 4. Paste the connector token.
 5. Save settings.
 6. Run the connection test.

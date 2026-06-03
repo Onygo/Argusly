@@ -1,5 +1,5 @@
 <x-app.layout title="Source Sync History | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Source registry</p>
@@ -16,7 +16,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($syncs as $sync)
-                            <a href="{{ route('app.sources.show', $sync->source) }}" class="block rounded-lg border border-line bg-panel p-4 hover:bg-white">
+                            <a href="{{ route('app.sources.show', $sync->source) }}" class="block rounded-md border border-line bg-panel p-4 hover:bg-white">
                                 <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">

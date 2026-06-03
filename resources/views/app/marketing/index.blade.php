@@ -1,5 +1,5 @@
 <x-app.layout title="Marketing OS | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Marketing OS</p>
@@ -15,14 +15,14 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
-        <div class="mt-8 rounded-lg border border-line bg-white p-4">
+        <div class="mt-8 rounded-md border border-line bg-white p-4">
             <form method="GET" action="{{ route('app.marketing') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]">
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Account</span>
-                    <select name="account_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="account_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         @foreach ($accounts as $filterAccount)
                             <option value="{{ $filterAccount->id }}" @selected($filters['account_id'] === $filterAccount->id)>{{ $filterAccount->name }}</option>
                         @endforeach
@@ -30,7 +30,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Brand</span>
-                    <select name="brand_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="0" @selected($filters['brand_id'] === null)>All brands</option>
                         @foreach ($brands as $filterBrand)
                             <option value="{{ $filterBrand->id }}" @selected($filters['brand_id'] === $filterBrand->id)>{{ $filterBrand->name }}</option>
@@ -39,7 +39,7 @@
                 </label>
                 <label>
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Campaign</span>
-                    <select name="campaign_id" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="campaign_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         <option value="">All campaigns</option>
                         @foreach ($campaigns as $filterCampaign)
                             <option value="{{ $filterCampaign->id }}" @selected($filters['campaign_id'] === $filterCampaign->id)>{{ $filterCampaign->name }}</option>
@@ -64,7 +64,7 @@
             <x-dashboard.section title="Active campaigns" description="Campaigns currently driving marketing execution.">
                 <div class="space-y-3">
                     @forelse ($dashboard['activeCampaigns'] as $activeCampaign)
-                        <a href="{{ route('app.campaigns.show', $activeCampaign) }}" class="block rounded-lg border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
+                        <a href="{{ route('app.campaigns.show', $activeCampaign) }}" class="block rounded-md border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
                             <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-semibold text-ink">{{ $activeCampaign->name }}</p>
@@ -82,7 +82,7 @@
             <x-dashboard.section title="Calendar preview" description="The next dated work across the current scope.">
                 <div class="space-y-3">
                     @forelse ($dashboard['calendarPreview'] as $item)
-                        <a href="{{ route('app.calendar.show', $item) }}" class="block rounded-lg border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
+                        <a href="{{ route('app.calendar.show', $item) }}" class="block rounded-md border border-line bg-panel p-4 transition hover:border-slate-300 hover:bg-white">
                             <div class="flex items-start justify-between gap-3">
                                 <p class="text-sm font-semibold text-ink">{{ $item->title }}</p>
                                 <x-ui.badge>{{ str($item->type)->replace('_', ' ')->headline() }}</x-ui.badge>
@@ -100,7 +100,7 @@
             <x-dashboard.section title="Upcoming tasks" description="Work due soon or awaiting a date.">
                 <div class="space-y-3">
                     @forelse ($dashboard['upcomingTasks'] as $task)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <div class="flex flex-wrap items-center gap-2">
                                 <p class="text-sm font-semibold text-ink">{{ $task->title }}</p>
                                 <x-ui.badge>{{ str($task->priority)->headline() }}</x-ui.badge>
@@ -116,7 +116,7 @@
             <x-dashboard.section title="Overdue tasks" description="Tasks past due and still open.">
                 <div class="space-y-3">
                     @forelse ($dashboard['overdueTasks'] as $task)
-                        <div class="rounded-lg border border-line bg-white p-4">
+                        <div class="rounded-md border border-line bg-white p-4">
                             <div class="flex flex-wrap items-center gap-2">
                                 <p class="text-sm font-semibold text-ink">{{ $task->title }}</p>
                                 <x-ui.badge variant="blue">{{ str($task->priority)->headline() }}</x-ui.badge>
@@ -139,7 +139,7 @@
                             $current = (float) ($objective->current_value ?? 0);
                             $progress = $target > 0 ? min(100, round(($current / $target) * 100)) : 0;
                         @endphp
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-semibold text-ink">{{ $objective->name }}</p>
@@ -163,7 +163,7 @@
             <x-dashboard.section title="Approvals pending" description="Briefings, social posts and other work awaiting a decision.">
                 <div class="space-y-3">
                     @forelse ($dashboard['pendingApprovals'] as $approval)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-sm font-semibold text-ink">{{ class_basename($approval->subject_type) }} approval</p>
                             <p class="mt-2 text-xs text-muted">Requested {{ $approval->requested_at?->format('M j, H:i') ?? $approval->created_at->format('M j, H:i') }} · {{ $approval->requester?->name ?? 'Unknown requester' }}</p>
                         </div>
@@ -176,7 +176,7 @@
             <x-dashboard.section title="Latest recommendations" description="Recent recommended actions for this operating scope.">
                 <div class="space-y-3">
                     @forelse ($dashboard['latestRecommendations'] as $recommendation)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <div class="flex items-start justify-between gap-3">
                                 <p class="text-sm font-semibold text-ink">{{ $recommendation->title }}</p>
                                 <x-ui.badge>{{ str($recommendation->status)->headline() }}</x-ui.badge>
@@ -194,7 +194,7 @@
             <x-dashboard.section title="Active marketing agents" description="Agents available for marketing planning, content, visibility and social follow-up.">
                 <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                     @forelse ($dashboard['activeAgents'] as $agent)
-                        <div class="rounded-lg border border-line bg-panel p-4">
+                        <div class="rounded-md border border-line bg-panel p-4">
                             <p class="text-sm font-semibold text-ink">{{ $agent->name }}</p>
                             <p class="mt-2 line-clamp-2 text-xs leading-5 text-muted">{{ $agent->description }}</p>
                             <p class="mt-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ $agent->tasks_count }} scoped tasks</p>

@@ -7,12 +7,18 @@ use App\Contracts\CurrentBrandContract;
 use App\Models\Agent;
 use App\Models\AnswerBlock;
 use App\Models\Audience;
+use App\Models\BrandNarrative;
+use App\Models\BrandProduct;
+use App\Models\BrandProfile;
+use App\Models\BrandService;
 use App\Models\Briefing;
 use App\Models\Campaign;
 use App\Models\Competitor;
 use App\Models\Contact;
 use App\Models\ContentAsset;
+use App\Models\Entity;
 use App\Models\Mention;
+use App\Models\Narrative;
 use App\Models\MarketingObjective;
 use App\Models\MarketingTask;
 use App\Models\MarketingWorkspace;
@@ -30,12 +36,18 @@ use App\Models\VisibilityCheck;
 use App\Policies\AgentPolicy;
 use App\Policies\AnswerBlockPolicy;
 use App\Policies\AudiencePolicy;
+use App\Policies\BrandNarrativePolicy;
+use App\Policies\BrandProductPolicy;
+use App\Policies\BrandProfilePolicy;
+use App\Policies\BrandServicePolicy;
 use App\Policies\BriefingPolicy;
 use App\Policies\CampaignPolicy;
 use App\Policies\CompetitorPolicy;
 use App\Policies\ContactPolicy;
 use App\Policies\ContentAssetPolicy;
+use App\Policies\EntityPolicy;
 use App\Policies\MentionPolicy;
+use App\Policies\NarrativePolicy;
 use App\Policies\MarketingObjectivePolicy;
 use App\Policies\MarketingTaskPolicy;
 use App\Policies\MarketingWorkspacePolicy;
@@ -52,6 +64,7 @@ use App\Policies\UserPolicy;
 use App\Policies\VisibilityCheckPolicy;
 use App\Services\ActivityLogger;
 use App\Services\DomainEvents\ActivityLogProjector;
+use App\Services\DomainEvents\GraphProjector;
 use App\Services\DomainEvents\NotificationProjector;
 use App\Services\DomainEvents\ProjectorRegistry;
 use App\Services\DomainEvents\RecommendationProjector;
@@ -67,6 +80,7 @@ use App\Services\Signals\Producers\LifecycleScoreDegradedProducer;
 use App\Services\Signals\Producers\PublishingCompletedProducer;
 use App\Services\Signals\Producers\PublishingFailedProducer;
 use App\Services\Signals\SignalManager as InternalSignalManager;
+use App\Services\Subscriptions\ModuleAccessService;
 use App\Services\Tenancy\CurrentAccount;
 use App\Services\Tenancy\CurrentBrand;
 use Illuminate\Auth\Events\Login;
@@ -87,6 +101,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(CurrentAccountContract::class, CurrentAccount::class);
         $this->app->scoped(CurrentBrandContract::class, CurrentBrand::class);
+        $this->app->scoped(ModuleAccessService::class);
+        $this->app->scoped(PermissionService::class);
+
         $signalManagerFactory = fn ($app) => new SignalManager([
             $app->make(ContentPublishedProducer::class),
             $app->make(ContentAuditCompletedProducer::class),
@@ -102,6 +119,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(InternalSignalManager::class, fn ($app) => $app->make(SignalManager::class));
         $this->app->scoped(ProjectorRegistry::class, fn ($app) => new ProjectorRegistry([
             $app->make(ActivityLogProjector::class),
+            $app->make(GraphProjector::class),
             $app->make(SignalProjector::class),
             $app->make(RecommendationProjector::class),
             $app->make(NotificationProjector::class),
@@ -146,6 +164,10 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Audience::class, AudiencePolicy::class);
+        Gate::policy(BrandProfile::class, BrandProfilePolicy::class);
+        Gate::policy(BrandProduct::class, BrandProductPolicy::class);
+        Gate::policy(BrandService::class, BrandServicePolicy::class);
+        Gate::policy(BrandNarrative::class, BrandNarrativePolicy::class);
         Gate::policy(Briefing::class, BriefingPolicy::class);
         Gate::policy(ContentAsset::class, ContentAssetPolicy::class);
         Gate::policy(AnswerBlock::class, AnswerBlockPolicy::class);
@@ -160,11 +182,13 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Newsletter::class, NewsletterPolicy::class);
         Gate::policy(Topic::class, TopicPolicy::class);
         Gate::policy(Mention::class, MentionPolicy::class);
+        Gate::policy(Narrative::class, NarrativePolicy::class);
         Gate::policy(Relationship::class, RelationshipPolicy::class);
         Gate::policy(Segment::class, SegmentPolicy::class);
         Gate::policy(Contact::class, ContactPolicy::class);
         Gate::policy(Organization::class, OrganizationPolicy::class);
         Gate::policy(Competitor::class, CompetitorPolicy::class);
+        Gate::policy(Entity::class, EntityPolicy::class);
         Gate::policy(VisibilityCheck::class, VisibilityCheckPolicy::class);
         Gate::policy(Agent::class, AgentPolicy::class);
 

@@ -15,9 +15,16 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class CurrentBrand implements CurrentBrandContract
 {
+    private ?bool $brandsTableExists = null;
+
     private ?Brand $resolved = null;
 
     private ?int $resolvedForUserId = null;
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $accessCache = [];
 
     public function __construct(
         private readonly AuthFactory $auth,
@@ -30,12 +37,16 @@ class CurrentBrand implements CurrentBrandContract
     {
         $user ??= $this->auth->guard()->user();
 
-        if (! $user instanceof User || ! Schema::hasTable('brands')) {
+        if (! $user instanceof User) {
             return null;
         }
 
-        if ($this->resolvedForUserId === $user->id && $this->resolved && $this->userCanAccess($user, $this->resolved) && $this->belongsToCurrentAccount($this->resolved, $user)) {
+        if ($this->resolvedForUserId === $user->id && $this->resolved && $this->belongsToCurrentAccount($this->resolved, $user)) {
             return $this->resolved;
+        }
+
+        if (! $this->brandsTableExists()) {
+            return null;
         }
 
         $brandId = $this->storedId($user);
@@ -135,7 +146,13 @@ class CurrentBrand implements CurrentBrandContract
             return false;
         }
 
-        return $this->currentAccount->userCanAccess($user, $brand->account_id)
+        $cacheKey = "{$user->id}:{$brand->account_id}:{$brand->id}";
+
+        if (array_key_exists($cacheKey, $this->accessCache)) {
+            return $this->accessCache[$cacheKey];
+        }
+
+        return $this->accessCache[$cacheKey] = $this->currentAccount->userCanAccess($user, $brand->account_id)
             && $user->brandMemberships()
                 ->where('brand_id', $brand->id)
                 ->where('account_id', $brand->account_id)
@@ -178,6 +195,11 @@ class CurrentBrand implements CurrentBrandContract
     private function sessionKey(): string
     {
         return 'tenant.current_brand_id';
+    }
+
+    private function brandsTableExists(): bool
+    {
+        return $this->brandsTableExists ??= Schema::hasTable('brands');
     }
 
     private function cacheKey(User $user): string

@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $source->name }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Source detail</p>
@@ -16,7 +16,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -33,7 +33,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($source->connections as $connection)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="truncate text-sm font-semibold text-ink">{{ $connection->integrationConnection?->name ?? 'Manual source' }}</p>
@@ -53,7 +53,7 @@
                 @else
                     <div class="space-y-3">
                         @foreach ($syncs as $sync)
-                            <div class="rounded-lg border border-line bg-panel p-4">
+                            <div class="rounded-md border border-line bg-panel p-4">
                                 <div class="flex items-start justify-between gap-4">
                                     <div class="min-w-0">
                                         <p class="text-sm font-semibold text-ink">{{ str($sync->status)->headline() }}</p>

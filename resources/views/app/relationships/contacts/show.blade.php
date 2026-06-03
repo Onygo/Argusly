@@ -1,5 +1,5 @@
 <x-app.layout title="{{ $contact->display_name }} | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Contact detail</p>
@@ -10,7 +10,7 @@
         </div>
 
         @if (session('status'))
-            <div class="mt-6 rounded-lg border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
+            <div class="mt-6 rounded-md border border-line bg-white p-4 text-sm font-medium text-ink">{{ session('status') }}</div>
         @endif
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -23,7 +23,7 @@
         <div class="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
             <x-dashboard.section title="Contact profile">
                 <div class="space-y-3">
-                    <div class="rounded-lg border border-line bg-panel p-4">
+                    <div class="rounded-md border border-line bg-panel p-4">
                         <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Name</p>
                         <p class="mt-2 text-sm font-semibold text-ink">{{ $contact->first_name }} {{ $contact->last_name }}</p>
                     </div>

@@ -154,7 +154,7 @@ Required keys:
 <?php
 
 return [
-    'api_url' => env('ARGUSLY_API_URL', 'https://app.argusly.com/api/v1'),
+    'api_url' => env('ARGUSLY_API_URL', 'https://api.argusly.com/v1'),
     'token' => env('ARGUSLY_CONNECTOR_TOKEN'),
     'channel' => env('ARGUSLY_CHANNEL'),
     'publisher' => env('ARGUSLY_PUBLISHER', \Argusly\LaravelConnector\Publishing\DefaultDatabasePublisher::class),
@@ -217,7 +217,7 @@ return [
 Required environment variables:
 
 ```dotenv
-ARGUSLY_API_URL=https://app.argusly.com/api/v1
+ARGUSLY_API_URL=https://api.argusly.com/v1
 ARGUSLY_CONNECTOR_TOKEN=argusly_ct_...
 ARGUSLY_CHANNEL=production-laravel
 ARGUSLY_PUBLISHER=

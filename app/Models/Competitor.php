@@ -34,6 +34,8 @@ class Competitor extends Model
         });
 
         static::saving(function (Competitor $competitor): void {
+            $competitor->status ??= 'active';
+
             if (! in_array($competitor->status, self::STATUSES, true)) {
                 throw new InvalidArgumentException("Invalid competitor status [{$competitor->status}].");
             }

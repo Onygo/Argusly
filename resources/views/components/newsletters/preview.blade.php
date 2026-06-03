@@ -1,6 +1,6 @@
 @props(['newsletter'])
 
-<div class="overflow-hidden rounded-lg border border-line bg-white">
+<div class="overflow-hidden rounded-md border border-line bg-white">
     <div class="border-b border-line bg-panel px-5 py-4">
         <p class="text-xs font-semibold uppercase tracking-[0.12em] text-muted">Preview · {{ strtoupper($newsletter->language) }}</p>
         <h2 class="mt-2 text-xl font-semibold text-ink">{{ $newsletter->subject ?: $newsletter->title }}</h2>

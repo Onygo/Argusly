@@ -80,6 +80,36 @@ class RecommendationEngineService
         $contentAssetId = $payload['content_asset_id'] ?? null;
 
         return match (true) {
+            $signal->type === 'narrative_gap_detected' => [
+                $this->recommendation(
+                    'Create content to close narrative gap',
+                    'The detected market narrative differs from the desired brand narrative.',
+                    'Create content that clearly reinforces the desired narrative.',
+                    $signal,
+                    ['impact_score' => 84, 'confidence_score' => 88, 'action_type' => 'create_content'],
+                ),
+                $this->recommendation(
+                    'Refresh positioning',
+                    'Brand positioning may need clearer language for AI systems, search engines and media surfaces.',
+                    'Refresh positioning so the desired narrative is explicit and reusable across channels.',
+                    $signal,
+                    ['impact_score' => 82, 'confidence_score' => 86, 'action_type' => 'refresh_positioning'],
+                ),
+                $this->recommendation(
+                    'Launch narrative campaign',
+                    'A campaign can help shift repeated descriptions toward the desired narrative.',
+                    'Launch a campaign focused on the desired narrative and supporting proof points.',
+                    $signal,
+                    ['impact_score' => 78, 'confidence_score' => 82, 'action_type' => 'launch_campaign'],
+                ),
+                $this->recommendation(
+                    'Improve citations',
+                    'AI visibility depends on sources that describe the brand accurately.',
+                    'Improve citations and source coverage that support the desired narrative.',
+                    $signal,
+                    ['impact_score' => 80, 'confidence_score' => 84, 'action_type' => 'improve_citations'],
+                ),
+            ],
             ($payload['distribution_rule'] ?? null) === 'approved_not_published' => [
                 $this->recommendation(
                     'Publish this content to a connected website',
@@ -426,11 +456,13 @@ class RecommendationEngineService
      */
     private function recommendation(string $title, string $summary, string $action, IntelligenceSignal $signal, array $overrides = []): array
     {
+        $payload = $signal->payload ?? [];
+
         return [
             'title' => $title,
             'summary' => $summary,
             'recommended_action' => $action,
-            'action_type' => $overrides['action_type'] ?? $this->inferActionType($title, $payload = $signal->payload ?? []),
+            'action_type' => $overrides['action_type'] ?? $this->inferActionType($title, $payload),
             'action_payload' => $overrides['action_payload'] ?? $this->inferActionPayload($signal, $payload),
             'impact_score' => $overrides['impact_score'] ?? $signal->impact_score,
             'confidence_score' => $overrides['confidence_score'] ?? $signal->confidence_score,

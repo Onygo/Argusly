@@ -14,15 +14,44 @@ class PermissionService
     public function __construct(private readonly ModuleAccessService $moduleAccess) {}
 
     /**
+     * @var array<string, bool>
+     */
+    private array $knownPermissionCache = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $userCanCache = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $tenantAccessCache = [];
+
+    /**
+     * @var array<int, string>|null
+     */
+    private ?array $configuredPermissionNames = null;
+
+    /**
+     * @var array<string, array<int, string>>|null
+     */
+    private ?array $moduleRequirementsByPermission = null;
+
+    /**
      * Determine whether an ability is managed by the permission system.
      */
     public function isKnownPermission(string $permission): bool
     {
-        if (in_array($permission, $this->configuredPermissionNames(), true)) {
-            return true;
+        if (array_key_exists($permission, $this->knownPermissionCache)) {
+            return $this->knownPermissionCache[$permission];
         }
 
-        return Schema::hasTable('permissions')
+        if (in_array($permission, $this->configuredPermissionNames(), true)) {
+            return $this->knownPermissionCache[$permission] = true;
+        }
+
+        return $this->knownPermissionCache[$permission] = Schema::hasTable('permissions')
             && Permission::query()->where('name', $permission)->exists();
     }
 
@@ -50,19 +79,25 @@ class PermissionService
      */
     public function userCan(User $user, string $permission, array $context = []): bool
     {
+        $cacheKey = $this->cacheKey($user, $permission, $context);
+
+        if (array_key_exists($cacheKey, $this->userCanCache)) {
+            return $this->userCanCache[$cacheKey];
+        }
+
         if (! $this->isKnownPermission($permission)) {
-            return false;
+            return $this->userCanCache[$cacheKey] = false;
         }
 
         if (! $this->tenantContextIsAccessible($user, $context)) {
-            return false;
+            return $this->userCanCache[$cacheKey] = false;
         }
 
         if (! $this->accountHasRequiredModule($permission, $context)) {
-            return false;
+            return $this->userCanCache[$cacheKey] = false;
         }
 
-        return $user->roleAssignments()
+        return $this->userCanCache[$cacheKey] = $user->roleAssignments()
             ->whereHas('role', function (Builder $query) use ($permission): void {
                 $query->where('all_permissions', true)
                     ->orWhereHas('permissions', fn (Builder $permissionQuery) => $permissionQuery->where('name', $permission));
@@ -79,7 +114,7 @@ class PermissionService
      */
     public function configuredPermissionNames(): array
     {
-        return collect(config('permissions.permissions', []))
+        return $this->configuredPermissionNames ??= collect(config('permissions.permissions', []))
             ->flatten()
             ->values()
             ->all();
@@ -130,6 +165,11 @@ class PermissionService
     {
         $accountId = $context['account_id'] ?? null;
         $brandId = $context['brand_id'] ?? null;
+        $cacheKey = "{$user->id}:".($accountId ?? 'none').':'.($brandId ?? 'none');
+
+        if (array_key_exists($cacheKey, $this->tenantAccessCache)) {
+            return $this->tenantAccessCache[$cacheKey];
+        }
 
         if ($accountId !== null) {
             $hasAccount = $user->memberships()
@@ -139,12 +179,12 @@ class PermissionService
                 ->exists();
 
             if (! $hasAccount) {
-                return false;
+                return $this->tenantAccessCache[$cacheKey] = false;
             }
         }
 
         if ($brandId !== null) {
-            return $user->brandMemberships()
+            return $this->tenantAccessCache[$cacheKey] = $user->brandMemberships()
                 ->where('brand_id', $brandId)
                 ->when($accountId !== null, fn (Builder $query) => $query->where('account_id', $accountId))
                 ->where('status', 'active')
@@ -152,7 +192,7 @@ class PermissionService
                 ->exists();
         }
 
-        return true;
+        return $this->tenantAccessCache[$cacheKey] = true;
     }
 
     /**
@@ -175,10 +215,29 @@ class PermissionService
      */
     private function modulesForPermission(string $permission): array
     {
-        return collect(config('permissions.module_requirements', []))
-            ->filter(fn (array $permissions) => in_array($permission, $permissions, true))
-            ->keys()
-            ->values()
-            ->all();
+        if ($this->moduleRequirementsByPermission === null) {
+            $this->moduleRequirementsByPermission = [];
+
+            foreach (config('permissions.module_requirements', []) as $module => $permissions) {
+                foreach ($permissions as $modulePermission) {
+                    $this->moduleRequirementsByPermission[$modulePermission][] = $module;
+                }
+            }
+        }
+
+        return $this->moduleRequirementsByPermission[$permission] ?? [];
+    }
+
+    /**
+     * @param  array{account_id?: int|null, brand_id?: int|null}  $context
+     */
+    private function cacheKey(User $user, string $permission, array $context): string
+    {
+        return implode(':', [
+            $user->id,
+            $permission,
+            $context['account_id'] ?? 'none',
+            $context['brand_id'] ?? 'none',
+        ]);
     }
 }

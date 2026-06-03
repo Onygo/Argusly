@@ -1,5 +1,5 @@
 <x-app.layout title="Create Answer Block | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div>
             <p class="eyebrow">Argusly Content Engine</p>
             <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Create Answer Block</h1>

@@ -1,5 +1,5 @@
 <x-app.layout title="Reports | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Executive reporting</p>
@@ -8,7 +8,7 @@
             </div>
             <form method="POST" action="{{ route('app.reports.store') }}" class="flex flex-wrap items-center gap-2">
                 @csrf
-                <select name="type" class="h-10 rounded-full border border-line bg-white px-4 text-sm font-semibold text-ink">
+                <select name="type" class="h-10 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink">
                     @foreach ($types as $type)
                         <option value="{{ $type }}">{{ str($type)->headline() }}</option>
                     @endforeach

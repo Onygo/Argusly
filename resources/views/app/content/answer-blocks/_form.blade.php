@@ -13,13 +13,13 @@
         <div class="space-y-4">
             <label class="block">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Question</span>
-                <textarea name="question" rows="3" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>{{ old('question', $answerBlock->question) }}</textarea>
+                <textarea name="question" rows="3" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>{{ old('question', $answerBlock->question) }}</textarea>
                 @error('question') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
 
             <label class="block">
                 <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Answer</span>
-                <textarea name="answer" rows="10" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm leading-6 text-ink" required>{{ old('answer', $answerBlock->answer) }}</textarea>
+                <textarea name="answer" rows="10" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm leading-6 text-ink" required>{{ old('answer', $answerBlock->answer) }}</textarea>
                 @error('answer') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
             </label>
         </div>
@@ -30,7 +30,7 @@
             <div class="space-y-4">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Type</span>
-                    <select name="type" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                    <select name="type" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                         @foreach ($types as $type)
                             <option value="{{ $type }}" @selected(old('type', $answerBlock->type) === $type)>{{ str($type)->replace('_', ' ')->headline() }}</option>
                         @endforeach
@@ -40,7 +40,7 @@
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
-                    <select name="status" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                    <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         @foreach (\App\Models\AnswerBlock::STATUSES as $status)
                             <option value="{{ $status }}" @selected(old('status', $answerBlock->status ?: 'draft') === $status)>{{ str($status)->headline() }}</option>
                         @endforeach
@@ -51,7 +51,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Content language</span>
-                        <select name="language" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                        <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
                             @foreach ($contentLanguages as $language)
                                 <option value="{{ $language->code }}" @selected(old('language', $answerBlock->language) === $language->code)>{{ $language->name }} · {{ $language->native_name }}</option>
                             @endforeach
@@ -61,7 +61,7 @@
 
                     <label class="block">
                         <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Position</span>
-                        <input name="position" type="number" min="0" value="{{ old('position', $answerBlock->position) }}" class="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <input name="position" type="number" min="0" value="{{ old('position', $answerBlock->position) }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                         @error('position') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
                     </label>
                 </div>

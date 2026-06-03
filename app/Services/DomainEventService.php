@@ -35,6 +35,7 @@ class DomainEventService
         ?User $actor = null,
         ?array $payload = null,
         mixed $occurredAt = null,
+        bool $dispatch = true,
     ): DomainEvent {
         $this->validateEventType($eventType);
         $this->validateScope($account, $brand, $subject);
@@ -50,7 +51,9 @@ class DomainEventService
             'occurred_at' => $occurredAt ?? now(),
         ]);
 
-        ProjectDomainEventJob::dispatch($event->id);
+        if ($dispatch) {
+            ProjectDomainEventJob::dispatch($event->id);
+        }
 
         return $event;
     }
@@ -58,11 +61,11 @@ class DomainEventService
     /**
      * @param  array<string, mixed>|null  $payload
      */
-    public function recordForSubject(string $eventType, Model $subject, ?User $actor = null, ?array $payload = null, mixed $occurredAt = null): DomainEvent
+    public function recordForSubject(string $eventType, Model $subject, ?User $actor = null, ?array $payload = null, mixed $occurredAt = null, bool $dispatch = true): DomainEvent
     {
         [$account, $brand] = $this->tenantForSubject($subject);
 
-        return $this->record($eventType, $account, $brand, $subject, $actor, $payload, $occurredAt);
+        return $this->record($eventType, $account, $brand, $subject, $actor, $payload, $occurredAt, $dispatch);
     }
 
     public function process(DomainEvent $event): DomainEvent

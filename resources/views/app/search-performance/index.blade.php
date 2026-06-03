@@ -1,5 +1,5 @@
 <x-app.layout title="Search Performance | Argusly">
-    <div class="mx-auto max-w-7xl">
+    <div class="w-full">
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
                 <p class="eyebrow">Search performance foundation</p>
@@ -40,7 +40,7 @@
                 <x-ui.badge>{{ $latestSnapshots->count() }} recent snapshots</x-ui.badge>
             </div>
 
-            <div class="mt-5 overflow-hidden rounded-lg border border-line">
+            <div class="mt-5 overflow-hidden rounded-md border border-line">
                 <div class="hidden grid-cols-[1.1fr_0.9fr_0.7fr_0.6fr_0.6fr_0.6fr_0.6fr] gap-3 border-b border-line bg-panel px-4 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-muted lg:grid">
                     <span>Content / Query</span>
                     <span>Page</span>

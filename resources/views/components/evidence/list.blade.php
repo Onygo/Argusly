@@ -4,7 +4,7 @@
     $items = collect($items ?? []);
 @endphp
 
-<div {{ $attributes->merge(['class' => 'rounded-lg border border-line bg-white p-5']) }}>
+<div {{ $attributes->merge(['class' => 'rounded-md border border-line bg-white p-5']) }}>
     <div class="flex items-center justify-between gap-3">
         <h3 class="text-sm font-semibold text-ink">{{ $title }}</h3>
         <x-ui.badge>{{ $items->count() }}</x-ui.badge>
@@ -15,7 +15,7 @@
     @else
         <div class="mt-4 space-y-3">
             @foreach ($items as $item)
-                <div class="rounded-lg border border-line bg-panel p-4">
+                <div class="rounded-md border border-line bg-panel p-4">
                     <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
