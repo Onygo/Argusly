@@ -6,13 +6,11 @@ use App\Models\Account;
 use App\Models\AgentTask;
 use App\Models\Audience;
 use App\Models\Brand;
-use App\Models\Briefing;
 use App\Models\Campaign;
 use App\Models\ContentAsset;
 use App\Models\Integration;
 use App\Models\IntegrationConnection;
 use App\Models\MarketingObjective;
-use App\Models\MarketingTask;
 use App\Models\Newsletter;
 use App\Models\NewsletterSend;
 use App\Models\Recommendation;
@@ -20,6 +18,7 @@ use App\Models\Role;
 use App\Models\SocialPost;
 use App\Models\SocialProfile;
 use App\Models\User;
+use App\Services\CreditService;
 use App\Services\RecommendationActionService;
 use App\Services\RecommendationEngineService;
 use App\Services\Subscriptions\SubscriptionService;
@@ -318,6 +317,7 @@ class MarketingOsRecommendationConnectionTest extends TestCase
         $user->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
         $user->roles()->attach(Role::query()->where('name', $roleName)->firstOrFail(), ['account_id' => $account->id]);
         app(SubscriptionService::class)->activatePlan($account, 'growth_monthly');
+        app(CreditService::class)->grant($account, 5000, $user, 'Test LLM credits');
 
         return [$user, $account, $brand];
     }

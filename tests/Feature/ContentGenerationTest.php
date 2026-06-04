@@ -46,8 +46,8 @@ class ContentGenerationTest extends TestCase
         $this->assertSame($asset->brand_id, $generatedAsset->brand_id);
         $this->assertSame('refresh', $generatedAsset->type);
         $this->assertSame('queued', $generatedAsset->status);
-        $this->assertSame('argusly_fake', $generatedAsset->provider);
-        $this->assertSame('static-foundation-v1', $generatedAsset->model);
+        $this->assertSame('openai', $generatedAsset->provider);
+        $this->assertSame('gpt-4.1-mini', $generatedAsset->model);
 
         Queue::assertPushed(
             GenerateContentAssetJob::class,
@@ -72,6 +72,7 @@ class ContentGenerationTest extends TestCase
         $this->assertStringContainsString('Search demand article', $generatedAsset->title);
         $this->assertStringContainsString('without calling a real AI provider', $generatedAsset->body);
         $this->assertTrue($generatedAsset->output_payload['fake']);
+        $this->assertSame('openai', $generatedAsset->output_payload['llm_response']['provider']);
     }
 
     public function test_generation_history_is_tenant_and_brand_isolated(): void

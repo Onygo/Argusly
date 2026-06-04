@@ -10,6 +10,7 @@ use App\Models\VisibilityPromptTemplate;
 use App\Models\VisibilityProviderRun;
 use App\Models\VisibilityResult;
 use App\Models\VisibilitySnapshot;
+use App\Services\Llm\LlmPromptRuntime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -19,6 +20,7 @@ class VisibilityMonitoringService
     public function __construct(
         private readonly EvidenceService $evidence,
         private readonly ContentLanguageService $languages,
+        private readonly LlmPromptRuntime $llm,
     ) {}
 
     /**
@@ -367,12 +369,30 @@ class VisibilityMonitoringService
         $normalizedAnswer = $result->mention_found
             ? "{$check->brand} appears in the placeholder {$check->provider} answer for this query."
             : "{$check->brand} does not appear in the placeholder {$check->provider} answer for this query.";
+        $llmResponse = $this->llm->generate(
+            account: $check->account,
+            brand: $check->brandModel,
+            user: null,
+            purpose: 'visibility_check',
+            messages: [[
+                'role' => 'user',
+                'content' => $check->query,
+            ]],
+            systemPrompt: 'You are Argusly AI visibility runtime. Produce a monitored answer for the tracked brand.',
+            fakeContent: $normalizedAnswer,
+            metadata: [
+                'visibility_check_id' => $check->id,
+                'visibility_provider' => $check->provider,
+                'brand_name' => $check->brand,
+            ],
+        );
+        $normalizedAnswer = $llmResponse->content;
 
         $run = $check->providerRuns()->create([
             'account_id' => $check->account_id,
             'brand_id' => $check->brand_id,
             'provider' => $check->provider,
-            'model' => $this->placeholderModel($check->provider),
+            'model' => $llmResponse->model,
             'query' => $check->query,
             'language' => 'en',
             'locale' => 'en_US',
@@ -383,6 +403,8 @@ class VisibilityMonitoringService
                 'query' => $check->query,
                 'answer' => $normalizedAnswer,
                 'placeholder' => true,
+                'llm_provider' => $llmResponse->provider,
+                'llm_model' => $llmResponse->model,
             ], JSON_THROW_ON_ERROR),
             'normalized_answer' => $normalizedAnswer,
             'latency_ms' => 0,
@@ -391,6 +413,7 @@ class VisibilityMonitoringService
             'captured_at' => $result->captured_at,
             'metadata' => [
                 'placeholder' => true,
+                'llm_response' => $llmResponse->toArray(),
                 'result_id' => $result->id,
                 'provider_adapters' => [
                     'ChatGPT' => 'planned',
@@ -426,18 +449,6 @@ class VisibilityMonitoringService
         ]);
 
         return $run;
-    }
-
-    private function placeholderModel(string $provider): ?string
-    {
-        return match ($provider) {
-            'ChatGPT' => 'placeholder-gpt',
-            'Claude' => 'placeholder-claude',
-            'Gemini' => 'placeholder-gemini',
-            'Perplexity' => 'placeholder-sonar',
-            'Google AI Overviews' => 'placeholder-ai-overview',
-            default => null,
-        };
     }
 
     private function placeholderScore(VisibilityCheck $check): int

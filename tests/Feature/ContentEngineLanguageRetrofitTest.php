@@ -130,7 +130,7 @@ class ContentEngineLanguageRetrofitTest extends TestCase
             ->assertSessionHasNoErrors()
             ->assertRedirect(route('app.content.show', $asset));
 
-        $this->assertSame(800, app(CreditService::class)->balance($account));
+        $this->assertSame(900, app(CreditService::class)->balance($account));
         $this->assertSame(2, ContentTranslation::query()->where('source_content_asset_id', $asset->id)->count());
 
         $translation = ContentTranslation::query()->where('target_language', 'nl')->firstOrFail();
@@ -142,6 +142,9 @@ class ContentEngineLanguageRetrofitTest extends TestCase
         $this->assertSame('nl_NL', $translated->locale);
         $this->assertSame($asset->id, $translation->source_content_asset_id);
         $this->assertSame($translated->id, $translation->translated_content_asset_id);
+        $this->assertSame('openai', $translation->provider);
+        $this->assertSame('gpt-4.1-mini', $translation->model);
+        $this->assertSame('openai', $translation->output_payload['llm_response']['provider']);
 
         $this->assertDatabaseHas('domain_events', [
             'event_type' => 'ContentTranslationRequested',

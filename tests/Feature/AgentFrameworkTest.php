@@ -12,6 +12,7 @@ use App\Services\AgentManager;
 use App\Services\AgentRunner;
 use App\Services\AgentTaskDispatcher;
 use App\Services\AgentTaskPlannerService;
+use App\Services\CreditService;
 use App\Services\RecommendationActionService;
 use App\Services\Subscriptions\SubscriptionService;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -245,6 +246,7 @@ class AgentFrameworkTest extends TestCase
         $user->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
         $user->roles()->attach($role, ['account_id' => $account->id]);
         app(SubscriptionService::class)->activatePlan($account, 'scale_monthly');
+        app(CreditService::class)->grant($account, 5000, $user, 'Test LLM credits');
 
         return [$user, $account, $brand];
     }

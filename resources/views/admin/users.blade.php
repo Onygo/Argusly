@@ -1,5 +1,6 @@
 <x-app.layout title="Admin Users" :show-workspace-header="false">
     @include('admin._nav')
+    @php($impersonationActive = session()->has('impersonator_user_id'))
     <h1 class="text-2xl font-bold text-ink">Users & Memberships</h1>
     <form method="GET" class="mt-4 flex gap-2">
         <input name="q" value="{{ request('q') }}" placeholder="Search users" class="rounded-md border border-line px-3 py-2 text-sm">
@@ -25,11 +26,15 @@
                         <td class="px-4 py-3 text-sm text-muted">{{ $user->memberships->pluck('account.name')->filter()->join(', ') ?: 'None' }}</td>
                         <td class="px-4 py-3 text-sm text-muted">{{ $user->brandMemberships->pluck('brand.name')->filter()->join(', ') ?: 'None' }}</td>
                         <td class="px-4 py-3">
-                            @if (auth()->id() !== $user->id)
+                            @if ($impersonationActive)
+                                <span class="text-sm text-muted">Impersonation active</span>
+                            @elseif (auth()->id() !== $user->id)
                                 <form method="POST" action="{{ route('admin.users.impersonate', $user) }}">
                                     @csrf
                                     <button class="rounded-md border border-line px-3 py-1.5 text-sm font-semibold text-ink transition hover:bg-panel">Impersonate</button>
                                 </form>
+                            @else
+                                <span class="text-sm text-muted">Current user</span>
                             @endif
                         </td>
                     </tr>

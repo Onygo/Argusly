@@ -12,7 +12,7 @@
                 ],
                 'Company' => [
                     ['About', route('marketing.page', 'about')],
-                    ['Contact', route('marketing.page', 'contact')],
+                    ['Contact', route('marketing.contact')],
                 ],
                 'Legal' => [
                     ['Privacy Policy', route('marketing.page', 'privacy')],
@@ -34,7 +34,7 @@
         </div>
         <div class="mt-12 flex flex-col gap-4 border-t border-line pt-8 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; {{ date('Y') }} Argusly.</p>
-            <div class="flex gap-5"><a href="{{ route('marketing.page', 'privacy') }}">Privacy</a><a href="{{ route('marketing.page', 'terms') }}">Terms</a><a href="{{ route('marketing.page', 'contact') }}">Status</a></div>
+            <div class="flex gap-5"><a href="{{ route('marketing.page', 'privacy') }}">Privacy</a><a href="{{ route('marketing.page', 'terms') }}">Terms</a><a href="{{ route('marketing.contact') }}">Contact</a></div>
         </div>
     </div>
 </footer>

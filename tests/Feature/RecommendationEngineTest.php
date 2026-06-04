@@ -300,6 +300,7 @@ class RecommendationEngineTest extends TestCase
         $user->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
         $user->roles()->attach($role, ['account_id' => $account->id]);
         app(SubscriptionService::class)->activatePlan($account, 'starter_monthly');
+        app(CreditService::class)->grant($account, 5000, $user, 'Test LLM credits');
 
         return [$user, $account, $brand];
     }

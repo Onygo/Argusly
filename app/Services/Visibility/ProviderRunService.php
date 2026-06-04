@@ -9,6 +9,7 @@ use App\Models\VisibilityPromptTemplate;
 use App\Models\VisibilityProviderRun;
 use App\Services\ContentLanguageService;
 use App\Services\DomainEventService;
+use App\Services\Llm\LlmPromptRuntime;
 use Throwable;
 
 class ProviderRunService
@@ -16,6 +17,7 @@ class ProviderRunService
     public function __construct(
         private readonly ProviderRegistry $providers,
         private readonly ContentLanguageService $languages,
+        private readonly LlmPromptRuntime $llm,
     ) {}
 
     /**
@@ -37,13 +39,37 @@ class ProviderRunService
         $market = $context['market'] ?? $template?->market ?? null;
         $persona = $context['persona'] ?? $template?->persona ?? null;
         $intent = $context['intent'] ?? $template?->intent ?? null;
+        $fallbackAnswer = "{$adapter->name()} fake answer mentions {$brand->name} as a relevant option for {$prompt}.";
+        $llmResponse = $this->llm->generate(
+            account: $account,
+            brand: $brand,
+            user: null,
+            purpose: 'visibility_check',
+            messages: [[
+                'role' => 'user',
+                'content' => $prompt,
+            ]],
+            systemPrompt: 'You are Argusly AI visibility runtime. Answer the visibility prompt for monitoring and citation parsing.',
+            fakeContent: $fallbackAnswer,
+            metadata: [
+                'visibility_provider' => $provider,
+                'visibility_check_id' => $check?->id,
+                'visibility_prompt_template_id' => $template?->id,
+                'brand_name' => $brand->name,
+                'language' => $language,
+                'locale' => $locale,
+                'market' => $market,
+                'persona' => $persona,
+                'intent' => $intent,
+            ],
+        );
 
         $run = VisibilityProviderRun::query()->create([
             'account_id' => $account->id,
             'brand_id' => $brand->id,
             'visibility_check_id' => $check?->id,
             'provider' => $adapter->name(),
-            'model' => $adapter->model(),
+            'model' => $llmResponse->model,
             'prompt_template_id' => $template?->id,
             'query' => $prompt,
             'language' => $language,
@@ -59,11 +85,14 @@ class ProviderRunService
             'metadata' => [
                 'adapter_key' => $adapter->key(),
                 'fake' => true,
+                'llm_provider' => $llmResponse->provider,
+                'llm_model' => $llmResponse->model,
                 'language' => $language,
                 'locale' => $locale,
                 'market' => $market,
                 'persona' => $persona,
                 'intent' => $intent,
+                'llm_response' => $llmResponse->toArray(),
             ],
         ]);
 
@@ -78,6 +107,7 @@ class ProviderRunService
                 'market' => $market,
                 'persona' => $persona,
                 'intent' => $intent,
+                'answer' => $llmResponse->content,
             ]);
             $normalizedAnswer = $adapter->normalizeAnswer($response);
             $detectedLanguage = $this->detectedLanguage($response, $normalizedAnswer, $language);

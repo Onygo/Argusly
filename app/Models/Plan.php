@@ -22,6 +22,30 @@ class Plan extends Model
     }
 
     /**
+     * @return HasMany<PlanFeature, $this>
+     */
+    public function features(): HasMany
+    {
+        return $this->hasMany(PlanFeature::class);
+    }
+
+    /**
+     * @return HasMany<PlanEntitlement, $this>
+     */
+    public function entitlements(): HasMany
+    {
+        return $this->hasMany(PlanEntitlement::class);
+    }
+
+    /**
+     * @return HasMany<FeatureLimit, $this>
+     */
+    public function featureLimits(): HasMany
+    {
+        return $this->hasMany(FeatureLimit::class);
+    }
+
+    /**
      * @return HasMany<Subscription, $this>
      */
     public function subscriptions(): HasMany

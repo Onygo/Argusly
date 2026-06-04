@@ -14,6 +14,7 @@ use App\Services\Integrations\IntegrationConnectionService;
 use App\Services\SocialProfiles\SocialProfileService;
 use App\Services\SocialRepurposing\SocialRepurposingService;
 use App\Services\Subscriptions\SubscriptionService;
+use Database\Seeders\CreditCostCatalogSeeder;
 use Database\Seeders\IntegrationCatalogSeeder;
 use Database\Seeders\LanguageSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -29,7 +30,7 @@ class SocialRepurposingFoundationTest extends TestCase
     public function test_generates_three_language_aware_variants_and_deducts_credits(): void
     {
         [$owner, $user, $account, $brand, $profile, $asset] = $this->repurposingContext();
-        app(CreditService::class)->grant($account, 50, $owner, 'Test grant');
+        app(CreditService::class)->grant($account, 100, $owner, 'Test grant');
         app(SocialProfileService::class)->shareWithBrand($profile, $brand, $owner, [
             'view' => true,
             'prepare' => true,
@@ -37,7 +38,7 @@ class SocialRepurposingFoundationTest extends TestCase
 
         $post = app(SocialRepurposingService::class)->generateFromContentAsset($account, $brand, $user, $asset, $profile, 'nl');
 
-        $this->assertSame(40, CreditBalance::query()->where('account_id', $account->id)->value('balance'));
+        $this->assertSame(25, CreditBalance::query()->where('account_id', $account->id)->value('balance'));
         $this->assertSame($asset->id, $post->content_asset_id);
         $this->assertSame('nl', $post->language);
         $this->assertCount(3, $post->variants);
@@ -53,7 +54,7 @@ class SocialRepurposingFoundationTest extends TestCase
     public function test_selecting_variant_sets_final_social_post_text(): void
     {
         [$owner, $user, $account, $brand, $profile, $asset] = $this->repurposingContext();
-        app(CreditService::class)->grant($account, 50, $owner, 'Test grant');
+        app(CreditService::class)->grant($account, 100, $owner, 'Test grant');
         app(SocialProfileService::class)->shareWithAccount($profile, $account, $owner, [
             'view' => true,
             'prepare' => true,
@@ -76,7 +77,7 @@ class SocialRepurposingFoundationTest extends TestCase
     public function test_repurposing_is_tenant_safe(): void
     {
         [$owner, $user, $account, $brand, $profile] = $this->repurposingContext();
-        app(CreditService::class)->grant($account, 50, $owner, 'Test grant');
+        app(CreditService::class)->grant($account, 100, $owner, 'Test grant');
         app(SocialProfileService::class)->shareWithAccount($profile, $account, $owner, [
             'view' => true,
             'prepare' => true,
@@ -100,7 +101,7 @@ class SocialRepurposingFoundationTest extends TestCase
     {
         [$owner, $user, $account, $brand, $profile, $asset] = $this->repurposingContext();
         $brand->update(['enabled_content_languages' => ['en']]);
-        app(CreditService::class)->grant($account, 50, $owner, 'Test grant');
+        app(CreditService::class)->grant($account, 100, $owner, 'Test grant');
         app(SocialProfileService::class)->shareWithBrand($profile, $brand, $owner, [
             'view' => true,
             'prepare' => true,
@@ -114,7 +115,7 @@ class SocialRepurposingFoundationTest extends TestCase
     public function test_repurposing_ui_shows_variants_and_converts_selected_variant(): void
     {
         [$owner, $user, $account, $brand, $profile, $asset] = $this->repurposingContext(withRole: true);
-        app(CreditService::class)->grant($account, 50, $owner, 'Test grant');
+        app(CreditService::class)->grant($account, 100, $owner, 'Test grant');
         app(SocialProfileService::class)->shareWithAccount($profile, $account, $owner, [
             'view' => true,
             'prepare' => true,
@@ -155,6 +156,7 @@ class SocialRepurposingFoundationTest extends TestCase
     {
         $this->seed(LanguageSeeder::class);
         $this->seed(IntegrationCatalogSeeder::class);
+        $this->seed(CreditCostCatalogSeeder::class);
 
         if ($withRole) {
             $this->seed(RolesAndPermissionsSeeder::class);

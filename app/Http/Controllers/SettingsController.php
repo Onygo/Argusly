@@ -9,6 +9,9 @@ use App\Models\Brand;
 use App\Models\ConnectorInstallation;
 use App\Models\Ga4Property;
 use App\Models\IntegrationConnection;
+use App\Models\LlmModel;
+use App\Models\LlmProvider;
+use App\Models\LlmSetting;
 use App\Models\Module;
 use App\Models\Property;
 use App\Models\PublishingChannel;
@@ -19,6 +22,7 @@ use App\Services\Integrations\Google\GoogleAnalyticsAdminService;
 use App\Services\Integrations\Google\GoogleProvider;
 use App\Services\Integrations\Google\SearchConsoleService;
 use App\Services\Integrations\LinkedIn\LinkedInProvider;
+use App\Services\LlmSettingsService;
 use App\Services\SocialProfiles\SocialProfileService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -86,6 +90,64 @@ class SettingsController extends Controller
         ]);
     }
 
+    public function llm(Request $request): View
+    {
+        $this->resolveContext($request);
+
+        return view('app.settings.llm', [
+            'account' => $this->account,
+            'brand' => $this->brand,
+            'providers' => LlmProvider::query()->where('status', 'active')->withCount(['models' => fn (Builder $query) => $query->where('status', 'active')])->orderBy('name')->get(),
+            'models' => LlmModel::query()->with('provider')->where('status', 'active')->whereHas('provider', fn (Builder $query) => $query->where('status', 'active'))->orderBy('name')->get(),
+            'accountSetting' => LlmSetting::query()
+                ->where('account_id', $this->account->id)
+                ->whereNull('brand_id')
+                ->with(['defaultProvider', 'defaultModel'])
+                ->first(),
+            'brandSetting' => $this->brand
+                ? LlmSetting::query()
+                    ->where('account_id', $this->account->id)
+                    ->where('brand_id', $this->brand->id)
+                    ->with(['defaultProvider', 'defaultModel'])
+                    ->first()
+                : null,
+        ]);
+    }
+
+    public function updateLlm(Request $request, LlmSettingsService $settings): RedirectResponse
+    {
+        $this->resolveContext($request);
+
+        $validated = $request->validate([
+            'scope' => ['required', 'in:account,brand'],
+            'default_provider_id' => ['nullable', 'integer', 'exists:llm_providers,id'],
+            'default_model_id' => ['nullable', 'integer', 'exists:llm_models,id'],
+            'temperature' => ['nullable', 'numeric', 'between:0,2'],
+            'max_tokens' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+        ]);
+        $validated = $this->nullableLlmAttributes($validated);
+
+        $this->validateActiveLlmPair($validated['default_provider_id'] ?? null, $validated['default_model_id'] ?? null);
+
+        $attributes = [
+            'default_provider_id' => $validated['default_provider_id'] ?? null,
+            'default_model_id' => $validated['default_model_id'] ?? null,
+            'temperature' => $validated['temperature'] ?? null,
+            'max_tokens' => $validated['max_tokens'] ?? null,
+        ];
+
+        if ($validated['scope'] === 'brand') {
+            abort_unless($this->brand, 403);
+            $settings->upsertBrand($this->account, $this->brand, $attributes);
+
+            return back()->with('status', 'Brand LLM settings updated.');
+        }
+
+        $settings->upsertAccount($this->account, $attributes);
+
+        return back()->with('status', 'Account LLM settings updated.');
+    }
+
     public function integrations(Request $request): View
     {
         $this->resolveContext($request);
@@ -135,8 +197,7 @@ class SettingsController extends Controller
     public function storeGoogleAnalyticsProperties(
         Request $request,
         GoogleAnalyticsAdminService $analyticsAdmin,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $this->resolveContext($request);
 
         abort_unless($this->brand, 403);
@@ -187,8 +248,7 @@ class SettingsController extends Controller
         Request $request,
         GoogleProvider $google,
         SearchConsoleService $searchConsole,
-    ): View
-    {
+    ): View {
         $this->resolveContext($request);
         $connections = $this->searchConsoleConnections();
 
@@ -307,6 +367,33 @@ class SettingsController extends Controller
         $this->user = $user;
         $this->account = $this->currentAccount->get($user) ?? abort(403);
         $this->brand = $this->currentBrand->get($user);
+    }
+
+    private function validateActiveLlmPair(mixed $providerId, mixed $modelId): void
+    {
+        if ($providerId === null || $providerId === '' || $modelId === null || $modelId === '') {
+            return;
+        }
+
+        $provider = LlmProvider::query()->where('status', 'active')->find((int) $providerId);
+        $model = LlmModel::query()->where('status', 'active')->find((int) $modelId);
+
+        abort_if(! $provider || ! $model || $model->provider_id !== $provider->id, 422, 'The model must belong to the selected active provider.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function nullableLlmAttributes(array $attributes): array
+    {
+        foreach (['default_provider_id', 'default_model_id', 'temperature', 'max_tokens'] as $key) {
+            if (($attributes[$key] ?? null) === '') {
+                $attributes[$key] = null;
+            }
+        }
+
+        return $attributes;
     }
 
     private function accountMembers(): Collection

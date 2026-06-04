@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
+use App\Models\Account;
+use App\Models\Brand;
 use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\ContentAsset;
@@ -31,6 +33,7 @@ class SearchController extends Controller
         $results = $query === ''
             ? $this->emptyResults()
             : [
+                'workspace' => $this->workspace($account, $brand, $query),
                 'content' => $this->content($account->id, $brand?->id, $query),
                 'campaigns' => $this->campaigns($account->id, $brand?->id, $query),
                 'contacts' => $this->contacts($account->id, $query),
@@ -51,12 +54,24 @@ class SearchController extends Controller
     private function emptyResults(): array
     {
         return [
+            'workspace' => collect(),
             'content' => collect(),
             'campaigns' => collect(),
             'contacts' => collect(),
             'organizations' => collect(),
             'topics' => collect(),
         ];
+    }
+
+    /**
+     * @return Collection<int, Account|Brand>
+     */
+    private function workspace(Account $account, ?Brand $brand, string $query): Collection
+    {
+        return collect([$account, $brand])
+            ->filter()
+            ->filter(fn (Account|Brand $item) => str($item->name.' '.$item->slug)->lower()->contains(str($query)->lower()))
+            ->values();
     }
 
     /**

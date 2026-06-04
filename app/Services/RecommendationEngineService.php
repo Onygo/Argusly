@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\Audience;
 use App\Models\Brand;
-use App\Models\Campaign;
 use App\Models\Briefing;
+use App\Models\Campaign;
 use App\Models\ContentAsset;
 use App\Models\IntelligenceSignal;
 use App\Models\MarketingObjective;
@@ -80,6 +80,15 @@ class RecommendationEngineService
         $contentAssetId = $payload['content_asset_id'] ?? null;
 
         return match (true) {
+            $signal->type === 'credits_low' => [
+                $this->recommendation(
+                    'Review credit usage and top up',
+                    'Credit balance is below the configured safety threshold.',
+                    'Review the credit cost catalog, recent usage and top up credits before generation workflows are blocked.',
+                    $signal,
+                    ['impact_score' => 82, 'confidence_score' => 99, 'action_type' => 'review_credit_usage'],
+                ),
+            ],
             $signal->type === 'narrative_gap_detected' => [
                 $this->recommendation(
                     'Create content to close narrative gap',

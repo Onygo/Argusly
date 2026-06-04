@@ -32,6 +32,16 @@
         @else
             <div class="mt-6 space-y-6">
                 @include('app.search._section', [
+                    'title' => 'Workspace',
+                    'items' => $results['workspace'],
+                    'empty' => 'No matching workspace settings.',
+                    'route' => fn ($item) => $item instanceof \App\Models\Account ? route('settings.account') : route('settings.brands'),
+                    'label' => fn ($item) => $item->name,
+                    'meta' => fn ($item) => $item instanceof \App\Models\Account ? 'Account' : 'Brand',
+                    'description' => fn ($item) => $item instanceof \App\Models\Account ? 'Current account settings' : trim(collect([$item->domain, $item->market, $item->language])->filter()->implode(' · ')),
+                ])
+
+                @include('app.search._section', [
                     'title' => 'Content',
                     'items' => $results['content'],
                     'empty' => 'No matching content assets.',

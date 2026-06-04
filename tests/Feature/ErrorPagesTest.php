@@ -26,4 +26,15 @@ class ErrorPagesTest extends TestCase
             ->assertSee('Internal signal noise')
             ->assertSee('Back to safety');
     }
+
+    public function test_forbidden_errors_use_the_argusly_error_page(): void
+    {
+        Route::get('/_test/forbidden-error', fn () => abort(403));
+
+        $this->get('/_test/forbidden-error')
+            ->assertForbidden()
+            ->assertSee('This door recognized you, then asked for a second opinion.')
+            ->assertSee('Access orbit')
+            ->assertSee('Go to dashboard');
+    }
 }

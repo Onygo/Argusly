@@ -29,16 +29,32 @@
             && \Illuminate\Support\Facades\Gate::forUser($user)->allows($permission, ['account_id' => $account->id]);
     };
 
-    $groups = collect(config('navigation.app', []))
-        ->map(function (array $group) use ($canSee) {
+    $navigation = $isPlatformAdmin
+        ? collect(config('navigation.app', []))
+            ->map(function (array $group) {
+                $group['items'] = collect($group['items'] ?? [])
+                    ->filter(fn (array $item) => in_array($item['key'] ?? null, ['dashboard', 'administration'], true))
+                    ->values()
+                    ->all();
+
+                return $group;
+            })
+            ->filter(fn (array $group) => count($group['items'] ?? []) > 0)
+            ->values()
+            ->all()
+        : config('navigation.app', []);
+
+    $groups = collect($navigation)
+        ->map(function (array $group) use ($canSee, $isPlatformAdmin) {
             $items = collect($group['items'] ?? [])
-                ->map(function (array $item) use ($canSee) {
+                ->map(function (array $item) use ($canSee, $isPlatformAdmin) {
+                    $platformAdminItem = $isPlatformAdmin && in_array($item['key'] ?? null, ['dashboard', 'administration'], true);
                     $item['children'] = collect($item['children'] ?? [])
                         ->filter(fn (array $child) => $canSee($child, $item) && Route::has($child['route']))
                         ->values()
                         ->all();
 
-                    $item['can_access'] = $canSee($item);
+                    $item['can_access'] = $platformAdminItem || $canSee($item);
                     $item['visible'] = $item['can_access'] || count($item['children']) > 0;
 
                     return $item;

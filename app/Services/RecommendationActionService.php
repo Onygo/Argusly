@@ -15,7 +15,7 @@ use App\Models\Recommendation;
 use App\Models\SocialPost;
 use App\Models\SocialProfile;
 use App\Models\User;
-use App\Models\VisibilityCheck;
+use App\Services\Llm\LlmPromptRuntime;
 use App\Services\SocialPublishing\SocialPublishingService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +31,7 @@ class RecommendationActionService
         private readonly VisibilityMonitoringService $visibility,
         private readonly DomainEventService $events,
         private readonly AgentTaskPlannerService $agentTasks,
+        private readonly LlmPromptRuntime $llm,
     ) {}
 
     public function accept(Recommendation $recommendation, User $user): Recommendation
@@ -242,6 +243,24 @@ class RecommendationActionService
         $title = $campaign
             ? "{$campaign->name} newsletter digest"
             : (($audience?->name ?? $recommendation->brand?->name).' newsletter');
+        $fallbackCopy = $recommendation->summary ?: "Draft a concise newsletter intro for {$title}.";
+        $newsletterResponse = $this->llm->generate(
+            account: $recommendation->account,
+            brand: $recommendation->brand,
+            user: $user,
+            purpose: 'newsletter',
+            messages: [[
+                'role' => 'user',
+                'content' => "Create concise draft newsletter copy.\n\nTitle: {$title}\n\nRecommendation: {$recommendation->recommended_action}\n\nSummary: {$recommendation->summary}",
+            ]],
+            systemPrompt: 'You are Argusly newsletter runtime. Produce concise draft newsletter copy for editors.',
+            fakeContent: $fallbackCopy,
+            metadata: [
+                'recommendation_id' => $recommendation->id,
+                'campaign_id' => $campaign?->id,
+                'audience_id' => $audience?->id,
+            ],
+        );
 
         $newsletter = Newsletter::query()->updateOrCreate(
             [
@@ -252,7 +271,7 @@ class RecommendationActionService
             ],
             [
                 'subject' => $campaign ? "{$campaign->name} digest" : "Updates for {$audience?->name}",
-                'preheader' => $recommendation->summary,
+                'preheader' => str($newsletterResponse->content)->limit(180)->toString(),
                 'language' => $language,
                 'status' => 'draft',
                 'created_by' => $user->id,
@@ -261,6 +280,7 @@ class RecommendationActionService
                     'recommendation_id' => $recommendation->id,
                     'audience_id' => $audience?->id,
                     'generation_ready' => true,
+                    'llm_response' => $newsletterResponse->toArray(),
                 ],
             ],
         );
@@ -277,14 +297,17 @@ class RecommendationActionService
                 ->where('brand_id', $recommendation->brand_id)
                 ->orderBy('id')
                 ->get()
-                ->each(function (ContentAsset $asset, int $index) use ($newsletter): void {
+                ->each(function (ContentAsset $asset, int $index) use ($newsletter, $newsletterResponse): void {
                     $newsletter->sections()->create([
                         'type' => 'content_asset',
                         'title' => $asset->title,
-                        'body' => $asset->excerpt,
+                        'body' => $asset->excerpt ?: str($newsletterResponse->content)->limit(500)->toString(),
                         'content_asset_id' => $asset->id,
                         'position' => $index + 1,
-                        'metadata' => ['source' => 'recommendation_acceptance'],
+                        'metadata' => [
+                            'source' => 'recommendation_acceptance',
+                            'llm_response_id' => data_get($newsletterResponse->rawResponse, 'id'),
+                        ],
                     ]);
                 });
         }
@@ -324,13 +347,30 @@ class RecommendationActionService
     {
         $asset = $this->contentAsset($recommendation);
         $payload = $recommendation->action_payload ?? [];
+        $fallbackAnswer = $payload['answer'] ?? str($asset->excerpt ?: strip_tags((string) $asset->body))->limit(500)->toString();
+        $response = $this->llm->generate(
+            account: $recommendation->account,
+            brand: $recommendation->brand,
+            user: $user,
+            purpose: 'answer_block',
+            messages: [[
+                'role' => 'user',
+                'content' => "Create a direct answer block for this content.\n\nTitle: {$asset->title}\n\nExcerpt: {$asset->excerpt}\n\nBody: ".str($asset->body)->limit(1500),
+            ]],
+            systemPrompt: 'You are Argusly answer block runtime. Produce concise answer-ready copy.',
+            fakeContent: $fallbackAnswer,
+            metadata: [
+                'recommendation_id' => $recommendation->id,
+                'content_asset_id' => $asset->id,
+            ],
+        );
 
         return AnswerBlock::query()->create([
             'account_id' => $recommendation->account_id,
             'brand_id' => $recommendation->brand_id,
             'content_asset_id' => $asset->id,
             'question' => $payload['question'] ?? 'What should readers know about '.$asset->title.'?',
-            'answer' => $payload['answer'] ?? str($asset->excerpt ?: strip_tags((string) $asset->body))->limit(500)->toString(),
+            'answer' => $response->content,
             'type' => $payload['answer_type'] ?? 'summary',
             'status' => 'draft',
             'language' => $payload['language'] ?? $asset->language,
@@ -338,6 +378,7 @@ class RecommendationActionService
             'metadata' => [
                 'recommendation_id' => $recommendation->id,
                 'created_by' => $user->id,
+                'llm_response' => $response->toArray(),
             ],
         ]);
     }
@@ -357,15 +398,33 @@ class RecommendationActionService
     {
         $asset = $this->contentAsset($recommendation);
         $profile = $this->socialProfile($recommendation);
+        $fallbackPost = $recommendation->action_payload['post_text'] ?? $asset->title."\n\n".str($asset->excerpt ?: $asset->body)->limit(220)->toString();
+        $response = $this->llm->generate(
+            account: $recommendation->account,
+            brand: $recommendation->brand,
+            user: $user,
+            purpose: 'social_post',
+            messages: [[
+                'role' => 'user',
+                'content' => "Create a {$profile->provider} social post from this recommendation and content.\n\nRecommendation: {$recommendation->recommended_action}\n\nTitle: {$asset->title}\n\nExcerpt: {$asset->excerpt}",
+            ]],
+            systemPrompt: 'You are Argusly social post runtime. Create concise social copy.',
+            fakeContent: $fallbackPost,
+            metadata: [
+                'recommendation_id' => $recommendation->id,
+                'content_asset_id' => $asset->id,
+                'social_profile_id' => $profile->id,
+            ],
+        );
 
         return $this->socialPublishing->prepare($recommendation->account, $recommendation->brand, $user, [
             'content_asset_id' => $asset->id,
             'campaign_id' => $recommendation->action_payload['campaign_id'] ?? $recommendation->signal?->payload['campaign_id'] ?? null,
             'social_profile_id' => $profile->id,
-            'post_text' => $recommendation->action_payload['post_text'] ?? $asset->title."\n\n".str($asset->excerpt ?: $asset->body)->limit(220)->toString(),
+            'post_text' => $response->content,
             'language' => $recommendation->action_payload['language'] ?? $asset->language,
             'status' => 'draft',
-            'metadata' => ['recommendation_id' => $recommendation->id],
+            'metadata' => ['recommendation_id' => $recommendation->id, 'llm_response' => $response->toArray()],
         ]);
     }
 

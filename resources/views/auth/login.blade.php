@@ -69,7 +69,7 @@
                             <input type="checkbox" name="remember" value="1" class="size-4 rounded border-line text-ink focus:ring-blue/20">
                             <span>Remember me</span>
                         </label>
-                        <a href="#" class="font-medium text-blue hover:underline">Forgot password?</a>
+                        <a href="{{ route('password.request') }}" class="font-medium text-blue hover:underline">Forgot password?</a>
                     </div>
 
                     <x-ui.button type="submit" variant="dark" shape="lg" class="w-full">Sign in</x-ui.button>

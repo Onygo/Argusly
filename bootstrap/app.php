@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateConnector;
+use App\Http\Middleware\EnsureAnalyticsOriginAllowed;
 use App\Http\Middleware\EnsureModuleIsActive;
 use App\Http\Middleware\EnsurePlatformAdmin;
 use App\Http\Middleware\EnsureUserHasPermission;
@@ -8,11 +9,13 @@ use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\LocaleMiddleware;
 use App\Http\Middleware\ResolveCurrentAccount;
 use App\Http\Middleware\ResolveCurrentBrand;
+use App\Support\Diagnostics\ForbiddenDiagnostics;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,6 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->domain(config('argusly.api_domain'))
                     ->group(base_path('routes/api.php'));
             }
+
+            if (config('argusly.track_domain')) {
+                Route::middleware('api')
+                    ->domain(config('argusly.track_domain'))
+                    ->group(base_path('routes/track.php'));
+            }
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -38,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'current.brand' => ResolveCurrentBrand::class,
             'ui.locale' => LocaleMiddleware::class,
             'auth.connector' => AuthenticateConnector::class,
+            'analytics.origin' => EnsureAnalyticsOriginAllowed::class,
             'connector.auth' => AuthenticateConnector::class,
             'module.active' => EnsureModuleIsActive::class,
             'platform.admin' => EnsurePlatformAdmin::class,
@@ -51,4 +61,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->report(function (Throwable $exception): void {
+            $status = $exception instanceof HttpExceptionInterface
+                ? $exception->getStatusCode()
+                : 500;
+
+            if ($status >= 400) {
+                ForbiddenDiagnostics::logException('http_exception_'.$status, request(), $exception, [
+                    'status' => $status,
+                ]);
+            }
+        });
     })->create();

@@ -61,6 +61,7 @@ class Recommendation extends Model
         'refresh_positioning',
         'launch_campaign',
         'improve_citations',
+        'review_credit_usage',
     ];
 
     public const EXECUTION_STATUSES = ['pending', 'queued', 'completed', 'failed'];

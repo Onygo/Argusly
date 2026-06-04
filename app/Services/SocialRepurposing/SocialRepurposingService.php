@@ -10,8 +10,8 @@ use App\Models\SocialPostVariant;
 use App\Models\SocialProfile;
 use App\Models\User;
 use App\Services\ContentLanguageService;
-use App\Services\CreditService;
 use App\Services\DomainEventService;
+use App\Services\Llm\LlmPromptRuntime;
 use App\Services\SocialProfiles\SocialProfileService;
 use App\Services\SocialPublishing\SocialPublishingService;
 use Illuminate\Support\Collection;
@@ -24,8 +24,8 @@ class SocialRepurposingService
         private readonly SocialProfileService $profiles,
         private readonly SocialPublishingService $publishing,
         private readonly ContentLanguageService $languages,
-        private readonly CreditService $credits,
         private readonly DomainEventService $events,
+        private readonly LlmPromptRuntime $llm,
     ) {}
 
     public function generateFromContentAsset(
@@ -44,29 +44,21 @@ class SocialRepurposingService
 
         $language = $this->languages->validateForBrand($language, $brand);
 
-        $this->credits->consume(
-            $account,
-            $user,
-            'social_repurpose',
-            'Social content repurposing requested.',
-            $asset,
-            [
-                'content_asset_id' => $asset->id,
-                'social_profile_id' => $profile->id,
-                'language' => $language,
-            ],
-        );
-
         return DB::transaction(function () use ($account, $brand, $user, $asset, $profile, $language): SocialPost {
+            $variants = $this->variantPayloads($account, $brand, $user, $asset, $language, $profile);
             $post = $this->publishing->prepare($account, $brand, $user, [
                 'content_asset_id' => $asset->id,
                 'social_profile_id' => $profile->id,
-                'post_text' => $this->seedPostText($asset, $language),
+                'post_text' => $variants[0]['post_text'] ?? $this->seedPostText($asset, $language),
                 'language' => $language,
                 'status' => 'draft',
+                'metadata' => [
+                    'llm_provider' => $variants[0]['metadata']['llm_response']['provider'] ?? null,
+                    'llm_model' => $variants[0]['metadata']['llm_response']['model'] ?? null,
+                ],
             ]);
 
-            foreach ($this->variantPayloads($asset, $language, $profile) as $payload) {
+            foreach ($variants as $payload) {
                 SocialPostVariant::query()->create([
                     'account_id' => $account->id,
                     'brand_id' => $brand->id,
@@ -155,40 +147,70 @@ class SocialRepurposingService
     /**
      * @return array<int, array{variant_type: string, post_text: string, metadata: array<string, mixed>}>
      */
-    private function variantPayloads(ContentAsset $asset, string $language, SocialProfile $profile): array
+    private function variantPayloads(Account $account, Brand $brand, User $user, ContentAsset $asset, string $language, SocialProfile $profile): array
     {
         $title = trim($asset->title);
         $excerpt = trim((string) ($asset->excerpt ?: str($asset->body)->limit(180)));
         $body = trim((string) str($asset->body ?: $excerpt)->limit(360));
         $prefix = strtoupper($language);
+        $fallbacks = [
+            'short' => "{$title}\n\n{$excerpt}",
+            $profile->provider === 'linkedin' ? 'linkedin_personal' : 'long' => "{$title}\n\n{$body}\n\nWhat stands out most to you?",
+            'thread' => "{$prefix} thread idea:\n1. {$title}\n2. {$excerpt}\n3. Read the full piece and turn it into action.",
+        ];
+        $responses = [];
+
+        foreach ($fallbacks as $variantType => $fallback) {
+            $responses[$variantType] = $this->llm->generate(
+                account: $account,
+                brand: $brand,
+                user: $user,
+                purpose: 'social_post',
+                messages: [[
+                    'role' => 'user',
+                    'content' => "Create a {$variantType} {$profile->provider} social post in {$language} from this content:\n\nTitle: {$title}\n\nExcerpt: {$excerpt}\n\nBody: {$body}",
+                ]],
+                systemPrompt: 'You are Argusly social repurposing runtime. Create concise, publication-ready social copy.',
+                fakeContent: $fallback,
+                metadata: [
+                    'content_asset_id' => $asset->id,
+                    'social_profile_id' => $profile->id,
+                    'variant_type' => $variantType,
+                    'language' => $language,
+                ],
+            );
+        }
 
         return [
             [
                 'variant_type' => 'short',
-                'post_text' => "{$title}\n\n{$excerpt}",
+                'post_text' => $responses['short']->content,
                 'metadata' => [
-                    'fake' => true,
+                    'fake' => (bool) ($responses['short']->rawResponse['fake'] ?? false),
                     'language' => $language,
                     'source' => 'title_excerpt',
+                    'llm_response' => $responses['short']->toArray(),
                 ],
             ],
             [
                 'variant_type' => $profile->provider === 'linkedin' ? 'linkedin_personal' : 'long',
-                'post_text' => "{$title}\n\n{$body}\n\nWhat stands out most to you?",
+                'post_text' => $responses[$profile->provider === 'linkedin' ? 'linkedin_personal' : 'long']->content,
                 'metadata' => [
-                    'fake' => true,
+                    'fake' => (bool) ($responses[$profile->provider === 'linkedin' ? 'linkedin_personal' : 'long']->rawResponse['fake'] ?? false),
                     'language' => $language,
                     'source' => 'body_summary',
                     'provider' => $profile->provider,
+                    'llm_response' => $responses[$profile->provider === 'linkedin' ? 'linkedin_personal' : 'long']->toArray(),
                 ],
             ],
             [
                 'variant_type' => 'thread',
-                'post_text' => "{$prefix} thread idea:\n1. {$title}\n2. {$excerpt}\n3. Read the full piece and turn it into action.",
+                'post_text' => $responses['thread']->content,
                 'metadata' => [
-                    'fake' => true,
+                    'fake' => (bool) ($responses['thread']->rawResponse['fake'] ?? false),
                     'language' => $language,
                     'source' => 'thread_outline',
+                    'llm_response' => $responses['thread']->toArray(),
                 ],
             ],
         ];

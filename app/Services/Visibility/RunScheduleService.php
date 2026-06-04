@@ -46,21 +46,6 @@ class RunScheduleService
         $intent = $schedule->intent ?? $template->intent;
 
         try {
-            $transaction = $this->credits->consumeForAccount(
-                account: $account,
-                costKey: 'ai_visibility_run',
-                description: 'Scheduled AI visibility provider run.',
-                subject: $schedule,
-                metadata: [
-                    'visibility_run_schedule_id' => $schedule->id,
-                    'provider' => $schedule->provider,
-                    'prompt_template_id' => $template->id,
-                    'language' => $language,
-                    'locale' => $locale,
-                    'market' => $market,
-                ],
-            );
-
             $run = $this->runs->runPrompt(
                 account: $account,
                 brand: $brand,
@@ -80,11 +65,10 @@ class RunScheduleService
             );
 
             $run->forceFill([
-                'cost_credits' => abs($transaction->amount),
+                'cost_credits' => $cost,
                 'metadata' => [
                     ...($run->metadata ?? []),
                     'visibility_run_schedule_id' => $schedule->id,
-                    'credit_transaction_id' => $transaction->id,
                 ],
             ])->save();
 
@@ -104,7 +88,7 @@ class RunScheduleService
                 'persona' => $persona,
                 'intent' => $intent,
                 'visibility_score' => $run->metadata['visibility_score'] ?? null,
-                'cost_credits' => abs($transaction->amount),
+                'cost_credits' => $cost,
             ], $run->captured_at);
 
             return $run->refresh();

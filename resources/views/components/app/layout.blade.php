@@ -22,7 +22,9 @@
                     <div class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 sm:px-6 lg:px-8">
                         <form method="POST" action="{{ route('impersonation.stop') }}" class="flex flex-wrap items-center justify-between gap-2">
                             @csrf
-                            <span class="font-semibold">Impersonation active: you are viewing Argusly as {{ auth()->user()?->name }}.</span>
+                            <span class="font-semibold">
+                                Impersonation active: {{ session('impersonator_user_name', 'Platform admin') }} is viewing Argusly as {{ auth()->user()?->name }}.
+                            </span>
                             <button class="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-semibold text-amber-900">Stop impersonating</button>
                         </form>
                     </div>

@@ -7,25 +7,34 @@ use App\Contracts\CurrentBrandContract;
 use App\Models\Account;
 use App\Models\ActivityLog;
 use App\Models\Brand;
+use App\Models\ConnectorInstallation;
+use App\Models\CreditBalance;
+use App\Models\DomainEventProjectorRun;
 use App\Models\Ga4MetricSnapshot;
 use App\Models\IntegrationConnection;
-use App\Models\SearchConsoleQuerySnapshot;
 use App\Models\Module;
+use App\Models\OutboxMessage;
+use App\Models\PublishingAction;
+use App\Models\SearchConsoleQuerySnapshot;
 use App\Models\SubscriptionModule;
 use App\Models\User;
-use App\Services\CreditService;
 use App\Services\BrandKnowledgeCenterService;
+use App\Services\CreditService;
 use App\Services\Graph\GraphOpportunityService;
 use App\Services\Graph\GraphQueryService;
 use App\Services\Integrations\IntegrationPermissionService;
 use App\Services\IntelligenceSignalService;
 use App\Services\MentionIntelligenceService;
+use App\Services\PermissionService;
 use App\Services\RecommendationService;
 use App\Services\TopicIntelligenceService;
 use App\Services\VisibilityMonitoringService;
+use App\Support\Diagnostics\ForbiddenDiagnostics;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -44,15 +53,31 @@ class DashboardController extends Controller
         BrandKnowledgeCenterService $knowledgeCenter,
         GraphQueryService $graph,
         GraphOpportunityService $graphOpportunities,
+        PermissionService $permissions,
     ): View {
         /** @var User $user */
         $user = $request->user();
         $account = $currentAccount->get($user);
         $brand = $currentBrand->get($user);
+        $isPlatformAdmin = $permissions->userCan($user, 'manage_platform', [
+            'account_id' => null,
+            'brand_id' => null,
+        ]);
+
+        if (! $isPlatformAdmin && (! $account || ! $brand)) {
+            ForbiddenDiagnostics::log('dashboard_missing_context', $request, [
+                'resolved_account_id' => $account?->id,
+                'resolved_brand_id' => $brand?->id,
+            ]);
+        }
 
         return view('app.dashboard', [
             'account' => $account,
             'brand' => $brand,
+            'isPlatformAdmin' => $isPlatformAdmin,
+            'platformMetrics' => $isPlatformAdmin ? $this->platformMetrics() : [],
+            'platformQuickActions' => $isPlatformAdmin ? $this->platformQuickActions() : [],
+            'platformRecentActivity' => $isPlatformAdmin ? $this->platformRecentActivity() : collect(),
             'accountRole' => $account ? $this->roleForAccount($user, $account) : null,
             'brandRole' => $brand ? $this->roleForBrand($user, $brand) : null,
             'activeModules' => $account ? $this->activeModules($account) : collect(),
@@ -73,6 +98,55 @@ class DashboardController extends Controller
             'knowledgeGraphDashboard' => $account ? $graph->dashboard($account, $brand) : null,
             'graphOpportunities' => $account ? $graphOpportunities->discover($account, $brand)->take(5) : collect(),
         ]);
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    private function platformMetrics(): array
+    {
+        return [
+            'total_accounts' => Account::query()->count(),
+            'active_accounts' => Account::query()->where('status', 'active')->count(),
+            'active_brands' => Brand::query()->where('status', 'active')->count(),
+            'pending_pilot_signups' => Schema::hasTable('pilot_signups')
+                ? DB::table('pilot_signups')->whereIn('status', ['pending', 'reviewing'])->count()
+                : 0,
+            'enabled_modules' => SubscriptionModule::query()->where('status', 'active')->distinct('module_id')->count('module_id'),
+            'connector_health' => ConnectorInstallation::query()->where('status', 'active')->count().'/'.ConnectorInstallation::query()->count(),
+            'low_credit_accounts' => CreditBalance::query()->where('balance', '<=', 100)->count(),
+            'failed_operations' => PublishingAction::query()->whereIn('status', ['failed', 'error'])->count()
+                + OutboxMessage::query()->whereIn('status', ['failed', 'error'])->count()
+                + DomainEventProjectorRun::query()->whereIn('status', ['failed', 'error'])->count(),
+        ];
+    }
+
+    /**
+     * @return array<int, array{label: string, route: string}>
+     */
+    private function platformQuickActions(): array
+    {
+        return [
+            ['label' => 'Open Admin Control Center', 'route' => 'admin.overview'],
+            ['label' => 'Manage accounts', 'route' => 'admin.accounts'],
+            ['label' => 'Manage users', 'route' => 'admin.users'],
+            ['label' => 'Review pilot signups', 'route' => 'admin.pilot-signups'],
+            ['label' => 'Assign credits', 'route' => 'admin.credits'],
+            ['label' => 'Enable modules', 'route' => 'admin.modules'],
+            ['label' => 'Inspect system health', 'route' => 'admin.jobs'],
+        ];
+    }
+
+    /**
+     * @return Collection<int, ActivityLog>
+     */
+    private function platformRecentActivity(): Collection
+    {
+        return ActivityLog::query()
+            ->with(['account', 'brand', 'user'])
+            ->latest('created_at')
+            ->limit(8)
+            ->get();
     }
 
     private function roleForAccount(User $user, Account $account): ?string

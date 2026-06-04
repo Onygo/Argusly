@@ -7,18 +7,19 @@ use App\Models\Approval;
 use App\Models\Audience;
 use App\Models\AudienceMember;
 use App\Models\Brand;
+use App\Models\CreditBalance;
 use App\Models\EmailProvider;
 use App\Models\Newsletter;
-use App\Models\NewsletterSend;
 use App\Models\Role;
 use App\Models\Segment;
 use App\Models\User;
-use App\Services\NewsletterSendingService;
 use App\Services\CreditService;
+use App\Services\NewsletterSendingService;
 use App\Services\Subscriptions\SubscriptionService;
 use Database\Seeders\LanguageSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use InvalidArgumentException;
@@ -79,10 +80,10 @@ class NewsletterSendingFoundationTest extends TestCase
         $this->assertNotNull($processed->completed_at);
         $this->assertDatabaseHas('newsletter_send_recipients', ['email' => 'first@example.com', 'status' => 'sent']);
         $this->assertDatabaseHas('newsletter_send_recipients', ['email' => 'second@example.com', 'status' => 'sent']);
-        $this->assertSame(8, \App\Models\CreditBalance::query()->where('account_id', $account->id)->value('balance'));
+        $this->assertSame(8, CreditBalance::query()->where('account_id', $account->id)->value('balance'));
         $this->assertDatabaseHas('credit_transactions', [
             'account_id' => $account->id,
-            'type' => 'newsletter_recipient',
+            'type' => 'newsletter_send',
             'amount' => -1,
             'subject_type' => $send->getMorphClass(),
             'subject_id' => $send->id,
@@ -170,7 +171,7 @@ class NewsletterSendingFoundationTest extends TestCase
         $audience = $this->audienceWithMembers($account, $brand, ['ready@example.com']);
         $provider = $this->provider($otherAccount, $otherBrand);
 
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         app(NewsletterSendingService::class)->queue($newsletter, $user, [
             'audience_id' => $audience->id,

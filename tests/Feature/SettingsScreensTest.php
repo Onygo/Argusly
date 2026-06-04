@@ -8,6 +8,8 @@ use App\Models\ConnectorInstallation;
 use App\Models\ConnectorVersion;
 use App\Models\Integration;
 use App\Models\IntegrationConnection;
+use App\Models\LlmModel;
+use App\Models\LlmProvider;
 use App\Models\Module;
 use App\Models\Property;
 use App\Models\PublishingChannel;
@@ -15,8 +17,9 @@ use App\Models\Role;
 use App\Models\SocialProfile;
 use App\Models\User;
 use App\Services\Subscriptions\SubscriptionService;
-use Database\Seeders\IntegrationCatalogSeeder;
 use Database\Seeders\ConnectorCatalogSeeder;
+use Database\Seeders\IntegrationCatalogSeeder;
+use Database\Seeders\LlmProviderSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -72,17 +75,103 @@ class SettingsScreensTest extends TestCase
         [$user, $account, $brand] = $this->tenantWithRole('owner');
         $member = User::factory()->create(['name' => 'Brand Editor']);
         $editor = Role::query()->where('name', 'editor')->firstOrFail();
+        $otherAccount = Account::query()->create(['name' => 'Other Company', 'slug' => 'other-company']);
+        $otherUser = User::factory()->create(['name' => 'Other Company User']);
 
         $member->accounts()->attach($account, ['status' => 'active']);
         $member->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
         $member->roles()->attach($editor, ['account_id' => $account->id, 'brand_id' => $brand->id]);
+        $otherUser->accounts()->attach($otherAccount, ['status' => 'active']);
 
         $this->actingAs($user)
             ->get(route('settings.team'))
             ->assertOk()
             ->assertSee('Brand Editor')
             ->assertSee('Editor')
+            ->assertSee(route('workspace.users.impersonate', $member), false)
+            ->assertDontSee('Other Company User')
             ->assertSee('Invite placeholder');
+    }
+
+    public function test_workspace_owner_can_impersonate_only_users_inside_own_account(): void
+    {
+        [$owner, $account] = $this->tenantWithRole('owner');
+        $member = User::factory()->create(['name' => 'Account Colleague']);
+        $foreign = User::factory()->create(['name' => 'Foreign User']);
+        $foreignAccount = Account::query()->create(['name' => 'Foreign Company', 'slug' => 'foreign-company']);
+
+        $member->accounts()->attach($account, ['status' => 'active']);
+        $foreign->accounts()->attach($foreignAccount, ['status' => 'active']);
+
+        $this->actingAs($owner)
+            ->post(route('workspace.users.impersonate', $foreign))
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->post(route('workspace.users.impersonate', $member))
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertAuthenticatedAs($member);
+        $this->assertSame($owner->id, session('impersonator_user_id'));
+        $this->assertSame('workspace', session('impersonation_scope'));
+        $this->assertSame($account->id, session('impersonation_account_id'));
+        $this->assertDatabaseHas('activity_logs', [
+            'event' => 'workspace.user.impersonated',
+            'account_id' => $account->id,
+        ]);
+
+        $this->post(route('impersonation.stop'))
+            ->assertRedirect(route('settings.team'));
+
+        $this->assertAuthenticatedAs($owner);
+        $this->assertNull(session('impersonation_scope'));
+        $this->assertNull(session('impersonation_account_id'));
+    }
+
+    public function test_active_impersonation_cannot_start_nested_workspace_impersonation(): void
+    {
+        [$owner, $account] = $this->tenantWithRole('owner');
+        $current = User::factory()->create(['name' => 'Current Impersonated']);
+        $target = User::factory()->create(['name' => 'Nested Workspace Target']);
+
+        $current->accounts()->attach($account, ['status' => 'active']);
+        $target->accounts()->attach($account, ['status' => 'active']);
+
+        $this->actingAs($current)
+            ->withSession([
+                'impersonator_user_id' => $owner->id,
+                'impersonated_user_id' => $current->id,
+                'impersonation_scope' => 'workspace',
+                'impersonation_account_id' => $account->id,
+            ])
+            ->post(route('workspace.users.impersonate', $target))
+            ->assertForbidden();
+
+        $this->assertAuthenticatedAs($current);
+    }
+
+    public function test_team_impersonation_actions_are_hidden_while_impersonating(): void
+    {
+        [$owner, $account] = $this->tenantWithRole('owner');
+        $current = User::factory()->create(['name' => 'Current Impersonated']);
+        $target = User::factory()->create(['name' => 'Hidden Team Target']);
+        $role = Role::query()->where('name', 'admin')->firstOrFail();
+
+        $current->accounts()->attach($account, ['status' => 'active']);
+        $current->roles()->attach($role, ['account_id' => $account->id]);
+        $target->accounts()->attach($account, ['status' => 'active']);
+
+        $this->actingAs($current)
+            ->withSession([
+                'impersonator_user_id' => $owner->id,
+                'impersonated_user_id' => $current->id,
+                'impersonation_scope' => 'workspace',
+                'impersonation_account_id' => $account->id,
+            ])
+            ->get(route('settings.team'))
+            ->assertOk()
+            ->assertSee('Impersonation active')
+            ->assertDontSee(route('workspace.users.impersonate', $target), false);
     }
 
     public function test_modules_settings_show_active_and_inactive_modules(): void
@@ -97,6 +186,62 @@ class SettingsScreensTest extends TestCase
             ->assertSee('Agentic Social')
             ->assertSee('Inactive')
             ->assertSee('No payment integration yet');
+    }
+
+    public function test_tenant_admin_can_configure_account_and_brand_llm_defaults(): void
+    {
+        $this->seed(LlmProviderSeeder::class);
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+
+        $openai = LlmProvider::query()->where('provider', 'openai')->firstOrFail();
+        $openaiModel = LlmModel::query()->where('provider_id', $openai->id)->where('model', 'gpt-4.1-mini')->firstOrFail();
+        $anthropic = LlmProvider::query()->where('provider', 'anthropic')->firstOrFail();
+        $anthropicModel = LlmModel::query()->where('provider_id', $anthropic->id)->where('model', 'claude-sonnet-4-20250514')->firstOrFail();
+
+        $this->actingAs($user)
+            ->get(route('settings.llm'))
+            ->assertOk()
+            ->assertSee('LLM settings')
+            ->assertSee('Available providers')
+            ->assertSee('OpenAI')
+            ->assertSee('Claude Sonnet 4')
+            ->assertDontSee('OPENAI_API_KEY');
+
+        $this->actingAs($user)
+            ->patch(route('settings.llm.update'), [
+                'scope' => 'account',
+                'default_provider_id' => $openai->id,
+                'default_model_id' => $openaiModel->id,
+                'temperature' => '0.30',
+                'max_tokens' => 2500,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('llm_settings', [
+            'account_id' => $account->id,
+            'brand_id' => null,
+            'default_provider_id' => $openai->id,
+            'default_model_id' => $openaiModel->id,
+            'max_tokens' => 2500,
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('settings.llm.update'), [
+                'scope' => 'brand',
+                'default_provider_id' => $anthropic->id,
+                'default_model_id' => $anthropicModel->id,
+                'temperature' => '0.70',
+                'max_tokens' => 5000,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('llm_settings', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'default_provider_id' => $anthropic->id,
+            'default_model_id' => $anthropicModel->id,
+            'max_tokens' => 5000,
+        ]);
     }
 
     public function test_integrations_settings_show_scoped_connections_and_google_oauth_status(): void
@@ -146,6 +291,10 @@ class SettingsScreensTest extends TestCase
     public function test_linkedin_integration_settings_show_placeholders_permissions_and_scoped_profiles(): void
     {
         $this->seed(IntegrationCatalogSeeder::class);
+        config()->set('integrations.providers.linkedin.oauth.client_id', null);
+        config()->set('integrations.providers.linkedin.oauth.client_secret', null);
+        config()->set('integrations.providers.linkedin.oauth.redirect_uri', null);
+
         [$user, $account, $brand] = $this->tenantWithRole('owner');
         $integration = Integration::query()->where('key', 'linkedin')->firstOrFail();
 

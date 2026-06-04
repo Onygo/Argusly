@@ -84,6 +84,19 @@ class SearchTest extends TestCase
             ->assertDontSee('disabled placeholder="Search content, campaigns, contacts, topics..."', false);
     }
 
+    public function test_global_search_returns_current_workspace_results(): void
+    {
+        [$user] = $this->tenant();
+
+        $this->actingAs($user)
+            ->get(route('app.search', ['q' => 'Search']))
+            ->assertOk()
+            ->assertSee('Search Account')
+            ->assertSee('Search Brand')
+            ->assertSee('Account')
+            ->assertSee('Brand');
+    }
+
     /**
      * @return array{0: User, 1: Account, 2: Brand}
      */

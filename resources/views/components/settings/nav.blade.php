@@ -2,12 +2,20 @@
     $account = current_account();
     $user = auth()->user();
     $moduleAccess = app(\App\Services\Subscriptions\ModuleAccessService::class);
+    $permissionService = app(\App\Services\PermissionService::class);
+    $isPlatformAdmin = $user
+        ? $permissionService->userCan($user, 'manage_platform', ['account_id' => null, 'brand_id' => null])
+        : false;
 
-    $groups = [
+    $tenantGroups = [
+        'Personal' => [
+            ['label' => 'Profile', 'route' => 'settings.profile', 'permission' => 'view_dashboard', 'personal' => true],
+        ],
         'Administration' => [
             ['label' => 'Brands', 'route' => 'settings.brands', 'permission' => 'manage_account'],
             ['label' => 'Team', 'route' => 'settings.team', 'permission' => 'manage_users'],
             ['label' => 'Billing', 'route' => 'settings.modules', 'permission' => 'manage_billing'],
+            ['label' => 'LLM', 'route' => 'settings.llm', 'permission' => 'manage_account'],
             ['label' => 'Settings', 'route' => 'settings.account', 'permission' => 'manage_account'],
         ],
         'Connections' => [
@@ -36,8 +44,33 @@
         ],
     ];
 
-    $canSee = function (array $item) use ($account, $user, $moduleAccess): bool {
-        if (! $account || ! $user || ! Route::has($item['route'])) {
+    $platformGroups = [
+        'Personal' => [
+            ['label' => 'Profile', 'route' => 'settings.profile', 'permission' => 'view_dashboard', 'personal' => true],
+        ],
+        'Platform' => [
+            ['label' => 'Admin Control Center', 'route' => 'admin.overview', 'permission' => 'manage_platform', 'platform' => true],
+            ['label' => 'Pilot Requests', 'route' => 'admin.pilot-signups', 'permission' => 'manage_platform', 'platform' => true],
+            ['label' => 'Contact Requests', 'route' => 'admin.contact-requests', 'permission' => 'manage_platform', 'platform' => true],
+        ],
+    ];
+
+    $groups = $isPlatformAdmin ? $platformGroups : $tenantGroups;
+
+    $canSee = function (array $item) use ($account, $user, $moduleAccess, $isPlatformAdmin): bool {
+        if (! $user || ! Route::has($item['route'])) {
+            return false;
+        }
+
+        if (($item['platform'] ?? false) && $isPlatformAdmin) {
+            return true;
+        }
+
+        if (($item['personal'] ?? false) && ($account || $isPlatformAdmin)) {
+            return true;
+        }
+
+        if (! $account) {
             return false;
         }
 
@@ -49,7 +82,8 @@
     };
 @endphp
 
-<nav class="grid gap-4 rounded-md border border-line bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
+<nav class="rounded-md border border-line bg-white p-3 lg:sticky lg:top-24">
+    <div class="space-y-4">
         @foreach ($groups as $label => $items)
             @php $visible = collect($items)->filter($canSee); @endphp
             @if ($visible->isNotEmpty())
@@ -65,4 +99,5 @@
                 </section>
             @endif
         @endforeach
-    </nav>
+    </div>
+</nav>

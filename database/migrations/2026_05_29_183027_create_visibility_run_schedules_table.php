@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('visibility_run_schedules')) {
+            return;
+        }
+
         Schema::create('visibility_run_schedules', function (Blueprint $table): void {
             $table->id();
             $table->uuid('uuid')->unique();

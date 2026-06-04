@@ -1,7 +1,89 @@
 <x-app.layout
     :title="__('dashboard.eyebrow').' | Argusly'"
+    :show-workspace-header="! $isPlatformAdmin"
 >
     <div>
+        @if ($isPlatformAdmin)
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                @foreach ($platformMetrics as $label => $value)
+                    <div class="rounded-md border border-line bg-white p-4">
+                        <p class="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{{ str($label)->headline() }}</p>
+                        <p class="mt-3 text-3xl font-bold text-ink">{{ $value }}</p>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+                <x-dashboard.section title="Platform administration" description="Operational controls for the Argusly platform, customers, access, modules and system health.">
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        @foreach ($platformQuickActions as $action)
+                            <a href="{{ route($action['route']) }}" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">
+                                {{ $action['label'] }}
+                            </a>
+                        @endforeach
+                    </div>
+                </x-dashboard.section>
+
+                <x-dashboard.section title="Recent admin activity" description="Latest platform and tenant events visible to Argusly administrators.">
+                    @if ($platformRecentActivity->isEmpty())
+                        <x-dashboard.empty-state
+                            title="No admin activity yet"
+                            message="Operational activity will appear here as accounts, brands, modules and system processes are managed."
+                        />
+                    @else
+                        <div class="space-y-3">
+                            @foreach ($platformRecentActivity as $activity)
+                                <div class="rounded-md border border-line bg-panel p-4">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div class="min-w-0">
+                                            <p class="truncate text-sm font-semibold text-ink">{{ $activity->description ?: $activity->event }}</p>
+                                            <p class="mt-1 truncate text-xs text-muted">
+                                                {{ $activity->user?->name ?? __('common.system') }}
+                                                @if ($activity->account)
+                                                    · {{ $activity->account->name }}
+                                                @endif
+                                                @if ($activity->brand)
+                                                    · {{ $activity->brand->name }}
+                                                @endif
+                                            </p>
+                                        </div>
+                                        <time class="shrink-0 text-xs text-muted" datetime="{{ $activity->created_at?->toIso8601String() }}">
+                                            {{ $activity->created_at?->diffForHumans() }}
+                                        </time>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </x-dashboard.section>
+            </div>
+
+            <div class="mt-6 grid gap-6 xl:grid-cols-3">
+                <x-dashboard.section title="Customer operations" description="Create, inspect and repair customer accounts without entering brand workspaces.">
+                    <div class="space-y-2 text-sm">
+                        <a href="{{ route('admin.accounts') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Accounts</a>
+                        <a href="{{ route('admin.brands') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Brands</a>
+                        <a href="{{ route('admin.users') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Users and access</a>
+                    </div>
+                </x-dashboard.section>
+
+                <x-dashboard.section title="Commercial controls" description="Manage modules, subscriptions and account credit balances.">
+                    <div class="space-y-2 text-sm">
+                        <a href="{{ route('admin.modules') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Modules</a>
+                        <a href="{{ route('admin.subscriptions') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Subscriptions</a>
+                        <a href="{{ route('admin.credits') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Credits</a>
+                    </div>
+                </x-dashboard.section>
+
+                <x-dashboard.section title="System operations" description="Monitor integrations, connectors, queues, events and logs.">
+                    <div class="space-y-2 text-sm">
+                        <a href="{{ route('admin.integrations') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Integrations</a>
+                        <a href="{{ route('admin.connectors') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Connectors</a>
+                        <a href="{{ route('admin.developer-tools') }}" class="block rounded-md border border-line px-3 py-2 font-semibold text-ink transition hover:bg-panel">Developer tools</a>
+                    </div>
+                </x-dashboard.section>
+            </div>
+        @else
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <x-dashboard.info-card :label="__('dashboard.current_account')" :value="$account?->name" :empty="__('dashboard.no_account_selected')" />
             <x-dashboard.info-card :label="__('dashboard.current_brand')" :value="$brand?->name" :empty="__('dashboard.no_brand_selected')" />
@@ -346,5 +428,6 @@
                 @endif
             </x-dashboard.section>
         </div>
+        @endif
     </div>
 </x-app.layout>

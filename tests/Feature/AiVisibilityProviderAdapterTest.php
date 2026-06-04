@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Account;
 use App\Models\Brand;
 use App\Models\VisibilityCheck;
+use App\Services\CreditService;
 use App\Services\Visibility\ProviderRegistry;
 use App\Services\Visibility\ProviderRunService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -60,7 +61,7 @@ class AiVisibilityProviderAdapterTest extends TestCase
 
         $this->assertSame('completed', $run->status);
         $this->assertSame('ChatGPT', $run->provider);
-        $this->assertSame('fake-gpt-visibility', $run->model);
+        $this->assertSame(config('llm.default_model'), $run->model);
         $this->assertSame('de', $run->language);
         $this->assertSame('de_DE', $run->locale);
         $this->assertSame('DE', $run->market);
@@ -118,6 +119,7 @@ class AiVisibilityProviderAdapterTest extends TestCase
     {
         $account = Account::query()->create(['name' => 'Visibility Account', 'slug' => fake()->unique()->slug()]);
         $brand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Argusly', 'slug' => fake()->unique()->slug()]);
+        app(CreditService::class)->grant($account, 1000, null, 'Test LLM credits');
 
         return [$account, $brand];
     }

@@ -78,6 +78,14 @@ class Account extends Model
     }
 
     /**
+     * @return HasMany<AccountEntitlement, $this>
+     */
+    public function entitlements(): HasMany
+    {
+        return $this->hasMany(AccountEntitlement::class);
+    }
+
+    /**
      * @return HasMany<IntegrationConnection, $this>
      */
     public function integrationConnections(): HasMany

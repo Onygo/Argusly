@@ -47,6 +47,24 @@ class PermissionSystemTest extends TestCase
         $this->assertTrue(Gate::forUser($user)->allows('run_agents'));
     }
 
+    public function test_global_all_permissions_role_bypasses_tenant_module_requirements(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create();
+        $role = Role::query()->where('name', 'platform_admin')->firstOrFail();
+
+        $user->roles()->attach($role);
+
+        $permissions = app(PermissionService::class);
+
+        $this->assertTrue($permissions->userHasGlobalAllPermissionsRole($user));
+        $this->assertTrue($permissions->userCan($user, 'view_dashboard', [
+            'account_id' => 123,
+            'brand_id' => 456,
+        ]));
+    }
+
     public function test_roles_can_be_scoped_to_accounts_and_brands(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PilotSignupFollowUp;
 use App\Models\Account;
 use App\Models\ActivityLog;
 use App\Models\Brand;
@@ -11,18 +12,26 @@ use App\Models\ConnectorInstallation;
 use App\Models\ConnectorLog;
 use App\Models\ConnectorManifest;
 use App\Models\ConnectorToken;
-use App\Models\ContentAsset;
 use App\Models\CreditBalance;
+use App\Models\CreditCostCatalog;
+use App\Models\CreditCostOverride;
 use App\Models\CreditTransaction;
+use App\Models\CreditUsageStat;
 use App\Models\DomainEvent;
 use App\Models\DomainEventProjectorRun;
 use App\Models\GraphEdge;
 use App\Models\GraphNode;
 use App\Models\Integration;
 use App\Models\IntegrationConnection;
+use App\Models\IntelligenceSignal;
+use App\Models\LlmModel;
+use App\Models\LlmProvider;
+use App\Models\LlmRequest;
+use App\Models\LlmSetting;
 use App\Models\Membership;
 use App\Models\Module;
 use App\Models\OutboxMessage;
+use App\Models\Plan;
 use App\Models\PublishingAction;
 use App\Models\PublishingChannel;
 use App\Models\Recommendation;
@@ -35,12 +44,17 @@ use App\Models\UserRole;
 use App\Services\ActivityLogger;
 use App\Services\CreditService;
 use App\Services\DomainEventService;
+use App\Services\LlmSettingsService;
+use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -123,8 +137,8 @@ class AdminControlCenterController extends Controller
             'activity' => ActivityLog::query()->where('account_id', $account->id)->with(['user', 'brand'])->latest()->limit(12)->get(),
             'events' => DomainEvent::query()->where('account_id', $account->id)->with(['brand', 'actor'])->latest('occurred_at')->limit(12)->get(),
             'recommendations' => Recommendation::query()->where('account_id', $account->id)->latest()->limit(8)->get(),
-            'signals' => class_exists(\App\Models\IntelligenceSignal::class)
-                ? \App\Models\IntelligenceSignal::query()->where('account_id', $account->id)->latest()->limit(8)->get()
+            'signals' => class_exists(IntelligenceSignal::class)
+                ? IntelligenceSignal::query()->where('account_id', $account->id)->latest()->limit(8)->get()
                 : collect(),
             'users' => User::query()->orderBy('name')->get(),
             'roles' => Role::query()->orderByDesc('priority')->get(),
@@ -282,44 +296,62 @@ class AdminControlCenterController extends Controller
 
     public function impersonate(Request $request, User $user): RedirectResponse
     {
-        abort_if($request->user()?->id === $user->id, 403);
+        $impersonator = $request->user();
 
-        $request->session()->put('impersonator_user_id', $request->user()?->id);
-        $request->session()->put('impersonated_user_id', $user->id);
+        abort_if(! $impersonator || $impersonator->id === $user->id, 403);
+        abort_if($request->session()->has('impersonator_user_id'), 403);
 
         app(ActivityLogger::class)->log(
             'admin.user.impersonated',
             "Admin started impersonating {$user->email}.",
-            user: $request->user(),
+            user: $impersonator,
             subject: $user,
             properties: ['target_user_id' => $user->id],
         );
 
+        $request->session()->forget(['tenant.current_account_id', 'tenant.current_brand_id']);
         Auth::login($user);
         $request->session()->regenerate();
+        $request->session()->put('impersonator_user_id', $impersonator->id);
+        $request->session()->put('impersonator_user_name', $impersonator->name);
+        $request->session()->put('impersonator_user_email', $impersonator->email);
+        $request->session()->put('impersonated_user_id', $user->id);
+        $request->session()->put('impersonation_scope', 'platform');
 
         return redirect()->route('dashboard')->with('status', "You are now impersonating {$user->name}.");
     }
 
     public function stopImpersonating(Request $request): RedirectResponse
     {
-        $impersonatorId = $request->session()->pull('impersonator_user_id');
-        $request->session()->forget('impersonated_user_id');
+        $impersonatorId = $request->session()->get('impersonator_user_id');
+        $impersonatedId = $request->session()->get('impersonated_user_id');
+        $scope = $request->session()->get('impersonation_scope', 'platform');
 
-        abort_unless($impersonatorId, 403);
+        abort_unless($impersonatorId && $impersonatedId === $request->user()?->id, 403);
 
         $impersonator = User::query()->findOrFail($impersonatorId);
+        $request->session()->forget(['tenant.current_account_id', 'tenant.current_brand_id']);
         Auth::login($impersonator);
         $request->session()->regenerate();
+        $request->session()->forget([
+            'impersonator_user_id',
+            'impersonator_user_name',
+            'impersonator_user_email',
+            'impersonated_user_id',
+            'impersonation_scope',
+            'impersonation_account_id',
+        ]);
 
         app(ActivityLogger::class)->log(
             'admin.user.impersonation_stopped',
             'Admin stopped impersonating a user.',
             user: $impersonator,
-            properties: ['impersonator_user_id' => $impersonator->id],
+            properties: ['impersonator_user_id' => $impersonator->id, 'impersonated_user_id' => $impersonatedId],
         );
 
-        return redirect()->route('admin.users')->with('status', 'Impersonation stopped.');
+        $route = $scope === 'workspace' ? 'settings.team' : 'admin.users';
+
+        return redirect()->route($route)->with('status', 'Impersonation stopped.');
     }
 
     public function modules(): View
@@ -360,6 +392,199 @@ class AdminControlCenterController extends Controller
             'accounts' => Account::query()->with('creditBalance')->orderBy('name')->paginate(20),
             'transactions' => CreditTransaction::query()->with(['account', 'user'])->latest()->limit(30)->get(),
         ]);
+    }
+
+    public function creditCosts(Request $request): View
+    {
+        $usageSubquery = CreditUsageStat::query()
+            ->selectRaw('catalog_code, sum(credits_used) as credits_used_sum, sum(executions) as executions_sum')
+            ->groupBy('catalog_code');
+        $lastUsedSubquery = CreditTransaction::query()
+            ->selectRaw("json_extract(metadata, '$.catalog_code') as catalog_code, max(created_at) as last_used_at")
+            ->where('amount', '<', 0)
+            ->whereNotNull('metadata')
+            ->groupBy('catalog_code');
+
+        return view('admin.credit-costs', [
+            'accounts' => Account::query()->with('brands')->orderBy('name')->get(),
+            'brands' => Brand::query()->with('account')->orderBy('name')->get(),
+            'catalog' => CreditCostCatalog::query()
+                ->withCount('overrides')
+                ->leftJoinSub($usageSubquery, 'usage_totals', 'usage_totals.catalog_code', '=', 'credit_cost_catalog.code')
+                ->leftJoinSub($lastUsedSubquery, 'last_usage', 'last_usage.catalog_code', '=', 'credit_cost_catalog.code')
+                ->select('credit_cost_catalog.*')
+                ->selectRaw('coalesce(usage_totals.credits_used_sum, 0) as usage_credits_sum')
+                ->selectRaw('coalesce(usage_totals.executions_sum, 0) as usage_executions_sum')
+                ->selectRaw('last_usage.last_used_at as last_used_at')
+                ->when($request->string('q')->toString(), fn (Builder $query, string $search) => $query
+                    ->where(fn (Builder $scope) => $scope
+                        ->where('credit_cost_catalog.code', 'like', "%{$search}%")
+                        ->orWhere('credit_cost_catalog.name', 'like', "%{$search}%")))
+                ->when($request->string('category')->toString(), fn (Builder $query, string $category) => $query->where('credit_cost_catalog.category', $category))
+                ->when($request->string('status')->toString(), fn (Builder $query, string $status) => $query->where('credit_cost_catalog.status', $status))
+                ->orderBy('credit_cost_catalog.category')
+                ->orderBy('credit_cost_catalog.code')
+                ->paginate(30)
+                ->withQueryString(),
+            'overrides' => CreditCostOverride::query()->with(['catalog', 'account', 'brand'])->latest()->limit(20)->get(),
+            'categories' => CreditCostCatalog::CATEGORIES,
+            'statuses' => CreditCostCatalog::STATUSES,
+            'costTypes' => CreditCostCatalog::COST_TYPES,
+        ]);
+    }
+
+    public function updateCreditCost(Request $request, CreditCostCatalog $catalog): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'category' => ['required', 'in:'.implode(',', CreditCostCatalog::CATEGORIES)],
+            'default_cost' => ['required', 'integer', 'min:0'],
+            'minimum_cost' => ['nullable', 'integer', 'min:0'],
+            'maximum_cost' => ['nullable', 'integer', 'min:0'],
+            'cost_type' => ['required', 'in:'.implode(',', CreditCostCatalog::COST_TYPES)],
+            'status' => ['required', 'in:'.implode(',', CreditCostCatalog::STATUSES)],
+        ]);
+
+        $catalog->update($data);
+
+        return back()->with('status', "{$catalog->code} updated.");
+    }
+
+    public function storeCreditCostOverride(Request $request, DomainEventService $events): RedirectResponse
+    {
+        $data = $request->validate([
+            'credit_cost_catalog_id' => ['required', 'exists:credit_cost_catalog,id'],
+            'account_id' => ['nullable', 'exists:accounts,id'],
+            'brand_id' => ['nullable', 'exists:brands,id'],
+            'override_cost' => ['required', 'integer', 'min:0'],
+            'status' => ['required', 'in:active,inactive'],
+        ]);
+
+        $brand = isset($data['brand_id']) ? Brand::query()->find($data['brand_id']) : null;
+
+        if ($brand && ! isset($data['account_id'])) {
+            $data['account_id'] = $brand->account_id;
+        }
+
+        $override = CreditCostOverride::query()->updateOrCreate(
+            [
+                'account_id' => $data['account_id'] ?? null,
+                'brand_id' => $data['brand_id'] ?? null,
+                'credit_cost_catalog_id' => $data['credit_cost_catalog_id'],
+            ],
+            [
+                'override_cost' => $data['override_cost'],
+                'status' => $data['status'],
+            ],
+        );
+
+        $events->recordForSubject('CreditOverrideCreated', $override, $request->user(), [
+            'catalog_code' => $override->catalog?->code,
+            'account_id' => $override->account_id,
+            'brand_id' => $override->brand_id,
+            'override_cost' => $override->override_cost,
+        ], dispatch: false);
+
+        return back()->with('status', 'Credit cost override saved.');
+    }
+
+    public function llmRequests(Request $request): View
+    {
+        return view('admin.llm-requests', [
+            'accounts' => Account::query()->orderBy('name')->get(),
+            'requests' => LlmRequest::query()
+                ->with(['account', 'brand', 'user'])
+                ->when($request->integer('account_id'), fn (Builder $query, int $accountId) => $query->where('account_id', $accountId))
+                ->when($request->string('provider')->toString(), fn (Builder $query, string $provider) => $query->where('provider', $provider))
+                ->when($request->string('purpose')->toString(), fn (Builder $query, string $purpose) => $query->where('purpose', $purpose))
+                ->when($request->string('status')->toString(), fn (Builder $query, string $status) => $query->where('status', $status))
+                ->latest('created_at')
+                ->paginate(30)
+                ->withQueryString(),
+            'purposes' => LlmRequest::PURPOSES,
+            'statuses' => LlmRequest::STATUSES,
+        ]);
+    }
+
+    public function llm(): View
+    {
+        return view('admin.llm.index', [
+            'providers' => LlmProvider::query()->withCount('models')->orderBy('name')->get(),
+            'models' => LlmModel::query()->with('provider')->where('status', 'active')->orderBy('name')->get(),
+            'global' => LlmSetting::query()
+                ->whereNull('account_id')
+                ->whereNull('brand_id')
+                ->with(['defaultProvider', 'defaultModel', 'fallbackProvider', 'fallbackModel'])
+                ->first(),
+        ]);
+    }
+
+    public function updateGlobalLlm(Request $request, LlmSettingsService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'default_provider_id' => ['nullable', 'integer', 'exists:llm_providers,id'],
+            'default_model_id' => ['nullable', 'integer', 'exists:llm_models,id'],
+            'fallback_provider_id' => ['nullable', 'integer', 'exists:llm_providers,id'],
+            'fallback_model_id' => ['nullable', 'integer', 'exists:llm_models,id'],
+            'temperature' => ['nullable', 'numeric', 'between:0,2'],
+            'max_tokens' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+        ]);
+        $validated = $this->nullableLlmAttributes($validated);
+
+        $this->validateLlmPair($validated['default_provider_id'] ?? null, $validated['default_model_id'] ?? null, 'default');
+        $this->validateLlmPair($validated['fallback_provider_id'] ?? null, $validated['fallback_model_id'] ?? null, 'fallback');
+
+        $settings->upsertGlobal($validated);
+
+        return back()->with('status', 'Global LLM defaults updated.');
+    }
+
+    public function llmProviders(): View
+    {
+        return view('admin.llm.providers', [
+            'providers' => LlmProvider::query()->withCount('models')->orderBy('name')->get(),
+        ]);
+    }
+
+    public function updateLlmProvider(Request $request, LlmProvider $provider): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:active,inactive,archived'],
+        ]);
+
+        $provider->update($validated);
+
+        return back()->with('status', "{$provider->name} provider updated.");
+    }
+
+    public function llmModels(Request $request): View
+    {
+        return view('admin.llm.models', [
+            'providers' => LlmProvider::query()->orderBy('name')->get(),
+            'models' => LlmModel::query()
+                ->with('provider')
+                ->when($request->integer('provider_id'), fn (Builder $query, int $providerId) => $query->where('provider_id', $providerId))
+                ->when($request->string('type')->toString(), fn (Builder $query, string $type) => $query->where('type', $type))
+                ->when($request->string('status')->toString(), fn (Builder $query, string $status) => $query->where('status', $status))
+                ->orderBy('provider_id')
+                ->orderBy('name')
+                ->paginate(40)
+                ->withQueryString(),
+            'types' => LlmModel::TYPES,
+            'statuses' => LlmModel::STATUSES,
+        ]);
+    }
+
+    public function updateLlmModel(Request $request, LlmModel $model): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:active,inactive,deprecated,archived'],
+        ]);
+
+        $model->update($validated);
+
+        return back()->with('status', "{$model->name} model updated.");
     }
 
     public function adjustCredits(Request $request, CreditService $credits, DomainEventService $events): RedirectResponse
@@ -455,6 +680,54 @@ class AdminControlCenterController extends Controller
         ]);
     }
 
+    public function contactRequests(): View
+    {
+        $requests = Schema::hasTable('contact_requests')
+            ? DB::table('contact_requests')->latest()->paginate(20)
+            : null;
+
+        return view('admin.contact-requests', [
+            'requests' => $requests,
+            'stats' => $this->contactRequestStats(),
+        ]);
+    }
+
+    public function updateContactRequest(Request $request, int $contactRequest): RedirectResponse
+    {
+        abort_unless(Schema::hasTable('contact_requests'), 404);
+
+        $data = $request->validate([
+            'status' => ['required', 'in:new,reviewing,contacted,unqualified,closed'],
+        ]);
+
+        $current = DB::table('contact_requests')->where('id', $contactRequest)->first();
+        abort_unless($current, 404);
+
+        DB::table('contact_requests')
+            ->where('id', $contactRequest)
+            ->update([
+                'status' => $data['status'],
+                'handled_at' => $data['status'] === 'new' ? null : now(),
+                'handled_by' => $data['status'] === 'new' ? null : $request->user()?->id,
+                'updated_at' => now(),
+            ]);
+
+        app(ActivityLogger::class)->log(
+            'admin.contact_request.updated',
+            "Admin marked contact request from {$current->email} as {$data['status']}.",
+            user: $request->user(),
+            properties: [
+                'contact_request_id' => $contactRequest,
+                'email' => $current->email,
+                'company' => $current->company,
+                'previous_status' => $current->status,
+                'status' => $data['status'],
+            ],
+        );
+
+        return back()->with('status', 'Contact request updated.');
+    }
+
     public function updatePilotSignup(Request $request, int $signup): RedirectResponse
     {
         abort_unless(Schema::hasTable('pilot_signups'), 404);
@@ -465,6 +738,12 @@ class AdminControlCenterController extends Controller
 
         $current = DB::table('pilot_signups')->where('id', $signup)->first();
         abort_unless($current, 404);
+
+        if ($data['status'] === 'activated') {
+            $result = $this->activatePilotSignup($request, $current);
+
+            return back()->with('status', "Pilot activated: {$result['account']->name}, {$result['brand']->name}, {$result['user']->email}.");
+        }
 
         DB::table('pilot_signups')
             ->where('id', $signup)
@@ -489,6 +768,290 @@ class AdminControlCenterController extends Controller
         );
 
         return back()->with('status', 'Pilot request updated.');
+    }
+
+    public function sendPilotSignupFollowUp(Request $request, int $signup): RedirectResponse
+    {
+        abort_unless(Schema::hasTable('pilot_signups'), 404);
+
+        $current = DB::table('pilot_signups')->where('id', $signup)->first();
+        abort_unless($current, 404);
+
+        Mail::to($current->email)->send(new PilotSignupFollowUp($this->pilotSignupMailPayload($current)));
+
+        $metadata = $this->pilotSignupMetadata($current);
+        $metadata['follow_up'] = [
+            'sent_at' => now()->toIso8601String(),
+            'sent_by' => $request->user()?->id,
+        ];
+
+        DB::table('pilot_signups')
+            ->where('id', $signup)
+            ->update([
+                'status' => $current->status === 'activated' ? 'activated' : 'contacted',
+                'reviewed_at' => $current->reviewed_at ?: now(),
+                'reviewed_by' => $current->reviewed_by ?: $request->user()?->id,
+                'metadata' => json_encode($metadata),
+                'updated_at' => now(),
+            ]);
+
+        app(ActivityLogger::class)->log(
+            'admin.pilot_signup.follow_up_sent',
+            "Admin sent pilot follow-up to {$current->email}.",
+            user: $request->user(),
+            properties: [
+                'pilot_signup_id' => $signup,
+                'email' => $current->email,
+                'company' => $current->company,
+            ],
+        );
+
+        return back()->with('status', "Follow-up sent to {$current->email}.");
+    }
+
+    /**
+     * @return array{account: Account, brand: Brand, user: User}
+     */
+    private function activatePilotSignup(Request $request, object $signup): array
+    {
+        return DB::transaction(function () use ($request, $signup): array {
+            $metadata = $this->pilotSignupMetadata($signup);
+            $activation = $metadata['activation'] ?? [];
+            $account = Account::query()->find($activation['account_id'] ?? null)
+                ?: Account::query()->where('slug', $this->uniqueSlugBase($signup->company))->first();
+
+            if (! $account) {
+                $account = Account::query()->create([
+                    'name' => $signup->company,
+                    'slug' => $this->uniqueAccountSlug($signup->company),
+                    'status' => 'active',
+                ]);
+            }
+
+            $brand = Brand::query()->find($activation['brand_id'] ?? null)
+                ?: Brand::query()
+                    ->where('account_id', $account->id)
+                    ->where('slug', $this->uniqueSlugBase($signup->company))
+                    ->first();
+
+            if (! $brand) {
+                $brand = Brand::query()->create([
+                    'account_id' => $account->id,
+                    'name' => $signup->company,
+                    'slug' => $this->uniqueBrandSlug($account, $signup->company),
+                    'domain' => $this->domainFromWebsite($signup->website),
+                    'website_url' => $signup->website,
+                    'status' => 'active',
+                ]);
+            }
+
+            $user = User::query()->firstOrCreate(
+                ['email' => $signup->email],
+                [
+                    'name' => $signup->name,
+                    'password' => Hash::make(Str::password(32)),
+                    'email_verified_at' => now(),
+                ],
+            );
+
+            $account->users()->syncWithoutDetaching([
+                $user->id => ['status' => 'active', 'joined_at' => now()],
+            ]);
+            $brand->users()->syncWithoutDetaching([
+                $user->id => ['account_id' => $account->id, 'status' => 'active', 'joined_at' => now()],
+            ]);
+
+            if ($ownerRole = Role::query()->where('name', 'owner')->first()) {
+                UserRole::query()->updateOrCreate(
+                    ['user_id' => $user->id, 'account_id' => $account->id, 'brand_id' => null],
+                    ['role_id' => $ownerRole->id],
+                );
+                UserRole::query()->updateOrCreate(
+                    ['user_id' => $user->id, 'account_id' => $account->id, 'brand_id' => $brand->id],
+                    ['role_id' => $ownerRole->id],
+                );
+            }
+
+            $this->ensurePilotSubscription($account);
+
+            if (! ($activation['credits_granted_at'] ?? null)) {
+                app(CreditService::class)->grant($account, 1000, $request->user(), 'Pilot activation credits', [
+                    'pilot_signup_id' => $signup->id,
+                ]);
+            }
+
+            $metadata['activation'] = [
+                'account_id' => $account->id,
+                'brand_id' => $brand->id,
+                'user_id' => $user->id,
+                'credits_granted_at' => $activation['credits_granted_at'] ?? now()->toIso8601String(),
+                'activated_at' => now()->toIso8601String(),
+                'activated_by' => $request->user()?->id,
+            ];
+
+            DB::table('pilot_signups')
+                ->where('id', $signup->id)
+                ->update([
+                    'status' => 'activated',
+                    'reviewed_at' => now(),
+                    'reviewed_by' => $request->user()?->id,
+                    'metadata' => json_encode($metadata),
+                    'updated_at' => now(),
+                ]);
+
+            app(ActivityLogger::class)->log(
+                'admin.pilot_signup.activated',
+                "Admin activated pilot request from {$signup->email}.",
+                account: $account,
+                brand: $brand,
+                user: $request->user(),
+                subject: $account,
+                properties: [
+                    'pilot_signup_id' => $signup->id,
+                    'email' => $signup->email,
+                    'company' => $signup->company,
+                    'account_id' => $account->id,
+                    'brand_id' => $brand->id,
+                    'user_id' => $user->id,
+                ],
+            );
+
+            return ['account' => $account, 'brand' => $brand, 'user' => $user];
+        });
+    }
+
+    private function ensurePilotSubscription(Account $account): void
+    {
+        if ($account->activeSubscription()->exists()) {
+            return;
+        }
+
+        if (Plan::query()->where('key', 'starter_monthly')->exists()) {
+            app(SubscriptionService::class)->activatePlan($account, 'starter_monthly', [
+                'source' => 'pilot_activation',
+            ]);
+
+            return;
+        }
+
+        $subscription = $account->subscriptions()->create([
+            'status' => 'active',
+            'billing_interval' => 'monthly',
+            'currency' => 'EUR',
+            'amount' => 0,
+            'metadata' => ['source' => 'pilot_activation'],
+            'current_period_starts_at' => now(),
+            'current_period_ends_at' => now()->addMonth(),
+        ]);
+
+        if ($module = Module::query()->where('key', 'core')->first()) {
+            $subscription->modules()->updateOrCreate(
+                ['module_id' => $module->id],
+                [
+                    'account_id' => $account->id,
+                    'status' => 'active',
+                    'starts_at' => now(),
+                    'ends_at' => null,
+                    'metadata' => ['source' => 'pilot_activation'],
+                ],
+            );
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pilotSignupMetadata(object $signup): array
+    {
+        return json_decode((string) $signup->metadata, true) ?: [];
+    }
+
+    /**
+     * @return array{name: string, email: string, company: string, website: string|null, role: string|null, goal: string|null}
+     */
+    private function pilotSignupMailPayload(object $signup): array
+    {
+        return [
+            'name' => $signup->name,
+            'email' => $signup->email,
+            'company' => $signup->company,
+            'website' => $signup->website,
+            'role' => $signup->role,
+            'goal' => $signup->goal,
+        ];
+    }
+
+    private function uniqueSlugBase(string $value): string
+    {
+        return Str::slug($value) ?: 'pilot';
+    }
+
+    private function uniqueAccountSlug(string $company): string
+    {
+        $base = $this->uniqueSlugBase($company);
+        $slug = $base;
+        $suffix = 2;
+
+        while (Account::query()->where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function uniqueBrandSlug(Account $account, string $company): string
+    {
+        $base = $this->uniqueSlugBase($company);
+        $slug = $base;
+        $suffix = 2;
+
+        while (Brand::query()->where('account_id', $account->id)->where('slug', $slug)->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function domainFromWebsite(?string $website): ?string
+    {
+        if (! $website) {
+            return null;
+        }
+
+        $url = str_starts_with($website, 'http://') || str_starts_with($website, 'https://')
+            ? $website
+            : "https://{$website}";
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return $host ? preg_replace('/^www\./', '', strtolower($host)) : null;
+    }
+
+    private function validateLlmPair(mixed $providerId, mixed $modelId, string $label): void
+    {
+        if ($providerId === null || $providerId === '' || $modelId === null || $modelId === '') {
+            return;
+        }
+
+        $model = LlmModel::query()->find((int) $modelId);
+
+        abort_if(! $model || $model->provider_id !== (int) $providerId, 422, "The {$label} model must belong to the selected provider.");
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     */
+    private function nullableLlmAttributes(array $attributes): array
+    {
+        foreach (['default_provider_id', 'default_model_id', 'fallback_provider_id', 'fallback_model_id', 'temperature', 'max_tokens'] as $key) {
+            if (($attributes[$key] ?? null) === '') {
+                $attributes[$key] = null;
+            }
+        }
+
+        return $attributes;
     }
 
     /**
@@ -569,9 +1132,9 @@ class AdminControlCenterController extends Controller
 
     /**
      * @param  array<int, string>  $statuses
-     * @return \Illuminate\Support\Collection<int, object>
+     * @return Collection<int, object>
      */
-    private function pilotSignupRows(array $statuses): \Illuminate\Support\Collection
+    private function pilotSignupRows(array $statuses): Collection
     {
         return Schema::hasTable('pilot_signups')
             ? DB::table('pilot_signups')->whereIn('status', $statuses)->latest()->get()
@@ -598,6 +1161,30 @@ class AdminControlCenterController extends Controller
             'contacted' => (int) ($counts['contacted'] ?? 0),
             'activated' => (int) ($counts['activated'] ?? 0),
             'declined' => (int) ($counts['declined'] ?? 0),
+            'total' => (int) $counts->sum(),
+        ];
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function contactRequestStats(): array
+    {
+        if (! Schema::hasTable('contact_requests')) {
+            return ['new' => 0, 'reviewing' => 0, 'contacted' => 0, 'unqualified' => 0, 'closed' => 0, 'total' => 0];
+        }
+
+        $counts = DB::table('contact_requests')
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        return [
+            'new' => (int) ($counts['new'] ?? 0),
+            'reviewing' => (int) ($counts['reviewing'] ?? 0),
+            'contacted' => (int) ($counts['contacted'] ?? 0),
+            'unqualified' => (int) ($counts['unqualified'] ?? 0),
+            'closed' => (int) ($counts['closed'] ?? 0),
             'total' => (int) $counts->sum(),
         ];
     }

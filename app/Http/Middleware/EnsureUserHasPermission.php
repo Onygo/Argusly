@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
 use App\Services\PermissionService;
+use App\Support\Diagnostics\ForbiddenDiagnostics;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,10 +27,20 @@ class EnsureUserHasPermission
     {
         $user = $request->user();
 
-        abort_unless(
-            $user && $this->permissions->userCan($user, $permission, $this->contextFromRequest($request)),
-            403
-        );
+        if ($user && $this->permissions->userHasGlobalAllPermissionsRole($user)) {
+            return $next($request);
+        }
+
+        $context = $this->contextFromRequest($request);
+
+        if (! $user || ! $this->permissions->userCan($user, $permission, $context)) {
+            ForbiddenDiagnostics::log('permission_denied', $request, [
+                'permission' => $permission,
+                'context' => $context,
+            ]);
+
+            abort(403);
+        }
 
         return $next($request);
     }

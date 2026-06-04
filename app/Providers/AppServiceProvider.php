@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
+use App\Contracts\LlmClientInterface;
 use App\Models\Agent;
 use App\Models\AnswerBlock;
 use App\Models\Audience;
@@ -17,11 +18,11 @@ use App\Models\Competitor;
 use App\Models\Contact;
 use App\Models\ContentAsset;
 use App\Models\Entity;
-use App\Models\Mention;
-use App\Models\Narrative;
 use App\Models\MarketingObjective;
 use App\Models\MarketingTask;
 use App\Models\MarketingWorkspace;
+use App\Models\Mention;
+use App\Models\Narrative;
 use App\Models\Newsletter;
 use App\Models\Organization;
 use App\Models\Relationship;
@@ -46,11 +47,11 @@ use App\Policies\CompetitorPolicy;
 use App\Policies\ContactPolicy;
 use App\Policies\ContentAssetPolicy;
 use App\Policies\EntityPolicy;
-use App\Policies\MentionPolicy;
-use App\Policies\NarrativePolicy;
 use App\Policies\MarketingObjectivePolicy;
 use App\Policies\MarketingTaskPolicy;
 use App\Policies\MarketingWorkspacePolicy;
+use App\Policies\MentionPolicy;
+use App\Policies\NarrativePolicy;
 use App\Policies\NewsletterPolicy;
 use App\Policies\OrganizationPolicy;
 use App\Policies\RelationshipPolicy;
@@ -63,13 +64,18 @@ use App\Policies\TopicPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VisibilityCheckPolicy;
 use App\Services\ActivityLogger;
+use App\Services\CreditCostResolver;
 use App\Services\DomainEvents\ActivityLogProjector;
 use App\Services\DomainEvents\GraphProjector;
 use App\Services\DomainEvents\NotificationProjector;
 use App\Services\DomainEvents\ProjectorRegistry;
 use App\Services\DomainEvents\RecommendationProjector;
 use App\Services\DomainEvents\SignalProjector;
+use App\Services\EntitlementService;
+use App\Services\FeatureGate;
+use App\Services\Llm\LlmClientManager;
 use App\Services\PermissionService;
+use App\Services\PlanResolver;
 use App\Services\SignalManager;
 use App\Services\Signals\Producers\ContentAuditCompletedProducer;
 use App\Services\Signals\Producers\ContentPublishedProducer;
@@ -101,8 +107,13 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->scoped(CurrentAccountContract::class, CurrentAccount::class);
         $this->app->scoped(CurrentBrandContract::class, CurrentBrand::class);
+        $this->app->scoped(LlmClientInterface::class, LlmClientManager::class);
         $this->app->scoped(ModuleAccessService::class);
         $this->app->scoped(PermissionService::class);
+        $this->app->scoped(PlanResolver::class);
+        $this->app->scoped(EntitlementService::class);
+        $this->app->scoped(FeatureGate::class);
+        $this->app->scoped(CreditCostResolver::class);
 
         $signalManagerFactory = fn ($app) => new SignalManager([
             $app->make(ContentPublishedProducer::class),
@@ -138,6 +149,13 @@ class AppServiceProvider extends ServiceProvider
                 : $request->ip();
 
             return Limit::perMinute(120)->by('connector-api:'.$key);
+        });
+
+        RateLimiter::for('analytics-events', function (Request $request) {
+            $siteKey = (string) ($request->input('site_key', $request->input('site', '')) ?: $request->ip());
+
+            return Limit::perMinute((int) config('analytics.ingestion.rate_limit_per_minute', 120))
+                ->by('analytics:'.hash('sha256', $siteKey));
         });
 
         Event::listen(Login::class, function (Login $event): void {

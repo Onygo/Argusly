@@ -8,9 +8,12 @@ use App\Models\AgentRun;
 use App\Models\AgentTask;
 use App\Models\Brand;
 use App\Models\Recommendation;
+use App\Services\Llm\LlmPromptRuntime;
 
 class AgentTaskDispatcher
 {
+    public function __construct(private readonly LlmPromptRuntime $llm) {}
+
     public function dispatch(
         Agent $agent,
         Account $account,
@@ -21,6 +24,24 @@ class AgentTaskDispatcher
         ?AgentRun $run = null,
         array $payload = [],
     ): AgentTask {
+        $response = $this->llm->generate(
+            account: $account,
+            brand: $brand,
+            user: null,
+            purpose: 'agent_task',
+            messages: [[
+                'role' => 'user',
+                'content' => "Dispatch agent task: {$title}\n\n{$description}",
+            ]],
+            systemPrompt: 'You are Argusly agent task runtime. Return a concise dispatch note.',
+            fakeContent: $description ?: $title,
+            metadata: [
+                'agent_id' => $agent->id,
+                'agent_run_id' => $run?->id,
+                'recommendation_id' => $recommendation?->id,
+            ],
+        );
+
         return AgentTask::query()->create([
             'agent_id' => $agent->id,
             'agent_run_id' => $run?->id,
@@ -33,6 +54,8 @@ class AgentTaskDispatcher
             'payload' => [
                 'placeholder' => true,
                 'ai_execution' => 'disabled',
+                'llm_response' => $response->toArray(),
+                'dispatch_note' => $response->content,
                 ...$payload,
             ],
             'dispatched_at' => now(),

@@ -89,6 +89,10 @@ class PermissionService
             return $this->userCanCache[$cacheKey] = false;
         }
 
+        if ($this->userHasGlobalAllPermissionsRole($user)) {
+            return $this->userCanCache[$cacheKey] = true;
+        }
+
         if (! $this->tenantContextIsAccessible($user, $context)) {
             return $this->userCanCache[$cacheKey] = false;
         }
@@ -104,6 +108,16 @@ class PermissionService
             })
             ->tap(fn (Builder $query) => $this->applyActiveWindow($query))
             ->tap(fn (Builder $query) => $this->applyScope($query, $context))
+            ->exists();
+    }
+
+    public function userHasGlobalAllPermissionsRole(User $user): bool
+    {
+        return $user->roleAssignments()
+            ->whereNull('account_id')
+            ->whereNull('brand_id')
+            ->tap(fn (Builder $query) => $this->applyActiveWindow($query))
+            ->whereHas('role', fn (Builder $query) => $query->where('all_permissions', true))
             ->exists();
     }
 

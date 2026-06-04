@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Contracts\LlmClientInterface;
+use App\Data\Llm\LlmRequest;
 use App\Jobs\GenerateContentAssetJob;
 use App\Models\ContentAsset;
 use App\Models\GeneratedAsset;
@@ -16,6 +18,8 @@ class ContentGenerationService
         private readonly GenerationRunLogger $logger,
         private readonly CreditService $credits,
         private readonly SignalManager $signals,
+        private readonly LlmResolver $resolver,
+        private readonly LlmClientInterface $llm,
     ) {}
 
     /**
@@ -27,16 +31,8 @@ class ContentGenerationService
 
         $this->ensureType($type);
 
-        $creditTransaction = $this->credits->consume(
-            $contentAsset->account,
-            $user,
-            'content_generation',
-            'Content generation requested.',
-            $contentAsset,
-            ['content_asset_id' => $contentAsset->id, 'type' => $type],
-        );
-
         $language = $attributes['language'] ?? $contentAsset->language;
+        $llm = $this->resolver->resolve($contentAsset->account, $contentAsset->brand);
 
         $generatedAsset = GeneratedAsset::query()->create([
             'account_id' => $contentAsset->account_id,
@@ -58,20 +54,22 @@ class ContentGenerationService
                     'property_id' => $contentAsset->property_id,
                     'channel_id' => $contentAsset->channel_id,
                 ],
+                'llm' => [
+                    'source' => $llm['source'],
+                    'fallback_provider' => $llm['fallback_provider']['provider'] ?? null,
+                    'fallback_model' => $llm['fallback_model']['model'] ?? null,
+                    'temperature' => $llm['temperature'],
+                    'max_tokens' => $llm['max_tokens'],
+                ],
             ],
             'language' => $language,
             'locale' => $language === $contentAsset->language
                 ? $contentAsset->locale
                 : app(ContentLanguageService::class)->localeForLanguage($language),
-            'provider' => 'argusly_fake',
-            'model' => 'static-foundation-v1',
+            'provider' => $llm['provider']['provider'],
+            'model' => $llm['model']['model'],
             'cost_credits' => $this->credits->cost('content_generation'),
             'created_by' => $user->id,
-        ]);
-
-        $creditTransaction->update([
-            'subject_type' => $generatedAsset->getMorphClass(),
-            'subject_id' => $generatedAsset->id,
         ]);
 
         $this->logger->queued($generatedAsset);
@@ -90,7 +88,7 @@ class ContentGenerationService
         $generatedAsset->forceFill(['status' => 'processing'])->save();
         $this->logger->processing($generatedAsset);
 
-        $output = $this->fakeOutput($generatedAsset);
+        $output = $this->generateOutput($generatedAsset);
 
         $generatedAsset->forceFill([
             'status' => 'completed',
@@ -122,22 +120,50 @@ class ContentGenerationService
     /**
      * @return array<string, mixed>
      */
-    private function fakeOutput(GeneratedAsset $generatedAsset): array
+    private function generateOutput(GeneratedAsset $generatedAsset): array
     {
         $source = $generatedAsset->contentAsset;
         $baseTitle = $source?->title ?? $generatedAsset->title ?? 'Untitled content';
         $type = Str::of($generatedAsset->type)->replace('_', ' ')->headline();
+        $fallbackBody = implode("\n\n", [
+            "Static Argusly generation output for {$baseTitle}.",
+            'This placeholder prepares the content generation flow without calling a real AI provider.',
+            'Future connector work can replace this fake output with provider-backed generation, scoring and publishing handoff.',
+        ]);
+        $response = $this->llm->generate(new LlmRequest(
+            provider: $generatedAsset->provider ?? 'fake',
+            model: $generatedAsset->model ?? 'static-foundation-v1',
+            messages: [
+                [
+                    'role' => 'user',
+                    'content' => $generatedAsset->prompt ?: "Create a {$generatedAsset->type} draft for {$baseTitle}.",
+                ],
+            ],
+            systemPrompt: 'You are Argusly content generation runtime. Produce useful marketing content drafts.',
+            temperature: null,
+            maxTokens: null,
+            metadata: [
+                'purpose' => 'content_generation',
+                'account_id' => $generatedAsset->account_id,
+                'brand_id' => $generatedAsset->brand_id,
+                'user_id' => $generatedAsset->created_by,
+                'fallback_provider' => $generatedAsset->input_payload['llm']['fallback_provider'] ?? null,
+                'fallback_model' => $generatedAsset->input_payload['llm']['fallback_model'] ?? null,
+                'content_asset_id' => $source?->id,
+                'generated_asset_id' => $generatedAsset->id,
+                'type' => $generatedAsset->type,
+                'language' => $generatedAsset->language,
+                'fake_content' => $fallbackBody,
+            ],
+        ));
 
         return [
             'title' => "{$type}: {$baseTitle}",
-            'body' => implode("\n\n", [
-                "Static Argusly generation output for {$baseTitle}.",
-                'This placeholder prepares the content generation flow without calling a real AI provider.',
-                'Future connector work can replace this fake output with provider-backed generation, scoring and publishing handoff.',
-            ]),
-            'provider' => $generatedAsset->provider,
-            'model' => $generatedAsset->model,
-            'fake' => true,
+            'body' => $response->content,
+            'provider' => $response->provider,
+            'model' => $response->model,
+            'llm_response' => $response->toArray(),
+            'fake' => (bool) ($response->rawResponse['fake'] ?? false),
         ];
     }
 }

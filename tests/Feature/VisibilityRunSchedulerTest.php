@@ -8,6 +8,7 @@ use App\Models\VisibilityPromptTemplate;
 use App\Models\VisibilityProviderRun;
 use App\Models\VisibilityRunSchedule;
 use App\Services\CreditService;
+use Database\Seeders\CreditCostCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use InvalidArgumentException;
@@ -57,7 +58,7 @@ class VisibilityRunSchedulerTest extends TestCase
         $this->assertSame('nl', $run->normalized_answer_language);
         $this->assertSame('nl', $run->detected_language);
         $this->assertSame('CMO', $run->persona);
-        $this->assertSame(2, $run->cost_credits);
+        $this->assertSame(15, $run->cost_credits);
         $this->assertStringContainsString('Argusly', $run->normalized_answer);
         $this->assertSame($schedule->id, $run->metadata['visibility_run_schedule_id']);
         $this->assertGreaterThan(0, $run->citations()->count());
@@ -67,17 +68,15 @@ class VisibilityRunSchedulerTest extends TestCase
 
         $this->assertNotNull($schedule->last_run_at);
         $this->assertTrue($schedule->next_run_at->equalTo(now()->addDay()));
-        $this->assertSame(18, app(CreditService::class)->balance($account));
+        $this->assertSame(5, app(CreditService::class)->balance($account));
         $this->assertSame('nl', $schedule->language);
         $this->assertSame('NL', $schedule->market);
 
         $this->assertDatabaseHas('credit_transactions', [
             'account_id' => $account->id,
             'user_id' => null,
-            'amount' => -2,
-            'type' => 'ai_visibility_run',
-            'subject_type' => $schedule->getMorphClass(),
-            'subject_id' => $schedule->id,
+            'amount' => -15,
+            'type' => 'visibility_check',
         ]);
         $this->assertDatabaseHas('domain_events', [
             'account_id' => $account->id,
@@ -161,6 +160,8 @@ class VisibilityRunSchedulerTest extends TestCase
      */
     private function tenant(): array
     {
+        $this->seed(CreditCostCatalogSeeder::class);
+
         $account = Account::query()->create(['name' => 'Visibility Account', 'slug' => fake()->unique()->slug()]);
         $brand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Argusly', 'slug' => fake()->unique()->slug()]);
 

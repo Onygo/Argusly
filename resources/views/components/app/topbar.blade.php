@@ -2,12 +2,16 @@
     $account = current_account();
     $brand = current_brand();
     $user = auth()->user();
+    $permissionService = app(\App\Services\PermissionService::class);
+    $isPlatformAdmin = $user
+        ? $permissionService->userCan($user, 'manage_platform', ['account_id' => null, 'brand_id' => null])
+        : false;
     $initials = $user ? collect(explode(' ', $user->name))->map(fn ($part) => str($part)->substr(0, 1))->take(2)->implode('') : 'A';
-    $unreadNotifications = ($user && $account)
+    $unreadNotifications = ($user && $account && ! $isPlatformAdmin)
         ? app(\App\Services\NotificationService::class)->unreadCount($user, $account, $brand)
         : 0;
-    $accounts = $user ? $user->accounts()->wherePivot('status', 'active')->orderBy('name')->get() : collect();
-    $brands = $user && $account
+    $accounts = $user && ! $isPlatformAdmin ? $user->accounts()->wherePivot('status', 'active')->orderBy('name')->get() : collect();
+    $brands = $user && $account && ! $isPlatformAdmin
         ? $user->brands()->wherePivot('status', 'active')->wherePivot('account_id', $account->id)->orderBy('name')->get()
         : collect();
 @endphp
@@ -19,6 +23,11 @@
         </button>
 
         <div class="hidden min-w-0 items-center gap-2 xl:flex">
+            @if ($isPlatformAdmin)
+                <a href="{{ route('admin.overview') }}" class="max-w-56 truncate rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">
+                    Argusly platform admin
+                </a>
+            @else
             @if ($accounts->count() > 1)
                 <form method="POST" action="{{ route('tenant.account.switch') }}">
                     @csrf
@@ -46,18 +55,23 @@
             @else
                 <span class="max-w-48 truncate rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-muted">{{ $brand?->name ?? __('dashboard.no_brand_selected') }}</span>
             @endif
+            @endif
 
         </div>
 
-        <x-app.search />
+        @unless ($isPlatformAdmin)
+            <x-app.search />
+        @endunless
 
         <div class="ml-auto flex items-center gap-2">
+            @unless ($isPlatformAdmin)
             <a href="{{ route('app.notifications') }}" class="relative grid size-10 place-items-center rounded-md border border-line bg-white text-muted transition hover:border-slate-300 hover:bg-panel hover:text-ink" aria-label="Notifications">
                 <x-app.icon name="bell" class="size-4" />
                 @if ($unreadNotifications > 0)
                     <span class="absolute -right-1 -top-1 rounded-full bg-blue px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">{{ $unreadNotifications }}</span>
                 @endif
             </a>
+            @endunless
 
             <form method="POST" action="{{ route('user.locale.update') }}" class="hidden sm:block">
                 @csrf
@@ -75,6 +89,9 @@
                         <p class="truncate text-sm font-semibold text-ink">{{ $user?->name }}</p>
                         <p class="truncate text-xs text-muted">{{ $user?->email }}</p>
                     </div>
+                    <a href="{{ route('settings.profile') }}" class="mt-2 block rounded-md px-3 py-2 text-sm font-semibold text-muted transition hover:bg-panel hover:text-ink">
+                        Profile
+                    </a>
                     <form method="POST" action="{{ route('logout') }}" class="mt-2">
                         @csrf
                         <button type="submit" class="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-muted transition hover:bg-panel hover:text-ink">

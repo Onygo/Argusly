@@ -14,6 +14,8 @@ class DatabaseSeeder extends Seeder
         $this->call(LanguageSeeder::class);
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(SubscriptionCatalogSeeder::class);
+        $this->call(CreditCostCatalogSeeder::class);
+        $this->call(LlmProviderSeeder::class);
         $this->call(IntegrationCatalogSeeder::class);
         $this->call(ConnectorCatalogSeeder::class);
         $this->call(TenantIsolationSeeder::class);

@@ -2,6 +2,9 @@
     $pendingPilotSignupCount = \Illuminate\Support\Facades\Schema::hasTable('pilot_signups')
         ? \Illuminate\Support\Facades\DB::table('pilot_signups')->whereIn('status', ['pending', 'reviewing'])->count()
         : 0;
+    $pendingContactRequestCount = \Illuminate\Support\Facades\Schema::hasTable('contact_requests')
+        ? \Illuminate\Support\Facades\DB::table('contact_requests')->whereIn('status', ['new', 'reviewing'])->count()
+        : 0;
 
     $primary = [
         ['label' => 'Overview', 'route' => 'admin.overview'],
@@ -11,12 +14,20 @@
         ['label' => 'Modules', 'route' => 'admin.modules'],
         ['label' => 'Subscriptions', 'route' => 'admin.subscriptions'],
         ['label' => 'Credits', 'route' => 'admin.credits'],
+        ['label' => 'Cost Catalog', 'route' => 'admin.credit-costs'],
+        ['label' => 'LLM', 'route' => 'admin.llm'],
+        ['label' => 'AI Monitor', 'route' => 'admin.ai-runtime.monitor'],
         ['label' => 'Integrations', 'route' => 'admin.integrations'],
         ['label' => 'Connectors', 'route' => 'admin.connectors'],
         ['label' => 'Publishing Channels', 'route' => 'admin.publishing-channels'],
         ['label' => 'Pilot Signups', 'route' => 'admin.pilot-signups', 'badge' => $pendingPilotSignupCount],
+        ['label' => 'Contact Requests', 'route' => 'admin.contact-requests', 'badge' => $pendingContactRequestCount],
     ];
     $developer = [
+        ['label' => 'Platform', 'route' => 'admin.platform.overview', 'params' => []],
+        ['label' => 'Queues', 'route' => 'admin.platform.queues', 'params' => []],
+        ['label' => 'Webhooks', 'route' => 'admin.platform.webhooks', 'params' => []],
+        ['label' => 'Feature Flags', 'route' => 'admin.platform.feature-flags', 'params' => []],
         ['label' => 'Domain Events', 'route' => 'admin.developer-tools.show', 'params' => ['domain-events']],
         ['label' => 'Outbox Messages', 'route' => 'admin.developer-tools.show', 'params' => ['outbox-messages']],
         ['label' => 'Activity Logs', 'route' => 'admin.developer-tools.show', 'params' => ['activity-logs']],

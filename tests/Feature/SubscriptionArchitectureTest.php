@@ -20,11 +20,12 @@ class SubscriptionArchitectureTest extends TestCase
     {
         $this->seed(SubscriptionCatalogSeeder::class);
 
-        $this->assertSame(10, Module::query()->count());
+        $this->assertSame(count(config('subscriptions.modules')), Module::query()->count());
         $this->assertDatabaseHas('modules', ['key' => 'connectors']);
         $this->assertDatabaseHas('modules', ['key' => 'agentic_social']);
         $this->assertDatabaseHas('plans', ['key' => 'starter_monthly', 'billing_interval' => 'monthly']);
         $this->assertDatabaseHas('plans', ['key' => 'starter_yearly', 'billing_interval' => 'yearly']);
+        $this->assertDatabaseHas('plans', ['key' => 'enterprise_monthly', 'billing_interval' => 'monthly']);
     }
 
     public function test_account_can_activate_plan_and_inherit_modules(): void

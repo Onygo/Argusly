@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Contracts\LlmClientInterface;
+use App\Data\Llm\LlmRequest;
 use App\Models\ContentAsset;
 use App\Models\ContentTranslation;
 use App\Models\User;
@@ -15,6 +17,8 @@ class ContentTranslationService
     public function __construct(
         private readonly ContentLanguageService $languages,
         private readonly CreditService $credits,
+        private readonly LlmResolver $resolver,
+        private readonly LlmClientInterface $llm,
     ) {}
 
     /**
@@ -56,20 +60,34 @@ class ContentTranslationService
             throw new InvalidArgumentException("An active {$targetLanguage} translation already exists for this asset.");
         }
 
-        $creditTransaction = $this->credits->consume(
-            $source->account,
-            $user,
-            'content_translation',
-            "Content translation requested for {$targetLanguage}.",
-            $source,
-            [
+        $targetLocale = $this->languages->localeForLanguage($targetLanguage);
+        $llm = $this->resolver->resolve($source->account, $brand);
+        $response = $this->llm->generate(new LlmRequest(
+            provider: $llm['provider']['provider'],
+            model: $llm['model']['model'],
+            messages: [
+                [
+                    'role' => 'user',
+                    'content' => "Translate this content from {$source->language} to {$targetLanguage}:\n\n{$source->body}",
+                ],
+            ],
+            systemPrompt: 'You are Argusly translation runtime. Preserve meaning, structure and brand terminology.',
+            temperature: is_numeric($llm['temperature']) ? (float) $llm['temperature'] : null,
+            maxTokens: is_numeric($llm['max_tokens']) ? (int) $llm['max_tokens'] : null,
+            metadata: [
+                'purpose' => 'translation',
+                'account_id' => $source->account_id,
+                'brand_id' => $source->brand_id,
+                'user_id' => $user->id,
+                'fallback_provider' => $llm['fallback_provider']['provider'] ?? null,
+                'fallback_model' => $llm['fallback_model']['model'] ?? null,
                 'source_content_asset_id' => $source->id,
                 'source_language' => $source->language,
                 'target_language' => $targetLanguage,
+                'fake_content' => $source->body ?? '',
             ],
-        );
+        ));
 
-        $targetLocale = $this->languages->localeForLanguage($targetLanguage);
         $translated = ContentAsset::query()->create([
             'account_id' => $source->account_id,
             'brand_id' => $source->brand_id,
@@ -85,7 +103,7 @@ class ContentTranslationService
             'source_url' => $source->canonical_url ?? $source->source_url,
             'canonical_url' => null,
             'excerpt' => $source->excerpt,
-            'body' => $source->body,
+            'body' => $response->content,
             'metadata' => [
                 ...($source->metadata ?? []),
                 'translation' => [
@@ -110,8 +128,8 @@ class ContentTranslationService
             'target_language' => $targetLanguage,
             'target_locale' => $targetLocale,
             'status' => 'draft',
-            'provider' => 'argusly_static',
-            'model' => 'translation-foundation-v1',
+            'provider' => $response->provider,
+            'model' => $response->model,
             'input_payload' => [
                 'source_content_asset_id' => $source->id,
                 'title' => $source->title,
@@ -123,13 +141,9 @@ class ContentTranslationService
                 'target_language' => $targetLanguage,
                 'target_locale' => $targetLocale,
                 'draft_created' => true,
+                'llm_response' => $response->toArray(),
             ],
             'requested_by' => $user->id,
-        ]);
-
-        $creditTransaction->update([
-            'subject_type' => $translation->getMorphClass(),
-            'subject_id' => $translation->id,
         ]);
 
         app(DomainEventService::class)->recordForSubject('ContentTranslationRequested', $translation, $user, [
@@ -137,7 +151,7 @@ class ContentTranslationService
             'translated_content_asset_id' => $translated->id,
             'source_language' => $source->language,
             'target_language' => $targetLanguage,
-            'cost_credits' => abs($creditTransaction->amount),
+            'cost_credits' => $this->credits->cost('content_translation'),
         ], $translation->created_at);
 
         app(DomainEventService::class)->recordForSubject('ContentAssetTranslationCreated', $translated, $user, [

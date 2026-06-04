@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\AgentTask;
 use App\Models\Recommendation;
 use App\Models\User;
+use App\Services\Llm\LlmPromptRuntime;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 
@@ -32,6 +33,7 @@ class AgentTaskPlannerService
     public function __construct(
         private readonly AgentManager $agents,
         private readonly DomainEventService $events,
+        private readonly LlmPromptRuntime $llm,
     ) {}
 
     public function planForRecommendation(Recommendation $recommendation, ?User $user = null): ?AgentTask
@@ -45,6 +47,23 @@ class AgentTaskPlannerService
         }
 
         $agent = $this->matchingAgent($recommendation);
+        $response = $this->llm->generate(
+            account: $recommendation->account,
+            brand: $recommendation->brand,
+            user: $user,
+            purpose: 'agent_task',
+            messages: [[
+                'role' => 'user',
+                'content' => "Plan an agent task for this recommendation.\n\nTitle: {$recommendation->title}\n\nAction: {$recommendation->recommended_action}",
+            ]],
+            systemPrompt: 'You are Argusly agent planning runtime. Produce a concise internal task plan.',
+            fakeContent: $recommendation->recommended_action ?: $recommendation->title,
+            metadata: [
+                'recommendation_id' => $recommendation->id,
+                'action_type' => $recommendation->action_type,
+                'agent_id' => $agent->id,
+            ],
+        );
 
         $task = AgentTask::query()->updateOrCreate(
             [
@@ -66,6 +85,8 @@ class AgentTaskPlannerService
                     'action_payload' => $recommendation->action_payload,
                     'placeholder' => true,
                     'ai_execution' => 'disabled',
+                    'llm_response' => $response->toArray(),
+                    'plan' => $response->content,
                 ],
             ],
         );

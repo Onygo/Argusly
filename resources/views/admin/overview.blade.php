@@ -25,6 +25,7 @@
                     ['Create brand', 'admin.brands'],
                     ['Invite user', 'admin.users'],
                     ['Review pilot signup', 'admin.pilot-signups'],
+                    ['Review contact requests', 'admin.contact-requests'],
                     ['Assign credits', 'admin.credits'],
                     ['Enable module', 'admin.modules'],
                     ['Inspect failed jobs', 'admin.jobs'],

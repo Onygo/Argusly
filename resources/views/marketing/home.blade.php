@@ -35,7 +35,7 @@
                     Request pilot access
                     <x-app.icon name="arrow-right" class="size-4" />
                 </x-ui.button>
-                <x-ui.button href="#demo" variant="secondary" size="lg" shape="pill">Book demo</x-ui.button>
+                <x-ui.button href="{{ route('marketing.contact', ['topic' => 'sales']) }}" variant="secondary" size="lg" shape="pill">Book demo</x-ui.button>
             </div>
 
             <div class="mx-auto mt-14 max-w-5xl rounded-2xl border border-line bg-white/85 text-left backdrop-blur">
@@ -221,7 +221,7 @@
                         Request pilot access
                         <x-app.icon name="arrow-right" class="size-4" />
                     </x-ui.button>
-                    <x-ui.button href="#demo" variant="glass" shape="pill">Book demo</x-ui.button>
+                    <x-ui.button href="{{ route('marketing.contact', ['topic' => 'sales']) }}" variant="glass" shape="pill">Book demo</x-ui.button>
                 </div>
                 <div class="mt-8 flex flex-wrap justify-center gap-5 text-xs font-medium text-white/75">
                     <span>GDPR compliant setup</span><span>Core data on EU servers</span><span>EU-based email delivery</span><span>Transparent AI subprocessors</span>

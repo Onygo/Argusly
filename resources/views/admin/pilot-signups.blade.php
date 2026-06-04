@@ -25,8 +25,8 @@
             @forelse ($signups as $signup)
                 @php
                     $metadata = json_decode((string) $signup->metadata, true) ?: [];
-                    $mailtoSubject = rawurlencode('Argusly pilot request');
-                    $mailtoBody = rawurlencode("Hi {$signup->name},\n\nThanks for requesting an Argusly pilot. I reviewed your request and would like to schedule the next step.\n\nBest,\nArgusly");
+                    $activation = $metadata['activation'] ?? [];
+                    $followUp = $metadata['follow_up'] ?? [];
                 @endphp
 
                 <article class="rounded-md border border-line bg-white p-5">
@@ -51,7 +51,12 @@
                         </div>
 
                         <div class="flex flex-wrap gap-2">
-                            <a href="mailto:{{ $signup->email }}?subject={{ $mailtoSubject }}&body={{ $mailtoBody }}" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">Send follow-up</a>
+                            <form method="POST" action="{{ route('admin.pilot-signups.follow-up', $signup->id) }}">
+                                @csrf
+                                <button type="submit" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">
+                                    {{ $followUp ? 'Resend follow-up' : 'Send follow-up' }}
+                                </button>
+                            </form>
                             <a href="{{ route('admin.accounts') }}?q={{ urlencode($signup->company) }}" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">Find account</a>
                             <a href="{{ route('admin.accounts') }}" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">Create account</a>
                         </div>
@@ -110,10 +115,15 @@
                             <div class="mt-5 border-t border-line pt-4">
                                 <p class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Next setup</p>
                                 <div class="mt-3 grid gap-2">
-                                    <a href="{{ route('admin.brands') }}" class="text-sm font-semibold text-ink hover:underline">Create brand</a>
-                                    <a href="{{ route('admin.users') }}" class="text-sm font-semibold text-ink hover:underline">Create or assign user</a>
-                                    <a href="{{ route('admin.modules') }}" class="text-sm font-semibold text-ink hover:underline">Enable modules</a>
-                                    <a href="{{ route('admin.credits') }}" class="text-sm font-semibold text-ink hover:underline">Grant pilot credits</a>
+                                    @if ($activation)
+                                        <a href="{{ route('admin.accounts.show', $activation['account_id']) }}" class="text-sm font-semibold text-emerald-700 hover:underline">Account created</a>
+                                        <a href="{{ route('admin.brands') }}?q={{ urlencode($signup->company) }}" class="text-sm font-semibold text-emerald-700 hover:underline">Brand created</a>
+                                        <a href="{{ route('admin.users') }}?q={{ urlencode($signup->email) }}" class="text-sm font-semibold text-emerald-700 hover:underline">User assigned</a>
+                                        <a href="{{ route('admin.modules') }}" class="text-sm font-semibold text-emerald-700 hover:underline">Modules enabled</a>
+                                        <a href="{{ route('admin.credits') }}" class="text-sm font-semibold text-emerald-700 hover:underline">Pilot credits granted</a>
+                                    @else
+                                        <span class="text-sm font-semibold text-muted">Activate pilot to create account, brand, user access, modules and credits automatically.</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>

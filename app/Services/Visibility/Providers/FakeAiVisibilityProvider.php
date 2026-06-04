@@ -45,9 +45,9 @@ class FakeAiVisibilityProvider implements AiVisibilityProviderInterface
             'language' => $language,
             'detected_language' => $language,
             'market' => $market,
-            'answer' => $visible
+            'answer' => (string) ($context['answer'] ?? ($visible
                 ? "{$this->name} fake answer mentions {$brand} as a relevant option for {$query}."
-                : "{$this->name} fake answer discusses {$query} without a strong brand mention.",
+                : "{$this->name} fake answer discusses {$query} without a strong brand mention.")),
             'citations' => [
                 [
                     'url' => "https://{$domain}/visibility-reference",

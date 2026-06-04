@@ -10,12 +10,12 @@
             @endif
         </div>
 
-        <div class="mt-6">
+        <div class="mt-6 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
             <x-settings.nav />
-        </div>
 
-        <div class="mt-6">
-            {{ $slot }}
+            <div class="min-w-0">
+                {{ $slot }}
+            </div>
         </div>
     </div>
 </x-app.layout>

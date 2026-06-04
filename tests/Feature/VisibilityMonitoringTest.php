@@ -13,6 +13,7 @@ use App\Models\VisibilityCitation;
 use App\Models\VisibilityPromptTemplate;
 use App\Models\VisibilityProviderRun;
 use App\Models\VisibilityResult;
+use App\Services\CreditService;
 use App\Services\Subscriptions\SubscriptionService;
 use App\Services\VisibilityMonitoringService;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -436,6 +437,7 @@ class VisibilityMonitoringTest extends TestCase
         $user->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
         $user->roles()->attach($role, ['account_id' => $account->id]);
         app(SubscriptionService::class)->activatePlan($account, 'starter_monthly');
+        app(CreditService::class)->grant($account, 1000, $user, 'Test LLM credits');
 
         return [$user, $account, $brand];
     }

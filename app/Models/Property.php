@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -85,6 +86,14 @@ class Property extends Model
     public function ga4Properties(): HasMany
     {
         return $this->hasMany(Ga4Property::class);
+    }
+
+    /**
+     * @return HasOne<AnalyticsSite, $this>
+     */
+    public function analyticsSite(): HasOne
+    {
+        return $this->hasOne(AnalyticsSite::class);
     }
 
     protected function casts(): array
