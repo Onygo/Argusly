@@ -15,19 +15,6 @@ return [
 
     'default' => env('QUEUE_CONNECTION', 'database'),
 
-    'names' => [
-        'default' => env('QUEUE_NAME_DEFAULT', 'default'),
-        'critical' => env('QUEUE_NAME_CRITICAL', 'critical'),
-        'ai' => env('QUEUE_NAME_AI', 'ai'),
-        'intelligence' => env('QUEUE_NAME_INTELLIGENCE', 'intelligence'),
-        'publishing' => env('QUEUE_NAME_PUBLISHING', 'publishing'),
-        'webhooks' => env('QUEUE_NAME_WEBHOOKS', 'webhooks'),
-        'integrations' => env('QUEUE_NAME_INTEGRATIONS', 'integrations'),
-        'mail' => env('QUEUE_NAME_MAIL', 'mail'),
-        'maintenance' => env('QUEUE_NAME_MAINTENANCE', 'maintenance'),
-        'source_sync' => env('QUEUE_NAME_SOURCE_SYNC', env('QUEUE_NAME_INTEGRATIONS', 'integrations')),
-    ],
-
     /*
     |--------------------------------------------------------------------------
     | Queue Connections
@@ -53,7 +40,7 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 3900),
             'after_commit' => false,
         ],
 
@@ -81,7 +68,7 @@ return [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
             'queue' => env('REDIS_QUEUE', 'default'),
-            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env('REDIS_QUEUE_RETRY_AFTER', 3900),
             'block_for' => null,
             'after_commit' => false,
         ],

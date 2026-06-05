@@ -2,65 +2,41 @@
 
 namespace App\Policies;
 
-use App\Contracts\CurrentAccountContract;
-use App\Contracts\CurrentBrandContract;
 use App\Models\SocialPost;
 use App\Models\User;
-use App\Services\SocialProfiles\SocialProfileService;
-use Illuminate\Auth\Access\Response;
-use Illuminate\Support\Facades\Gate;
 
 class SocialPostPolicy
 {
-    public function viewAny(User $user): Response
+    public function connect(User $user): bool
     {
-        return Gate::forUser($user)->allows('view_content')
-            ? Response::allow()
-            : Response::deny();
+        return $this->hasRole($user, ['owner', 'admin', 'superadmin']);
     }
 
-    public function view(User $user, SocialPost $socialPost): Response
+    public function approve(User $user, SocialPost $post): bool
     {
-        return $this->matchesCurrentBrand($user, $socialPost)
-            && app(SocialProfileService::class)->canView($user, $socialPost->socialProfile, $socialPost->account, $socialPost->brand)
-                ? Response::allow()
-                : Response::deny();
+        return $this->sameOrganization($user, $post) && $this->hasRole($user, ['owner', 'admin', 'editor', 'superadmin']);
     }
 
-    public function create(User $user): Response
+    public function schedule(User $user, SocialPost $post): bool
     {
-        return Gate::forUser($user)->allows('create_content')
-            ? Response::allow()
-            : Response::deny();
+        return $this->sameOrganization($user, $post) && $this->hasRole($user, ['owner', 'admin', 'superadmin']);
     }
 
-    public function approve(User $user, SocialPost $socialPost): Response
+    public function publish(User $user, SocialPost $post): bool
     {
-        return $this->matchesCurrentBrand($user, $socialPost)
-            && app(SocialProfileService::class)->canPrepare($user, $socialPost->socialProfile, $socialPost->account, $socialPost->brand)
-                ? Response::allow()
-                : Response::deny();
+        return $this->schedule($user, $post);
     }
 
-    public function schedule(User $user, SocialPost $socialPost): Response
+    /**
+     * @param array<int,string> $roles
+     */
+    private function hasRole(User $user, array $roles): bool
     {
-        return $this->matchesCurrentBrand($user, $socialPost)
-            && app(SocialProfileService::class)->canSchedule($user, $socialPost->socialProfile, $socialPost->account, $socialPost->brand)
-                ? Response::allow()
-                : Response::deny();
+        return in_array((string) $user->role, $roles, true);
     }
 
-    public function publish(User $user, SocialPost $socialPost): Response
+    private function sameOrganization(User $user, SocialPost $post): bool
     {
-        return $this->matchesCurrentBrand($user, $socialPost)
-            && app(SocialProfileService::class)->canPublish($user, $socialPost->socialProfile, $socialPost->account, $socialPost->brand)
-                ? Response::allow()
-                : Response::deny();
-    }
-
-    private function matchesCurrentBrand(User $user, SocialPost $socialPost): bool
-    {
-        return app(CurrentAccountContract::class)->id($user) === $socialPost->account_id
-            && app(CurrentBrandContract::class)->id($user) === $socialPost->brand_id;
+        return (int) $post->organization_id === (int) $user->organization_id;
     }
 }

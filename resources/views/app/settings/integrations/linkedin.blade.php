@@ -1,147 +1,119 @@
-<x-app.settings.layout title="LinkedIn integration" description="Personal LinkedIn profile connections for the current account and brand.">
-    <div class="space-y-6">
-        <x-ui.card class="p-5">
-            @if (session('linkedin_status'))
-                <div class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                    {{ session('linkedin_status') }}
-                </div>
-            @endif
+@extends('layouts.app', ['title' => 'LinkedIn Integration'])
 
-            @if (session('linkedin_error'))
-                <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                    {{ session('linkedin_error') }}
-                </div>
-            @endif
+@section('content')
+    <div class="mx-auto max-w-4xl space-y-6">
+        <div>
+            <p class="text-sm text-textSecondary">Settings / Integrations</p>
+            <h1 class="text-xl font-semibold text-textPrimary">LinkedIn</h1>
+        </div>
 
-            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                <div>
-                    <h2 class="text-base font-semibold text-ink">Status</h2>
-                    <p class="mt-1 text-sm text-muted">
-                        {{ $provider->oauthConfigured() ? 'OAuth ready' : 'OAuth credentials not configured yet' }}
-                    </p>
-                    <p class="mt-2 text-sm text-muted">
-                        {{ $brand ? 'Brand scope: '.$brand->name : 'Account scope: '.$account->name }}
-                    </p>
+        @if (session('status'))
+            <x-alert>{{ session('status') }}</x-alert>
+        @endif
+
+        @if ($errors->any())
+            <div class="rounded-md border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">{{ $errors->first() }}</div>
+        @endif
+
+        <section class="rounded-lg border border-border bg-surface p-5">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background">
+                        <i data-lucide="linkedin" class="h-4 w-4 text-textSecondary"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-base font-semibold text-textPrimary">Connection</h2>
+                        <p class="mt-1 text-sm text-textSecondary">
+                            {{ $accounts->filter(fn ($item) => $item->isConnected())->count() }} connected LinkedIn identity/identities in this workspace.
+                        </p>
+                    </div>
                 </div>
-                <x-ui.badge>{{ $provider->oauthConfigured() ? 'Ready' : 'Needs credentials' }}</x-ui.badge>
+                <span class="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-textSecondary">
+                    {{ $accounts->count() }} account(s)
+                </span>
             </div>
-        </x-ui.card>
 
-        <x-ui.card class="p-5">
-            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                    <h2 class="text-base font-semibold text-ink">Personal profile connection</h2>
-                    <p class="mt-1 text-sm text-muted">Connect a personal LinkedIn profile for member publishing.</p>
-                </div>
-                @if ($provider->oauthConfigured())
-                    <a href="{{ route('settings.integrations.linkedin.connect') }}" class="inline-flex items-center justify-center rounded-md border border-line px-3 py-2 text-sm font-medium text-ink transition hover:border-ink">
-                        Connect LinkedIn
+            <div class="mt-5 flex flex-wrap gap-3">
+                @if ($linkedinEnabled && $canManageLinkedIn)
+                    <a href="{{ route('app.settings.integrations.linkedin.connect', ['workspace_id' => $workspace->id]) }}" class="pl-btn-primary">
+                        <i data-lucide="link" class="h-4 w-4"></i>
+                        <span>Connect LinkedIn</span>
                     </a>
                 @else
-                    <button type="button" disabled class="inline-flex cursor-not-allowed items-center justify-center rounded-md border border-line px-3 py-2 text-sm font-medium text-muted">
-                        Connect LinkedIn
+                    <button class="pl-btn-secondary opacity-60" disabled>
+                        <i data-lucide="link" class="h-4 w-4"></i>
+                        <span>Connect LinkedIn</span>
                     </button>
                 @endif
             </div>
-        </x-ui.card>
 
-        <x-ui.card class="p-5">
-            <h2 class="text-base font-semibold text-ink">Permissions</h2>
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                @foreach ($provider->scopes() as $scope)
-                    <div class="rounded-md border border-line p-3">
-                        <p class="text-sm font-medium text-ink">{{ $scope }}</p>
-                        <p class="mt-1 text-xs text-muted">Required for personal profile identity, email access, or member publishing.</p>
-                    </div>
-                @endforeach
-            </div>
-
-            <h3 class="mt-5 text-sm font-semibold text-ink">Future organization/page scopes</h3>
-            <div class="mt-3 flex flex-wrap gap-2">
-                @foreach ($provider->futureScopes() as $scope)
-                    <x-ui.badge>{{ $scope }}</x-ui.badge>
-                @endforeach
-            </div>
-        </x-ui.card>
-
-        <x-ui.card class="p-5">
-            <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-start">
-                <div>
-                    <h2 class="text-base font-semibold text-ink">Connected profiles</h2>
-                    <p class="mt-1 text-sm text-muted">Personal profile connections available to this account and brand.</p>
-                </div>
-                <x-ui.badge>{{ $connections->where('status', 'active')->count() }} connected</x-ui.badge>
-            </div>
-
-            @if ($connections->isEmpty())
-                <div class="mt-4 rounded-md border border-dashed border-line p-4 text-sm text-muted">
-                    No LinkedIn profiles connected yet.
-                </div>
-            @else
-                <div class="mt-4 space-y-3">
-                    @foreach ($connections as $connection)
-                        <div class="flex flex-col justify-between gap-3 rounded-md border border-line p-4 sm:flex-row sm:items-center">
-                            <div>
-                                <div class="flex items-center gap-3">
-                                    @if ($connection->metadata['avatar_url'] ?? null)
-                                        <img src="{{ $connection->metadata['avatar_url'] }}" alt="" class="h-9 w-9 rounded-full object-cover">
-                                    @endif
-                                    <div>
-                                        <p class="text-sm font-medium text-ink">{{ $connection->provider_account_name ?? $connection->name }}</p>
-                                        <p class="mt-1 text-xs text-muted">{{ $connection->brand ? $connection->brand->name : $account->name }} · {{ str($connection->status)->headline() }}</p>
-                                    </div>
-                                </div>
-                                @if (in_array($connection->status, ['error', 'expired'], true))
-                                    <p class="mt-2 text-xs text-red-700">{{ $connection->metadata['token_error_message'] ?? $connection->metadata['error_message'] ?? 'LinkedIn profile needs attention.' }}</p>
-                                @elseif ($connection->metadata['profile_url'] ?? null)
-                                    <a href="{{ $connection->metadata['profile_url'] }}" target="_blank" rel="noreferrer" class="mt-2 inline-flex text-xs font-medium text-ink underline">
-                                        View LinkedIn profile
-                                    </a>
-                                @endif
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                @if (in_array($connection->status, ['error', 'expired'], true) && $provider->oauthConfigured())
-                                    <a href="{{ route('settings.integrations.linkedin.connect') }}" class="inline-flex items-center justify-center rounded-md border border-line px-3 py-2 text-sm font-medium text-ink transition hover:border-ink">
-                                        Reconnect
-                                    </a>
-                                @endif
-                                <form method="POST" action="{{ route('settings.integrations.linkedin.disconnect', $connection) }}">
+            <div class="mt-5 divide-y divide-border rounded-md border border-border bg-background">
+                @forelse ($accounts as $linkedInAccount)
+                    <div class="flex flex-col gap-3 p-3 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-textPrimary">{{ $linkedInAccount->display_name }}</p>
+                            <p class="mt-1 text-xs text-textSecondary">
+                                {{ ucfirst((string) $linkedInAccount->account_type) }}
+                                · {{ $linkedInAccount->ownerLabel() }}
+                                · {{ $linkedInAccount->provider_member_urn ?: $linkedInAccount->platform_account_id ?: 'OAuth placeholder' }}
+                            </p>
+                            <p class="mt-1 text-xs text-textSecondary">Token {{ $linkedInAccount->expires_at?->isPast() ? 'expired' : 'active' }}{{ $linkedInAccount->expires_at ? ' until '.$linkedInAccount->expires_at->toDayDateTimeString() : '' }}</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-textSecondary">
+                                {{ $linkedInAccount->isConnected() ? 'Connected' : ucfirst(str_replace('_', ' ', (string) ($linkedInAccount->status?->value ?? $linkedInAccount->status))) }}
+                            </span>
+                            @if ($linkedInAccount->isConnected() && $canManageLinkedIn)
+                                <form method="POST" action="{{ route('app.settings.integrations.linkedin.disconnect', ['workspace_id' => $workspace->id]) }}">
                                     @csrf
-                                    <button type="submit" class="inline-flex items-center justify-center rounded-md border border-line px-3 py-2 text-sm font-medium text-ink transition hover:border-ink">
-                                        Disconnect
+                                    <input type="hidden" name="account_id" value="{{ $linkedInAccount->id }}">
+                                    <button class="pl-btn-secondary">
+                                        <i data-lucide="unlink" class="h-4 w-4"></i>
+                                        <span>Disconnect</span>
                                     </button>
                                 </form>
-                            </div>
+                            @endif
                         </div>
-                    @endforeach
-                </div>
-            @endif
-        </x-ui.card>
-
-        <x-ui.card class="p-5">
-            <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                <div>
-                    <h2 class="text-base font-semibold text-ink">Pages</h2>
-                    <p class="mt-1 text-sm font-medium text-ink">Organization publishing requires LinkedIn approval</p>
-                    <p class="mt-1 text-sm text-muted">LinkedIn pages will appear here after organization scopes and page roles are approved.</p>
-                </div>
-                <x-ui.badge>Approval required</x-ui.badge>
-            </div>
-
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                @foreach (['r_organization_social', 'w_organization_social'] as $scope)
-                    <div class="rounded-md border border-line p-3">
-                        <p class="text-sm font-medium text-ink">{{ $scope }}</p>
-                        <p class="mt-1 text-xs text-muted">
-                            {{ collect($connections)->contains(fn ($connection) => in_array($scope, $connection->scopes ?? [], true)) ? 'Granted on at least one connection' : 'Not granted' }}
-                        </p>
                     </div>
-                @endforeach
+                @empty
+                    <div class="p-3 text-sm text-textSecondary">No LinkedIn identities connected yet.</div>
+                @endforelse
             </div>
+        </section>
 
-            <div class="mt-4 rounded-md border border-dashed border-line p-4 text-sm text-muted">
-                Placeholder list of pages. Reconnect LinkedIn after LinkedIn approves organization social scopes, then validate page roles before enabling publishing.
+        @if ($accounts->filter(fn ($item) => $item->isConnected())->isEmpty())
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <h2 class="text-base font-semibold text-textPrimary">Setup Required</h2>
+                <div class="mt-4 grid gap-3">
+                    <div class="rounded-md border border-border bg-background p-3">
+                        <p class="text-sm font-medium text-textPrimary">1. Enable the LinkedIn app credentials</p>
+                        <p class="mt-1 text-sm text-textSecondary">Set <code>LINKEDIN_CLIENT_ID</code>, <code>LINKEDIN_CLIENT_SECRET</code>, <code>LINKEDIN_REDIRECT_URI</code>, and <code>LINKEDIN_ENABLED=true</code>.</p>
+                    </div>
+                    <div class="rounded-md border border-border bg-background p-3">
+                        <p class="text-sm font-medium text-textPrimary">2. Add this redirect URL in LinkedIn Developer</p>
+                        <p class="mt-1 break-all text-sm text-textSecondary">{{ $configuredRedirectUri ?: 'No redirect URL configured.' }}</p>
+                    </div>
+                    <div class="rounded-md border border-border bg-background p-3">
+                        <p class="text-sm font-medium text-textPrimary">3. Connect as a workspace owner or admin</p>
+                        <p class="mt-1 text-sm text-textSecondary">{{ $canManageLinkedIn ? 'Your role can connect LinkedIn once the integration is enabled.' : 'Ask a workspace owner or admin to connect the LinkedIn account.' }}</p>
+                    </div>
+                </div>
+            </section>
+        @endif
+
+        <section class="rounded-lg border border-border bg-surface p-5">
+            <h2 class="text-base font-semibold text-textPrimary">Publishing Safety</h2>
+            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                <div class="rounded-md border border-border bg-background p-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">Integration</p>
+                    <p class="mt-1 text-sm text-textPrimary">{{ $linkedinEnabled ? 'Enabled' : 'Disabled' }}</p>
+                </div>
+                <div class="rounded-md border border-border bg-background p-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">Publishing</p>
+                    <p class="mt-1 text-sm text-textPrimary">{{ $publishingEnabled ? 'Enabled' : 'Disabled by default' }}</p>
+                </div>
             </div>
-        </x-ui.card>
+            <p class="mt-4 text-sm text-textSecondary">Human approval is required before posts can be scheduled or published. The MVP supports personal profile text and article shares first.</p>
+        </section>
     </div>
-</x-app.settings.layout>
+@endsection

@@ -2,100 +2,76 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\RecordsDomainEvents;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Agents\Support\AgentRunStatus;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
-use InvalidArgumentException;
 
-#[Fillable([
-    'agent_id',
-    'account_id',
-    'brand_id',
-    'started_at',
-    'completed_at',
-    'status',
-    'result',
-])]
 class AgentRun extends Model
 {
-    use HasFactory, RecordsDomainEvents;
+    use HasUuids;
 
-    public const STATUSES = ['queued', 'running', 'completed', 'failed', 'cancelled'];
+    protected $fillable = [
+        'agent_key',
+        'trigger_type',
+        'trigger_source',
+        'status',
+        'organization_id',
+        'workspace_id',
+        'site_id',
+        'content_id',
+        'draft_id',
+        'user_id',
+        'workflow_run_id',
+        'workflow_step_key',
+        'input_payload',
+        'output_payload',
+        'summary',
+        'error_message',
+        'started_at',
+        'finished_at',
+    ];
 
-    protected static function booted(): void
+    protected $casts = [
+        'status' => AgentRunStatus::class,
+        'input_payload' => 'array',
+        'output_payload' => 'array',
+        'started_at' => 'datetime',
+        'finished_at' => 'datetime',
+    ];
+
+    public function organization(): BelongsTo
     {
-        static::creating(function (AgentRun $run): void {
-            $run->uuid ??= (string) Str::uuid();
-            $run->status ??= 'queued';
-        });
-
-        static::saving(function (AgentRun $run): void {
-            if (! in_array($run->status, self::STATUSES, true)) {
-                throw new InvalidArgumentException("Invalid agent run status [{$run->status}].");
-            }
-
-            if ($run->brand_id !== null) {
-                $brand = Brand::query()->find($run->brand_id);
-
-                if (! $brand || $brand->account_id !== $run->account_id) {
-                    throw new InvalidArgumentException('Agent run brand must belong to the run account.');
-                }
-            }
-        });
+        return $this->belongsTo(Organization::class);
     }
 
-    /**
-     * @return BelongsTo<Agent, $this>
-     */
-    public function agent(): BelongsTo
+    public function workspace(): BelongsTo
     {
-        return $this->belongsTo(Agent::class);
+        return $this->belongsTo(Workspace::class);
     }
 
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
+    public function site(): BelongsTo
     {
-        return $this->belongsTo(Account::class);
+        return $this->belongsTo(ClientSite::class, 'site_id');
     }
 
-    /**
-     * @return BelongsTo<Brand, $this>
-     */
-    public function brand(): BelongsTo
+    public function content(): BelongsTo
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsTo(Content::class);
     }
 
-    /**
-     * @return HasMany<AgentTask, $this>
-     */
-    public function tasks(): HasMany
+    public function draft(): BelongsTo
     {
-        return $this->hasMany(AgentTask::class);
+        return $this->belongsTo(Draft::class);
     }
 
-    /**
-     * @param  Builder<AgentRun>  $query
-     * @return Builder<AgentRun>
-     */
-    public function scopeRecent(Builder $query): Builder
+    public function user(): BelongsTo
     {
-        return $query->latest('started_at')->latest();
+        return $this->belongsTo(User::class);
     }
 
-    protected function casts(): array
+    public function workflowRun(): BelongsTo
     {
-        return [
-            'started_at' => 'datetime',
-            'completed_at' => 'datetime',
-            'result' => 'array',
-        ];
+        return $this->belongsTo(AgentWorkflowRun::class, 'workflow_run_id');
     }
 }

@@ -1,81 +1,86 @@
-<x-app.layout title="Notifications | Argusly">
-    <div class="w-full">
-        <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-            <div>
-                <p class="eyebrow">Notification center</p>
-                <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Notifications</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">In-app notifications for {{ $account->name }}{{ $brand ? ' and '.$brand->name : '' }}. Email, Slack and webhook channels are preference-ready for later delivery.</p>
-            </div>
-            <x-ui.badge variant="blue">{{ $unreadCount }} unread</x-ui.badge>
+@extends('layouts.app', ['title' => 'Notifications'])
+
+@section('content')
+    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Notifications</h1>
+            <p class="mt-1 text-textSecondary">Action required, system updates, and announcements.</p>
         </div>
 
-        <div class="mt-8 grid gap-6 xl:grid-cols-[1fr_0.85fr]">
-            <x-ui.card class="overflow-hidden">
-                <div class="border-b border-line bg-panel px-5 py-4">
-                    <h2 class="text-base font-semibold text-ink">Inbox</h2>
-                </div>
-                @forelse ($events as $event)
-                    <div class="border-b border-line px-5 py-4 last:border-b-0">
-                        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-                            <div>
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <x-ui.badge>{{ str($event->type)->replace('_', ' ')->headline() }}</x-ui.badge>
-                                    @if (! $event->read_at)
-                                        <span class="rounded-full bg-blue/10 px-2 py-1 text-xs font-semibold text-blue">Unread</span>
-                                    @endif
-                                </div>
-                                <h3 class="mt-3 text-sm font-semibold text-ink">{{ $event->title }}</h3>
-                                <p class="mt-1 text-sm leading-6 text-muted">{{ $event->body }}</p>
-                                <time class="mt-2 block text-xs text-muted" datetime="{{ $event->created_at?->toIso8601String() }}">{{ $event->created_at?->diffForHumans() }}</time>
-                            </div>
-                            @if (! $event->read_at)
-                                <form method="POST" action="{{ route('app.notifications.read', $event) }}">
-                                    @csrf
-                                    <x-ui.button type="submit" variant="secondary" size="sm">Mark read</x-ui.button>
-                                </form>
-                            @endif
-                        </div>
-                    </div>
-                @empty
-                    <x-dashboard.empty-state title="No notifications" message="Domain events will create in-app notifications when enabled by your preferences." />
-                @endforelse
-            </x-ui.card>
-
-            <x-ui.card class="p-5">
-                <div>
-                    <h2 class="text-base font-semibold text-ink">Preferences</h2>
-                    <p class="mt-1 text-sm text-muted">Manage notification channels for this account context.</p>
-                </div>
-
-                <form method="POST" action="{{ route('app.notifications.preferences') }}" class="mt-5 space-y-4">
-                    @csrf
-                    <div class="overflow-hidden rounded-md border border-line">
-                        <div class="grid grid-cols-[1fr_repeat(4,72px)] gap-2 border-b border-line bg-panel px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-muted">
-                            <span>Type</span>
-                            @foreach ($channels as $channel)
-                                <span class="text-center">{{ str($channel)->headline() }}</span>
-                            @endforeach
-                        </div>
-                        @foreach ($types as $type)
-                            <div class="grid grid-cols-[1fr_repeat(4,72px)] gap-2 border-b border-line px-3 py-3 last:border-b-0">
-                                <span class="text-sm font-semibold text-ink">{{ str($type)->replace('_', ' ')->headline() }}</span>
-                                @foreach ($channels as $channel)
-                                    <label class="flex items-center justify-center">
-                                        <input
-                                            type="checkbox"
-                                            name="preferences[{{ $type }}][{{ $channel }}]"
-                                            value="1"
-                                            @checked($preferences[$type][$channel] ?? false)
-                                            class="size-4 rounded border-line text-blue"
-                                        >
-                                    </label>
-                                @endforeach
-                            </div>
-                        @endforeach
-                    </div>
-                    <x-ui.button type="submit">Save preferences</x-ui.button>
-                </form>
-            </x-ui.card>
-        </div>
+        @if ($filters['workspace_id'] !== '')
+            <form method="POST" action="{{ route('app.notifications.read-all') }}">
+                @csrf
+                <input type="hidden" name="workspace_id" value="{{ $filters['workspace_id'] }}">
+                <button type="submit" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">
+                    Mark all read
+                </button>
+            </form>
+        @endif
     </div>
-</x-app.layout>
+
+    <form method="GET" class="mb-4 grid gap-2 md:grid-cols-4">
+        <select name="workspace_id" class="pl-select bg-surface">
+            @foreach ($workspaces as $workspace)
+                <option value="{{ $workspace->id }}" @selected($filters['workspace_id'] === (string) $workspace->id)>{{ $workspace->name }}</option>
+            @endforeach
+        </select>
+
+        <select name="type" class="pl-select bg-surface">
+            <option value="">All types</option>
+            <option value="action_required" @selected($filters['type'] === 'action_required')>Action required</option>
+            <option value="announcement" @selected($filters['type'] === 'announcement')>Announcement</option>
+            <option value="system" @selected($filters['type'] === 'system')>System</option>
+        </select>
+
+        <label class="flex items-center gap-2 rounded border border-border px-3 py-2 text-sm text-textSecondary">
+            <input type="checkbox" name="unread_only" value="1" @checked($filters['unread_only'])>
+            Unread only
+        </label>
+
+        <div class="flex gap-2">
+            <button class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Filter</button>
+            <a href="{{ route('app.notifications.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textSecondary hover:bg-surfaceSubtle">Reset</a>
+        </div>
+    </form>
+
+    <div class="space-y-3">
+        @forelse ($notifications as $notification)
+            <div class="rounded-lg border border-border bg-surface p-4 {{ $notification->read_at ? '' : 'ring-1 ring-accentYellow-300/40' }}">
+                <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-textPrimary">{{ $notification->title }}</span>
+                            @if (! $notification->read_at)
+                                <span class="inline-flex h-2.5 w-2.5 rounded-full bg-primary"></span>
+                            @endif
+                            <span class="rounded border border-border px-2 py-0.5 text-[11px] uppercase tracking-wide text-textSecondary">{{ str_replace('_', ' ', $notification->type) }}</span>
+                        </div>
+                        @if ($notification->body)
+                            <p class="mt-1 text-sm text-textSecondary">{{ $notification->body }}</p>
+                        @endif
+                        <p class="mt-1 text-xs text-textFaint">{{ optional($notification->created_at)->diffForHumans() }}</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 md:justify-end">
+                        @if ($notification->cta_url && $notification->cta_label)
+                            <a href="{{ $notification->cta_url }}" class="rounded border border-border px-3 py-1.5 text-xs text-textPrimary hover:bg-surfaceSubtle">
+                                {{ $notification->cta_label }}
+                            </a>
+                        @endif
+                        @if (! $notification->read_at)
+                            <form method="POST" action="{{ route('app.notifications.read', $notification) }}">
+                                @csrf
+                                <button type="submit" class="rounded border border-border px-3 py-1.5 text-xs text-textSecondary hover:bg-surfaceSubtle">Mark read</button>
+                            </form>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @empty
+            <div class="rounded-lg border border-border bg-surface p-6 text-sm text-textSecondary">
+                No notifications found.
+            </div>
+        @endforelse
+    </div>
+
+    <div class="mt-4">{{ $notifications->links() }}</div>
+@endsection

@@ -1,0 +1,325 @@
+<?php
+
+use App\Enums\EarlyAccessSignupStatus;
+use App\Mail\EarlyAccessInvitationMail;
+use App\Models\EarlyAccessInvite;
+use App\Models\EarlyAccessPilotCost;
+use App\Models\EarlyAccessSignup;
+use App\Models\LlmRequest;
+use App\Models\Organization;
+use App\Models\User;
+use App\Models\Workspace;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+
+uses(RefreshDatabase::class);
+
+it('allows admin access to the early access list and blocks non admins', function () {
+    $admin = makeEarlyAccessAdmin('admin');
+    $user = makeEarlyAccessRegularUser();
+
+    $signup = EarlyAccessSignup::query()->create([
+        'full_name' => 'Access Candidate',
+        'email' => 'candidate@example.com',
+        'status' => EarlyAccessSignupStatus::NEW,
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.early-access.index'))
+        ->assertOk()
+        ->assertSee($signup->email);
+
+    $this->actingAs($user)
+        ->get(route('admin.early-access.index'))
+        ->assertStatus(403);
+});
+
+it('supports review approve reject and note updates', function () {
+    $admin = makeEarlyAccessAdmin('admin');
+
+    $signup = EarlyAccessSignup::query()->create([
+        'full_name' => 'Status Candidate',
+        'email' => 'status@example.com',
+        'status' => EarlyAccessSignupStatus::NEW,
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.review', $signup))
+        ->assertRedirect();
+
+    $signup->refresh();
+    expect($signup->status)->toBe(EarlyAccessSignupStatus::REVIEWED)
+        ->and($signup->reviewed_at)->not->toBeNull();
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.approve', $signup))
+        ->assertRedirect();
+
+    $signup->refresh();
+    expect($signup->status)->toBe(EarlyAccessSignupStatus::APPROVED)
+        ->and($signup->approved_at)->not->toBeNull();
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.notes.update', $signup), [
+            'internal_notes' => 'Strong fit for the current rollout.',
+        ])
+        ->assertRedirect();
+
+    $signup->refresh();
+    expect((string) $signup->internal_notes)->toContain('Strong fit');
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.reject', $signup))
+        ->assertRedirect();
+
+    $signup->refresh();
+    expect($signup->status)->toBe(EarlyAccessSignupStatus::REJECTED)
+        ->and($signup->rejected_at)->not->toBeNull();
+});
+
+it('sends and resends early access invites from the admin flow', function () {
+    Mail::fake();
+
+    $admin = makeEarlyAccessAdmin('admin');
+    $signup = makeApprovedEarlyAccessSignup();
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.send-invite', $signup))
+        ->assertRedirect();
+
+    $signup->refresh();
+    $firstInvite = EarlyAccessInvite::query()->where('early_access_signup_id', $signup->id)->latest('created_at')->first();
+
+    expect($signup->status)->toBe(EarlyAccessSignupStatus::INVITED)
+        ->and($signup->invited_at)->not->toBeNull()
+        ->and($firstInvite)->not->toBeNull()
+        ->and((string) $firstInvite?->token)->not->toStartWith('s:');
+
+    Mail::assertSent(EarlyAccessInvitationMail::class, 1);
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.resend-invite', $signup))
+        ->assertRedirect();
+
+    $invites = EarlyAccessInvite::query()
+        ->where('early_access_signup_id', $signup->id)
+        ->orderBy('created_at')
+        ->get();
+
+    expect($invites)->toHaveCount(2)
+        ->and($invites->first()->expires_at)->not->toBeNull()
+        ->and($invites->last()->accepted_at)->toBeNull();
+
+    Mail::assertSent(EarlyAccessInvitationMail::class, 2);
+});
+
+it('does not allow invites for rejected signups', function () {
+    Mail::fake();
+
+    $admin = makeEarlyAccessAdmin('admin');
+    $signup = EarlyAccessSignup::query()->create([
+        'full_name' => 'Rejected Candidate',
+        'email' => 'rejected@example.com',
+        'status' => EarlyAccessSignupStatus::REJECTED,
+        'submitted_at' => now(),
+        'rejected_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->from(route('admin.early-access.show', $signup))
+        ->post(route('admin.early-access.send-invite', $signup))
+        ->assertRedirect(route('admin.early-access.show', $signup))
+        ->assertSessionHasErrors('early_access');
+
+    expect(EarlyAccessInvite::query()->count())->toBe(0);
+    Mail::assertNothingSent();
+});
+
+it('tracks manual and ai pilot costs for an early access signup', function () {
+    $admin = makeEarlyAccessAdmin('admin');
+    $organization = Organization::query()->create([
+        'name' => 'Pilot Org',
+        'slug' => 'pilot-org-' . Str::lower(Str::random(8)),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+    $workspace = Workspace::query()->create([
+        'name' => 'Pilot Workspace',
+        'display_name' => 'Pilot Workspace',
+        'organization_id' => $organization->id,
+    ]);
+    $signup = makeApprovedEarlyAccessSignup([
+        'status' => EarlyAccessSignupStatus::ACTIVATED,
+        'activated_at' => now(),
+        'workspace_id' => $workspace->id,
+    ]);
+
+    LlmRequest::query()->create([
+        'workspace_id' => $workspace->id,
+        'feature' => 'draft.generate',
+        'provider' => 'openai',
+        'model' => 'gpt-test',
+        'input_tokens' => 1000,
+        'output_tokens' => 500,
+        'total_tokens' => 1500,
+        'credits_consumed' => 4,
+        'input_cost_eur' => 1.25,
+        'output_cost_eur' => 2.50,
+        'total_cost_eur' => 3.75,
+        'status' => 'success',
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.pilot-costs.store', $signup), [
+            'category' => EarlyAccessPilotCost::CATEGORY_ONBOARDING,
+            'description' => 'Kickoff and setup session',
+            'amount_eur' => '125.50',
+            'incurred_on' => now()->toDateString(),
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('early_access_pilot_costs', [
+        'early_access_signup_id' => $signup->id,
+        'category' => EarlyAccessPilotCost::CATEGORY_ONBOARDING,
+        'description' => 'Kickoff and setup session',
+        'amount_cents' => 12550,
+        'created_by' => $admin->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.early-access.show', $signup))
+        ->assertOk()
+        ->assertSee('€129.25')
+        ->assertSee('€3.75')
+        ->assertSee('€125.50')
+        ->assertSee('Kickoff and setup session');
+});
+
+it('removes manual pilot costs only from their own signup', function () {
+    $admin = makeEarlyAccessAdmin('admin');
+    $signup = makeApprovedEarlyAccessSignup();
+    $otherSignup = makeApprovedEarlyAccessSignup();
+
+    $cost = EarlyAccessPilotCost::query()->create([
+        'early_access_signup_id' => $signup->id,
+        'category' => EarlyAccessPilotCost::CATEGORY_SUPPORT,
+        'description' => 'Support review',
+        'amount_cents' => 2500,
+        'currency' => 'EUR',
+        'created_by' => $admin->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->delete(route('admin.early-access.pilot-costs.destroy', [$otherSignup, $cost]))
+        ->assertNotFound();
+
+    $this->assertDatabaseHas('early_access_pilot_costs', [
+        'id' => $cost->id,
+    ]);
+
+    $this->actingAs($admin)
+        ->delete(route('admin.early-access.pilot-costs.destroy', [$signup, $cost]))
+        ->assertRedirect();
+
+    $this->assertDatabaseMissing('early_access_pilot_costs', [
+        'id' => $cost->id,
+    ]);
+});
+
+it('blocks invite creation when the signup email already belongs to an active organization user', function () {
+    Mail::fake();
+
+    $admin = makeEarlyAccessAdmin('admin');
+    $existingOrganization = Organization::query()->create([
+        'name' => 'Existing Org',
+        'slug' => 'existing-org-' . Str::lower(Str::random(6)),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    User::query()->create([
+        'name' => 'Existing User',
+        'email' => 'existing@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $existingOrganization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+
+    $signup = EarlyAccessSignup::query()->create([
+        'full_name' => 'Existing User',
+        'email' => 'existing@example.com',
+        'status' => EarlyAccessSignupStatus::APPROVED,
+        'submitted_at' => now(),
+        'approved_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->from(route('admin.early-access.show', $signup))
+        ->post(route('admin.early-access.send-invite', $signup))
+        ->assertRedirect(route('admin.early-access.show', $signup))
+        ->assertSessionHasErrors('early_access');
+
+    expect(EarlyAccessInvite::query()->count())->toBe(0);
+    Mail::assertNothingSent();
+});
+
+function makeEarlyAccessAdmin(string $role): User
+{
+    $organization = Organization::query()->create([
+        'name' => 'Admin Org ' . Str::lower(Str::random(4)),
+        'slug' => 'admin-org-' . Str::lower(Str::random(8)),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    return User::query()->create([
+        'name' => ucfirst($role) . ' Admin',
+        'email' => $role . '+' . Str::lower(Str::random(6)) . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+        'is_admin' => true,
+        'admin_role' => $role,
+    ]);
+}
+
+function makeEarlyAccessRegularUser(): User
+{
+    $organization = Organization::query()->create([
+        'name' => 'Regular Org',
+        'slug' => 'regular-org-' . Str::lower(Str::random(8)),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    return User::query()->create([
+        'name' => 'Regular User',
+        'email' => 'regular+' . Str::lower(Str::random(6)) . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+        'is_admin' => false,
+    ]);
+}
+
+function makeApprovedEarlyAccessSignup(array $overrides = []): EarlyAccessSignup
+{
+    return EarlyAccessSignup::query()->create(array_merge([
+        'full_name' => 'Approved Candidate',
+        'email' => 'approved+' . Str::lower(Str::random(6)) . '@example.com',
+        'company_name' => 'Approved Co',
+        'status' => EarlyAccessSignupStatus::APPROVED,
+        'submitted_at' => now(),
+        'reviewed_at' => now(),
+        'approved_at' => now(),
+    ], $overrides));
+}

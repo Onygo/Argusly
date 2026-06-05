@@ -22,7 +22,7 @@ class EnsureAnalyticsOriginAllowed
         }
 
         $site = AnalyticsSite::query()
-            ->with('property:id,url')
+            ->with('clientSite:id,site_url')
             ->where('public_key', $siteKey)
             ->first();
 
@@ -55,9 +55,17 @@ class EnsureAnalyticsOriginAllowed
             return $siteKey;
         }
 
-        $decoded = json_decode(trim((string) $request->getContent()), true);
+        $raw = trim((string) $request->getContent());
+        if ($raw === '') {
+            return '';
+        }
 
-        return is_array($decoded) ? trim((string) ($decoded['site_key'] ?? $decoded['site'] ?? '')) : '';
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return '';
+        }
+
+        return trim((string) ($decoded['site_key'] ?? $decoded['site'] ?? ''));
     }
 
     /**
@@ -65,11 +73,14 @@ class EnsureAnalyticsOriginAllowed
      */
     private function normalizeAllowedDomains(AnalyticsSite $site): array
     {
-        $domains = is_array($site->allowed_domains) ? $site->allowed_domains : [];
-        $propertyHost = $this->extractHost((string) ($site->property?->url ?? ''));
+        $domains = $site->allowed_domains;
+        if (! is_array($domains)) {
+            $domains = [];
+        }
 
-        if ($propertyHost !== '') {
-            $domains[] = $propertyHost;
+        $siteHost = $this->extractHost((string) ($site->clientSite?->site_url ?? ''));
+        if ($siteHost !== '') {
+            $domains[] = $siteHost;
         }
 
         return collect($domains)
@@ -83,7 +94,11 @@ class EnsureAnalyticsOriginAllowed
     private function isHostAllowed(string $host, array $allowedDomains): bool
     {
         foreach ($allowedDomains as $allowedDomain) {
-            if ($host === $allowedDomain || str_ends_with($host, '.'.$allowedDomain)) {
+            if ($host === $allowedDomain) {
+                return true;
+            }
+
+            if (str_ends_with($host, '.' . $allowedDomain)) {
                 return true;
             }
         }
@@ -99,7 +114,7 @@ class EnsureAnalyticsOriginAllowed
         }
 
         if (! str_contains($value, '://')) {
-            $value = 'https://'.ltrim($value, '/');
+            $value = 'https://' . ltrim($value, '/');
         }
 
         $host = parse_url($value, PHP_URL_HOST);

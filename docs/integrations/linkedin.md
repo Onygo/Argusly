@@ -1,140 +1,45 @@
-# LinkedIn OAuth Setup
+# LinkedIn Integration
 
-This guide configures LinkedIn OAuth for personal profile publishing in Argusly. The current implementation supports personal LinkedIn profile connections and text or article URL publishing. Organization/page publishing and media uploads are prepared in the data model, but require additional LinkedIn approval before they can be enabled.
+PublishLayer's LinkedIn MVP prepares personal profile posts from content, requires human approval, and can publish through LinkedIn's Share on LinkedIn UGC API only when publishing is explicitly enabled.
 
-## LinkedIn Developer Portal
+## LinkedIn Developer App Setup
 
-1. Open the LinkedIn Developer Portal and create or select an app.
-2. In **Auth**, add the OAuth 2.0 redirect URL:
+1. Create or open a LinkedIn Developer App.
+2. Add the **Share on LinkedIn** product.
+3. Add the **Sign In with LinkedIn using OpenID Connect** product.
+4. Configure the OAuth redirect URL to match `LINKEDIN_REDIRECT_URI`.
+5. Request the `openid`, `profile`, and `w_member_social` scopes.
+6. Store the client ID and client secret in the environment.
 
-   ```text
-   {APP_URL}/settings/integrations/linkedin/callback
-   ```
+## Environment
 
-3. Replace `{APP_URL}` with the exact app URL for the environment, including scheme and port when applicable.
-4. Confirm the app has access to the required products/scopes for Sign In with LinkedIn using OpenID Connect and member social publishing.
-
-## Required App Settings
-
-Configure the LinkedIn app with:
-
-- App name, logo, privacy policy URL, and company association.
-- OAuth 2.0 redirect URL matching the environment exactly.
-- OpenID Connect profile access.
-- Member social publishing access.
-
-Required initial scopes:
-
-```text
-openid
-profile
-email
-w_member_social
-```
-
-Future organization/page scopes:
-
-```text
-r_organization_social
-w_organization_social
-```
-
-Organization publishing requires LinkedIn approval. Do not enable real page publishing until those scopes and page-role checks are approved.
-
-## Environment Variables
-
-Set these in the app environment:
-
-```env
+```dotenv
 LINKEDIN_CLIENT_ID=
 LINKEDIN_CLIENT_SECRET=
-LINKEDIN_REDIRECT_URI="${APP_URL}/settings/integrations/linkedin/callback"
+LINKEDIN_REDIRECT_URI=https://app.example.com/settings/integrations/linkedin/callback
+LINKEDIN_ENABLED=false
+LINKEDIN_PUBLISHING_ENABLED=false
 ```
 
-`LINKEDIN_REDIRECT_URI` must exactly match the redirect URL configured in LinkedIn.
+`LINKEDIN_ENABLED` allows OAuth connection. `LINKEDIN_PUBLISHING_ENABLED` controls outbound publishing and defaults to `false`.
 
-## Local Development
+## Current MVP
 
-1. Use a stable local URL, such as a tunnel URL, if LinkedIn cannot redirect to your local host.
-2. Set `APP_URL` to the same public URL used in the LinkedIn app.
-3. Set `LINKEDIN_REDIRECT_URI` to:
+- Supports personal profile posting first.
+- Supports text shares with `shareMediaCategory` `NONE`.
+- Prepares article URL shares with `shareMediaCategory` `ARTICLE`.
+- Requires `X-Restli-Protocol-Version: 2.0.0`.
+- Stores the `X-RestLi-Id` response header as the provider post ID.
+- Requires human approval before schedule or publish.
 
-   ```text
-   {APP_URL}/settings/integrations/linkedin/callback
-   ```
+## Out of Scope For This Step
 
-4. Clear config after changing env values:
+- Company page posting.
+- Image and video upload execution.
+- Fully autonomous publishing.
 
-   ```bash
-   php artisan config:clear
-   ```
+The data model includes room for image posts and media references, but upload registration and asset transfer are intentionally not enabled yet.
 
-5. Visit **Settings > Integrations > LinkedIn** and use **Connect LinkedIn**.
+## Rate Limits
 
-## Refresh Tokens
-
-LinkedIn may return refresh tokens only when the app is authorized for programmatic refresh tokens. The integration stores:
-
-- encrypted `access_token`
-- encrypted `refresh_token` only if returned
-- access token expiry
-- refresh token expiry when returned
-- granted scopes
-
-If no refresh token is available, or refresh fails, the connection and related social profile are marked expired. Users must reconnect the LinkedIn profile before publishing can continue.
-
-Token health can be checked with:
-
-```bash
-php artisan linkedin:check-token-health
-```
-
-## Organization Publishing Notes
-
-Organization/page publishing is prepared but not enabled by default.
-
-Prepared architecture includes:
-
-- `social_profiles.type = organization` or `page`
-- organization id in `provider_profile_id`
-- organization URN in metadata
-- role and capability metadata
-- future scopes `r_organization_social` and `w_organization_social`
-
-Publishing to pages should remain disabled until LinkedIn approves organization social API access and page-role validation is confirmed.
-
-## Troubleshooting
-
-`invalid redirect_uri`
-: The callback URL in LinkedIn does not exactly match `LINKEDIN_REDIRECT_URI`. Check scheme, host, port, trailing slash, and environment.
-
-`invalid scope`
-: The LinkedIn app has not been approved for one or more requested scopes. Confirm `openid`, `profile`, `email`, and `w_member_social` are available.
-
-Denied consent
-: The user rejected the LinkedIn consent screen. No connection is created; ask the user to connect again.
-
-Expired token
-: The access token expired and could not be refreshed. Reconnect the LinkedIn profile.
-
-Missing `w_member_social`
-: The connection cannot publish personal profile posts. Reconnect after the LinkedIn app has member publishing approval.
-
-API access not approved
-: LinkedIn may allow sign-in but reject publishing or organization APIs. Verify product access and approved scopes in the Developer Portal.
-
-## Production Checklist
-
-- LinkedIn app is verified and associated with the correct company.
-- Production redirect URL is configured exactly:
-
-  ```text
-  {APP_URL}/settings/integrations/linkedin/callback
-  ```
-
-- `APP_URL`, `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, and `LINKEDIN_REDIRECT_URI` are set.
-- Config cache is rebuilt after env changes.
-- Required scopes are approved.
-- Token health command is scheduled.
-- Error monitoring watches LinkedIn token refresh and publishing failures.
-- Organization/page publishing remains disabled until LinkedIn approval is complete.
+The MVP guards member publishing at 150 requests per day and documents LinkedIn's application-level 100,000 requests per day limit. Failed and successful publish attempts are logged in `social_publish_attempts`.
