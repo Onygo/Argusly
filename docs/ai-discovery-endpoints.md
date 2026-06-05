@@ -1,6 +1,6 @@
 # AI Discovery Endpoints
 
-PublishLayer now exposes public AI discovery entry points on the marketing site:
+Argusly now exposes public AI discovery entry points on the marketing site:
 
 - `/llms.txt`
 - `/llms-full.txt`

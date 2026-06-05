@@ -42,7 +42,7 @@ class BriefTestDraftController extends Controller
             'id' => 'test_' . now()->format('YmdHis'),
             'brief_id' => $brief->id,
             'title' => 'Test draft for: ' . $brief->title,
-            'content_html' => '<p>Dit is een test draft vanuit PublishLayer Laravel naar WordPress.</p>',
+            'content_html' => '<p>Dit is een test draft vanuit Argusly Laravel naar WordPress.</p>',
             'output_type' => $brief->output_type,
             'meta' => [
                 'source' => 'laravel-test',

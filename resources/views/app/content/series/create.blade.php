@@ -66,7 +66,7 @@
             :options="$contentIntentOptions"
             :selected="old('intents', old('intent_keys', $prefill['intent_keys'] ?? []))"
             placeholder="Select one or more intents"
-            help="Optional. When left empty, PublishLayer auto-detects likely intents from your keywords."
+            help="Optional. When left empty, Argusly auto-detects likely intents from your keywords."
         />
 
         <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

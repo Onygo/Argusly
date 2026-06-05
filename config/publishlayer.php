@@ -2,7 +2,7 @@
 
 return [
     'http_insecure_local' => (bool) env('PUBLISHLAYER_HTTP_INSECURE_LOCAL', false),
-    'tracking_url' => env('PUBLISHLAYER_TRACKING_URL', 'https://track.publishlayer.local'),
+    'tracking_url' => env('PUBLISHLAYER_TRACKING_URL', 'https://track.argusly.local'),
     'tracking_script_version' => env('PUBLISHLAYER_TRACKING_SCRIPT_VERSION', '1.1.0'),
 
     /*
@@ -155,7 +155,7 @@ return [
         | Internal Verified Domains
         |--------------------------------------------------------------------------
         |
-        | Domains owned by PublishLayer that are automatically verified without
+        | Domains owned by Argusly that are automatically verified without
         | requiring meta tag verification. These are first-party domains where
         | analytics tracking is injected automatically.
         |

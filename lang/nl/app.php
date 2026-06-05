@@ -223,7 +223,7 @@ return [
         'Back to sites' => 'Terug naar sites',
         'Back to workspace' => 'Terug naar workspace',
         'Search content' => 'Content zoeken',
-        'Impersonating PublishLayer Wordpress' => 'Je werkt als PublishLayer Wordpress',
+        'Impersonating Argusly Wordpress' => 'Je werkt als Argusly Wordpress',
         'Not set' => 'Niet ingesteld',
         'Not specified' => 'Niet gespecificeerd',
         'Not recorded' => 'Niet vastgelegd',
@@ -527,7 +527,7 @@ return [
         'Campaign cluster planning queued.' => 'Campagneclusterplanning in de wachtrij gezet.',
 
         'Opportunity execution' => 'Opportunity-uitvoering',
-        'Prepare briefs, drafts, answer blocks, internal links, schema, metadata, CTA blocks, social post handoff copy, reviewer flow, and automation schedules. Social posts are prepared for external publishing tools; PublishLayer does not publish them.' => 'Bereid briefs, concepten, answer blocks, interne links, schema, metadata, CTA-blokken, social post-handoffcopy, reviewflow en automatiseringsschema\'s voor. Social posts worden klaargezet voor externe publicatietools; PublishLayer publiceert ze niet.',
+        'Prepare briefs, drafts, answer blocks, internal links, schema, metadata, CTA blocks, social post handoff copy, reviewer flow, and automation schedules. Social posts are prepared for external publishing tools; Argusly does not publish them.' => 'Bereid briefs, concepten, answer blocks, interne links, schema, metadata, CTA-blokken, social post-handoffcopy, reviewflow en automatiseringsschema\'s voor. Social posts worden klaargezet voor externe publicatietools; Argusly publiceert ze niet.',
         'No execution pipeline has been prepared for this opportunity yet.' => 'Er is nog geen uitvoeringspipeline voorbereid voor deze opportunity.',
         'Manual' => 'Handmatig',
         'Autonomous campaign plan' => 'Autonoom campagneplan',
@@ -966,7 +966,7 @@ return [
         'Only proposed or approved actions can be dismissed.' => 'Alleen voorgestelde of goedgekeurde acties kunnen worden genegeerd.',
         'Action dismissed.' => 'Actie genegeerd.',
         'Only approved actions can be executed. Running and completed actions cannot be executed again.' => 'Alleen goedgekeurde acties kunnen worden uitgevoerd. Actieve en voltooide acties kunnen niet opnieuw worden uitgevoerd.',
-        'Action execution queued. PublishLayer will create drafts or proposals only; nothing is published automatically.' => 'Actie-uitvoering in de wachtrij gezet. PublishLayer maakt alleen concepten of voorstellen; er wordt niets automatisch gepubliceerd.',
+        'Action execution queued. Argusly will create drafts or proposals only; nothing is published automatically.' => 'Actie-uitvoering in de wachtrij gezet. Argusly maakt alleen concepten of voorstellen; er wordt niets automatisch gepubliceerd.',
         'Only failed actions can be retried.' => 'Alleen mislukte acties kunnen opnieuw worden geprobeerd.',
         'Retry queued.' => 'Opnieuw proberen in de wachtrij gezet.',
 

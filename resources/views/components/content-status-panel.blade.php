@@ -16,11 +16,11 @@
     <div {{ $attributes->class(['space-y-4']) }}>
         {{-- Main Status Card --}}
         <div class="rounded-lg border border-border bg-surface">
-            {{-- Section 1: PublishLayer Status --}}
+            {{-- Section 1: Argusly Status --}}
             <div class="p-4 border-b border-border">
                 <h3 class="mb-3 text-sm font-medium text-textPrimary flex items-center gap-2">
                     <i data-lucide="layers" class="h-4 w-4 text-textSecondary" aria-hidden="true"></i>
-                    PublishLayer Status
+                    Argusly Status
                 </h3>
                 <div class="flex items-center justify-between">
                     <span class="text-sm text-textSecondary">Content Lifecycle</span>

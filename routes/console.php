@@ -28,7 +28,7 @@ Artisan::command('inspire', function () {
 $scheduleLogPath = storage_path('logs/schedule');
 File::ensureDirectoryExists($scheduleLogPath);
 
-// PublishLayer brief pipeline:
+// Argusly brief pipeline:
 // 1. Process incoming briefs from the app and WordPress.
 // 2. Generate drafts for briefs that are ready.
 // 3. Deliver completed drafts back to their origin.

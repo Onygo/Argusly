@@ -65,7 +65,7 @@ enum ContentDestinationType: string
     /**
      * Determine if this destination is a native/internal destination.
      *
-     * Native destinations are managed within the PublishLayer ecosystem.
+     * Native destinations are managed within the Argusly ecosystem.
      */
     public function isNativeDestination(): bool
     {

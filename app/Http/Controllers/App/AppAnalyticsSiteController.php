@@ -234,7 +234,7 @@ class AppAnalyticsSiteController extends Controller
 
     private function getTrackHost(): string
     {
-        $baseDomain = config('domains.base', 'publishlayer.local');
+        $baseDomain = config('domains.base', 'argusly.local');
         $scheme = request()->secure() ? 'https' : 'http';
 
         return rtrim("{$scheme}://track.{$baseDomain}", '/');
@@ -288,7 +288,7 @@ class AppAnalyticsSiteController extends Controller
             return false;
         }
 
-        return $host === 'publishlayer.local'
+        return $host === 'argusly.local'
             || $host === 'localhost'
             || $host === '127.0.0.1'
             || str_ends_with($host, '.local');

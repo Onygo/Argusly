@@ -50,9 +50,9 @@ class CompetitorIntelligenceDemoSeeder extends Seeder
             ],
             [
                 'url' => 'https://compass-content.example/publishlayer-alternatives',
-                'title' => 'Best PublishLayer Alternatives for Agentic Marketing',
+                'title' => 'Best Argusly Alternatives for Agentic Marketing',
                 'meta_description' => 'Compare agentic marketing platforms, pricing, features, and implementation tradeoffs.',
-                'content_excerpt' => 'A comparison page for PublishLayer alternatives, pricing, demos, AI SEO workflows, competitor tracking, and content opportunity planning.',
+                'content_excerpt' => 'A comparison page for Argusly alternatives, pricing, demos, AI SEO workflows, competitor tracking, and content opportunity planning.',
             ],
             [
                 'url' => 'https://compass-content.example/use-cases/b2b-saas-content-ops',

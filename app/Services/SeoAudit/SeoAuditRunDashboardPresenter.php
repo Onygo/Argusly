@@ -142,7 +142,7 @@ class SeoAuditRunDashboardPresenter
             'diagnostics' => $diagnostics,
             'scope_tabs' => [
                 self::SCOPE_PUBLISHLAYER => [
-                    'label' => 'PublishLayer Content',
+                    'label' => 'Argusly Content',
                     'count' => (int) $pages->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->count(),
                 ],
                 self::SCOPE_OTHER => [
@@ -289,7 +289,7 @@ class SeoAuditRunDashboardPresenter
                     'actionable_count' => (int) $actionableCount,
                     'primary_action' => $actionableCount > 0 ? 'Fix with AI' : 'View pages',
                     'is_actionable' => $actionableCount > 0,
-                    'note' => $actionableCount > 0 ? null : 'Not a PublishLayer draft',
+                    'note' => $actionableCount > 0 ? null : 'Not an Argusly draft',
                 ];
             })
             ->values()
@@ -362,7 +362,7 @@ class SeoAuditRunDashboardPresenter
                                     'id' => (int) $issue->id,
                                     'page_url' => (string) ($page?->url ?? 'Unknown page'),
                                     'scope_label' => $page?->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
-                                        ? 'PublishLayer'
+                                        ? 'Argusly'
                                         : 'Other page',
                                     'is_actionable' => $this->isIssueActionable($issue),
                                     'description' => Str::limit((string) ($issue->description ?? ''), 180),
@@ -427,11 +427,11 @@ class SeoAuditRunDashboardPresenter
                         default => 'Low',
                     },
                     'scope' => $page?->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
-                        ? 'PublishLayer content'
+                        ? 'Argusly content'
                         : 'Other site page',
                     'scope_note' => $actionable
                         ? 'Can apply to draft'
-                        : 'Read only: not linked to a PublishLayer draft',
+                        : 'Read only: not linked to an Argusly draft',
                     'actionable' => $actionable,
                     'wordpress_sync_label' => $wpSync['label'],
                     'wordpress_sync_note' => $wpSync['note'],
@@ -690,7 +690,7 @@ class SeoAuditRunDashboardPresenter
                     'id' => (int) $page->id,
                     'url' => (string) $page->url,
                     'scope' => $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
-                        ? 'PublishLayer content'
+                        ? 'Argusly content'
                         : 'Other site page',
                     'is_publishlayer' => $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
                     'is_actionable_page' => $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE && $page->publishlayerArticle !== null,
@@ -829,7 +829,7 @@ class SeoAuditRunDashboardPresenter
         if (! $isActionable) {
             return [
                 'label' => 'Advice only',
-                'note' => 'No linked PublishLayer draft.',
+                'note' => 'No linked Argusly draft.',
                 'mode' => 'advisory',
             ];
         }

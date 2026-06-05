@@ -96,8 +96,8 @@ it('fails safely instead of throwing when insecure local verification is enabled
     config()->set('publishlayer.http_insecure_local', true);
 
     $site->update([
-        'site_url' => 'https://publishlayer.local',
-        'base_url' => 'https://publishlayer.local',
+        'site_url' => 'https://argusly.local',
+        'base_url' => 'https://argusly.local',
     ]);
 
     $response = $this->actingAs($user)

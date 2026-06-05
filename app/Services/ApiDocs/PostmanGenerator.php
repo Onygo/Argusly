@@ -115,7 +115,7 @@ class PostmanGenerator
 
         return [
             'id' => Str::uuid()->toString(),
-            'name' => $this->config['postman']['environment_name'] ?? 'PublishLayer API',
+            'name' => $this->config['postman']['environment_name'] ?? 'Argusly API',
             'values' => $values,
             '_postman_variable_scope' => 'environment',
         ];

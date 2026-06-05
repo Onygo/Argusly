@@ -86,7 +86,7 @@
                 <li>Download both the collection and environment files</li>
                 <li>Open Postman and click <strong>Import</strong></li>
                 <li>Drag and drop or select both JSON files</li>
-                <li>Select the PublishLayer environment in the top-right dropdown</li>
+                <li>Select the Argusly environment in the top-right dropdown</li>
                 <li>Edit the environment and set your <code class="rounded bg-surfaceSubtle px-1">workspace_api_key</code></li>
                 <li>Start making API requests</li>
             </ol>

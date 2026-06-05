@@ -18,11 +18,6 @@ return new class extends Migration
             $this->indexIfMissing($table, 'contents', ['publish_status', 'first_published_at'], 'cnt_pub_first');
             $this->indexIfMissing($table, 'contents', ['language', 'publish_url_key'], 'cnt_lang_slug');
             $this->indexIfMissing($table, 'contents', ['family_id', 'updated_at'], 'cnt_family_upd');
-            $this->indexIfMissing($table, 'contents', ['updated_at'], 'cnt_upd');
-
-            if (Schema::hasColumn('contents', 'deleted_at')) {
-                $this->indexIfMissing($table, 'contents', ['deleted_at'], 'cnt_deleted');
-            }
         });
     }
 
@@ -33,7 +28,7 @@ return new class extends Migration
         }
 
         Schema::table('contents', function (Blueprint $table): void {
-            foreach (['cnt_lang_stat_pub', 'cnt_pub_first', 'cnt_lang_slug', 'cnt_family_upd', 'cnt_upd', 'cnt_deleted'] as $index) {
+            foreach (['cnt_lang_stat_pub', 'cnt_pub_first', 'cnt_lang_slug', 'cnt_family_upd'] as $index) {
                 if ($this->hasIndex('contents', $index)) {
                     $table->dropIndex($index);
                 }

@@ -13,7 +13,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     $this->withoutMiddleware();
-    config(['domains.base' => 'publishlayer.local']);
+    config(['domains.base' => 'argusly.local']);
 });
 
 it('registers the answer block settings route', function () {
@@ -186,6 +186,6 @@ function makeAnswerBlockSettingsUser(int $organizationId, string $role): User
 function appSubdomainRequest(object $testCase, User $user)
 {
     return $testCase
-        ->withHeaders(['Host' => 'app.publishlayer.local'])
+        ->withHeaders(['Host' => 'app.argusly.local'])
         ->actingAs($user);
 }

@@ -42,7 +42,7 @@ class RssFeedGenerator
     {
         $posts = $this->blog->latestPosts(50, $locale);
         $feedLink = LocalizedMarketingUrl::route('public.blog.index', [], $locale);
-        $feedTitle = 'PublishLayer Blog';
+        $feedTitle = 'Argusly Blog';
         $feedDescription = trim((string) __('public.blog.meta_description'));
         $lastBuildDate = collect($posts)
             ->map(fn (array $post): ?string => $this->rssDate($post['published_at'] ?? null))

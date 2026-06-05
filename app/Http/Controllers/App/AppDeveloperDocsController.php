@@ -86,7 +86,7 @@ class AppDeveloperDocsController extends Controller
             'files' => [
                 [
                     'name' => 'OpenAPI Specification',
-                    'description' => 'OpenAPI 3.1.0 specification for the PublishLayer API',
+                    'description' => 'OpenAPI 3.1.0 specification for the Argusly API',
                     'filename' => 'publishlayer-openapi.yaml',
                     'exists' => File::exists(base_path($openApiPath)),
                     'route' => 'app.developer.docs.download.openapi',

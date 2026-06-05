@@ -1,6 +1,6 @@
 # LinkedIn Integration
 
-PublishLayer's LinkedIn MVP prepares personal profile posts from content, requires human approval, and can publish through LinkedIn's Share on LinkedIn UGC API only when publishing is explicitly enabled.
+Argusly's LinkedIn MVP prepares personal profile posts from content, requires human approval, and can publish through LinkedIn's Share on LinkedIn UGC API only when publishing is explicitly enabled.
 
 ## LinkedIn Developer App Setup
 

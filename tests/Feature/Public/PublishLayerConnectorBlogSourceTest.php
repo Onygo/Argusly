@@ -131,7 +131,7 @@ it('builds request options with verify false for local host in local env when fl
     $method = new ReflectionMethod($source, 'requestOptionsFor');
     $method->setAccessible(true);
 
-    $options = $method->invoke($source, 'https://publishlayer.local/v1/public/blog/posts');
+    $options = $method->invoke($source, 'https://argusly.local/v1/public/blog/posts');
 
     expect($options)->toBe(['verify' => false]);
 });
@@ -144,6 +144,6 @@ it('throws when insecure local tls flag is enabled in production env', function 
     $method = new ReflectionMethod($source, 'requestOptionsFor');
     $method->setAccessible(true);
 
-    expect(fn () => $method->invoke($source, 'https://publishlayer.local/v1/public/blog/posts'))
+    expect(fn () => $method->invoke($source, 'https://argusly.local/v1/public/blog/posts'))
         ->toThrow(\RuntimeException::class, 'PUBLISHLAYER_HTTP_INSECURE_LOCAL cannot be enabled in production.');
 });

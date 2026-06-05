@@ -23,7 +23,7 @@ class DomainHelper
      */
     public static function host(string $subdomain): string
     {
-        $baseDomain = config('domains.base', 'publishlayer.local');
+        $baseDomain = config('domains.base', 'argusly.local');
         $subdomainConfig = config("domains.subdomains.{$subdomain}");
 
         if (! $subdomainConfig) {
@@ -95,7 +95,7 @@ class DomainHelper
      */
     public static function baseDomain(): string
     {
-        return config('domains.base', 'publishlayer.local');
+        return config('domains.base', 'argusly.local');
     }
 }
 

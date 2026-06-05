@@ -104,7 +104,7 @@ class DutchTextCasingNormalizer
             'HubSpot',
             'LinkedIn',
             'OpenAI',
-            'PublishLayer',
+            'Argusly',
             'ROI',
             'SEO',
             'WordPress',

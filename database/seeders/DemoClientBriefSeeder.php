@@ -33,7 +33,7 @@ class DemoClientBriefSeeder extends Seeder
         $site = ClientSite::query()->firstOrCreate(
             [
                 'workspace_id' => $workspace->id,
-                'name' => 'PublishLayer',
+                'name' => 'Argusly',
             ],
             [
                 'type' => 'wordpress',
@@ -104,7 +104,7 @@ class DemoClientBriefSeeder extends Seeder
                     'credits als cost control',
                     'WordPress integratie als distributielaag',
                 ],
-                'call_to_action' => 'Bekijk hoe PublishLayer governance en generatie combineert in één workflow',
+                'call_to_action' => 'Bekijk hoe Argusly governance en generatie combineert in één workflow',
                 'desired_length_min' => 1200,
                 'desired_length_max' => 1500,
                 'client_refs' => [

@@ -1,7 +1,7 @@
 @if(! empty($pdf->issuerLogoDataUri))
     <img
         src="{{ $pdf->issuerLogoDataUri }}"
-        alt="PublishLayer logo"
+        alt="Argusly logo"
         style="display:block; width:auto; height:28px;"
     >
 @else
@@ -13,7 +13,7 @@
                     viewBox="0 0 64 64"
                     width="28"
                     height="28"
-                    aria-label="PublishLayer brand icon"
+                    aria-label="Argusly brand icon"
                     style="display: block;"
                 >
                     <rect width="64" height="64" rx="12" fill="#FEF3C7"></rect>
@@ -29,7 +29,7 @@
                     id="invoice-brand-wordmark"
                     style="display: inline-block; color: #111827; font-family: Arial, sans-serif; font-size: 14px; font-weight: 600; line-height: 1;"
                 >
-                    PublishLayer
+                    Argusly
                 </span>
             </td>
         </tr>

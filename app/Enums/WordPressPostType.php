@@ -5,7 +5,7 @@ namespace App\Enums;
 /**
  * Central configuration for WordPress post types.
  *
- * Maps PublishLayer content types to WordPress post types with their URL patterns.
+ * Maps Argusly content types to WordPress post types with their URL patterns.
  * This ensures consistent URL generation for internal links and proper WP REST API targeting.
  */
 enum WordPressPostType: string

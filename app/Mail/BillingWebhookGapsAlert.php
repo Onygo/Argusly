@@ -20,7 +20,7 @@ class BillingWebhookGapsAlert extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: '[PublishLayer] Mollie webhook activation gaps detected'
+            subject: '[Argusly] Mollie webhook activation gaps detected'
         );
     }
 

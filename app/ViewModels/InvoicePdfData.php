@@ -40,7 +40,7 @@ class InvoicePdfData
         $currency = strtoupper((string) $invoice->currency ?: 'EUR');
 
         $sellerLines = self::nonEmpty([
-            (string) ($issuer['company_name'] ?? 'PublishLayer'),
+            (string) ($issuer['company_name'] ?? 'Argusly'),
             (string) ($issuer['address_line1'] ?? ''),
             (string) ($issuer['address_line2'] ?? ''),
             trim((string) (($issuer['postal_code'] ?? '') . ' ' . ($issuer['city'] ?? ''))),

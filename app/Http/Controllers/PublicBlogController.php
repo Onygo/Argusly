@@ -165,11 +165,11 @@ class PublicBlogController extends Controller
             'dateModified' => (string) (($post['updated_at'] ?? '') ?: ($post['published_at'] ?? '')),
             'author' => [
                 '@type' => 'Person',
-                'name' => (string) (($post['author'] ?? '') !== '' ? $post['author'] : 'PublishLayer'),
+                'name' => (string) (($post['author'] ?? '') !== '' ? $post['author'] : 'Argusly'),
             ],
             'publisher' => [
                 '@type' => 'Organization',
-                'name' => 'PublishLayer',
+                'name' => 'Argusly',
                 'logo' => [
                     '@type' => 'ImageObject',
                     'url' => asset('images/publishlayer-logo.png'),
@@ -344,7 +344,7 @@ class PublicBlogController extends Controller
 
         $host = strtolower(trim((string) parse_url($href, PHP_URL_HOST)));
         $baseHost = strtolower(trim((string) parse_url((string) config('app.url'), PHP_URL_HOST)));
-        $domainHost = strtolower(trim((string) config('domains.base', 'publishlayer.local')));
+        $domainHost = strtolower(trim((string) config('domains.base', 'argusly.local')));
         if ($host !== '' && ! in_array($host, array_filter([$baseHost, $domainHost]), true)) {
             return null;
         }
@@ -500,7 +500,7 @@ class PublicBlogController extends Controller
                 ['Content-Type' => 'application/rss+xml; charset=UTF-8']
             );
         } catch (PublicBlogSourceUnavailableException) {
-            return response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>PublishLayer Blog</title></channel></rss>', 503)
+            return response('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Argusly Blog</title></channel></rss>', 503)
                 ->header('Content-Type', 'application/rss+xml; charset=UTF-8');
         } catch (Throwable $e) {
             Log::error('seo.feed_generation_failed', [

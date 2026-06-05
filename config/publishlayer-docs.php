@@ -13,9 +13,9 @@ return [
         'format' => 'yaml',
 
         'info' => [
-            'title' => 'PublishLayer API',
+            'title' => 'Argusly API',
             'version' => '1.0.0',
-            'description' => 'Headless and hybrid API for PublishLayer workspaces. Create briefs, generate AI-powered drafts, manage content destinations, and integrate with your content workflow.',
+            'description' => 'Headless and hybrid API for Argusly workspaces. Create briefs, generate AI-powered drafts, manage content destinations, and integrate with your content workflow.',
         ],
 
         'servers' => [
@@ -53,8 +53,8 @@ return [
 
     'postman' => [
         'output_dir' => 'docs/postman/',
-        'collection_name' => 'PublishLayer API',
-        'environment_name' => 'PublishLayer API',
+        'collection_name' => 'Argusly API',
+        'environment_name' => 'Argusly API',
 
         'variables' => [
             'base_url' => 'https://api.publishlayer.com/api/v1',

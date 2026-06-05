@@ -12,7 +12,7 @@
 
         <header>
             <h1>{{ $labels['knowledge_base'] ?? 'Knowledge Base' }}</h1>
-            <p>{{ $labels['knowledge_base_intro'] ?? 'Browse synced PublishLayer knowledge articles rendered locally by your Laravel site.' }}</p>
+            <p>{{ $labels['knowledge_base_intro'] ?? 'Browse synced Argusly knowledge articles rendered locally by your Laravel site.' }}</p>
         </header>
 
         @if (config('publishlayer.features.search', true))

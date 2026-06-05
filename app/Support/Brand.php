@@ -8,7 +8,7 @@ class Brand
 {
     public static function product(): string
     {
-        return (string) config('brand.product_name', 'PublishLayer');
+        return (string) config('brand.product_name', 'Argusly');
     }
 
     public static function parent(): string

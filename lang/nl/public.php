@@ -41,11 +41,11 @@ return [
     ],
     'blog' => [
         'title' => 'Blog',
-        'subtitle' => 'Praktische inzichten over contentoperaties, SEO en GEO, connectors, governance en productwijzigingen binnen PublishLayer.',
-        'meta_title' => 'PublishLayer Blog',
-        'meta_title_tag' => 'PublishLayer Blog - tag: :tag',
-        'meta_title_category' => 'PublishLayer Blog - categorie: :category',
-        'meta_description' => 'Updates, inzichten en showcase-content uit PublishLayer.',
+        'subtitle' => 'Praktische inzichten over contentoperaties, SEO en GEO, connectors, governance en productwijzigingen binnen Argusly.',
+        'meta_title' => 'Argusly Blog',
+        'meta_title_tag' => 'Argusly Blog - tag: :tag',
+        'meta_title_category' => 'Argusly Blog - categorie: :category',
+        'meta_description' => 'Updates, inzichten en showcase-content uit Argusly.',
         'page_suffix' => 'pagina :page',
         'min_read' => 'min leestijd',
         'read_more' => 'Lees artikel',
@@ -55,7 +55,7 @@ return [
         'unavailable_text' => 'De connectorbron voor blogcontent is tijdelijk niet bereikbaar. Probeer het over een paar minuten opnieuw.',
         'back_to_blog' => 'Terug naar blog',
         'back_home' => 'Naar homepage',
-        'generated_badge' => 'Gegenereerd met PublishLayer',
+        'generated_badge' => 'Gegenereerd met Argusly',
         'cta_product' => 'Bekijk product',
         'cta_pricing' => 'Bekijk prijzen',
     ],
@@ -79,20 +79,20 @@ return [
     ],
     'early_access' => [
         // Meta
-        'meta_title' => 'Early access | PublishLayer',
-        'meta_description' => 'Vraag early access aan voor PublishLayer of plan een demo.',
+        'meta_title' => 'Early access | Argusly',
+        'meta_description' => 'Vraag early access aan voor Argusly of plan een demo.',
 
         // Soft launch homepage
-        'soft_launch_meta_title' => 'PublishLayer | Besloten lancering',
-        'soft_launch_meta_description' => 'PublishLayer neemt een beperkt aantal early partners aan.',
+        'soft_launch_meta_title' => 'Argusly | Besloten lancering',
+        'soft_launch_meta_description' => 'Argusly neemt een beperkt aantal early partners aan.',
         'soft_launch_badge' => 'Momenteel onboarden we een beperkt aantal early partners',
-        'soft_launch_title' => 'PublishLayer voor gecontroleerde AI-contentoperaties.',
-        'soft_launch_description' => 'PublishLayer geeft teams één systeem voor contentplanning, governance, SEO- en GEO-intelligence en publicatie naar gekoppelde sites.',
+        'soft_launch_title' => 'Argusly voor gecontroleerde AI-contentoperaties.',
+        'soft_launch_description' => 'Argusly geeft teams één systeem voor contentplanning, governance, SEO- en GEO-intelligence en publicatie naar gekoppelde sites.',
         'soft_launch_limited_title' => 'Early access is bewust beperkt.',
         'soft_launch_limited_description' => 'We activeren eerst productietoegang voor geselecteerde klanten om een stabiele uitrol en kwalitatieve onboarding te garanderen. Vraag toegang aan of plan een demo om je aan te melden.',
 
         // Soft launch cards
-        'card_what_title' => 'Wat PublishLayer doet',
+        'card_what_title' => 'Wat Argusly doet',
         'card_what_description' => 'Brengt briefs, drafts, calendars, site-insights en publicatieworkflows samen zonder governance of traceerbaarheid te verliezen.',
         'card_who_title' => 'Voor wie het is',
         'card_who_description' => 'B2B-marketingteams, bureaus en content operations leads die herhaalbare kwaliteit nodig hebben over sites en teams.',
@@ -106,8 +106,8 @@ return [
 
         // Form page
         'badge' => 'Beperkte early access',
-        'title_early_access' => 'Vraag early access aan voor PublishLayer',
-        'title_demo' => 'Plan een PublishLayer demo',
+        'title_early_access' => 'Vraag early access aan voor Argusly',
+        'title_demo' => 'Plan een Argusly demo',
         'description_early_access' => 'Deel je stack, publicatieproces en use case. We beoordelen de fit voor de huidige onboardinggolf en koppelen daar de juiste productdemo aan.',
         'description_demo' => 'Vertel ons over je sites, workflows en groeidoelen. We stemmen de demo af op governance, intelligence en publicatie.',
 
@@ -130,8 +130,8 @@ return [
 
         // Invite acceptance
         'invite_title' => 'Activeer early access',
-        'invite_approved_with_company' => 'Je PublishLayer early access aanvraag voor :company is goedgekeurd.',
-        'invite_approved' => 'Je PublishLayer early access aanvraag is goedgekeurd.',
+        'invite_approved_with_company' => 'Je Argusly early access aanvraag voor :company is goedgekeurd.',
+        'invite_approved' => 'Je Argusly early access aanvraag is goedgekeurd.',
         'invite_expires' => 'Deze activatielink verloopt op :date.',
         'invite_full_name' => 'Volledige naam',
         'invite_password' => 'Wachtwoord',
@@ -175,7 +175,7 @@ return [
             'schedule_call' => 'Plan een gesprek',
         ],
         'cta' => [
-            'heading' => 'Plan je volgende stap met PublishLayer.',
+            'heading' => 'Plan je volgende stap met Argusly.',
             'text' => 'Bekijk pricing of bespreek je connector-, governance- en rolloutvereisten.',
             'primary' => 'Bekijk prijzen',
             'secondary' => 'Neem contact op',
@@ -206,7 +206,7 @@ return [
             'what_you_get_cards' => [
                 [
                     'icon' => 'layers',
-                    'title' => 'Wat PublishLayer is',
+                    'title' => 'Wat Argusly is',
                     'intro' => '',
                     'bullets' => [
                         'Eén operating layer voor content',
@@ -248,7 +248,7 @@ return [
             'cta_text' => 'Gebouwd voor teams die governed planning, intelligence en publicatie in één plek nodig hebben.',
             'cta_points' => ['Eenmalige onboarding op betaalde plannen', 'WordPress- en Laravel-connectors', 'Insights, governance en billing in één app'],
             'agentic_title' => 'Voeg een agentic layer toe aan je contentoperaties.',
-            'agentic_text' => 'PublishLayer verbindt objectives, AI visibility, lifecycle intelligence en governed execution zodat teams verschuiven van handmatige contenttaken naar autonome verbeterloops.',
+            'agentic_text' => 'Argusly verbindt objectives, AI visibility, lifecycle intelligence en governed execution zodat teams verschuiven van handmatige contenttaken naar autonome verbeterloops.',
             'agentic_points' => [
                 'AI visibility en answer readiness scoring',
                 'Content decay, refresh en interne link recommendations',
@@ -258,13 +258,13 @@ return [
         ],
     ],
     'landing' => [
-        'meta_title' => 'PublishLayer | AI Content Governance Platform',
-        'meta_description' => 'PublishLayer combineert contentoperaties, governance, intelligence en gekoppelde publicatie voor B2B-teams.',
-        'pricing_meta_title' => 'Prijzen | PublishLayer',
-        'pricing_meta_description' => 'Bekijk PublishLayer prijzen en credit packs voor enterprise contentoperaties.',
+        'meta_title' => 'Argusly | AI Content Governance Platform',
+        'meta_description' => 'Argusly combineert contentoperaties, governance, intelligence en gekoppelde publicatie voor B2B-teams.',
+        'pricing_meta_title' => 'Prijzen | Argusly',
+        'pricing_meta_description' => 'Bekijk Argusly prijzen en credit packs voor enterprise contentoperaties.',
         'hero_badge' => 'Content, governance, intelligence en publicatie',
         'hero_title' => 'Één platform voor governed contentoperaties en AI-first zichtbaarheid.',
-        'hero_text' => 'PublishLayer brengt briefs, merkcontext, planning, SEO- en GEO-insights en gekoppelde publicatie samen voor teams die content over meerdere sites aansturen.',
+        'hero_text' => 'Argusly brengt briefs, merkcontext, planning, SEO- en GEO-insights en gekoppelde publicatie samen voor teams die content over meerdere sites aansturen.',
         'hero_primary' => 'Demo aanvragen',
         'hero_secondary' => 'Bekijk hoe het werkt',
         'problem_title' => 'De meeste teams runnen content nog steeds in losse delen',
@@ -276,7 +276,7 @@ return [
             ['icon' => 'bar-chart-3', 'title' => 'Zoekfeedback is incompleet', 'text' => 'SEO, GEO, analytics en content-chain inzichten voeden zelden de volgende briefing.'],
         ],
         'how_title' => 'Een governed operating layer',
-        'how_text' => 'PublishLayer verbindt planning, creatie, intelligence en publicatie in één herhaalbare workflow.',
+        'how_text' => 'Argusly verbindt planning, creatie, intelligence en publicatie in één herhaalbare workflow.',
         'steps' => [
             ['icon' => 'list-checks', 'title' => 'Plan', 'text' => 'Briefs, calendars en sitecontext'],
             ['icon' => 'sparkles', 'title' => 'Create', 'text' => 'Gestructureerd draften met AI'],
@@ -341,7 +341,7 @@ return [
                     'context_blocks' => [
                         ['label' => 'Toon', 'value' => 'Helder en precies', 'meta' => 'Geen hype, eerst bewijs'],
                         ['label' => 'Doelgroep', 'value' => 'Marketing ops leads', 'meta' => 'Opschalen over meerdere sites'],
-                        ['label' => 'Merk', 'value' => 'PublishLayer', 'meta' => 'Structured AI publishing'],
+                        ['label' => 'Merk', 'value' => 'Argusly', 'meta' => 'Structured AI publishing'],
                         ['label' => 'Domein', 'value' => 'SEO + GEO workflows', 'meta' => 'Governance en distributie'],
                     ],
                     'suggestions_label' => 'Suggesties',
@@ -395,7 +395,7 @@ return [
         ],
         'gov_badge' => 'Governance in het dagelijkse werk',
         'gov_title' => 'Controls zitten in de workflow, niet ernaast.',
-        'gov_text' => 'PublishLayer is gebouwd voor teams die rollen, revisies, merkrichtlijnen en duidelijke publicatieverantwoordelijkheid over meerdere sites nodig hebben.',
+        'gov_text' => 'Argusly is gebouwd voor teams die rollen, revisies, merkrichtlijnen en duidelijke publicatieverantwoordelijkheid over meerdere sites nodig hebben.',
         'gov_points' => [
             'Rolgebaseerde toegang in app, workspaces en gekoppelde sites',
             'Revisiehistorie, reviewstappen en publish controls',
@@ -414,7 +414,7 @@ return [
         'workflow_signoff' => 'Marketing lead akkoord',
         'intel_badge' => 'SEO plus GEO feedbackloops',
         'intel_title' => 'Gebruik zoekintelligence om de volgende briefing te verbeteren.',
-        'intel_text' => 'PublishLayer verbindt LLM visibility, SEO audits, analytics-signalen en content-chain context zodat zoekprestatie terugvloeit in nieuwe productie.',
+        'intel_text' => 'Argusly verbindt LLM visibility, SEO audits, analytics-signalen en content-chain context zodat zoekprestatie terugvloeit in nieuwe productie.',
         'intel_note' => 'Signalen uit gepubliceerde content blijven gekoppeld aan planning, zodat elke nieuwe briefing start vanuit sterkere context in plaats van giswerk.',
         'intel_loop' => 'Performance-loop',
         'intel_last_months' => 'Afgelopen 6 maanden',
@@ -426,7 +426,7 @@ return [
         ],
         'agentic_badge' => 'Agentic Marketing',
         'agentic_title' => 'Van contentproductie naar autonome AI visibility-operaties.',
-        'agentic_text' => 'PublishLayer groeit uit tot een agentic marketing layer: objectives bepalen het doel, intelligence agents vinden opportunity gaps en governed workflows vertalen signalen naar briefs, refreshes, answer blocks, interne links en publishing-acties.',
+        'agentic_text' => 'Argusly groeit uit tot een agentic marketing layer: objectives bepalen het doel, intelligence agents vinden opportunity gaps en governed workflows vertalen signalen naar briefs, refreshes, answer blocks, interne links en publishing-acties.',
         'agentic_points' => [
             'Stel doelen in zoals AI visibility, topical authority, GEO performance, pipeline of locale-expansie',
             'Detecteer ontbrekende entities, zwakke pagina’s, topic gaps, refresh-kandidaten en interne linkkansen',
@@ -443,7 +443,7 @@ return [
         'integration_title' => 'Naadloze integratie',
         'integration_layer' => 'Governance- en creatielaag',
         'integration_delivery' => 'Publicatie en distributie',
-        'integration_text' => 'PublishLayer ligt bovenop je bestaande contentstack en voegt controle, intelligence en publicatieworkflows toe zonder CMS-rewrite.',
+        'integration_text' => 'Argusly ligt bovenop je bestaande contentstack en voegt controle, intelligence en publicatieworkflows toe zonder CMS-rewrite.',
         'integration_api_label' => 'JSON API',
         'integration_targets' => [
             [
@@ -458,7 +458,7 @@ return [
             ],
         ],
         'ai_search_title' => 'Gebouwd voor SEO én GEO',
-        'ai_search_text' => 'PublishLayer ondersteunt traditionele SEO en Generative Engine Optimization met LLM visibility tracking, entity-aware workflows en site-level zoekintelligence.',
+        'ai_search_text' => 'Argusly ondersteunt traditionele SEO en Generative Engine Optimization met LLM visibility tracking, entity-aware workflows en site-level zoekintelligence.',
         'ai_search_text_2' => 'Gekoppelde publicatie, gestructureerde content en machine-readable exports helpen je merk bruikbaar te blijven voor zoekmachines én answer engines.',
         'ai_search_badge' => 'SEO + GEO ready',
         'ai_search_points' => [
@@ -482,7 +482,7 @@ return [
         'pricing_title' => 'Publishing infrastructuur voor het AI-tijdperk',
         'pricing_badge' => 'Pakketten',
         'pricing_subline' => 'Schaal je autoriteit over zoekmachines en AI-platformen.',
-        'pricing_text_1' => 'PublishLayer combineert content orkestratie, multi-site publishing en AI visibility tracking in één platform.',
+        'pricing_text_1' => 'Argusly combineert content orkestratie, multi-site publishing en AI visibility tracking in één platform.',
         'pricing_text_2' => 'Bouw vindbaarheid voor zowel traditionele zoekmachines als generatieve AI met gestructureerde workflows, governed publishing en machine-leesbare outputs.',
         'pricing_monthly_no_setup' => 'Maandelijks abonnement. Implementatie-ondersteuning inbegrepen.',
         'credits_usage_note' => 'Platform credits voeden contentgeneratie, optimalisatie en AI-analyseworkflows.',
@@ -585,7 +585,7 @@ return [
         'compare_yes' => 'Inbegrepen',
         'compare_no' => '—',
         'compare_unlimited' => 'Onbeperkt',
-        'why_title' => 'Waarom teams kiezen voor PublishLayer',
+        'why_title' => 'Waarom teams kiezen voor Argusly',
         'why_points' => [
             'Eén platform voor SEO, GEO en AI visibility in plaats van losse tools',
             'Gestructureerde publishing workflows gebouwd voor het AI-tijdperk',
@@ -643,7 +643,7 @@ return [
     'product_updates' => [
         'badge' => 'Changelog',
         'title' => 'Productupdates',
-        'subtitle' => 'Recente verbeteringen, fixes en releasenotities voor PublishLayer.',
+        'subtitle' => 'Recente verbeteringen, fixes en releasenotities voor Argusly.',
         'search_label' => 'Zoek updates',
         'search_placeholder' => 'Zoek op titel of details',
         'search' => 'Zoeken',
@@ -652,26 +652,26 @@ return [
         'empty' => 'Geen updates gevonden voor de gekozen filters.',
         'empty_title' => 'Nog geen updates',
         'view_roadmap' => 'Bekijk roadmap',
-        'cta_title' => 'Blijf op de hoogte van PublishLayer.',
+        'cta_title' => 'Blijf op de hoogte van Argusly.',
         'cta_text' => 'Kom terug voor updates of begin met early access om nieuwe functies als eerste te ervaren.',
     ],
     'legal' => [
         'meta' => [
-            'hub_title' => 'Legal | PublishLayer',
-            'hub_description' => 'Overzicht van PublishLayer juridische documentatie, inclusief Privacy, Voorwaarden, Beveiliging, Cookies en Subverwerkers.',
-            'privacy_title' => 'Privacy | PublishLayer',
-            'privacy_description' => 'Overzicht van de persoonsgegevens die PublishLayer verwerkt om het platform, klantaccounts en de publieke website te laten werken.',
-            'terms_title' => 'Voorwaarden | PublishLayer',
-            'terms_description' => 'Contractuele voorwaarden voor het gebruik van PublishLayer, inclusief abonnementen, credits en toegang.',
-            'security_title' => 'Beveiliging | PublishLayer',
-            'security_description' => 'Beveiligingsoverzicht van PublishLayer, inclusief praktische waarborgen, toegangscontrole en monitoring.',
-            'cookies_title' => 'Cookies | PublishLayer',
-            'cookies_description' => 'Actuele informatie over cookies en vergelijkbare technologieën op publieke PublishLayer pagina\'s en app-toegang.',
-            'subprocessors_title' => 'Subverwerkers | PublishLayer',
-            'subprocessors_description' => 'Externe providers die data kunnen verwerken als onderdeel van PublishLayer dienstverlening.',
+            'hub_title' => 'Legal | Argusly',
+            'hub_description' => 'Overzicht van Argusly juridische documentatie, inclusief Privacy, Voorwaarden, Beveiliging, Cookies en Subverwerkers.',
+            'privacy_title' => 'Privacy | Argusly',
+            'privacy_description' => 'Overzicht van de persoonsgegevens die Argusly verwerkt om het platform, klantaccounts en de publieke website te laten werken.',
+            'terms_title' => 'Voorwaarden | Argusly',
+            'terms_description' => 'Contractuele voorwaarden voor het gebruik van Argusly, inclusief abonnementen, credits en toegang.',
+            'security_title' => 'Beveiliging | Argusly',
+            'security_description' => 'Beveiligingsoverzicht van Argusly, inclusief praktische waarborgen, toegangscontrole en monitoring.',
+            'cookies_title' => 'Cookies | Argusly',
+            'cookies_description' => 'Actuele informatie over cookies en vergelijkbare technologieën op publieke Argusly pagina\'s en app-toegang.',
+            'subprocessors_title' => 'Subverwerkers | Argusly',
+            'subprocessors_description' => 'Externe providers die data kunnen verwerken als onderdeel van Argusly dienstverlening.',
         ],
         'page_hero_title' => ':page',
-        'page_hero_subtitle' => 'Juridische documentatie en governance-details voor PublishLayer klanten en partners.',
+        'page_hero_subtitle' => 'Juridische documentatie en governance-details voor Argusly klanten en partners.',
         'ownership_line' => ':product is een product dat is ontwikkeld en wordt beheerd door :parent.',
         'last_updated_label' => 'Laatst bijgewerkt',
         'last_updated' => [
@@ -685,18 +685,18 @@ return [
         'hub' => [
             'badge' => 'Vertrouwen en compliance',
             'hero_title' => 'Legal',
-            'hero_subtitle' => 'Transparantie, governance en databescherming voor PublishLayer klanten en partners.',
-            'intro' => 'PublishLayer is gebouwd voor professionele contentteams en organisaties die duidelijkheid nodig hebben over gegevensverwerking, beveiliging en contractuele voorwaarden. Deze sectie geeft een overzicht van ons juridisch kader en hoe wij werken.',
+            'hero_subtitle' => 'Transparantie, governance en databescherming voor Argusly klanten en partners.',
+            'intro' => 'Argusly is gebouwd voor professionele contentteams en organisaties die duidelijkheid nodig hebben over gegevensverwerking, beveiliging en contractuele voorwaarden. Deze sectie geeft een overzicht van ons juridisch kader en hoe wij werken.',
             'cards' => [
                 [
                     'title' => 'Privacy',
-                    'description' => 'Hoe we persoonsgegevens verzamelen, gebruiken en beschermen binnen PublishLayer en onze publieke website.',
+                    'description' => 'Hoe we persoonsgegevens verzamelen, gebruiken en beschermen binnen Argusly en onze publieke website.',
                     'link_label' => 'Lees privacybeleid',
                     'route' => 'public.legal.privacy',
                 ],
                 [
                     'title' => 'Voorwaarden',
-                    'description' => 'De contractuele voorwaarden voor het gebruik van PublishLayer, inclusief abonnementen, credits en platformtoegang.',
+                    'description' => 'De contractuele voorwaarden voor het gebruik van Argusly, inclusief abonnementen, credits en platformtoegang.',
                     'link_label' => 'Lees servicevoorwaarden',
                     'route' => 'public.legal.terms',
                 ],
@@ -708,7 +708,7 @@ return [
                 ],
                 [
                     'title' => 'Cookies',
-                    'description' => 'Informatie over cookies, analytics en trackingtechnologie op de PublishLayer website.',
+                    'description' => 'Informatie over cookies, analytics en trackingtechnologie op de Argusly website.',
                     'link_label' => 'Lees cookiebeleid',
                     'route' => 'public.legal.cookies',
                 ],
@@ -720,7 +720,7 @@ return [
                 ],
             ],
             'section_1_title' => 'Gebouwd met governance als uitgangspunt',
-            'section_1_text' => 'PublishLayer is ontworpen voor gestructureerde en verantwoordelijke contentworkflows. Transparantie over infrastructuur, gegevensverwerking en verantwoordelijkheden is onderdeel van die aanpak. We onderhouden en actualiseren onze juridische documentatie terwijl het platform evolueert.',
+            'section_1_text' => 'Argusly is ontworpen voor gestructureerde en verantwoordelijke contentworkflows. Transparantie over infrastructuur, gegevensverwerking en verantwoordelijkheden is onderdeel van die aanpak. We onderhouden en actualiseren onze juridische documentatie terwijl het platform evolueert.',
             'section_2_title' => 'Documentupdates',
             'section_2_text' => 'Elk document bevat een datum voor Laatst bijgewerkt. Materiële wijzigingen worden direct in het relevante document verwerkt. Voor enterprise-klanten kunnen aanvullende contractdocumenten zoals verwerkersovereenkomsten van toepassing zijn.',
             'section_3_title' => 'Vragen over legal of compliance',
@@ -732,7 +732,7 @@ return [
         'cta_button' => 'Neem contact op',
         'security' => [
             'trust_title' => 'Beveiliging ingebouwd in platformontwerp',
-            'trust_text' => 'PublishLayer is gebouwd met beveiliging en gegevensbescherming als fundamentele vereisten, niet als achteraf ingebouwde features. We passen consistente controls toe over infrastructuur, applicatiecode en operationele praktijken.',
+            'trust_text' => 'Argusly is gebouwd met beveiliging en gegevensbescherming als fundamentele vereisten, niet als achteraf ingebouwde features. We passen consistente controls toe over infrastructuur, applicatiecode en operationele praktijken.',
             'trust_points' => [
                 'Versleutelde data in transit en at rest',
                 'Rolgebaseerde toegangscontroles',
@@ -742,7 +742,7 @@ return [
         ],
         'subprocessors' => [
             'table_title' => 'Geverifieerde subverwerkers',
-            'table_intro' => 'Onderstaande subverwerkers zijn momenteel geïntegreerd in de platformoperatie van PublishLayer en kunnen data verwerken als onderdeel van de dienstverlening.',
+            'table_intro' => 'Onderstaande subverwerkers zijn momenteel geïntegreerd in de platformoperatie van Argusly en kunnen data verwerken als onderdeel van de dienstverlening.',
             'fields' => [
                 'legal_entity' => 'Juridische entiteit',
                 'service_category' => 'Dienstcategorie',
@@ -781,7 +781,7 @@ return [
         ],
         'cookies' => [
             'table_title' => 'Huidige cookies en vergelijkbare technologieën',
-            'table_intro' => 'Hieronder staan alleen technologieën die in de huidige PublishLayer codebase zijn bevestigd.',
+            'table_intro' => 'Hieronder staan alleen technologieën die in de huidige Argusly codebase zijn bevestigd.',
             'columns' => [
                 'category' => 'Categorie',
                 'provider' => 'Provider',
@@ -792,14 +792,14 @@ return [
             'rows' => [
                 [
                     'category' => 'Functioneel',
-                    'provider' => 'PublishLayer',
+                    'provider' => 'Argusly',
                     'purpose' => 'Essentiële sessieafhandeling, authenticatie, requestbeveiliging en basisgedrag van site of app.',
                     'type' => 'First-party cookies',
                     'persistence' => 'Afhankelijk van de sessieconfiguratie',
                 ],
                 [
                     'category' => 'Performancemonitoring',
-                    'provider' => 'PublishLayer',
+                    'provider' => 'Argusly',
                     'purpose' => 'Meten van pageviews en content-engagement voor publieke pagina\'s, blogcontent en gerelateerde performancerapportage.',
                     'type' => 'First-party script en sessiegebonden opslag',
                     'persistence' => 'Sessiegebonden identifier in sessionStorage',
@@ -809,16 +809,16 @@ return [
     ],
     'pages' => [
         'product.overview' => [
-            'metaTitle' => 'Productoverzicht | PublishLayer',
+            'metaTitle' => 'Productoverzicht | Argusly',
             'metaDescription' => 'Contentplanning, governance, intelligence en publicatie in één gestructureerde workflow.',
             'heading' => 'Productoverzicht',
-            'intro' => 'PublishLayer is een content operations platform voor teams die één workflow nodig hebben voor planning, drafting, governance, zoekintelligence en publicatie over gekoppelde sites.',
+            'intro' => 'Argusly is een content operations platform voor teams die één workflow nodig hebben voor planning, drafting, governance, zoekintelligence en publicatie over gekoppelde sites.',
         ],
         'product.platform' => [
-            'metaTitle' => 'Platform | PublishLayer',
+            'metaTitle' => 'Platform | Argusly',
             'metaDescription' => 'Capabilities, governance en intelligence samengebracht in één centrale productpagina.',
-            'heading' => 'Het PublishLayer platform',
-            'intro' => 'PublishLayer bundelt contentoperaties, governance en intelligence in één centrale productlaag, zodat teams niet hoeven te schakelen tussen losse productverhalen of versnipperde workflows.',
+            'heading' => 'Het Argusly platform',
+            'intro' => 'Argusly bundelt contentoperaties, governance en intelligence in één centrale productlaag, zodat teams niet hoeven te schakelen tussen losse productverhalen of versnipperde workflows.',
             'sections' => [
                 'capabilities' => [
                     'eyebrow' => 'Capabilities',
@@ -833,7 +833,7 @@ return [
                     ],
                     'callout' => [
                         'title' => 'Gebouwd voor moderne contentteams',
-                        'text' => 'Capabilities in PublishLayer zijn geen losse featuresets, maar een samenhangende workflowlaag voor planning, creatie, review en publishing.',
+                        'text' => 'Capabilities in Argusly zijn geen losse featuresets, maar een samenhangende workflowlaag voor planning, creatie, review en publishing.',
                         'points' => ['Één workspace voor briefs, drafts en calendar planning', 'Connectors en publicatie ingebouwd in de hoofdflow', 'Operationele controls zonder toolsprawl'],
                     ],
                 ],
@@ -849,7 +849,7 @@ return [
                     ],
                     'callout' => [
                         'title' => 'Governance werkt alleen als het onderdeel is van de productflow',
-                        'text' => 'Daarom verbindt PublishLayer review, context en publicatiecontrole direct aan het dagelijkse contentproces in plaats van aan losse checklists achteraf.',
+                        'text' => 'Daarom verbindt Argusly review, context en publicatiecontrole direct aan het dagelijkse contentproces in plaats van aan losse checklists achteraf.',
                         'points' => ['Governed handoffs tussen create, review en publish', 'Merkcontext en rechten per workspace ingebed', 'Auditbare wijzigings- en publicatiestappen'],
                     ],
                 ],
@@ -866,7 +866,7 @@ return [
                     ],
                     'callout' => [
                         'title' => 'Intelligence hoort terug te vloeien naar de briefing',
-                        'text' => 'PublishLayer gebruikt signalen niet alleen voor rapportage, maar om betere keuzes in planning, revisie en publicatie mogelijk te maken.',
+                        'text' => 'Argusly gebruikt signalen niet alleen voor rapportage, maar om betere keuzes in planning, revisie en publicatie mogelijk te maken.',
                         'points' => ['SEO en GEO-signalen terug naar de contentworkflow', 'Insights gekoppeld aan echte publicatieproperties', 'Learnings die volgende drafts direct voeden'],
                     ],
                 ],
@@ -893,10 +893,10 @@ return [
             ],
         ],
         'product.capabilities' => [
-            'metaTitle' => 'Mogelijkheden | PublishLayer',
+            'metaTitle' => 'Mogelijkheden | Argusly',
             'metaDescription' => 'Mogelijkheden voor contentworkflows, workspace intelligence, site-insights, connectors en billing.',
             'heading' => 'Mogelijkheden',
-            'intro' => 'PublishLayer combineert creatie, governance, intelligence en publicatie in één operationele workflow voor contentteams.',
+            'intro' => 'Argusly combineert creatie, governance, intelligence en publicatie in één operationele workflow voor contentteams.',
             'sections' => [
                 ['title' => 'Contentcreatie', 'bullets' => ['Gestructureerde briefs en begeleid draften', 'Compare-flows, rewrites en revisies', 'Content calendar en publicatiestates', 'Seriesupport voor herhaalbare output']],
                 ['title' => 'Publicatie', 'bullets' => ['Gekoppelde WordPress-publicatie', 'Laravel connector support', 'Workflow van review naar publicatie', 'Verificatie na livegang']],
@@ -905,10 +905,10 @@ return [
             ],
         ],
         'product.governance' => [
-            'metaTitle' => 'Governance | PublishLayer',
+            'metaTitle' => 'Governance | Argusly',
             'metaDescription' => 'Gestructureerde contentcontrole met brand rules, approval flows en auditbaarheid.',
             'heading' => 'Governance',
-            'intro' => 'Governance in PublishLayer houdt contentproductie helder, controleerbaar en schaalbaar over teams en sites.',
+            'intro' => 'Governance in Argusly houdt contentproductie helder, controleerbaar en schaalbaar over teams en sites.',
             'sections' => [
                 ['title' => 'Rollen en rechten', 'bullets' => ['Bepaal wie mag creëren, reviewen, goedkeuren en publiceren', 'Houd verantwoordelijkheden helder over teams en sites', 'Ondersteun governance zonder dagelijks werk te blokkeren']],
                 ['title' => 'Workspaces en merkcontext', 'bullets' => ['Scheid merken, teams of klanten in eigen workspaces', 'Pas bedrijfsprofiel, persona en brand voice context per workspace toe', 'Behoud gedeelde standaarden zonder lokale controle te verliezen']],
@@ -916,10 +916,10 @@ return [
             ],
         ],
         'product.intelligence' => [
-            'metaTitle' => 'Intelligence | PublishLayer',
+            'metaTitle' => 'Intelligence | Argusly',
             'metaDescription' => 'SEO, GEO, analytics, concurrentiecontext en content-chain intelligence voor gekoppelde sites.',
             'heading' => 'Intelligence',
-            'intro' => 'PublishLayer zet content- en sitesignalen om in praktische vervolgstappen voor teams die betere content willen plannen, verbeteren en publiceren.',
+            'intro' => 'Argusly zet content- en sitesignalen om in praktische vervolgstappen voor teams die betere content willen plannen, verbeteren en publiceren.',
             'sections' => [
                 ['title' => 'Content intelligence', 'bullets' => ['Beoordeel contentkwaliteit, structuur en verbetermogelijkheden', 'Breng signalen terug in briefs en revisies', 'Ondersteun teams met concrete vervolgstappen in plaats van alleen dashboards']],
                 ['title' => 'Insights per site', 'bullets' => ['Volg SEO, GEO, concurrenten en analytics op gekoppelde properties', 'Gebruik het verificatiescript voor schonere meting', 'Houd inzichten gekoppeld aan de sites waarop je echt publiceert']],
@@ -928,17 +928,17 @@ return [
             ],
         ],
         'company.about' => [
-            'metaTitle' => 'Over ons | PublishLayer',
-            'metaDescription' => 'PublishLayer is gevormd rond de operationele realiteit van B2B-teams die governance, intelligence en publicatie moeten combineren.',
+            'metaTitle' => 'Over ons | Argusly',
+            'metaDescription' => 'Argusly is gevormd rond de operationele realiteit van B2B-teams die governance, intelligence en publicatie moeten combineren.',
             'heading' => 'Over ons',
-            'intro' => 'PublishLayer is gevormd door de praktische behoeften van teams die content runnen over strategie, governance, zoekzichtbaarheid en gekoppelde publicatie.',
+            'intro' => 'Argusly is gevormd door de praktische behoeften van teams die content runnen over strategie, governance, zoekzichtbaarheid en gekoppelde publicatie.',
             'sections' => [
-                ['title' => 'Waarom we dit bouwden', 'bullets' => ['De meeste teams plakken briefs, AI-tools, publishing plugins en rapportage nog handmatig aan elkaar.', 'We bouwen PublishLayer om contentoperaties gestructureerder, meetbaarder en betrouwbaarder te maken.']],
+                ['title' => 'Waarom we dit bouwden', 'bullets' => ['De meeste teams plakken briefs, AI-tools, publishing plugins en rapportage nog handmatig aan elkaar.', 'We bouwen Argusly om contentoperaties gestructureerder, meetbaarder en betrouwbaarder te maken.']],
                 ['title' => 'Hoe we naar het product kijken', 'bullets' => ['AI moet professionele teams versterken in plaats van review en governance te omzeilen.', 'Zoekintelligence, merkcontext en publicatiecontrols horen samen in één operating workflow.']],
             ],
         ],
         'company.contact' => [
-            'metaTitle' => 'Contact | PublishLayer',
+            'metaTitle' => 'Contact | Argusly',
             'metaDescription' => 'Vragen over integratie, enterprise gebruik of partnerships? Neem contact op met ons team.',
             'heading' => 'Contact',
             'intro' => 'Vragen over connectors, governance-opzet, pricing of rollout? Neem contact op. We reageren binnen één werkdag.',
@@ -947,17 +947,17 @@ return [
             ],
         ],
         'company.roadmap' => [
-            'metaTitle' => 'Roadmap | PublishLayer',
-            'metaDescription' => 'Huidige roadmapthema’s en hoe PublishLayer productontwikkeling prioriteert.',
+            'metaTitle' => 'Roadmap | Argusly',
+            'metaDescription' => 'Huidige roadmapthema’s en hoe Argusly productontwikkeling prioriteert.',
             'heading' => 'Roadmap',
-            'intro' => 'PublishLayer ontwikkelt continu door op basis van productgebruik, implementaties en klantfeedback.',
+            'intro' => 'Argusly ontwikkelt continu door op basis van productgebruik, implementaties en klantfeedback.',
             'sections' => [
                 ['title' => 'Huidige focusgebieden', 'bullets' => ['Diepere controls in contentworkflows', 'Rijkere site-intelligence en learnings', 'Sterkere connector- en publicatieverificatie', 'Betere multi-workspace governance en rolloutsupport']],
                 ['title' => 'Hoe we prioriteren', 'bullets' => ['Roadmapwerk wordt gestuurd door echte implementatiebehoeften en operationele knelpunten.', 'Klantfeedback en productgebruik bepalen wat hierna wordt gebouwd.']],
             ],
         ],
         'legal.index' => [
-            'metaTitle' => 'Juridisch Overzicht | PublishLayer',
+            'metaTitle' => 'Juridisch Overzicht | Argusly',
             'metaDescription' => 'Centraal overzicht van juridische en compliance-documentatie.',
             'heading' => 'Juridisch Overzicht',
             'intro' => 'Centraal overzicht van alle juridische en compliance-documentatie.',
@@ -966,10 +966,10 @@ return [
             ],
         ],
         'legal.privacy' => [
-            'metaTitle' => 'Privacy | PublishLayer',
-            'metaDescription' => 'Overzicht van de persoonsgegevens die PublishLayer verwerkt om het platform, klantaccounts en de publieke website te laten werken.',
+            'metaTitle' => 'Privacy | Argusly',
+            'metaDescription' => 'Overzicht van de persoonsgegevens die Argusly verwerkt om het platform, klantaccounts en de publieke website te laten werken.',
             'heading' => 'Privacy',
-            'intro' => 'PublishLayer verwerkt persoonsgegevens die nodig zijn om het platform te leveren, klantaccounts te beheren, publieke websiteverzoeken af te handelen en de dienst te beveiligen.',
+            'intro' => 'Argusly verwerkt persoonsgegevens die nodig zijn om het platform te leveren, klantaccounts te beheren, publieke websiteverzoeken af te handelen en de dienst te beveiligen.',
             'sections' => [
                 ['title' => 'Omvat', 'bullets' => ['Account- en contactgegevens', 'Organisatie- en workspacegegevens', 'Klantcontent en contentmetadata', 'Facturatie-, integratie- en operationele gegevens']],
                 ['title' => 'Updates', 'bullets' => ['Deze pagina beschrijft de huidige productimplementatie', 'Cookies, Beveiliging en Subverwerkers zijn hieronder gelinkt voor gerelateerde details']],
@@ -989,14 +989,14 @@ return [
                     'title' => 'Eigendom van gegevens',
                     'points' => [
                         'Klanten behouden eigendom van de content die zij via het platform creëren of beheren.',
-                        'PublishLayer slaat deze content op en verwerkt deze om generatie, bewerking, workflows, analytics en levering mogelijk te maken.',
+                        'Argusly slaat deze content op en verwerkt deze om generatie, bewerking, workflows, analytics en levering mogelijk te maken.',
                     ],
                 ],
                 [
                     'title' => 'Verwerkingsrollen',
                     'points' => [
-                        'PublishLayer kan optreden als verwerker of dienstverlener wanneer klanten het platform gebruiken om eigen content en bijbehorende accountgegevens te genereren, beheren of publiceren.',
-                        'PublishLayer treedt op als eigen verwerkingsverantwoordelijke voor websitebeheer, accountadministratie, facturatie, support en dienstbeveiliging.',
+                        'Argusly kan optreden als verwerker of dienstverlener wanneer klanten het platform gebruiken om eigen content en bijbehorende accountgegevens te genereren, beheren of publiceren.',
+                        'Argusly treedt op als eigen verwerkingsverantwoordelijke voor websitebeheer, accountadministratie, facturatie, support en dienstbeveiliging.',
                     ],
                 ],
                 [
@@ -1017,56 +1017,56 @@ return [
             ],
         ],
         'legal.terms' => [
-            'metaTitle' => 'Algemene Voorwaarden | PublishLayer',
-            'metaDescription' => 'Algemene voorwaarden voor zakelijk gebruik van PublishLayer.',
-            'heading' => 'Algemene Voorwaarden PublishLayer',
+            'metaTitle' => 'Algemene Voorwaarden | Argusly',
+            'metaDescription' => 'Algemene voorwaarden voor zakelijk gebruik van Argusly.',
+            'heading' => 'Algemene Voorwaarden Argusly',
             'intro' => 'B2B SaaS Platform',
             'sections' => [],
             'articles' => [
-                ['title' => 'Artikel 1. Definities', 'points' => ['PublishLayer: de in Nederland gevestigde onderneming die het SaaS platform PublishLayer exploiteert.', 'Klant: iedere natuurlijke of rechtspersoon handelend in de uitoefening van beroep of bedrijf die een overeenkomst aangaat met PublishLayer.', 'Platform: de online SaaS applicatie PublishLayer inclusief AI functionaliteiten, credit systeem, API en integraties met externe systemen zoals WordPress.', 'Account: de toegang tot het Platform via unieke inloggegevens.', 'Abonnement: periodieke toegang tot het Platform tegen een vaste vergoeding.', 'Credits: vooraf aangeschafte tegoeden waarmee AI gebaseerde contentgeneratie kan worden uitgevoerd.', 'Content: alle door Klant ingevoerde data en alle door het Platform gegenereerde output.']],
-                ['title' => 'Artikel 2. Toepasselijkheid', 'points' => ['Deze voorwaarden zijn uitsluitend van toepassing op overeenkomsten met zakelijke klanten.', 'PublishLayer richt zich uitsluitend op B2B gebruik.', 'Algemene voorwaarden van Klant worden uitdrukkelijk uitgesloten.']],
-                ['title' => 'Artikel 3. Dienstverlening', 'points' => ['PublishLayer biedt een AI content en workflow platform waarmee Klant onder meer:', 'a. briefings kan opstellen', 'b. AI gegenereerde content kan genereren via credits', 'c. content kan beheren en reviseren', 'd. content kan exporteren of publiceren via WordPress integraties', 'PublishLayer heeft een inspanningsverplichting en geen resultaatsverplichting.', 'Functionaliteiten kunnen worden gewijzigd of uitgebreid.']],
-                ['title' => 'Artikel 4. Abonnementen en Credits', 'points' => ['Gebruik van het Platform vereist een actief abonnement.', 'Aanvullende AI functionaliteit wordt gefactureerd via credits.', 'Alle bedragen op de website en binnen het Platform worden weergegeven inclusief btw.', 'Credits worden vooraf betaald en zijn niet restitueerbaar.', 'Niet gebruikte credits vervallen niet tijdens een actieve abonnementsperiode tenzij anders vermeld.', 'PublishLayer mag prijzen aanpassen met redelijke aankondigingstermijn.']],
+                ['title' => 'Artikel 1. Definities', 'points' => ['Argusly: de in Nederland gevestigde onderneming die het SaaS platform Argusly exploiteert.', 'Klant: iedere natuurlijke of rechtspersoon handelend in de uitoefening van beroep of bedrijf die een overeenkomst aangaat met Argusly.', 'Platform: de online SaaS applicatie Argusly inclusief AI functionaliteiten, credit systeem, API en integraties met externe systemen zoals WordPress.', 'Account: de toegang tot het Platform via unieke inloggegevens.', 'Abonnement: periodieke toegang tot het Platform tegen een vaste vergoeding.', 'Credits: vooraf aangeschafte tegoeden waarmee AI gebaseerde contentgeneratie kan worden uitgevoerd.', 'Content: alle door Klant ingevoerde data en alle door het Platform gegenereerde output.']],
+                ['title' => 'Artikel 2. Toepasselijkheid', 'points' => ['Deze voorwaarden zijn uitsluitend van toepassing op overeenkomsten met zakelijke klanten.', 'Argusly richt zich uitsluitend op B2B gebruik.', 'Algemene voorwaarden van Klant worden uitdrukkelijk uitgesloten.']],
+                ['title' => 'Artikel 3. Dienstverlening', 'points' => ['Argusly biedt een AI content en workflow platform waarmee Klant onder meer:', 'a. briefings kan opstellen', 'b. AI gegenereerde content kan genereren via credits', 'c. content kan beheren en reviseren', 'd. content kan exporteren of publiceren via WordPress integraties', 'Argusly heeft een inspanningsverplichting en geen resultaatsverplichting.', 'Functionaliteiten kunnen worden gewijzigd of uitgebreid.']],
+                ['title' => 'Artikel 4. Abonnementen en Credits', 'points' => ['Gebruik van het Platform vereist een actief abonnement.', 'Aanvullende AI functionaliteit wordt gefactureerd via credits.', 'Alle bedragen op de website en binnen het Platform worden weergegeven inclusief btw.', 'Credits worden vooraf betaald en zijn niet restitueerbaar.', 'Niet gebruikte credits vervallen niet tijdens een actieve abonnementsperiode tenzij anders vermeld.', 'Argusly mag prijzen aanpassen met redelijke aankondigingstermijn.']],
                 ['title' => 'Artikel 5. Betaling', 'points' => ['Betaling geschiedt vooraf via externe payment provider zoals Mollie.', 'Abonnementen worden automatisch verlengd tenzij tijdig opgezegd.', 'Bij uitblijven van betaling mag toegang tot het Platform worden opgeschort.']],
-                ['title' => 'Artikel 6. AI gegenereerde Content', 'points' => ['AI output wordt automatisch gegenereerd op basis van input van Klant.', 'PublishLayer garandeert niet dat output:', 'a. feitelijk correct is', 'b. juridisch juist is', 'c. vrij is van rechten van derden', 'Klant is volledig verantwoordelijk voor controle, redactie en publicatie van content.', 'PublishLayer is niet aansprakelijk voor schade voortvloeiend uit publicatie van AI gegenereerde content.']],
-                ['title' => 'Artikel 7. WordPress en Externe Integraties', 'points' => ['Het Platform kan koppelen met externe systemen zoals WordPress via API of plugin.', 'PublishLayer is niet verantwoordelijk voor:', 'a. wijzigingen in externe API’s', 'b. beveiligingslekken in externe systemen', 'c. onjuiste configuratie door Klant', 'Klant blijft verantwoordelijk voor de uiteindelijke publicatie op externe systemen.']],
-                ['title' => 'Artikel 8. Intellectueel Eigendom', 'points' => ['Alle rechten op het Platform berusten bij PublishLayer.', 'Klant verkrijgt een niet overdraagbaar gebruiksrecht.', 'Door Klant ingevoerde content blijft eigendom van Klant.', 'AI output mag door Klant commercieel worden gebruikt onder eigen verantwoordelijkheid.']],
+                ['title' => 'Artikel 6. AI gegenereerde Content', 'points' => ['AI output wordt automatisch gegenereerd op basis van input van Klant.', 'Argusly garandeert niet dat output:', 'a. feitelijk correct is', 'b. juridisch juist is', 'c. vrij is van rechten van derden', 'Klant is volledig verantwoordelijk voor controle, redactie en publicatie van content.', 'Argusly is niet aansprakelijk voor schade voortvloeiend uit publicatie van AI gegenereerde content.']],
+                ['title' => 'Artikel 7. WordPress en Externe Integraties', 'points' => ['Het Platform kan koppelen met externe systemen zoals WordPress via API of plugin.', 'Argusly is niet verantwoordelijk voor:', 'a. wijzigingen in externe API’s', 'b. beveiligingslekken in externe systemen', 'c. onjuiste configuratie door Klant', 'Klant blijft verantwoordelijk voor de uiteindelijke publicatie op externe systemen.']],
+                ['title' => 'Artikel 8. Intellectueel Eigendom', 'points' => ['Alle rechten op het Platform berusten bij Argusly.', 'Klant verkrijgt een niet overdraagbaar gebruiksrecht.', 'Door Klant ingevoerde content blijft eigendom van Klant.', 'AI output mag door Klant commercieel worden gebruikt onder eigen verantwoordelijkheid.']],
                 ['title' => 'Artikel 9. Aansprakelijkheid', 'points' => ['Totale aansprakelijkheid is beperkt tot het bedrag dat Klant in de 12 maanden voorafgaand aan het schadevoorval heeft betaald.', 'Aansprakelijkheid voor indirecte schade is uitgesloten.', 'Beperkingen gelden niet bij opzet of grove schuld.']],
-                ['title' => 'Artikel 10. Beëindiging', 'points' => ['Abonnementen lopen voor de gekozen termijn.', 'Opzegging dient plaats te vinden vóór verlenging.', 'PublishLayer mag accounts direct opschorten bij schending van de AUP.']],
+                ['title' => 'Artikel 10. Beëindiging', 'points' => ['Abonnementen lopen voor de gekozen termijn.', 'Opzegging dient plaats te vinden vóór verlenging.', 'Argusly mag accounts direct opschorten bij schending van de AUP.']],
                 ['title' => 'Artikel 11. Toepasselijk Recht', 'points' => ['Op alle overeenkomsten is Nederlands recht van toepassing.']],
             ],
-            'ctaHeading' => 'Plan je volgende stap met PublishLayer.',
+            'ctaHeading' => 'Plan je volgende stap met Argusly.',
             'ctaText' => 'Bekijk abonnementen of vraag enterprise pricing aan.',
             'ctaPrimary' => 'Bekijk prijzen',
             'ctaSecondary' => 'Contact opnemen',
         ],
         'legal.security' => [
-            'metaTitle' => 'Beveiliging | PublishLayer',
-            'metaDescription' => 'PublishLayer past praktische beveiligingsmaatregelen toe, waaronder toegangscontrole, validatie, rate limiting en monitoring.',
+            'metaTitle' => 'Beveiliging | Argusly',
+            'metaDescription' => 'Argusly past praktische beveiligingsmaatregelen toe, waaronder toegangscontrole, validatie, rate limiting en monitoring.',
             'heading' => 'Beveiliging',
-            'intro' => 'Beveiliging is meegenomen in het ontwerp en de ontwikkeling van het platform. PublishLayer past momenteel praktische technische en organisatorische maatregelen toe die passen bij de huidige fase van het product.',
+            'intro' => 'Beveiliging is meegenomen in het ontwerp en de ontwikkeling van het platform. Argusly past momenteel praktische technische en organisatorische maatregelen toe die passen bij de huidige fase van het product.',
             'sections' => [
                 ['title' => 'Beveiligingsmaatregelen', 'bullets' => ['Versleutelde verbindingen en beveiligde sessie-instellingen', 'Authenticatieflows met gehashte wachtwoorden en beschermde sessies', 'Rolgebaseerde rechten en afgeschermde admin-toegang', 'Workspace-gebonden toegangscontroles voor klantdata en integraties', 'Server-side validatie en frameworkbescherming zoals CSRF-verdediging', 'Rate limiting op publieke formulieren, analytics en API-endpoints', 'Applicatiemonitoring, logging en error tracking', 'Regelmatige framework- en dependency-updates terwijl het platform evolueert']],
-                ['title' => 'Beveiligingsaanpak', 'bullets' => ['PublishLayer past praktische waarborgen toe die passen bij de huidige product- en infrastructuurfase.', 'Beveiligingsmaatregelen worden herzien en uitgebreid naarmate gebruik en infrastructuur verder groeien.', 'Deze pagina wordt bijgewerkt wanneer materiele beveiligingspraktijken of ondersteunende providers veranderen.']],
+                ['title' => 'Beveiligingsaanpak', 'bullets' => ['Argusly past praktische waarborgen toe die passen bij de huidige product- en infrastructuurfase.', 'Beveiligingsmaatregelen worden herzien en uitgebreid naarmate gebruik en infrastructuur verder groeien.', 'Deze pagina wordt bijgewerkt wanneer materiele beveiligingspraktijken of ondersteunende providers veranderen.']],
             ],
         ],
         'legal.cookies' => [
-            'metaTitle' => 'Cookies | PublishLayer',
-            'metaDescription' => 'Actueel gebruik van cookies en vergelijkbare technologieën voor publieke PublishLayer pagina\'s en app-toegang.',
+            'metaTitle' => 'Cookies | Argusly',
+            'metaDescription' => 'Actueel gebruik van cookies en vergelijkbare technologieën voor publieke Argusly pagina\'s en app-toegang.',
             'heading' => 'Cookies',
-            'intro' => 'Deze pagina beschrijft de beperkte cookies en vergelijkbare technologieën die PublishLayer momenteel gebruikt.',
+            'intro' => 'Deze pagina beschrijft de beperkte cookies en vergelijkbare technologieën die Argusly momenteel gebruikt.',
             'articles' => [
                 [
                     'title' => 'Functionele cookies',
                     'points' => [
-                        'PublishLayer gebruikt essentiële first-party cookies om de website en het platform goed te laten werken, inclusief sessieafhandeling, authenticatie en requestbeveiliging.',
+                        'Argusly gebruikt essentiële first-party cookies om de website en het platform goed te laten werken, inclusief sessieafhandeling, authenticatie en requestbeveiliging.',
                         'Deze cookies ondersteunen inloggen, formulierbeveiliging en ander kerngebruik van de interface.',
                     ],
                 ],
                 [
-                    'title' => 'PublishLayer monitoringscript',
+                    'title' => 'Argusly monitoringscript',
                     'points' => [
-                        'De publieke site laadt het eigen pl.js monitoringscript van PublishLayer vanaf het tracking-subdomein van PublishLayer.',
+                        'De publieke site laadt het eigen pl.js monitoringscript van Argusly vanaf het tracking-subdomein van Argusly.',
                         'Het script registreert pageviews en engagementsignalen zoals scrolldiepte, read-through en leestijd voor rapportage over blog- en contentperformance.',
                         'Het script gebruikt een sessiegebonden identifier in sessionStorage in plaats van een langlevende marketingcookie.',
                         'Het trackingscript respecteert Do Not Track wanneer dit in de browser is ingeschakeld.',
@@ -1077,20 +1077,20 @@ return [
                     'points' => [
                         'Er is momenteel geen aparte cookiebanner of voorkeurencentrum in deze codebase geïmplementeerd.',
                         'Er zijn geen advertentie-, retargeting-, socialmediatrackers of aparte third-party analytics snippets gevonden op de publieke site of app.',
-                        'Als PublishLayer nieuwe trackingtools introduceert, wordt deze pagina bijgewerkt.',
+                        'Als Argusly nieuwe trackingtools introduceert, wordt deze pagina bijgewerkt.',
                     ],
                 ],
             ],
             'sections' => [
                 ['title' => 'Omvat', 'bullets' => ['Functionele cookies voor essentieel gedrag van site en app', 'First-party performancemonitoring voor publieke pagina\'s en blogcontent']],
-                ['title' => 'Beheer', 'bullets' => ['Er is momenteel geen apart cookievoorkeurencentrum in deze codebase', 'Je kunt cookies beheren of blokkeren via je browserinstellingen', 'PublishLayer werkt deze pagina bij wanneer nieuwe tools worden toegevoegd']],
+                ['title' => 'Beheer', 'bullets' => ['Er is momenteel geen apart cookievoorkeurencentrum in deze codebase', 'Je kunt cookies beheren of blokkeren via je browserinstellingen', 'Argusly werkt deze pagina bij wanneer nieuwe tools worden toegevoegd']],
             ],
         ],
         'legal.subprocessors' => [
-            'metaTitle' => 'Subverwerkers | PublishLayer',
+            'metaTitle' => 'Subverwerkers | Argusly',
             'metaDescription' => 'Actuele lijst van externe diensten die gegevens kunnen verwerken.',
             'heading' => 'Subverwerkers',
-            'intro' => 'Overzicht van geverifieerde externe diensten die data kunnen verwerken als onderdeel van de dienstverlening van PublishLayer.',
+            'intro' => 'Overzicht van geverifieerde externe diensten die data kunnen verwerken als onderdeel van de dienstverlening van Argusly.',
             'sections' => [
                 ['title' => 'Omvat', 'bullets' => ['AI-modelproviders', 'Transactionele e-maildiensten', 'Betaalproviders', 'Foutmonitoringdiensten']],
                 ['title' => 'Onderhoud', 'bullets' => ['Volledige en actuele lijst wordt hier bijgehouden.']],
@@ -1101,7 +1101,7 @@ return [
     // About page
     'about' => [
         'hero_title' => 'Contentoperaties zijn bij de meeste teams kapot.',
-        'hero_text' => 'Teams werken nog steeds met gefragmenteerde tools, losgekoppelde publishingflows en beperkte reviewcontrole. PublishLayer brengt planning, governance, intelligence en connected publishing samen in één operating layer.',
+        'hero_text' => 'Teams werken nog steeds met gefragmenteerde tools, losgekoppelde publishingflows en beperkte reviewcontrole. Argusly brengt planning, governance, intelligence en connected publishing samen in één operating layer.',
 
         'problem_title' => 'Waarom de meeste teams nog steeds worstelen',
         'problem_text' => 'Zelfs met AI-tools en meer contentvraag besteden teams te veel tijd aan coördinatie, contextwisseling en kwaliteitscontrole in plaats van met vertrouwen te publiceren.',
@@ -1114,15 +1114,15 @@ return [
         ],
 
         'why_eyebrow' => 'Onze aanpak',
-        'why_title' => 'Waarom PublishLayer bestaat',
-        'why_text' => 'PublishLayer brengt de workflows samen die contentteams daadwerkelijk nodig hebben: gestructureerde planning, gecontroleerde creatie, zoek-intelligence en connected publishing.',
+        'why_title' => 'Waarom Argusly bestaat',
+        'why_text' => 'Argusly brengt de workflows samen die contentteams daadwerkelijk nodig hebben: gestructureerde planning, gecontroleerde creatie, zoek-intelligence en connected publishing.',
         'approach_blocks' => [
-            ['icon' => 'layers', 'title' => 'Eén operating layer', 'text' => 'In plaats van meer puntoplossingen toe te voegen, combineert PublishLayer briefs, drafts, governance, insights en connectors in één samenhangende workflow.'],
+            ['icon' => 'layers', 'title' => 'Eén operating layer', 'text' => 'In plaats van meer puntoplossingen toe te voegen, combineert Argusly briefs, drafts, governance, insights en connectors in één samenhangende workflow.'],
             ['icon' => 'shield-check', 'title' => 'Governance by design', 'text' => 'AI-output schaalt alleen wanneer merkcontext, rollen, revisiegeschiedenis en publicatiecontroles onderdeel zijn van het dagelijkse proces.'],
         ],
 
         'principles_title' => 'Productprincipes',
-        'principles_text' => 'Deze ideeën bepalen hoe PublishLayer wordt gebouwd en wat we prioriteren.',
+        'principles_text' => 'Deze ideeën bepalen hoe Argusly wordt gebouwd en wat we prioriteren.',
         'principles' => [
             ['icon' => 'git-merge', 'title' => 'Workflow boven tool-wildgroei', 'text' => 'Teams hebben minder tools nodig, niet meer integraties.'],
             ['icon' => 'shield', 'title' => 'Governance zonder bottlenecks', 'text' => 'Review en controle mogen de productie niet vertragen.'],
@@ -1132,7 +1132,7 @@ return [
 
         'trust_badge' => 'Gebouwd voor professionele teams',
         'trust_title' => 'Governance, workflow en connected publishing',
-        'trust_text' => 'PublishLayer is ontworpen voor teams die geloofwaardige productieprocessen nodig hebben met rollen, audit trails en publishing-verantwoordelijkheid.',
+        'trust_text' => 'Argusly is ontworpen voor teams die geloofwaardige productieprocessen nodig hebben met rollen, audit trails en publishing-verantwoordelijkheid.',
         'trust_points' => [
             'Multi-tenant workspace-architectuur',
             'Rolgebaseerde toegang en reviewworkflows',
@@ -1140,7 +1140,7 @@ return [
             'WordPress en Laravel connector-ondersteuning',
         ],
 
-        'cta_title' => 'Ontdek hoe PublishLayer werkt voor jouw team.',
+        'cta_title' => 'Ontdek hoe Argusly werkt voor jouw team.',
         'cta_text' => 'Bekijk de prijzen of bespreek je connector-, governance- en rolloutvereisten.',
     ],
 
@@ -1148,11 +1148,11 @@ return [
     'contact' => [
         'success' => 'Bedankt. We reageren binnen één werkdag.',
 
-        'hero_title' => 'Praat met het team achter PublishLayer.',
+        'hero_title' => 'Praat met het team achter Argusly.',
         'hero_text' => 'Van setup en connectors tot governance en rollout, we helpen teams contentoperaties bouwen die schalen.',
 
         'options' => [
-            ['icon' => 'message-circle', 'title' => 'Bespreek je workflow', 'text' => 'Bespreken hoe PublishLayer past bij je huidige setup, tools en publishingflow.'],
+            ['icon' => 'message-circle', 'title' => 'Bespreek je workflow', 'text' => 'Bespreken hoe Argusly past bij je huidige setup, tools en publishingflow.'],
             ['icon' => 'credit-card', 'title' => 'Vraag naar prijzen of rollout', 'text' => 'Vragen over plannen, credits, onboarding of enterprise-eisen.'],
             ['icon' => 'plug', 'title' => 'Connector en implementatie', 'text' => 'WordPress, Laravel connector of custom publishing-integratie.'],
         ],
@@ -1183,7 +1183,7 @@ return [
     // Roadmap page
     'roadmap' => [
         'hero_title' => 'Roadmap',
-        'hero_text' => 'PublishLayer evolueert continu met input van productgebruik, implementatiewerk en klantfeedback.',
+        'hero_text' => 'Argusly evolueert continu met input van productgebruik, implementatiewerk en klantfeedback.',
 
         'focus_eyebrow' => 'Huidige richting',
         'focus_title' => 'Waar het product naartoe gaat',
@@ -1206,7 +1206,7 @@ return [
 
         'feedback_badge' => 'Klantgedreven',
         'feedback_title' => 'Jouw input bepaalt wat er volgt',
-        'feedback_text' => 'PublishLayer wordt gebouwd met directe klantinput. Productie-ervaring en echte workflows bepalen wat we prioriteren.',
+        'feedback_text' => 'Argusly wordt gebouwd met directe klantinput. Productie-ervaring en echte workflows bepalen wat we prioriteren.',
         'feedback_points' => [
             'Directe feedbackkanalen voor actieve klanten',
             'Implementatie-inzichten van onboarding',

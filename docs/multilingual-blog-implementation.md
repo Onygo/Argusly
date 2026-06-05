@@ -10,7 +10,7 @@
 
 ## Why this shape
 
-- It reuses the existing PublishLayer content/draft/version flow instead of introducing a second blog-only content model.
+- It reuses the existing Argusly content/draft/version flow instead of introducing a second blog-only content model.
 - Locale routing, SEO, hreflang, sitemap, and language switching can all resolve against one content family.
 - Adding more locales later is data-driven: another localized `content` row can join the same source chain without controller/view branching.
 
@@ -30,5 +30,5 @@
 ## Translation flow
 
 - Content-level translate/refresh actions resolve the source variant, then reuse the existing draft translation pipeline.
-- If no suitable source draft exists, PublishLayer bootstraps one from the current content version so legacy NL blog content can still be translated.
+- If no suitable source draft exists, Argusly bootstraps one from the current content version so legacy NL blog content can still be translated.
 - Refreshing an existing locale variant updates the same localized content record instead of creating a disconnected duplicate.

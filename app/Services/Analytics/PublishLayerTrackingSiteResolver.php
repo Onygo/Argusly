@@ -161,7 +161,7 @@ class PublishLayerTrackingSiteResolver
             return $configuredUrl;
         }
 
-        $baseDomain = config('domains.base', 'publishlayer.local');
+        $baseDomain = config('domains.base', 'argusly.local');
         $scheme = request()->secure() ? 'https' : 'http';
 
         return "{$scheme}://track.{$baseDomain}";

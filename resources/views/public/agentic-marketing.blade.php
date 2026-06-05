@@ -14,7 +14,7 @@
         $softwareSchema = [
             '@context' => 'https://schema.org',
             '@type' => 'SoftwareApplication',
-            'name' => 'PublishLayer',
+            'name' => 'Argusly',
             'applicationCategory' => 'BusinessApplication',
             'operatingSystem' => 'Web',
             'url' => $canonicalUrl,
@@ -196,7 +196,7 @@
     <section class="bg-white">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="max-w-3xl">
-                <p class="text-sm font-semibold uppercase tracking-[0.14em] text-textMuted">PublishLayer</p>
+                <p class="text-sm font-semibold uppercase tracking-[0.14em] text-textMuted">Argusly</p>
                 <h2 class="mt-3 text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ $copy['features_title'] }}</h2>
             </div>
             <div class="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -762,7 +762,7 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-semibold" data-linkedin-preview-account>LinkedIn account</p>
-                        <p class="text-xs text-[#666]">PublishLayer · Preview</p>
+                        <p class="text-xs text-[#666]">Argusly · Preview</p>
                         <div class="mt-1 flex items-center gap-1 text-xs text-[#666]">
                             <span data-linkedin-preview-time>Now</span>
                             <span>·</span>

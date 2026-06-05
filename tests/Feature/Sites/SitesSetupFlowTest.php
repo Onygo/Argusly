@@ -261,9 +261,9 @@ it('checks laravel connector activity endpoint using the site key payload', func
         'workspace_id' => $workspace->id,
         'type' => 'laravel',
         'name' => 'Laravel Connector Site',
-        'site_url' => 'https://laravel.publishlayer.local',
-        'base_url' => 'https://laravel.publishlayer.local',
-        'allowed_domains' => ['laravel.publishlayer.local'],
+        'site_url' => 'https://laravel.argusly.local',
+        'base_url' => 'https://laravel.argusly.local',
+        'allowed_domains' => ['laravel.argusly.local'],
         'is_active' => true,
         'status' => 'pending',
     ]);
@@ -281,7 +281,7 @@ it('checks laravel connector activity endpoint using the site key payload', func
     ]);
 
     Http::fake([
-        'https://laravel.publishlayer.local/publishlayer/connector/activity' => Http::response([
+        'https://laravel.argusly.local/publishlayer/connector/activity' => Http::response([
             'last_webhook_received_at' => now()->subMinutes(5)->toIso8601String(),
             'last_processed_at' => now()->subMinutes(4)->toIso8601String(),
             'last_heartbeat_at' => now()->subMinute()->toIso8601String(),
@@ -298,7 +298,7 @@ it('checks laravel connector activity endpoint using the site key payload', func
 
     Http::assertSent(function ($request) use ($plain): bool {
         return $request->method() === 'POST'
-            && $request->url() === 'https://laravel.publishlayer.local/publishlayer/connector/activity'
+            && $request->url() === 'https://laravel.argusly.local/publishlayer/connector/activity'
             && $request['site_key'] === $plain
             && $request['site_token'] === $plain
             && is_string($request['site_id'] ?? null)
@@ -318,9 +318,9 @@ it('retries laravel connector activity with another active site key when first k
         'workspace_id' => $workspace->id,
         'type' => 'laravel',
         'name' => 'Laravel Connector Retry Site',
-        'site_url' => 'https://laravel.publishlayer.local',
-        'base_url' => 'https://laravel.publishlayer.local',
-        'allowed_domains' => ['laravel.publishlayer.local'],
+        'site_url' => 'https://laravel.argusly.local',
+        'base_url' => 'https://laravel.argusly.local',
+        'allowed_domains' => ['laravel.argusly.local'],
         'is_active' => true,
         'status' => 'pending',
     ]);
@@ -352,7 +352,7 @@ it('retries laravel connector activity with another active site key when first k
     ]);
 
     Http::fake([
-        'https://laravel.publishlayer.local/publishlayer/connector/activity' => function ($request) use ($newPlain) {
+        'https://laravel.argusly.local/publishlayer/connector/activity' => function ($request) use ($newPlain) {
             if (($request['site_key'] ?? null) === $newPlain) {
                 return Http::response([
                     'message' => 'The given data was invalid.',
@@ -396,9 +396,9 @@ it('shows connector validation errors when laravel activity payload is rejected'
         'workspace_id' => $workspace->id,
         'type' => 'laravel',
         'name' => 'Laravel Validation Site',
-        'site_url' => 'https://laravel.publishlayer.local',
-        'base_url' => 'https://laravel.publishlayer.local',
-        'allowed_domains' => ['laravel.publishlayer.local'],
+        'site_url' => 'https://laravel.argusly.local',
+        'base_url' => 'https://laravel.argusly.local',
+        'allowed_domains' => ['laravel.argusly.local'],
         'is_active' => true,
         'status' => 'pending',
     ]);
@@ -416,7 +416,7 @@ it('shows connector validation errors when laravel activity payload is rejected'
     ]);
 
     Http::fake([
-        'https://laravel.publishlayer.local/publishlayer/connector/activity' => Http::response([
+        'https://laravel.argusly.local/publishlayer/connector/activity' => Http::response([
             'message' => 'The given data was invalid.',
             'errors' => [
                 'site_key' => ['The selected site_key is invalid.'],

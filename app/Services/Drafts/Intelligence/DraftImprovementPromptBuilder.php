@@ -18,7 +18,7 @@ class DraftImprovementPromptBuilder
     {
         if ($action === DraftImprovementAction::FULL_DRAFT) {
             return <<<'PROMPT'
-You improve one PublishLayer HTML draft holistically.
+You improve one Argusly HTML draft holistically.
 
 Return strict JSON only. Preserve the draft's meaning, factual intent, coherent structure, and brand tone while improving SEO, readability, headings, CTA, LLM visibility, brand voice fit, trust/evidence, conversion fit, and publish readiness together.
 Also improve how clearly AI systems can extract the main answer, summary passages, and named entities without turning the draft into generic AI bait.
@@ -29,7 +29,7 @@ PROMPT;
         }
 
         return sprintf(
-            'You improve one PublishLayer HTML draft with a focused %s pass. Return strict JSON only, preserve meaning and structure, and change only what is necessary for the requested action.',
+            'You improve one Argusly HTML draft with a focused %s pass. Return strict JSON only, preserve meaning and structure, and change only what is necessary for the requested action.',
             $action->summaryLabel()
         );
     }

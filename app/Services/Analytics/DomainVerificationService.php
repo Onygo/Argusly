@@ -153,7 +153,7 @@ class DomainVerificationService
             $disableTlsVerify = $this->shouldDisableTlsVerifyFor($url);
             $request = Http::accept('text/html')
                 ->timeout(self::TIMEOUT_SECONDS)
-                ->withUserAgent('PublishLayer-Verification/1.0');
+                ->withUserAgent('Argusly-Verification/1.0');
 
             if ($disableTlsVerify) {
                 // Local development workaround for self-signed certs; do not enable in production.
@@ -341,7 +341,7 @@ class DomainVerificationService
             return false;
         }
 
-        if (in_array($host, ['publishlayer.local', 'localhost', '127.0.0.1'], true)) {
+        if (in_array($host, ['argusly.local', 'localhost', '127.0.0.1'], true)) {
             return true;
         }
 

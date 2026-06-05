@@ -48,7 +48,7 @@ class ProductUpdatesSeeder extends Seeder
                 'body_markdown' => <<<'MD'
 ## What's new
 
-PublishLayer now helps you create better content faster with built-in AI assistance.
+Argusly now helps you create better content faster with built-in AI assistance.
 
 - **Credit-based pricing** – Pay only for what you use
 - **Usage visibility** – See exactly how your credits are spent
@@ -87,7 +87,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## More flexibility
 
-PublishLayer now supports multiple AI providers, giving you choice in how your content is created.
+Argusly now supports multiple AI providers, giving you choice in how your content is created.
 
 - **Multiple options** – Choose the AI that works best for your content
 - **Workspace defaults** – Set your preferred provider for your team
@@ -105,7 +105,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## Public site updates
 
-We've improved the public areas of PublishLayer.
+We've improved the public areas of Argusly.
 
 ### Blog
 
@@ -141,7 +141,7 @@ We've improved the subscription experience.
 - **Better invoices** – Clearer invoice details and easier downloads
 - **Smoother onboarding** – New subscribers get up and running faster
 
-Managing your PublishLayer subscription is now more straightforward.
+Managing your Argusly subscription is now more straightforward.
 MD,
                 'version' => null,
                 'tags' => ['improved'],
@@ -174,7 +174,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## See how your content performs
 
-PublishLayer now includes built-in analytics for your published content.
+Argusly now includes built-in analytics for your published content.
 
 - **Traffic insights** – See visits across your connected sites
 - **Performance trends** – Track how content performs over time
@@ -196,7 +196,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## Better connection reliability
 
-We've improved how PublishLayer monitors your connected sites.
+We've improved how Argusly monitors your connected sites.
 
 - **Automatic checks** – Your connections are monitored continuously
 - **Early warnings** – Get notified before problems affect publishing
@@ -239,7 +239,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## Stay informed
 
-You're looking at it! This page keeps you updated on everything new in PublishLayer.
+You're looking at it! This page keeps you updated on everything new in Argusly.
 
 - **Search** – Find specific updates quickly
 - **Filter by topic** – See only what's relevant to you
@@ -264,7 +264,7 @@ We've made improvements across the platform for better stability.
 - **Better analytics** – More accurate data collection
 - **Improved sign-in** – More reliable verification process
 
-These behind-the-scenes improvements make PublishLayer more dependable.
+These behind-the-scenes improvements make Argusly more dependable.
 MD,
                 'version' => null,
                 'tags' => ['fixed'],
@@ -316,7 +316,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## Reach global audiences
 
-PublishLayer now supports creating content in multiple languages.
+Argusly now supports creating content in multiple languages.
 
 - **Language settings** – Configure which languages you work in
 - **Translation support** – Create versions in different languages
@@ -332,15 +332,15 @@ MD,
             ],
             [
                 'title' => 'Developer API and documentation',
-                'summary' => 'Build custom integrations with the PublishLayer API.',
+                'summary' => 'Build custom integrations with the Argusly API.',
                 'body_markdown' => <<<'MD'
 ## For developers
 
-We're opening PublishLayer to developers who want to build custom integrations.
+We're opening Argusly to developers who want to build custom integrations.
 
 - **API documentation** – Complete reference for all available endpoints
 - **Testing tools** – Try the API before you build
-- **Headless capabilities** – Use PublishLayer as a headless content source
+- **Headless capabilities** – Use Argusly as a headless content source
 
 Build custom workflows and integrations tailored to your needs.
 MD,
@@ -394,7 +394,7 @@ MD,
                 'body_markdown' => <<<'MD'
 ## WordPress publishing
 
-Publish your content directly to WordPress without leaving PublishLayer.
+Publish your content directly to WordPress without leaving Argusly.
 
 - **One-click publishing** – Send content to WordPress instantly
 - **Draft or publish** – Choose when content goes live

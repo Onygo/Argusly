@@ -12,7 +12,7 @@ class DetectAgenticMarketingOpportunitiesCommand extends Command
         {objective? : Optional objective UUID}
         {--queue : Dispatch detection to the queue instead of running inline}';
 
-    protected $description = 'Detect deterministic Agentic Marketing opportunities from stored PublishLayer intelligence signals.';
+    protected $description = 'Detect deterministic Agentic Marketing opportunities from stored Argusly intelligence signals.';
 
     public function handle(AgenticMarketingOpportunityDetectionService $detection): int
     {

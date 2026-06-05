@@ -64,7 +64,7 @@ class BillingSettingsService
     public function getInvoiceIssuerProfile(): array
     {
         return (array) $this->get(self::ISSUER_KEY, [
-            'company_name' => 'PublishLayer',
+            'company_name' => 'Argusly',
             'address_line1' => '',
             'address_line2' => '',
             'postal_code' => '',

@@ -3,7 +3,7 @@
 ## Migration Notes
 
 - Run the new migrations before enabling agentic connector delivery. They add structured output, locale, canonical, hreflang, schema, AI visibility, and metadata fields to `publishlayer_articles`.
-- PublishLayer stores connector capabilities from heartbeat payloads in `client_sites.capabilities.agentic`.
+- Argusly stores connector capabilities from heartbeat payloads in `client_sites.capabilities.agentic`.
 - Legacy connector payloads remain supported. Missing policy data is treated as guided draft-safe execution.
 - Autonomous publishing remains disabled by default for both WordPress and Laravel connectors.
 - Laravel connector environments should add:

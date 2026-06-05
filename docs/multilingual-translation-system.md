@@ -1,10 +1,10 @@
 # Multilingual Translation System
 
-This document describes the first production translation architecture for PublishLayer as implemented in the current codebase.
+This document describes the first production translation architecture for Argusly as implemented in the current codebase.
 
 ## Scope
 
-PublishLayer now treats UI locale and content language as separate concerns:
+Argusly now treats UI locale and content language as separate concerns:
 
 - UI locale: English and Dutch for the app and public frontend
 - Content language: normalized ISO-style short codes (`en`, `nl`, `de`, `fr`, `es`) for briefs, drafts, SEO, and publishing
@@ -33,7 +33,7 @@ Instead, translation creates:
 2. a new localized `briefs` row
 3. a new translated `drafts` row linked to the original source draft
 
-This matches the current PublishLayer architecture, where publishing, SEO, scheduling, and WordPress sync are content-centric. It avoids EN/NL state collisions and keeps translated drafts fully editable and publishable.
+This matches the current Argusly architecture, where publishing, SEO, scheduling, and WordPress sync are content-centric. It avoids EN/NL state collisions and keeps translated drafts fully editable and publishable.
 
 ### Translation source rule
 

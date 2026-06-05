@@ -1,5 +1,5 @@
 /**
- * PublishLayer Analytics - privacy-first pageview tracker
+ * Argusly Analytics - privacy-first pageview tracker
  * Version: 1.2.1
  */
 (function () {

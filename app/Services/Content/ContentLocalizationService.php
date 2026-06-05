@@ -363,14 +363,14 @@ class ContentLocalizationService
         $content->loadMissing('brief', 'currentVersion');
 
         if (! $content->client_site_id) {
-            throw new RuntimeException('This content is not linked to a site, so PublishLayer cannot build a translation source draft.');
+            throw new RuntimeException('This content is not linked to a site, so Argusly cannot build a translation source draft.');
         }
 
         $sourceVersion = $this->resolveRenderableSourceVersion($content);
         $body = trim((string) ($sourceVersion?->body ?? ''));
         if ($body === '') {
             throw new RuntimeException(
-                'No usable translation source is available. PublishLayer could not find a current delivered/published content version with body content to translate.'
+                'No usable translation source is available. Argusly could not find a current delivered/published content version with body content to translate.'
             );
         }
 

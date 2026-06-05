@@ -20,7 +20,7 @@ class PublishLayerSeed extends Command
         {--type=wordpress : Client type}
         {--scopes=briefs:write,drafts:read,events:write : Comma separated scopes}';
 
-    protected $description = 'Seed a PublishLayer workspace, client site, and site token';
+    protected $description = 'Seed an Argusly workspace, client site, and site token';
 
     public function handle(): int
     {

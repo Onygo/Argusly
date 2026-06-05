@@ -49,7 +49,7 @@
                 <i data-lucide="layers" class="h-4 w-4"></i>
             </span>
             <span class="leading-tight">
-                <span class="block text-sm font-semibold text-textPrimary">PublishLayer</span>
+                <span class="block text-sm font-semibold text-textPrimary">Argusly</span>
             </span>
         </a>
 

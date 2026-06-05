@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Set the base domain for tests
-    config(['domains.base' => 'publishlayer.local']);
+    config(['domains.base' => 'argusly.local']);
 });
 
 /**
@@ -18,7 +18,7 @@ beforeEach(function () {
  */
 function subdomainGet(object $testCase, string $subdomain, string $path, ?User $user = null)
 {
-    $baseDomain = config('domains.base', 'publishlayer.local');
+    $baseDomain = config('domains.base', 'argusly.local');
     $host = $subdomain === 'marketing' ? $baseDomain : "{$subdomain}.{$baseDomain}";
     $url = "http://{$host}" . $path;
 
@@ -31,7 +31,7 @@ function subdomainGet(object $testCase, string $subdomain, string $path, ?User $
 
 function subdomainPost(object $testCase, string $subdomain, string $path, array $data = [], ?User $user = null)
 {
-    $baseDomain = config('domains.base', 'publishlayer.local');
+    $baseDomain = config('domains.base', 'argusly.local');
     $host = $subdomain === 'marketing' ? $baseDomain : "{$subdomain}.{$baseDomain}";
     $url = "http://{$host}" . $path;
 
@@ -50,23 +50,23 @@ function subdomainPost(object $testCase, string $subdomain, string $path, array 
 
 describe('Marketing Subdomain', function () {
     it('redirects www marketing requests to the apex domain', function () {
-        $response = $this->withHeaders(['Host' => 'www.publishlayer.local'])
-            ->get('http://www.publishlayer.local/en?utm_source=test');
+        $response = $this->withHeaders(['Host' => 'www.argusly.local'])
+            ->get('http://www.argusly.local/en?utm_source=test');
 
         $response->assertStatus(301);
-        $response->assertRedirect('http://publishlayer.local/en?utm_source=test');
+        $response->assertRedirect('http://argusly.local/en?utm_source=test');
     });
 
     it('redirects apex domain to canonical localized landing page', function () {
         $response = subdomainGet($this, 'marketing', '/');
         $response->assertStatus(301);
-        $response->assertRedirect('http://publishlayer.local/en');
+        $response->assertRedirect('http://argusly.local/en');
     });
 
     it('redirects legacy pricing page on marketing domain to canonical localized pricing page', function () {
         $response = subdomainGet($this, 'marketing', '/prijzen');
         $response->assertStatus(301);
-        $response->assertRedirect('http://publishlayer.local/nl/prijzen');
+        $response->assertRedirect('http://argusly.local/nl/prijzen');
     });
 
     it('serves login page on marketing domain for backwards compatibility', function () {
@@ -167,7 +167,7 @@ describe('Admin Subdomain', function () {
 
 describe('API Subdomain', function () {
     it('serves API endpoints on api subdomain', function () {
-        $baseDomain = config('domains.base', 'publishlayer.local');
+        $baseDomain = config('domains.base', 'argusly.local');
         $host = "api.{$baseDomain}";
 
         // The Mollie webhook should be accessible (even if it returns an error due to missing data)
@@ -203,7 +203,7 @@ describe('Cross-Subdomain Routing', function () {
         // This is intentional - public marketing content is not a security concern
         $response = subdomainGet($this, 'app', '/prijzen');
         $response->assertStatus(301);
-        $response->assertRedirect('http://app.publishlayer.local/nl/prijzen');
+        $response->assertRedirect('http://app.argusly.local/nl/prijzen');
     });
 });
 
@@ -222,7 +222,7 @@ describe('Login Redirects', function () {
         ]);
 
         $response->assertRedirect();
-        expect($response->headers->get('Location'))->toContain('admin.publishlayer.local/dashboard');
+        expect($response->headers->get('Location'))->toContain('admin.argusly.local/dashboard');
     });
 
     it('redirects regular users to app dashboard after login', function () {
@@ -243,7 +243,7 @@ describe('Login Redirects', function () {
         $response = subdomainPost($this, 'app', '/logout', [], $user);
 
         $response->assertRedirect();
-        expect($response->headers->get('Location'))->toContain('publishlayer.local');
+        expect($response->headers->get('Location'))->toContain('argusly.local');
         expect($response->headers->get('Location'))->not->toContain('app.');
     });
 });

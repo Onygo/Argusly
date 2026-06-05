@@ -8,7 +8,7 @@ echo <<<'HTML'
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>PublishLayer</title>
+  <title>Argusly</title>
   <style>
     :root {
       --bg: #fffdf6;
@@ -175,7 +175,7 @@ echo <<<'HTML'
 <body>
   <main>
     <div class="brand-row">
-      <div class="brand-lockup" aria-label="PublishLayer logo">
+      <div class="brand-lockup" aria-label="Argusly logo">
         <span class="brand-icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">
             <path d="m12.83 2.18 7 4a1 1 0 0 1 0 1.74l-7 4a2 2 0 0 1-1.66 0l-7-4a1 1 0 0 1 0-1.74l7-4a2 2 0 0 1 1.66 0z"></path>
@@ -183,16 +183,16 @@ echo <<<'HTML'
             <path d="m2 17 9.17 5a2 2 0 0 0 1.66 0L22 17"></path>
           </svg>
         </span>
-        <p class="brand-wordmark">PublishLayer</p>
+        <p class="brand-wordmark">Argusly</p>
       </div>
     </div>
 
     <p class="status">Status: pre launch</p>
 
-    <h1>PublishLayer</h1>
+    <h1>Argusly</h1>
     <p class="subtitle">De content authority layer voor teams die schaalbaar en gecontroleerd willen publiceren.</p>
 
-    <p>PublishLayer helpt teams om AI content te genereren, te reviewen en te publiceren met governance, versiebeheer en integraties. We starten met een sterke focus op WordPress en Laravel als eerste integraties.</p>
+    <p>Argusly helpt teams om AI content te genereren, te reviewen en te publiceren met governance, versiebeheer en integraties. We starten met een sterke focus op WordPress en Laravel als eerste integraties.</p>
 
     <h2>Wat je kunt verwachten</h2>
     <ul>
@@ -210,7 +210,7 @@ echo <<<'HTML'
       <p>Support: <a href="mailto:support@publishlayer.com">support@publishlayer.com</a></p>
     </section>
 
-    <footer>&copy; PublishLayer</footer>
+    <footer>&copy; Argusly</footer>
   </main>
 </body>
 </html>

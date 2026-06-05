@@ -16,7 +16,7 @@ class SeoMetadataService
         $title = $this->title(
             (string) ($post['seo_title'] ?? ''),
             (string) ($post['title'] ?? ''),
-            'PublishLayer Blog'
+            'Argusly Blog'
         );
         $description = $this->description([
             (string) ($post['seo_meta_description'] ?? ''),
@@ -52,7 +52,7 @@ class SeoMetadataService
             (string) ($content->public_blog_excerpt ?? ''),
             (string) ($content->currentVersion?->body ?? ''),
         ]);
-        $title = $this->title((string) ($content->seo_title ?? ''), (string) $content->title, 'PublishLayer');
+        $title = $this->title((string) ($content->seo_title ?? ''), (string) $content->title, 'Argusly');
 
         return [
             'title' => $title,
@@ -120,9 +120,9 @@ class SeoMetadataService
     private function title(string $seoTitle, string $fallbackTitle, string $suffix): string
     {
         $title = trim($seoTitle) !== '' ? trim($seoTitle) : trim($fallbackTitle);
-        $title = $title !== '' ? $title : 'PublishLayer';
+        $title = $title !== '' ? $title : 'Argusly';
 
-        return str_contains($title, 'PublishLayer') ? $title : $title . ' | ' . $suffix;
+        return str_contains($title, 'Argusly') ? $title : $title . ' | ' . $suffix;
     }
 
     /**
@@ -139,7 +139,7 @@ class SeoMetadataService
             }
         }
 
-        return 'PublishLayer helps teams plan, create and publish useful content with stronger SEO and AI search workflows.';
+        return 'Argusly helps teams plan, create and publish useful content with stronger SEO and AI search workflows.';
     }
 
     private function absoluteUrl(string $url): string

@@ -82,7 +82,7 @@ class SeoFieldSyncCapabilityResolver
                 key: $fieldKey,
                 label: $fieldLabel,
                 status: 'advisory',
-                note: 'Advice only. No linked PublishLayer draft for apply.',
+                note: 'Advice only. No linked Argusly draft for apply.',
             );
         }
 
@@ -143,7 +143,7 @@ class SeoFieldSyncCapabilityResolver
             'yoast' => 'Yoast SEO',
             'rankmath' => 'Rank Math',
             'aioseo' => 'AIOSEO',
-            'publishlayer' => 'PublishLayer SEO',
+            'publishlayer' => 'Argusly SEO',
             'none' => 'No SEO plugin detected',
             default => Str::headline($providerKey),
         };

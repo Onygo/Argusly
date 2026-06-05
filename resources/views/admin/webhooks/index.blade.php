@@ -27,11 +27,11 @@
         </div>
 
         <div class="rounded-lg border border-border bg-surface p-4">
-            <h2 class="text-sm font-semibold text-textPrimary">PublishLayer Webhook Events</h2>
+            <h2 class="text-sm font-semibold text-textPrimary">Argusly Webhook Events</h2>
             @if (! $has_publishlayer_logs)
                 <p class="mt-3 text-sm text-textSecondary">`publishlayer_webhook_events` table not available.</p>
             @elseif ($publishlayer_webhook_events->isEmpty())
-                <p class="mt-3 text-sm text-textSecondary">No PublishLayer webhook events yet.</p>
+                <p class="mt-3 text-sm text-textSecondary">No Argusly webhook events yet.</p>
             @else
                 <div class="mt-3 space-y-2">
                     @foreach ($publishlayer_webhook_events as $event)

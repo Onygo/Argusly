@@ -48,7 +48,7 @@
     </div>
 </section>
 
-{{-- Why PublishLayer --}}
+{{-- Why Argusly --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">

@@ -99,11 +99,11 @@
                         <div class="mt-3 grid gap-3 md:grid-cols-2">
                             <div class="rounded-md border border-border bg-background p-3">
                                 <p class="text-xs font-semibold text-textPrimary">Guided</p>
-                                <p class="mt-1 text-xs text-textSecondary">PublishLayer proposes briefs, plans, and content changes. A customer reviews and approves before work runs.</p>
+                                <p class="mt-1 text-xs text-textSecondary">Argusly proposes briefs, plans, and content changes. A customer reviews and approves before work runs.</p>
                             </div>
                             <div class="rounded-md border border-amber-200 bg-white p-3">
                                 <p class="text-xs font-semibold text-amber-900">Autonomous</p>
-                                <p class="mt-1 text-xs text-amber-900/80">PublishLayer can run selected action types within configured site, credit, priority, and approval limits.</p>
+                                <p class="mt-1 text-xs text-amber-900/80">Argusly can run selected action types within configured site, credit, priority, and approval limits.</p>
                             </div>
                         </div>
                         <div class="mt-4 grid gap-3 text-xs text-textSecondary sm:grid-cols-2 xl:grid-cols-4">

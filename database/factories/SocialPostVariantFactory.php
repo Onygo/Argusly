@@ -35,7 +35,7 @@ class SocialPostVariantFactory extends Factory
             'variant_number' => 1,
             'hook' => $this->faker->sentence(),
             'body' => $this->faker->paragraph(),
-            'hashtags' => ['PublishLayer'],
+            'hashtags' => ['Argusly'],
             'mentions' => [],
             'media_refs' => [],
             'generation_prompt_context' => [],

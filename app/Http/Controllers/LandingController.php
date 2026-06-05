@@ -24,8 +24,8 @@ class LandingController extends Controller
 
         if ((bool) config('publishlayer.launch.soft_launch_mode', false)) {
             return view('public.soft-launch', [
-                'metaTitle' => 'PublishLayer | Private rollout',
-                'metaDescription' => 'PublishLayer is onboarding a limited number of early partners.',
+                'metaTitle' => 'Argusly | Private rollout',
+                'metaDescription' => 'Argusly is onboarding a limited number of early partners.',
                 'canonicalUrl' => LocalizedMarketingUrl::route('landing', [], $locale),
                 'hreflangUrls' => LocalizedMarketingUrl::hreflangsForRoute('landing'),
             ]);

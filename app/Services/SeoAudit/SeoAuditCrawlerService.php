@@ -18,7 +18,7 @@ class SeoAuditCrawlerService
     private const BROKEN_LINK_CHECK_LIMIT = 6;
     private const MAX_SITEMAP_BYTES = 2_000_000;
     private const REDIRECT_LIMIT = 5;
-    private const USER_AGENT = 'PublishLayerSeoAuditCrawler/1.0 (+https://publishlayer.local)';
+    private const USER_AGENT = 'PublishLayerSeoAuditCrawler/1.0 (+https://argusly.local)';
     private const FETCH_DIAGNOSTIC_SAMPLE_LIMIT = 100;
     private const PAGE_TYPE_PUBLISHLAYER_ARTICLE = 'publishlayer_article';
     private const PAGE_TYPE_SITE_PAGE = 'site_page';
@@ -953,7 +953,7 @@ class SeoAuditCrawlerService
             return false;
         }
 
-        if (in_array($host, ['localhost', '127.0.0.1', 'publishlayer.local', 'wordpress.publishlayer.local'], true)) {
+        if (in_array($host, ['localhost', '127.0.0.1', 'argusly.local', 'wordpress.argusly.local'], true)) {
             return true;
         }
 

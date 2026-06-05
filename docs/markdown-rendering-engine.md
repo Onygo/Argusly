@@ -1,6 +1,6 @@
 # Markdown Rendering Engine
 
-PublishLayer now generates canonical Markdown artifacts for publishable content.
+Argusly now generates canonical Markdown artifacts for publishable content.
 
 ## Design decisions
 

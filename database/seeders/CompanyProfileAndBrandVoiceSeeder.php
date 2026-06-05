@@ -80,7 +80,7 @@ class CompanyProfileAndBrandVoiceSeeder extends Seeder
             'proof_points' => ['Laravel-native architecture', 'WordPress and Laravel publishing workflows', 'Credit governance and audit logs'],
             'primary_topics' => ['agentic marketing', 'content opportunity engine', 'AI visibility', 'content lifecycle'],
             'authority_areas' => ['SEO operations', 'AEO', 'internal linking', 'content refresh'],
-            'target_entities' => ['PublishLayer', 'Agentic Marketing', 'Content Opportunity Engine'],
+            'target_entities' => ['Argusly', 'Agentic Marketing', 'Content Opportunity Engine'],
             'strategic_keywords' => ['AI content planning', 'content opportunity engine', 'AI visibility tracking'],
             'query_intents' => ['best AI content planning platform', 'how to improve AI search visibility', 'content refresh automation'],
             'direct_competitors' => ['MarketMuse', 'Clearscope', 'Frase'],

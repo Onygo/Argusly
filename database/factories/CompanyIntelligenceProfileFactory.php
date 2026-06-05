@@ -58,7 +58,7 @@ class CompanyIntelligenceProfileFactory extends Factory
             'proof_points' => ['Built for Laravel and WordPress publishing workflows.'],
             'primary_topics' => ['agentic marketing', 'AI visibility', 'content operations'],
             'authority_areas' => ['SEO operations', 'AEO', 'content lifecycle'],
-            'target_entities' => ['PublishLayer', 'Agentic Marketing'],
+            'target_entities' => ['Argusly', 'Agentic Marketing'],
             'strategic_keywords' => ['AI content planning', 'content opportunity engine'],
             'query_intents' => ['best AI content planning platform', 'how to improve AI visibility'],
             'direct_competitors' => ['MarketMuse', 'Clearscope'],

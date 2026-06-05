@@ -40,15 +40,15 @@ class PublicAgenticMarketingController extends Controller
 
         if ($nl) {
             return [
-                'meta_title' => 'Agentic Marketing infrastructuur voor AI visibility | PublishLayer',
-                'meta_description' => 'PublishLayer helpt organisaties verschuiven van handmatige marketinguitvoering naar autonome AI-gedreven contentoperaties, AI visibility en continue optimalisatie.',
-                'og_title' => 'Agentic Marketing infrastructuur | PublishLayer',
+                'meta_title' => 'Agentic Marketing infrastructuur voor AI visibility | Argusly',
+                'meta_description' => 'Argusly helpt organisaties verschuiven van handmatige marketinguitvoering naar autonome AI-gedreven contentoperaties, AI visibility en continue optimalisatie.',
+                'og_title' => 'Agentic Marketing infrastructuur | Argusly',
                 'og_description' => 'Van AI-schrijftool naar autonome marketingoperaties voor AI visibility, semantic SEO en lifecycle management.',
                 'badge' => 'Agentic Marketing infrastructuur',
                 'h1' => 'Van handmatige marketinguitvoering naar autonome AI visibility-operaties.',
-                'intro' => 'PublishLayer helpt marketingteams strategie, content, semantic SEO, AI search readiness, publishing en continue optimalisatie te orkestreren via doelgestuurde workflows. Het is geen simpele AI-schrijftool, maar een operationele laag voor teams die zich voorbereiden op AI-native discovery.',
+                'intro' => 'Argusly helpt marketingteams strategie, content, semantic SEO, AI search readiness, publishing en continue optimalisatie te orkestreren via doelgestuurde workflows. Het is geen simpele AI-schrijftool, maar een operationele laag voor teams die zich voorbereiden op AI-native discovery.',
                 'primary_cta' => 'Vraag een vroege platform walkthrough aan',
-                'secondary_cta' => 'Bekijk hoe PublishLayer AI visibility orkestreert',
+                'secondary_cta' => 'Bekijk hoe Argusly AI visibility orkestreert',
                 'hero_cards' => [
                     ['title' => 'AI visibility', 'text' => 'Ontworpen voor search, answer engines en LLM-discovery.'],
                     ['title' => 'Autonome lifecycle', 'text' => 'Plan, publiceer, refresh, lokaliseer en verbeter content continu.'],
@@ -92,10 +92,10 @@ class PublicAgenticMarketingController extends Controller
                     ],
                 ],
                 'fit' => [
-                    'eyebrow' => 'Hoe PublishLayer past',
+                    'eyebrow' => 'Hoe Argusly past',
                     'title' => 'De infrastructuurlaag tussen strategie, content, search en AI-systemen.',
                     'paragraphs' => [
-                        'PublishLayer verbindt onderdelen die normaal los blijven: brand context, personas, research, briefs, drafts, interne links, localization, publishing destinations, performance intelligence, AI visibility scoring en refresh workflows.',
+                        'Argusly verbindt onderdelen die normaal los blijven: brand context, personas, research, briefs, drafts, interne links, localization, publishing destinations, performance intelligence, AI visibility scoring en refresh workflows.',
                         'Daardoor ondersteunt het platform teams die meer nodig hebben dan contentgeneratie. AI agents coördineren het werk, terwijl mensen positionering, prioriteit, risico en eindbeslissingen bewaken.',
                     ],
                     'cards' => [
@@ -108,7 +108,7 @@ class PublicAgenticMarketingController extends Controller
                 'architecture' => [
                     'eyebrow' => 'Architectuur',
                     'title' => 'Een autonomous workflow diagram voor AI-native marketing operations.',
-                    'text' => 'PublishLayer is ontworpen als control plane voor contentoperaties, niet als een single-purpose writing surface. Het systeem ontvangt doelen en signalen, maakt werk aan, publiceert met controls en gebruikt uitkomsten in de volgende besliscyclus.',
+                    'text' => 'Argusly is ontworpen als control plane voor contentoperaties, niet als een single-purpose writing surface. Het systeem ontvangt doelen en signalen, maakt werk aan, publiceert met controls en gebruikt uitkomsten in de volgende besliscyclus.',
                     'steps' => [
                         ['Research', 'Market, SERP, LLM en source intelligence'],
                         ['Brief', 'Doelen, entities, vragen en proof points'],
@@ -149,7 +149,7 @@ class PublicAgenticMarketingController extends Controller
                 'lifecycle' => [
                     'eyebrow' => 'Continue lifecycle',
                     'title' => 'Van campagnekalenders naar levende contentsystemen.',
-                    'text' => 'Agentic content operations behandelen elke belangrijke pagina als managed asset. PublishLayer ondersteunt workflows voor creatie, verbetering, localization, interne links, channel packaging, AI visibility checks en performance-led refresh recommendations.',
+                    'text' => 'Agentic content operations behandelen elke belangrijke pagina als managed asset. Argusly ondersteunt workflows voor creatie, verbetering, localization, interne links, channel packaging, AI visibility checks en performance-led refresh recommendations.',
                     'cards' => [
                         ['Autonomous optimization loops', 'Agents monitoren zwakke signalen, adviseren next actions en houden verbeterwerk in beweging.'],
                         ['Human + AI orchestration', 'Mensen bewaken positioning, review, risk en strategische tradeoffs terwijl agents throughput leveren.'],
@@ -164,13 +164,13 @@ class PublicAgenticMarketingController extends Controller
                     'title' => 'Marketing verschuift van meer assets produceren naar slimmere systemen besturen.',
                     'paragraphs' => [
                         'Het volgende marketingvoordeel komt niet uit sneller losse drafts genereren. Het komt van teams die doelen helder definiëren, brand en market knowledge coderen, systemen verbinden, AI visibility meten en governed agents de content estate continu laten verbeteren.',
-                        'PublishLayer positioneert die shift als infrastructuur: een operationele laag waarin AI werk over de content lifecycle coördineert terwijl marketing leaders strategische controle houden.',
+                        'Argusly positioneert die shift als infrastructuur: een operationele laag waarin AI werk over de content lifecycle coördineert terwijl marketing leaders strategische controle houden.',
                     ],
                 ],
                 'cta' => [
                     'eyebrow' => 'Agentic Marketing infrastructuur',
                     'title' => 'Bouw autonome content workflows voor AI visibility.',
-                    'text' => 'Bekijk hoe PublishLayer goal-driven content operations, AI search optimization, semantic entity workflows en continuous lifecycle management ondersteunt.',
+                    'text' => 'Bekijk hoe Argusly goal-driven content operations, AI search optimization, semantic entity workflows en continuous lifecycle management ondersteunt.',
                     'primary' => 'Vraag een vroege platform walkthrough aan',
                     'secondary' => 'Bouw autonome content workflows',
                 ],
@@ -188,22 +188,22 @@ class PublicAgenticMarketingController extends Controller
                     ['question' => 'Wat is agentic marketing?', 'answer' => 'Agentic marketing is een operating model waarin AI agents marketingwerk plannen, monitoren, optimaliseren en coördineren rond gedefinieerde doelen, terwijl teams strategie, approval en governance leveren.'],
                     ['question' => 'Hoe verschilt agentic marketing van marketing automation?', 'answer' => 'Traditionele automation voert vooraf ingestelde regels uit. Agentic marketing systemen interpreteren doelen, beoordelen context, kiezen vervolgstappen, triggeren workflows en leren van performance-signalen binnen menselijke controls.'],
                     ['question' => 'Is AI visibility hetzelfde als SEO?', 'answer' => 'AI visibility breidt SEO uit. SEO richt zich op rankings en clicks; AI visibility meet ook of een merk, entity of bron wordt begrepen, geselecteerd, geciteerd en weergegeven in AI-antwoorden.'],
-                    ['question' => 'Waar past PublishLayer in een enterprise marketing stack?', 'answer' => 'PublishLayer fungeert als agentic marketing infrastructuurlaag over strategie, content operations, semantic optimization, publishing, AI visibility tracking en lifecycle improvement workflows.'],
-                    ['question' => 'Vervangt dit menselijke marketeers?', 'answer' => 'Nee. PublishLayer is ontworpen voor human and AI orchestration: teams bepalen positionering, prioriteiten, approvals, policies en doelen terwijl AI agents herhaalbare analyse, coördinatie en optimalisatieloops uitvoeren.'],
+                    ['question' => 'Waar past Argusly in een enterprise marketing stack?', 'answer' => 'Argusly fungeert als agentic marketing infrastructuurlaag over strategie, content operations, semantic optimization, publishing, AI visibility tracking en lifecycle improvement workflows.'],
+                    ['question' => 'Vervangt dit menselijke marketeers?', 'answer' => 'Nee. Argusly is ontworpen voor human and AI orchestration: teams bepalen positionering, prioriteiten, approvals, policies en doelen terwijl AI agents herhaalbare analyse, coördinatie en optimalisatieloops uitvoeren.'],
                 ],
             ];
         }
 
         return [
-            'meta_title' => 'Agentic Marketing Infrastructure for AI Visibility | PublishLayer',
-            'meta_description' => 'PublishLayer helps organizations move from manual marketing execution to autonomous AI-driven content operations, AI visibility, and continuous optimization workflows.',
-            'og_title' => 'Agentic Marketing Infrastructure | PublishLayer',
+            'meta_title' => 'Agentic Marketing Infrastructure for AI Visibility | Argusly',
+            'meta_description' => 'Argusly helps organizations move from manual marketing execution to autonomous AI-driven content operations, AI visibility, and continuous optimization workflows.',
+            'og_title' => 'Agentic Marketing Infrastructure | Argusly',
             'og_description' => 'Move from AI writing tools to autonomous marketing operations for AI visibility, semantic SEO, and content lifecycle management.',
             'badge' => 'Agentic Marketing Infrastructure',
             'h1' => 'Move from manual marketing execution to autonomous AI visibility operations.',
-            'intro' => 'PublishLayer helps marketing teams orchestrate strategy, content, semantic SEO, AI search readiness, publishing, and continuous optimization through goal-driven workflows. It is not an AI writing shortcut. It is the operational layer for marketing teams preparing for AI-native discovery.',
+            'intro' => 'Argusly helps marketing teams orchestrate strategy, content, semantic SEO, AI search readiness, publishing, and continuous optimization through goal-driven workflows. It is not an AI writing shortcut. It is the operational layer for marketing teams preparing for AI-native discovery.',
             'primary_cta' => 'Request an early platform walkthrough',
-            'secondary_cta' => 'See how PublishLayer orchestrates AI visibility',
+            'secondary_cta' => 'See how Argusly orchestrates AI visibility',
             'hero_cards' => [
                 ['title' => 'AI visibility', 'text' => 'Designed for search, answer engines, and LLM discovery surfaces.'],
                 ['title' => 'Autonomous lifecycle', 'text' => 'Plan, publish, refresh, localize, and improve content continuously.'],
@@ -247,10 +247,10 @@ class PublicAgenticMarketingController extends Controller
                 ],
             ],
             'fit' => [
-                'eyebrow' => 'How PublishLayer fits',
+                'eyebrow' => 'How Argusly fits',
                 'title' => 'The infrastructure layer between strategy, content, search, and AI systems.',
                 'paragraphs' => [
-                    'PublishLayer connects the operational pieces that usually stay disconnected: brand context, personas, source research, briefs, drafts, internal links, localization, publishing destinations, performance intelligence, AI visibility scoring, and refresh workflows.',
+                    'Argusly connects the operational pieces that usually stay disconnected: brand context, personas, source research, briefs, drafts, internal links, localization, publishing destinations, performance intelligence, AI visibility scoring, and refresh workflows.',
                     'That makes the platform useful for teams that need more than content generation. It supports a marketing operating model where AI agents coordinate the work while humans control positioning, priorities, risk, and final decisions.',
                 ],
                 'cards' => [
@@ -263,7 +263,7 @@ class PublicAgenticMarketingController extends Controller
             'architecture' => [
                 'eyebrow' => 'Architecture',
                 'title' => 'An autonomous workflow diagram for AI-native marketing operations.',
-                'text' => 'PublishLayer is designed as a control plane for content operations, not a single-purpose writing surface. The system receives goals and signals, creates work, publishes with controls, and feeds outcomes back into the next decision cycle.',
+                'text' => 'Argusly is designed as a control plane for content operations, not a single-purpose writing surface. The system receives goals and signals, creates work, publishes with controls, and feeds outcomes back into the next decision cycle.',
                 'steps' => [
                     ['Research', 'Market, SERP, LLM and source intelligence'],
                     ['Brief', 'Goals, entities, questions and proof points'],
@@ -304,7 +304,7 @@ class PublicAgenticMarketingController extends Controller
             'lifecycle' => [
                 'eyebrow' => 'Continuous lifecycle',
                 'title' => 'From campaign calendars to living content systems.',
-                'text' => 'Agentic content operations treat every important page as a managed asset. PublishLayer can support workflows for new creation, content improvement, localization, internal linking, channel packaging, AI visibility checks, and performance-led refresh recommendations.',
+                'text' => 'Agentic content operations treat every important page as a managed asset. Argusly can support workflows for new creation, content improvement, localization, internal linking, channel packaging, AI visibility checks, and performance-led refresh recommendations.',
                 'cards' => [
                     ['Autonomous optimization loops', 'Agents monitor weak signals, recommend next actions, and keep improvement work moving.'],
                     ['Human + AI orchestration', 'Humans own positioning, review, risk, and strategic tradeoffs while agents handle operational throughput.'],
@@ -319,13 +319,13 @@ class PublicAgenticMarketingController extends Controller
                 'title' => 'Marketing shifts from producing more assets to governing smarter systems.',
                 'paragraphs' => [
                     'The next marketing advantage will not come from generating isolated drafts faster. It will come from teams that can define goals clearly, encode brand and market knowledge, connect systems, measure AI visibility, and let governed agents keep the content estate improving over time.',
-                    'PublishLayer positions that shift as infrastructure: an operational layer where AI can coordinate work across the content lifecycle while marketing leaders retain strategic control.',
+                    'Argusly positions that shift as infrastructure: an operational layer where AI can coordinate work across the content lifecycle while marketing leaders retain strategic control.',
                 ],
             ],
             'cta' => [
                 'eyebrow' => 'Agentic Marketing Infrastructure',
                 'title' => 'Build autonomous content workflows for AI visibility.',
-                'text' => 'See how PublishLayer can support goal-driven content operations, AI search optimization, semantic entity workflows, and continuous lifecycle management.',
+                'text' => 'See how Argusly can support goal-driven content operations, AI search optimization, semantic entity workflows, and continuous lifecycle management.',
                 'primary' => 'Request an early platform walkthrough',
                 'secondary' => 'Build autonomous content workflows',
             ],
@@ -343,8 +343,8 @@ class PublicAgenticMarketingController extends Controller
                 ['question' => 'What is agentic marketing?', 'answer' => 'Agentic marketing is an operating model where AI agents plan, monitor, optimize, and coordinate marketing work against defined goals, while human teams provide strategy, approval, and governance.'],
                 ['question' => 'How is agentic marketing different from marketing automation?', 'answer' => 'Traditional automation executes predefined rules. Agentic marketing systems can interpret goals, evaluate context, choose next actions, trigger workflows, and learn from performance signals under human-defined controls.'],
                 ['question' => 'Is AI visibility the same as SEO?', 'answer' => 'AI visibility extends SEO. SEO focuses on search rankings and clicks, while AI visibility also measures whether a brand, entity, or source is understood, selected, cited, and represented inside AI-generated answers.'],
-                ['question' => 'Where does PublishLayer fit in an enterprise marketing stack?', 'answer' => 'PublishLayer acts as an agentic marketing infrastructure layer across strategy, content operations, semantic optimization, publishing, AI visibility tracking, and lifecycle improvement workflows.'],
-                ['question' => 'Does this replace human marketers?', 'answer' => 'No. PublishLayer is designed for human and AI orchestration: teams set positioning, priorities, approvals, policies, and goals while AI agents handle repeatable analysis, coordination, and optimization loops.'],
+                ['question' => 'Where does Argusly fit in an enterprise marketing stack?', 'answer' => 'Argusly acts as an agentic marketing infrastructure layer across strategy, content operations, semantic optimization, publishing, AI visibility tracking, and lifecycle improvement workflows.'],
+                ['question' => 'Does this replace human marketers?', 'answer' => 'No. Argusly is designed for human and AI orchestration: teams set positioning, priorities, approvals, policies, and goals while AI agents handle repeatable analysis, coordination, and optimization loops.'],
             ],
         ];
     }

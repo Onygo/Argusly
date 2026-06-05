@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'product_name' => 'PublishLayer',
+    'product_name' => 'Argusly',
     'parent_name' => 'Onygo',
     'parent_url' => 'https://onygo.nl',
     'show_parent_branding' => false,

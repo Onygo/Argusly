@@ -1,6 +1,6 @@
 # Markdown Delivery API
 
-PublishLayer exposes canonical markdown artifacts to authenticated connectors through site-scoped API endpoints.
+Argusly exposes canonical markdown artifacts to authenticated connectors through site-scoped API endpoints.
 
 ## Endpoints
 
@@ -36,7 +36,7 @@ Single-item endpoints return:
 
 - `ETag` based on `markdown_checksum`
 - `Last-Modified` based on `markdown_generated_at`
-- `Vary: Authorization, X-PublishLayer-Site`
+- `Vary: Authorization, X-Argusly-Site`
 
 Clients can revalidate with `If-None-Match` and receive `304 Not Modified`.
 

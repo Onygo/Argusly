@@ -19,7 +19,7 @@ class PublicSiteContextResolver
             return PublicSiteContext::fallback(scheme: $scheme);
         }
 
-        $baseDomain = strtolower(trim((string) config('domains.base', 'publishlayer.local')));
+        $baseDomain = strtolower(trim((string) config('domains.base', 'argusly.local')));
         if ($host === $baseDomain) {
             return $this->context(
                 host: $host,

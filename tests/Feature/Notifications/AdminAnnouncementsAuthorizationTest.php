@@ -19,7 +19,7 @@ it('allows admin area users to publish announcements to selected workspaces', fu
             'title' => 'Scheduled maintenance',
             'body' => 'We will deploy updates at 23:00.',
             'cta_label' => 'Open status page',
-            'cta_url' => 'https://status.publishlayer.local',
+            'cta_url' => 'https://status.argusly.local',
         ])
         ->assertRedirect();
 

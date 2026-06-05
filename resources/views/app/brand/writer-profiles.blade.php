@@ -8,7 +8,7 @@
             <span class="text-textPrimary">Writer Profiles</span>
         </nav>
         <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Writer Profiles</h1>
-        <p class="mt-1 text-textSecondary">Dit profiel helpt PublishLayer schrijven in een herkenbare stijl zonder teksten letterlijk over te nemen.</p>
+        <p class="mt-1 text-textSecondary">Dit profiel helpt Argusly schrijven in een herkenbare stijl zonder teksten letterlijk over te nemen.</p>
     </div>
 
     @include('app.brand.partials.tabs')
@@ -133,7 +133,7 @@
         @can('manage-organization')
             <div class="rounded-lg border border-border bg-surface p-5">
                 <h2 class="text-lg font-semibold text-textPrimary">Create writer profile</h2>
-                <p class="mt-1 text-sm text-textSecondary">Paste examples or select existing content. PublishLayer abstracts tone, structure, vocabulary, and rules.</p>
+                <p class="mt-1 text-sm text-textSecondary">Paste examples or select existing content. Argusly abstracts tone, structure, vocabulary, and rules.</p>
                 <form method="POST" action="{{ route('app.brand.writer-profiles.store') }}" class="mt-4 space-y-4">
                     @csrf
                     <input name="name" class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" placeholder="Profile name" required>

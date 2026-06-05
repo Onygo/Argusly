@@ -6,7 +6,7 @@
             <div>
                 <a href="{{ route('app.agentic-marketing.objectives.show', $opportunity->objective) }}" class="text-sm text-textSecondary hover:text-textPrimary">{{ $opportunity->objective?->name ?? 'Agentic Marketing' }}</a>
                 <h1 class="mt-2 text-xl font-semibold text-textPrimary">{{ $opportunity->title }}</h1>
-                <p class="mt-1 max-w-4xl text-sm text-textSecondary">Prepare briefs, drafts, answer blocks, internal links, schema, metadata, CTA blocks, social post handoff copy, reviewer flow, and automation schedules. Social posts are prepared for external publishing tools; PublishLayer does not publish them.</p>
+                <p class="mt-1 max-w-4xl text-sm text-textSecondary">Prepare briefs, drafts, answer blocks, internal links, schema, metadata, CTA blocks, social post handoff copy, reviewer flow, and automation schedules. Social posts are prepared for external publishing tools; Argusly does not publish them.</p>
             </div>
             <form method="POST" action="{{ route('app.agentic-marketing.opportunities.execution.prepare', $opportunity) }}" class="flex flex-wrap items-center gap-2">
                 @csrf

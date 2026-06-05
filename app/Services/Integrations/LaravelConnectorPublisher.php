@@ -57,7 +57,7 @@ class LaravelConnectorPublisher
             'X-PublishLayer-Site' => $siteId,
             'X-PublishLayer-Content' => (string) $content->id,
             'X-PublishLayer-Idempotency-Key' => $idempotencyKey,
-            'User-Agent' => 'PublishLayer/LaravelConnectorSync',
+            'User-Agent' => 'Argusly/LaravelConnectorSync',
         ];
 
         $attemptModel = ContentDestinationSyncAttempt::query()->create([

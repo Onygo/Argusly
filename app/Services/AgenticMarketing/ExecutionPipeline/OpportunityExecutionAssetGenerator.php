@@ -65,7 +65,7 @@ class OpportunityExecutionAssetGenerator
             'primary_keyword' => (string) data_get($opportunity->payload, 'primary_keyword', data_get($opportunity->payload, 'topic', '')),
             'audience' => (string) data_get($opportunity->payload, 'target_audience', $opportunity->objective?->audience ?: ''),
             'unique_angle' => (string) data_get($opportunity->payload, 'angle', data_get($opportunity->payload, 'recommendation', '')),
-            'call_to_action' => (string) data_get($opportunity->payload, 'suggested_cta', 'Explore PublishLayer'),
+            'call_to_action' => (string) data_get($opportunity->payload, 'suggested_cta', 'Explore Argusly'),
             'client_refs' => [
                 'source' => 'agentic_marketing_execution_pipeline',
                 'opportunity_id' => (string) $opportunity->id,
@@ -258,7 +258,7 @@ class OpportunityExecutionAssetGenerator
             'angle' => $angle,
             'summary' => $summary !== '' ? $summary : $this->definitionSentence($topic, $fullName, $entities),
             'objective_goal' => $objectiveGoal,
-            'cta' => trim((string) data_get($opportunity->payload, 'suggested_cta', 'Explore PublishLayer')),
+            'cta' => trim((string) data_get($opportunity->payload, 'suggested_cta', 'Explore Argusly')),
             'schema_type' => trim((string) data_get($opportunity->payload, 'suggested_schema', 'Article')) ?: 'Article',
         ];
     }
@@ -351,7 +351,7 @@ class OpportunityExecutionAssetGenerator
                 'rationale' => 'Use this after the first definition answer while intent is still active.',
             ],
             [
-                'label' => 'See how PublishLayer supports '.$topic,
+                'label' => 'See how Argusly supports '.$topic,
                 'placement' => 'mid_article',
                 'rationale' => 'Connect the education section to a product-led next step for '.$audience.'.',
             ],
@@ -376,7 +376,7 @@ class OpportunityExecutionAssetGenerator
         return [
             'format' => 'linkedin_post',
             'publication_mode' => 'external_tool_handoff',
-            'handoff_note' => 'Prepared by PublishLayer for copy/export. Publish through the configured external social publishing workflow.',
+            'handoff_note' => 'Prepared by Argusly for copy/export. Publish through the configured external social publishing workflow.',
             'hook' => $topic.' is becoming a visibility problem, not just a content topic.',
             'body' => [
                 $summary,

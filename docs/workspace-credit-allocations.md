@@ -1,6 +1,6 @@
 # Workspace Credits And Site Allocations
 
-PublishLayer now treats credits as a two-layer model:
+Argusly now treats credits as a two-layer model:
 
 - `workspace_credit_wallets` and `workspace_credit_transactions` are the financial source of truth.
 - `site_credit_allocations` are budget assignments inside a workspace.

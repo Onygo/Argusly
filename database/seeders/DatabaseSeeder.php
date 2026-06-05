@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
                 ]
             );
 
-            \App\Models\Workspace::firstOrCreate(
+            $workspace = \App\Models\Workspace::firstOrCreate(
                 ['organization_id' => $organization->id, 'name' => 'Demo Workspace'],
                 ['organization_id' => $organization->id, 'name' => 'Demo Workspace']
             );

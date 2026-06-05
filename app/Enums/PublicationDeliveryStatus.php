@@ -7,7 +7,7 @@ namespace App\Enums;
  *
  * This represents the state of delivery to a specific remote destination,
  * independent of the content's internal lifecycle status. A publication
- * can fail delivery while the content remains valid in PublishLayer.
+ * can fail delivery while the content remains valid in Argusly.
  */
 enum PublicationDeliveryStatus: string
 {

@@ -15,7 +15,7 @@
 
 @if($presenter)
     <div {{ $attributes->class(['inline-flex items-center gap-1.5']) }}>
-        {{-- PublishLayer lifecycle status --}}
+        {{-- Argusly lifecycle status --}}
         <x-status-badge
             :label="$primary['label']"
             :color="$primary['color']"

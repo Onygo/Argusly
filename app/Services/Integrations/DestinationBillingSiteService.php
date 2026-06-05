@@ -81,7 +81,7 @@ class DestinationBillingSiteService
 
         $subdomain = 'api-'.substr(strtolower($workspaceId), 0, 8);
 
-        return 'https://'.$subdomain.'.publishlayer.local';
+        return 'https://'.$subdomain.'.argusly.local';
     }
 
     private function resolveBillingSiteName(ContentDestination $destination, string $fallback): string

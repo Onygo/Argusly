@@ -153,7 +153,7 @@ class MarketingPageController extends Controller
             'page' => $page,
             'translation' => $translation,
             'content' => array_merge($content, ['sections' => $sections]),
-            'metaTitle' => $translation->seo_title ?: $translation->title . ' | PublishLayer',
+            'metaTitle' => $translation->seo_title ?: $translation->title . ' | Argusly',
             'metaDescription' => $translation->meta_description,
             'canonicalUrl' => $canonicalUrl,
             'hreflangUrls' => LocalizedMarketingUrl::hreflangsForPage($page),

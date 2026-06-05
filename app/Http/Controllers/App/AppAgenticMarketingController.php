@@ -509,7 +509,7 @@ class AppAgenticMarketingController extends Controller
 
         ExecuteAgenticMarketingActionJob::dispatch((string) $action->id, $request->user()?->id, $claimId);
 
-        return back()->with('status', 'Action execution queued. PublishLayer will create drafts or proposals only; nothing is published automatically.');
+        return back()->with('status', 'Action execution queued. Argusly will create drafts or proposals only; nothing is published automatically.');
     }
 
     public function retry(Request $request, AgenticMarketingAction $action): RedirectResponse

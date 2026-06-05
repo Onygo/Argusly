@@ -32,7 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * ## Version Sources
  *
- * - `pl`: Created within PublishLayer (generation, editing)
+ * - `pl`: Created within Argusly (generation, editing)
  * - `wp`: Imported from WordPress
  * - `api`: Created via external API
  *
@@ -147,7 +147,7 @@ class ContentVersion extends Model
     // =========================================================================
 
     /**
-     * Check if this version was created in PublishLayer.
+     * Check if this version was created in Argusly.
      */
     public function isFromPublishLayer(): bool
     {

@@ -409,13 +409,13 @@ class LlmTrackingAnalyzer
         $geoImprovements = [
             'Add direct-answer sections that mirror the tracked query wording.',
             'Create comparison copy that names competitors and explains your differentiation clearly.',
-            'Strengthen entity consistency with PublishLayer references in headings, FAQs, and schema-supported sections.',
+            'Strengthen entity consistency with Argusly references in headings, FAQs, and schema-supported sections.',
         ];
 
         if ($brandMentionCount === 0) {
             $suggestions[] = [
                 'title' => 'Close the visibility gap for ' . $primaryKeyword,
-                'rationale' => 'PublishLayer was not mentioned for this query, so this is a missing visibility opportunity.',
+                'rationale' => 'Argusly was not mentioned for this query, so this is a missing visibility opportunity.',
                 'recommended_content_type' => $competitorMentionCount > 0 ? 'comparison' : 'pillar',
                 'primary_keyword' => $primaryKeyword,
                 'secondary_keywords' => $secondaryKeywords,

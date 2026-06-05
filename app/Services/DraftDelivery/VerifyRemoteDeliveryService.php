@@ -156,7 +156,7 @@ class VerifyRemoteDeliveryService
     /**
      * Reconcile a content's delivery status after a failed or uncertain delivery.
      *
-     * This verifies whether the content exists remotely and updates PublishLayer
+     * This verifies whether the content exists remotely and updates Argusly
      * state accordingly. Used to recover from partial success scenarios where
      * the post was created but an error was returned.
      *
@@ -216,7 +216,7 @@ class VerifyRemoteDeliveryService
             }
         }
 
-        // Try to find the post by PublishLayer metadata
+        // Try to find the post by Argusly metadata
         $foundPost = $this->lookupRemotePostByMeta($content);
 
         if ($foundPost !== null) {
@@ -254,7 +254,7 @@ class VerifyRemoteDeliveryService
     }
 
     /**
-     * Look up a remote post by PublishLayer metadata.
+     * Look up a remote post by Argusly metadata.
      *
      * @return array{wp_post_id: string, published_url: ?string}|null
      */

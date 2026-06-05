@@ -11,7 +11,7 @@
                 <form method="POST" action="{{ route('app.onboarding.company.update') }}" class="grid gap-3 md:grid-cols-2">
                     @csrf
                     <x-alert class="mb-1 md:col-span-2" :icon="true">
-                        Vul je bedrijfsgegevens in om te kunnen starten met PublishLayer.
+                        Vul je bedrijfsgegevens in om te kunnen starten met Argusly.
                     </x-alert>
                     <input type="text" name="company_name" value="{{ old('company_name', $organization->billing_company_name ?? $organization->name) }}" placeholder="Bedrijfsnaam" class="rounded border border-border bg-background px-3 py-2 text-sm md:col-span-2" required>
                     <input type="text" name="address_line1" value="{{ old('address_line1', $organization->billing_address_line1) }}" placeholder="Adresregel 1" class="rounded border border-border bg-background px-3 py-2 text-sm md:col-span-2" required>

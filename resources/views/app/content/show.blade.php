@@ -1137,7 +1137,7 @@
                         @csrf
                         <input type="text" name="question" value="{{ old('question') }}" placeholder="What is AEO?" class="w-full rounded border border-border bg-surface px-3 py-2 text-sm" required>
                         <textarea name="answer" rows="4" placeholder="AEO is the practice of structuring content so AI systems can extract direct answers." class="w-full rounded border border-border bg-surface px-3 py-2 text-sm" required>{{ old('answer') }}</textarea>
-                        <input type="text" name="entities" value="{{ old('entities') }}" placeholder="Google, ChatGPT, PublishLayer" class="w-full rounded border border-border bg-surface px-3 py-2 text-sm">
+                        <input type="text" name="entities" value="{{ old('entities') }}" placeholder="Google, ChatGPT, Argusly" class="w-full rounded border border-border bg-surface px-3 py-2 text-sm">
                         <input type="text" name="platforms" value="{{ old('platforms') }}" placeholder="Google, ChatGPT, Perplexity" class="w-full rounded border border-border bg-surface px-3 py-2 text-sm">
                         <div>
                             <button class="rounded border border-border bg-textPrimary px-3 py-2 text-sm text-white">Add block</button>
@@ -1507,7 +1507,7 @@
                         </div>
 
                         <p class="mb-3 text-xs text-textSecondary">
-                            Generated at 1200x630 with PublishLayer overlay template.
+                            Generated at 1200x630 with Argusly overlay template.
                         </p>
 
                         @if ($og && !empty($ogPreviewUrl))

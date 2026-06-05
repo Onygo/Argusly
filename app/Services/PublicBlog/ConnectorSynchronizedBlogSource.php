@@ -140,7 +140,7 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
 
             return $this->ensureUniqueSlugs($posts)->all();
         } catch (Throwable $e) {
-            throw new PublicBlogSourceUnavailableException('The PublishLayer connector content source is currently unavailable.', previous: $e);
+            throw new PublicBlogSourceUnavailableException('The Argusly connector content source is currently unavailable.', previous: $e);
         }
     }
 

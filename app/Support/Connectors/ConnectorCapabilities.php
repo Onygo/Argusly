@@ -130,7 +130,7 @@ final class ConnectorCapabilities
             supportsCreate: true,
             supportsUpdate: true,
             supportsDelete: true,
-            supportsScheduling: false, // Scheduling is orchestrated by PublishLayer
+            supportsScheduling: false, // Scheduling is orchestrated by Argusly
             supportsVerification: true,
             requiresStrictVerification: false,
             supportsFeaturedImage: true,

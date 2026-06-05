@@ -55,7 +55,7 @@ class OpenApiBuilder
 
         $this->spec['openapi'] = '3.1.0';
         $this->spec['info'] = [
-            'title' => $info['title'] ?? 'PublishLayer API',
+            'title' => $info['title'] ?? 'Argusly API',
             'version' => $info['version'] ?? '1.0.0',
             'description' => $info['description'] ?? '',
         ];

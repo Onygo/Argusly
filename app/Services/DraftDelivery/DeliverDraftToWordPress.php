@@ -934,10 +934,10 @@ class DeliverDraftToWordPress
     {
         // Separate status concerns:
         // - delivery_status: tracks remote delivery state (only this is set to 'failed')
-        // - status: tracks PublishLayer content lifecycle (remains unchanged)
+        // - status: tracks Argusly content lifecycle (remains unchanged)
         //
         // Failed delivery should NOT corrupt the content's internal state.
-        // The content remains valid in PublishLayer even when remote delivery fails.
+        // The content remains valid in Argusly even when remote delivery fails.
         $draft->loadMissing('content');
         $draft->delivery_status = 'failed';
         $draft->delivery_last_error = $error;
@@ -1143,7 +1143,7 @@ class DeliverDraftToWordPress
             return [$clientRefs, $payload];
         }
 
-        // PublishLayer stays authoritative for the mapping: missing remote posts are recreated.
+        // Argusly stays authoritative for the mapping: missing remote posts are recreated.
         $remotePost = $this->checkRemoteWordPressPost($draft, $targetWpPostId);
         if (($remotePost['missing'] ?? false) !== true) {
             return [$clientRefs, $payload];
@@ -1989,7 +1989,7 @@ class DeliverDraftToWordPress
     }
 
     /**
-     * Keep PublishLayer identifiers in WordPress post meta for stable lookup.
+     * Keep Argusly identifiers in WordPress post meta for stable lookup.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>

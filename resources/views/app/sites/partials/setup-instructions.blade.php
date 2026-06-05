@@ -12,7 +12,7 @@
     </ol>
 @else
     <ol class="mt-3 list-decimal space-y-1 pl-5 text-xs text-textSecondary">
-        <li><a href="{{ route('app.sites.wordpress-plugin.download') }}" class="underline">Download the PublishLayer WordPress plugin (.zip)</a>.</li>
+        <li><a href="{{ route('app.sites.wordpress-plugin.download') }}" class="underline">Download the Argusly WordPress plugin (.zip)</a>.</li>
         <li>Paste this Site Key in plugin settings.</li>
         <li>Click Connect in WordPress.</li>
         <li>Run connection test and verify status becomes connected.</li>

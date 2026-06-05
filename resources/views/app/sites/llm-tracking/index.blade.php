@@ -333,7 +333,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-xs">{{ optional($latestRun?->run_at)->toDateTimeString() ?? 'Never' }}</td>
                                     <td class="px-4 py-3 text-xs font-semibold text-textPrimary">{{ is_numeric($latestRun?->ai_visibility_score) ? number_format(((float) $latestRun->ai_visibility_score) * 100, 1) : '-' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $latestRun ? ($latestRun->brand_mentioned ? 'PublishLayer present' : 'Missing') : 'No run yet' }}</td>
+                                    <td class="px-4 py-3 text-xs">{{ $latestRun ? ($latestRun->brand_mentioned ? 'Argusly present' : 'Missing') : 'No run yet' }}</td>
                                     <td class="px-4 py-3 text-xs">{{ $latestRun && (((float) ($latestRun->citation_score ?? 0)) > 0 || $latestRun->urls_cited) ? 'Present' : 'Missing' }}</td>
                                     <td class="px-4 py-3 text-xs">{{ $contextLabel($latestRun?->context_label ?? $latestRun?->sentiment_label) }}</td>
                                     <td class="px-4 py-3">
@@ -520,7 +520,7 @@
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div class="rounded-lg border border-amber-300/40 bg-amber-50/70 p-6">
                 <h2 class="text-sm font-semibold text-amber-950">Missing Visibility Opportunities</h2>
-                <p class="mt-1 text-xs text-amber-900/80">Queries where PublishLayer did not appear in the latest tracked run.</p>
+                <p class="mt-1 text-xs text-amber-900/80">Queries where Argusly did not appear in the latest tracked run.</p>
 
                 @forelse ((array) data_get($summary, 'missing_visibility', []) as $entry)
                     @php($query = $entry['query'])

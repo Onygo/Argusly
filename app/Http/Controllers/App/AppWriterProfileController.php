@@ -49,7 +49,7 @@ class AppWriterProfileController extends Controller
             $analysis->analyze($profile, $texts);
         }
 
-        return back()->with('status', 'Writer profile created. PublishLayer uses it as style guidance without copying source text.');
+        return back()->with('status', 'Writer profile created. Argusly uses it as style guidance without copying source text.');
     }
 
     public function update(Request $request, WriterProfile $writerProfile): RedirectResponse

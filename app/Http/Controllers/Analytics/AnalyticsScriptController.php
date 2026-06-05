@@ -27,6 +27,6 @@ class AnalyticsScriptController extends Controller
         }
 
         // Fallback minimal script if file doesn't exist
-        return '// PublishLayer Analytics - script not found';
+        return '// Argusly Analytics - script not found';
     }
 }

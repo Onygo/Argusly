@@ -1,6 +1,6 @@
 # Public Context Boundaries
 
-PublishLayer runs public marketing pages, public blog delivery, the authenticated app, and the admin area in one Laravel application.
+Argusly runs public marketing pages, public blog delivery, the authenticated app, and the admin area in one Laravel application.
 
 The public request path must stay deterministic for guests, crawlers, queue-driven audits, and HTTP clients.
 

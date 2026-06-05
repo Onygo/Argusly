@@ -49,7 +49,7 @@ class EnsureBillingOnboardingCompleted
         }
 
         if (! $organization->hasCompleteBillingDetails()) {
-            $message = 'Vul je bedrijfsgegevens in om te kunnen starten met PublishLayer en om facturen correct te maken.';
+            $message = 'Vul je bedrijfsgegevens in om te kunnen starten met Argusly en om facturen correct te maken.';
 
             if ($request->expectsJson()) {
                 return response()->json([

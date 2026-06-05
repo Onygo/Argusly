@@ -129,7 +129,7 @@
             </div>
 
             <div class="rounded-lg border border-border bg-background p-4">
-                <p class="text-xs text-textSecondary">PublishLayer pages</p>
+                <p class="text-xs text-textSecondary">Argusly pages</p>
                 <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) data_get($summary, 'publishlayer_pages_count', 0)) }}</p>
             </div>
 
@@ -196,7 +196,7 @@
                                         <a href="{{ $rowUrl }}#ai-seo-fix" class="rounded border border-textPrimary px-2 py-1 text-xs text-textPrimary">Fix with AI</a>
                                     @else
                                         <a href="{{ $rowUrl }}#issues-overview" class="rounded border border-border px-2 py-1 text-xs text-textPrimary">View pages</a>
-                                        <p class="mt-1 text-[11px] text-textSecondary">Not a PublishLayer draft</p>
+                                        <p class="mt-1 text-[11px] text-textSecondary">Not an Argusly draft</p>
                                     @endif
                                 </td>
                             </tr>
@@ -311,7 +311,7 @@
                                                 {{ $shouldCheck ? 'checked' : '' }}
                                             >
                                         @else
-                                            <input type="checkbox" disabled class="rounded border-border text-border" title="Read only: no linked PublishLayer draft">
+                                            <input type="checkbox" disabled class="rounded border-border text-border" title="Read only: no linked Argusly draft">
                                         @endif
                                     </td>
                                     <td class="px-3 py-2">
@@ -333,7 +333,7 @@
                                                 <div class="text-[11px] text-textSecondary">{{ $row['wordpress_sync_note'] }}</div>
                                             @endif
                                         @else
-                                            Read only: not a PublishLayer draft
+                                            Read only: not an Argusly draft
                                         @endif
                                     </td>
                                 </tr>
@@ -429,7 +429,7 @@
 
                         <div class="mt-3">
                             <p class="mb-2 text-xs text-textSecondary">
-                                {{ $suggestion['status_message'] ?? 'Suggestion ready. Review and apply to PublishLayer content.' }}
+                                {{ $suggestion['status_message'] ?? 'Suggestion ready. Review and apply to Argusly content.' }}
                             </p>
 
                             <p class="mb-2 text-xs {{ ($suggestion['wordpress_sync_mode'] ?? 'advisory') === 'sync' ? 'text-success' : 'text-amber-700' }}">
@@ -476,7 +476,7 @@
         <div class="mb-6 flex flex-wrap gap-2">
             @foreach ([
                 'all' => 'All',
-                'publishlayer' => 'PublishLayer content',
+                'publishlayer' => 'Argusly content',
                 'other' => 'Other pages',
                 'actionable' => 'Only actionable',
                 'not_actionable' => 'Only not actionable',
@@ -556,7 +556,7 @@
     <section id="page-table" class="rounded-lg border border-border bg-surface p-6">
         <div class="mb-4 flex items-center justify-between gap-3">
             <h2 class="text-sm font-semibold text-textPrimary">Page Level Table</h2>
-            <p class="text-xs text-textSecondary">PublishLayer pages are prioritised by default</p>
+            <p class="text-xs text-textSecondary">Argusly pages are prioritised by default</p>
         </div>
 
         <div class="overflow-x-auto rounded border border-border/70">
@@ -616,7 +616,7 @@
                                 @elseif ($row['is_actionable_page'])
                                     <span class="inline-flex items-center whitespace-nowrap text-sm text-textSecondary">No AI fix candidates</span>
                                 @else
-                                    <span class="inline-flex items-center whitespace-nowrap text-sm text-textSecondary" title="Read only. This page is not mapped to a PublishLayer draft.">Read only</span>
+                                    <span class="inline-flex items-center whitespace-nowrap text-sm text-textSecondary" title="Read only. This page is not mapped to an Argusly draft.">Read only</span>
                                 @endif
                             </td>
                         </tr>

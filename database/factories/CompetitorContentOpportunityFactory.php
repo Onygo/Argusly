@@ -36,7 +36,7 @@ class CompetitorContentOpportunityFactory extends Factory
             'impact_score' => 90,
             'effort_score' => 58,
             'attackable_angle' => 'Win practical intent with a step-by-step guide and answer blocks.',
-            'reason' => 'Competitors publish this topic and PublishLayer has no matching coverage.',
+            'reason' => 'Competitors publish this topic and Argusly has no matching coverage.',
             'competitor_evidence' => [],
             'publishlayer_coverage' => ['status' => 'missing'],
             'normalized_payload' => ['source' => 'competitor_intelligence'],

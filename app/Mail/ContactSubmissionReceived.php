@@ -21,8 +21,8 @@ class ContactSubmissionReceived extends Mailable
     public function envelope(): Envelope
     {
         $subject = trim((string) $this->submission->subject) !== ''
-            ? 'PublishLayer contact: ' . $this->submission->subject
-            : 'PublishLayer contact submission';
+            ? 'Argusly contact: ' . $this->submission->subject
+            : 'Argusly contact submission';
 
         return new Envelope(
             subject: $subject
@@ -39,8 +39,8 @@ class ContactSubmissionReceived extends Mailable
                 'intro' => 'A new contact form submission was received.',
                 'body' => 'Review the details below and follow up when needed.',
                 'subjectLine' => trim((string) $this->submission->subject) !== ''
-                    ? 'PublishLayer contact: ' . $this->submission->subject
-                    : 'PublishLayer contact submission',
+                    ? 'Argusly contact: ' . $this->submission->subject
+                    : 'Argusly contact submission',
                 'preheader' => 'A new contact form submission is available.',
             ]
         );

@@ -47,7 +47,7 @@ class UrlSourceFetcher
                     ->retry(1, 250)
                     ->accept('text/html, application/xhtml+xml, text/plain;q=0.9, */*;q=0.1')
                     ->withHeaders([
-                        'User-Agent' => 'PublishLayer/SourceBriefing',
+                        'User-Agent' => 'Argusly/SourceBriefing',
                     ])
                     ->get($normalized);
 

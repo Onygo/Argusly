@@ -48,13 +48,13 @@ class MarketingPageSeeder extends Seeder
                     'en' => [
                         'title' => 'Win AI Search with Answer Engine Optimization (AEO)',
                         'slug' => 'ai-search',
-                        'seo_title' => 'Answer Engine Optimization (AEO) for AI search | PublishLayer',
-                        'meta_description' => 'Learn what Answer Engine Optimization (AEO) is, how it differs from SEO, and how PublishLayer helps teams improve AI visibility with AEO Score and Structured Answer Blocks.',
+                        'seo_title' => 'Answer Engine Optimization (AEO) for AI search | Argusly',
+                        'meta_description' => 'Learn what Answer Engine Optimization (AEO) is, how it differs from SEO, and how Argusly helps teams improve AI visibility with AEO Score and Structured Answer Blocks.',
                         'canonical_path' => '/en/ai-search',
                         'content' => [
                             'eyebrow' => 'AEO platform',
                             'subheadline' => 'Don’t just rank in search engines. Become the answer in AI systems like ChatGPT and Google AI.',
-                            'intro' => 'PublishLayer is evolving from an SEO tool into an AI visibility platform. The shift is simple: rank in search, but also become the answer in AI. This page explains Answer Engine Optimization (AEO), why it matters, and how PublishLayer turns AI-first content into an operational workflow.',
+                            'intro' => 'Argusly is evolving from an SEO tool into an AI visibility platform. The shift is simple: rank in search, but also become the answer in AI. This page explains Answer Engine Optimization (AEO), why it matters, and how Argusly turns AI-first content into an operational workflow.',
                             'hero_primary_label' => 'Get early access',
                             'hero_primary_route' => 'public.early-access.show',
                             'hero_primary_params' => ['intent' => 'early-access'],
@@ -91,7 +91,7 @@ class MarketingPageSeeder extends Seeder
                                     'title' => 'Measure your AI visibility with AEO Score',
                                     'intro' => 'AEO Score helps teams understand whether content is ready for AI retrieval and answer systems.',
                                     'paragraphs' => [
-                                        'PublishLayer scores content from 0 to 100 based on the signals that matter for answer-first discovery. That includes answer clarity, page structure, entity usage, semantic coverage, readability, and formatting that works well for LLMs.',
+                                        'Argusly scores content from 0 to 100 based on the signals that matter for answer-first discovery. That includes answer clarity, page structure, entity usage, semantic coverage, readability, and formatting that works well for LLMs.',
                                         'The goal is not a vanity metric. It is a practical signal that explains why AI systems may select, summarize, ignore, or misread a page.',
                                     ],
                                     'bullets' => [
@@ -104,7 +104,7 @@ class MarketingPageSeeder extends Seeder
                                     'title' => 'Turn content into answers with Structured Answer Blocks',
                                     'intro' => 'Structured Answer Blocks convert long-form content into direct, reusable Q&A layers for AI systems.',
                                     'paragraphs' => [
-                                        'PublishLayer can extract key user questions from an article and generate concise answers that start with a direct statement. Those blocks are optimized for AI consumption and can be exported through Markdown, API endpoints, and llms.txt-friendly discovery layers.',
+                                        'Argusly can extract key user questions from an article and generate concise answers that start with a direct statement. Those blocks are optimized for AI consumption and can be exported through Markdown, API endpoints, and llms.txt-friendly discovery layers.',
                                         'This is how content moves from being a page that might rank to a source that is easier for AI systems to parse, retrieve, and cite.',
                                     ],
                                     'qa_blocks' => [
@@ -128,10 +128,10 @@ class MarketingPageSeeder extends Seeder
                                 ],
                                 [
                                     'title' => 'Built for AI systems',
-                                    'intro' => 'PublishLayer is designed for the platforms shaping AI discovery.',
+                                    'intro' => 'Argusly is designed for the platforms shaping AI discovery.',
                                     'paragraphs' => [
                                         'That includes ChatGPT, Google, and Microsoft ecosystems where answer-first interfaces reward structured, factual, and well-linked content.',
-                                        'PublishLayer connects AEO positioning with markdown delivery, internal linking, llms.txt visibility, and API-friendly structured outputs so teams can build AI-first content operations early.',
+                                        'Argusly connects AEO positioning with markdown delivery, internal linking, llms.txt visibility, and API-friendly structured outputs so teams can build AI-first content operations early.',
                                     ],
                                     'cards' => [
                                         ['title' => 'ChatGPT', 'description' => 'Optimize for direct question answering and entity-rich responses.'],
@@ -163,7 +163,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Start building AI-first content',
                                 'title' => 'Turn AEO strategy into publishable answer-first content',
-                                'text' => 'Use PublishLayer to measure AI readiness, generate Structured Answer Blocks, and publish content that serves both search engines and AI systems.',
+                                'text' => 'Use Argusly to measure AI readiness, generate Structured Answer Blocks, and publish content that serves both search engines and AI systems.',
                                 'primary_label' => 'Get early access',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'early-access'],
@@ -175,13 +175,13 @@ class MarketingPageSeeder extends Seeder
                     'nl' => [
                         'title' => 'Win AI-zoekmachines met Answer Engine Optimization (AEO)',
                         'slug' => 'ai-zoekmachines',
-                        'seo_title' => 'Answer Engine Optimization (AEO) voor AI-zoekmachines | PublishLayer',
-                        'meta_description' => 'Ontdek wat Answer Engine Optimization (AEO) is, hoe het verschilt van SEO en hoe PublishLayer AI-zichtbaarheid verbetert met AEO-score en gestructureerde antwoordblokken.',
+                        'seo_title' => 'Answer Engine Optimization (AEO) voor AI-zoekmachines | Argusly',
+                        'meta_description' => 'Ontdek wat Answer Engine Optimization (AEO) is, hoe het verschilt van SEO en hoe Argusly AI-zichtbaarheid verbetert met AEO-score en gestructureerde antwoordblokken.',
                         'canonical_path' => '/nl/ai-zoekmachines',
                         'content' => [
                             'eyebrow' => 'AEO-platform',
                             'subheadline' => 'Word niet alleen gevonden. Word het antwoord in AI-systemen zoals ChatGPT en Google.',
-                            'intro' => 'PublishLayer ontwikkelt zich van SEO-tool naar AI visibility platform. De nieuwe kern is duidelijk: ranken in zoekmachines is niet genoeg, je moet ook het antwoord kunnen worden in AI. Op deze pagina leggen we uit wat Answer Engine Optimization (AEO) is en hoe PublishLayer dat operationeel maakt.',
+                            'intro' => 'Argusly ontwikkelt zich van SEO-tool naar AI visibility platform. De nieuwe kern is duidelijk: ranken in zoekmachines is niet genoeg, je moet ook het antwoord kunnen worden in AI. Op deze pagina leggen we uit wat Answer Engine Optimization (AEO) is en hoe Argusly dat operationeel maakt.',
                             'hero_primary_label' => 'Vraag early access aan',
                             'hero_primary_route' => 'public.early-access.show',
                             'hero_primary_params' => ['intent' => 'early-access'],
@@ -218,7 +218,7 @@ class MarketingPageSeeder extends Seeder
                                     'title' => 'Meet je AI-zichtbaarheid met AEO-score',
                                     'intro' => 'De AEO-score laat zien of content klaar is voor answer-first discovery.',
                                     'paragraphs' => [
-                                        'PublishLayer scoort content van 0 tot 100 op signalen die belangrijk zijn voor AI-systemen. Denk aan answer clarity, structuur, entity usage, semantic coverage, readability en formatting die werkt voor LLM’s.',
+                                        'Argusly scoort content van 0 tot 100 op signalen die belangrijk zijn voor AI-systemen. Denk aan answer clarity, structuur, entity usage, semantic coverage, readability en formatting die werkt voor LLM’s.',
                                         'Het doel is niet alleen meten, maar begrijpen waarom AI jouw content selecteert of juist overslaat.',
                                     ],
                                     'bullets' => [
@@ -231,7 +231,7 @@ class MarketingPageSeeder extends Seeder
                                     'title' => 'Structureer content met gestructureerde antwoordblokken',
                                     'intro' => 'Gestructureerde antwoordblokken zetten lange content om in directe Q&A voor AI-systemen.',
                                     'paragraphs' => [
-                                        'PublishLayer kan kernvragen uit een artikel halen en daar beknopte antwoorden van maken die beginnen met een directe uitspraak. Daardoor ontstaat een extra laag die beter werkt voor AI-consumptie en beschikbaar is via Markdown, API en llms.txt-gerichte discovery.',
+                                        'Argusly kan kernvragen uit een artikel halen en daar beknopte antwoorden van maken die beginnen met een directe uitspraak. Daardoor ontstaat een extra laag die beter werkt voor AI-consumptie en beschikbaar is via Markdown, API en llms.txt-gerichte discovery.',
                                         'Zo verschuift content van een pagina die misschien rankt naar een bron die makkelijker door AI-systemen kan worden gelezen, samengevat en geciteerd.',
                                     ],
                                     'qa_blocks' => [
@@ -255,10 +255,10 @@ class MarketingPageSeeder extends Seeder
                                 ],
                                 [
                                     'title' => 'Gebouwd voor AI-systemen',
-                                    'intro' => 'PublishLayer ondersteunt de platformen die answer-first discovery vormgeven.',
+                                    'intro' => 'Argusly ondersteunt de platformen die answer-first discovery vormgeven.',
                                     'paragraphs' => [
                                         'Dat geldt voor ChatGPT, Google en Microsoft-ecosystemen waar duidelijke, feitelijke en goed gestructureerde content voordeel heeft.',
-                                        'PublishLayer verbindt AEO-positionering met markdown delivery, interne linking, llms.txt-zichtbaarheid en API-ready output zodat teams vroeg kunnen bouwen aan AI-first contentoperaties.',
+                                        'Argusly verbindt AEO-positionering met markdown delivery, interne linking, llms.txt-zichtbaarheid en API-ready output zodat teams vroeg kunnen bouwen aan AI-first contentoperaties.',
                                     ],
                                     'cards' => [
                                         ['title' => 'ChatGPT', 'description' => 'Optimaliseer voor directe beantwoording en consistente entiteiten.'],
@@ -290,7 +290,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Start met AI-first content',
                                 'title' => 'Maak van AEO-strategie publiceerbare antwoordcontent',
-                                'text' => 'Gebruik PublishLayer om AEO-score te meten, antwoordblokken te genereren en content te publiceren die werkt voor zoekmachines én AI-systemen.',
+                                'text' => 'Gebruik Argusly om AEO-score te meten, antwoordblokken te genereren en content te publiceren die werkt voor zoekmachines én AI-systemen.',
                                 'primary_label' => 'Vraag early access aan',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'early-access'],
@@ -366,11 +366,11 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'How PublishLayer supports SEO',
-                                    'intro' => 'PublishLayer turns SEO from disconnected tasks into a structured content workflow.',
+                                    'title' => 'How Argusly supports SEO',
+                                    'intro' => 'Argusly turns SEO from disconnected tasks into a structured content workflow.',
                                     'paragraphs' => [
                                         'Teams can build content chains around a topic, keep page structures consistent, and connect SEO work to GEO and LLM visibility instead of managing each in a separate system.',
-                                        'Because PublishLayer works with structured content, internal linking, and LLM-ready outputs such as markdown and llms.txt, it helps teams publish pages that serve both classic search engines and answer-first environments.',
+                                        'Because Argusly works with structured content, internal linking, and LLM-ready outputs such as markdown and llms.txt, it helps teams publish pages that serve both classic search engines and answer-first environments.',
                                     ],
                                     'bullets' => [
                                         'Create content chains that expand topical authority instead of isolated articles',
@@ -385,7 +385,7 @@ class MarketingPageSeeder extends Seeder
                                         'SEO still drives high-value discovery in traditional search engines',
                                         'Strong SEO now depends on clarity, structure, and topical coverage rather than keywords alone',
                                         'Pages need to work in rankings and in answer-driven interfaces',
-                                        'PublishLayer helps teams operationalize SEO with structured content and internal linking',
+                                        'Argusly helps teams operationalize SEO with structured content and internal linking',
                                     ],
                                 ],
                             ],
@@ -398,7 +398,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'See the workflow',
                                 'title' => 'Turn SEO from a checklist into a publishing system',
-                                'text' => 'Use PublishLayer to plan, structure, interlink, and publish pages that support both rankings and AI visibility.',
+                                'text' => 'Use Argusly to plan, structure, interlink, and publish pages that support both rankings and AI visibility.',
                                 'primary_label' => 'Book a demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -469,11 +469,11 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'Hoe PublishLayer SEO ondersteunt',
-                                    'intro' => 'PublishLayer maakt van SEO een gestructureerde contentworkflow in plaats van losse taken.',
+                                    'title' => 'Hoe Argusly SEO ondersteunt',
+                                    'intro' => 'Argusly maakt van SEO een gestructureerde contentworkflow in plaats van losse taken.',
                                     'paragraphs' => [
                                         'Teams kunnen content chains rond een onderwerp opbouwen, paginastructuren consistent houden en SEO verbinden met GEO en LLM-zichtbaarheid in plaats van alles apart te beheren.',
-                                        'Omdat PublishLayer werkt met gestructureerde content, interne links en LLM-ready output zoals markdown en llms.txt, helpt het teams pagina’s publiceren die werken voor klassieke zoekmachines én answer-first omgevingen.',
+                                        'Omdat Argusly werkt met gestructureerde content, interne links en LLM-ready output zoals markdown en llms.txt, helpt het teams pagina’s publiceren die werken voor klassieke zoekmachines én answer-first omgevingen.',
                                     ],
                                     'bullets' => [
                                         'Bouw content chains die topical authority versterken in plaats van losse artikelen',
@@ -488,7 +488,7 @@ class MarketingPageSeeder extends Seeder
                                         'SEO blijft waardevolle discovery opleveren in traditionele zoekmachines',
                                         'Sterke SEO draait nu meer om helderheid, structuur en topicdekking dan om keywords alleen',
                                         'Pagina’s moeten werken in rankings én in answer-driven interfaces',
-                                        'PublishLayer helpt teams SEO operationeel te maken met gestructureerde content en interne links',
+                                        'Argusly helpt teams SEO operationeel te maken met gestructureerde content en interne links',
                                     ],
                                 ],
                             ],
@@ -501,7 +501,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Bekijk de workflow',
                                 'title' => 'Maak van SEO een publicatiesysteem in plaats van een checklist',
-                                'text' => 'Gebruik PublishLayer om pagina’s te plannen, structureren, intern te linken en te publiceren voor rankings én AI-zichtbaarheid.',
+                                'text' => 'Gebruik Argusly om pagina’s te plannen, structureren, intern te linken en te publiceren voor rankings én AI-zichtbaarheid.',
                                 'primary_label' => 'Plan een demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -577,8 +577,8 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'How PublishLayer supports GEO',
-                                    'intro' => 'PublishLayer gives GEO a practical operating model.',
+                                    'title' => 'How Argusly supports GEO',
+                                    'intro' => 'Argusly gives GEO a practical operating model.',
                                     'paragraphs' => [
                                         'Teams can build structured pages in content chains, connect GEO work to SEO and LLM visibility, and strengthen internal linking across the topic so every page supports a broader knowledge graph.',
                                         'The result is content that is easier to publish consistently and easier for AI systems to parse because the output is structured, interlinked, and available in LLM-ready formats such as markdown and llms.txt.',
@@ -596,7 +596,7 @@ class MarketingPageSeeder extends Seeder
                                         'GEO optimizes content for AI-generated answers, not only for search result clicks',
                                         'Structured content and clear definitions make a page easier to retrieve and cite',
                                         'GEO builds on SEO rather than replacing it',
-                                        'PublishLayer helps teams operationalize GEO with structure, linking, and LLM-ready publishing',
+                                        'Argusly helps teams operationalize GEO with structure, linking, and LLM-ready publishing',
                                     ],
                                 ],
                             ],
@@ -609,7 +609,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Bring GEO into the workflow',
                                 'title' => 'Structure pages for retrieval, citation, and AI answers',
-                                'text' => 'Use PublishLayer to connect GEO work to page structure, content chains, and LLM visibility tracking.',
+                                'text' => 'Use Argusly to connect GEO work to page structure, content chains, and LLM visibility tracking.',
                                 'primary_label' => 'Book a demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -680,8 +680,8 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'Hoe PublishLayer GEO ondersteunt',
-                                    'intro' => 'PublishLayer geeft GEO een praktisch operationeel model.',
+                                    'title' => 'Hoe Argusly GEO ondersteunt',
+                                    'intro' => 'Argusly geeft GEO een praktisch operationeel model.',
                                     'paragraphs' => [
                                         'Teams kunnen gestructureerde pagina’s bouwen in content chains, GEO koppelen aan SEO en LLM-zichtbaarheid, en interne links versterken zodat elke pagina een breder kennisnetwerk ondersteunt.',
                                         'Het resultaat is content die consistenter gepubliceerd kan worden en makkelijker door AI-systemen te lezen is, omdat de output gestructureerd, onderling verbonden en beschikbaar is in LLM-ready formaten zoals markdown en llms.txt.',
@@ -699,7 +699,7 @@ class MarketingPageSeeder extends Seeder
                                         'GEO optimaliseert content voor AI-antwoorden en niet alleen voor klikken vanuit zoekresultaten',
                                         'Gestructureerde content en heldere definities maken een pagina makkelijker te vinden en te citeren',
                                         'GEO bouwt voort op SEO in plaats van SEO te vervangen',
-                                        'PublishLayer helpt teams GEO operationeel te maken met structuur, linking en LLM-ready publicatie',
+                                        'Argusly helpt teams GEO operationeel te maken met structuur, linking en LLM-ready publicatie',
                                     ],
                                 ],
                             ],
@@ -712,7 +712,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Breng GEO in de workflow',
                                 'title' => 'Structureer pagina’s voor retrieval, citatie en AI-antwoorden',
-                                'text' => 'Gebruik PublishLayer om GEO te koppelen aan paginastructuur, content chains en LLM-zichtbaarheid.',
+                                'text' => 'Gebruik Argusly om GEO te koppelen aan paginastructuur, content chains en LLM-zichtbaarheid.',
                                 'primary_label' => 'Plan een demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -750,7 +750,7 @@ class MarketingPageSeeder extends Seeder
                                     'intro' => 'LLM visibility is the degree to which a brand shows up in relevant AI-generated answers.',
                                     'paragraphs' => [
                                         'It includes whether your brand is mentioned at all, whether a page is cited as a source, how clearly your company is described, and whether the answer positions you in the right category or use case.',
-                                        'For example, when someone asks for the best platforms for AI search optimization, LLM visibility is not only whether PublishLayer appears in the answer. It is also whether the answer explains why, cites the right pages, and mentions the product in the correct strategic context.',
+                                        'For example, when someone asks for the best platforms for AI search optimization, LLM visibility is not only whether Argusly appears in the answer. It is also whether the answer explains why, cites the right pages, and mentions the product in the correct strategic context.',
                                     ],
                                 ],
                                 [
@@ -788,10 +788,10 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'How PublishLayer supports LLM visibility',
-                                    'intro' => 'PublishLayer connects monitoring to action.',
+                                    'title' => 'How Argusly supports LLM visibility',
+                                    'intro' => 'Argusly connects monitoring to action.',
                                     'paragraphs' => [
-                                        'Instead of treating AI answer visibility as a reporting layer only, PublishLayer links it back to the pages that need work. Teams can improve structure, strengthen internal links, expand content chains, and publish clearer topic coverage based on observed gaps.',
+                                        'Instead of treating AI answer visibility as a reporting layer only, Argusly links it back to the pages that need work. Teams can improve structure, strengthen internal links, expand content chains, and publish clearer topic coverage based on observed gaps.',
                                         'Because the content is structured and available in LLM-ready formats such as markdown and llms.txt, the platform helps teams reduce ambiguity between what is published and what an answer system can realistically use.',
                                     ],
                                     'bullets' => [
@@ -807,7 +807,7 @@ class MarketingPageSeeder extends Seeder
                                         'LLM visibility measures answer presence, citation, and context, not only traffic',
                                         'A brand can influence decisions in AI tools before any click happens',
                                         'Weak visibility often points to unclear entities, thin topic coverage, or poor linking',
-                                        'PublishLayer helps teams monitor LLM visibility and improve the underlying pages',
+                                        'Argusly helps teams monitor LLM visibility and improve the underlying pages',
                                     ],
                                 ],
                             ],
@@ -820,7 +820,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Track and improve',
                                 'title' => 'See where your brand appears in AI answers',
-                                'text' => 'Use PublishLayer to measure LLM visibility and turn weak answer presence into specific content actions.',
+                                'text' => 'Use Argusly to measure LLM visibility and turn weak answer presence into specific content actions.',
                                 'primary_label' => 'Book a demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -853,7 +853,7 @@ class MarketingPageSeeder extends Seeder
                                     'intro' => 'LLM-zichtbaarheid is de mate waarin een merk terugkomt in relevante AI-antwoorden.',
                                     'paragraphs' => [
                                         'Het gaat om meer dan een losse vermelding. Het omvat of je merk überhaupt wordt genoemd, of een pagina als bron wordt geciteerd, hoe duidelijk je bedrijf wordt beschreven en of het antwoord je in de juiste categorie of use case plaatst.',
-                                        'Wanneer iemand bijvoorbeeld vraagt naar de beste platforms voor AI zoekmachine optimalisatie, gaat LLM-zichtbaarheid niet alleen over het noemen van PublishLayer. Het gaat ook over de uitleg waarom, de juiste bronverwijzingen en de correcte strategische context.',
+                                        'Wanneer iemand bijvoorbeeld vraagt naar de beste platforms voor AI zoekmachine optimalisatie, gaat LLM-zichtbaarheid niet alleen over het noemen van Argusly. Het gaat ook over de uitleg waarom, de juiste bronverwijzingen en de correcte strategische context.',
                                     ],
                                 ],
                                 [
@@ -891,10 +891,10 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'Hoe PublishLayer LLM-zichtbaarheid ondersteunt',
-                                    'intro' => 'PublishLayer koppelt monitoring direct aan actie.',
+                                    'title' => 'Hoe Argusly LLM-zichtbaarheid ondersteunt',
+                                    'intro' => 'Argusly koppelt monitoring direct aan actie.',
                                     'paragraphs' => [
-                                        'In plaats van AI-zichtbaarheid alleen als rapportagelaag te zien, verbindt PublishLayer die signalen met de pagina’s die verbetering nodig hebben. Teams kunnen structuur aanscherpen, interne links versterken, content chains uitbreiden en topicdekking verbeteren op basis van concrete gaten.',
+                                        'In plaats van AI-zichtbaarheid alleen als rapportagelaag te zien, verbindt Argusly die signalen met de pagina’s die verbetering nodig hebben. Teams kunnen structuur aanscherpen, interne links versterken, content chains uitbreiden en topicdekking verbeteren op basis van concrete gaten.',
                                         'Doordat de content gestructureerd is en beschikbaar is in LLM-ready formaten zoals markdown en llms.txt, verkleint het platform de kloof tussen wat je publiceert en wat een antwoordsysteem daadwerkelijk kan gebruiken.',
                                     ],
                                     'bullets' => [
@@ -910,7 +910,7 @@ class MarketingPageSeeder extends Seeder
                                         'LLM-zichtbaarheid meet aanwezigheid, citatie en context in antwoorden, niet alleen verkeer',
                                         'Een merk kan beslissingen beïnvloeden in AI-tools voordat er een klik plaatsvindt',
                                         'Zwakke zichtbaarheid wijst vaak op onduidelijke entiteiten, dunne topicdekking of slechte linking',
-                                        'PublishLayer helpt teams LLM-zichtbaarheid te meten en de onderliggende pagina’s te verbeteren',
+                                        'Argusly helpt teams LLM-zichtbaarheid te meten en de onderliggende pagina’s te verbeteren',
                                     ],
                                 ],
                             ],
@@ -923,7 +923,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Volg en verbeter',
                                 'title' => 'Zie waar je merk terugkomt in AI-antwoorden',
-                                'text' => 'Gebruik PublishLayer om LLM-zichtbaarheid te meten en zwakke answer presence om te zetten in concrete contentacties.',
+                                'text' => 'Gebruik Argusly om LLM-zichtbaarheid te meten en zwakke answer presence om te zetten in concrete contentacties.',
                                 'primary_label' => 'Plan een demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -999,11 +999,11 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'How PublishLayer supports AI search optimization',
-                                    'intro' => 'PublishLayer provides the operating layer behind the strategy.',
+                                    'title' => 'How Argusly supports AI search optimization',
+                                    'intro' => 'Argusly provides the operating layer behind the strategy.',
                                     'paragraphs' => [
                                         'Teams can plan and publish content chains, structure pages consistently, combine SEO and GEO signals, and improve LLM visibility without switching between disconnected systems.',
-                                        'Because the output is structured and can be delivered in formats such as markdown and llms.txt, PublishLayer helps teams create a content environment that is easier for search engines, AI systems, and people to use.',
+                                        'Because the output is structured and can be delivered in formats such as markdown and llms.txt, Argusly helps teams create a content environment that is easier for search engines, AI systems, and people to use.',
                                     ],
                                     'bullets' => [
                                         'Connect SEO, GEO, and LLM visibility in one workflow',
@@ -1018,7 +1018,7 @@ class MarketingPageSeeder extends Seeder
                                         'AI search optimization is the umbrella discipline for discovery in search and AI answer systems',
                                         'It combines SEO, GEO, and LLM visibility rather than replacing one with another',
                                         'The strongest approach is a connected content cluster with clear structure and internal links',
-                                        'PublishLayer helps teams operationalize AI search optimization from planning through publishing',
+                                        'Argusly helps teams operationalize AI search optimization from planning through publishing',
                                     ],
                                 ],
                             ],
@@ -1031,7 +1031,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Use one operating layer',
                                 'title' => 'Run AI search optimization as a structured program',
-                                'text' => 'Use PublishLayer to connect SEO, GEO, LLM visibility, and publishing in one repeatable workflow.',
+                                'text' => 'Use Argusly to connect SEO, GEO, LLM visibility, and publishing in one repeatable workflow.',
                                 'primary_label' => 'Book a demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -1103,11 +1103,11 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'Hoe PublishLayer AI zoekmachine optimalisatie ondersteunt',
-                                    'intro' => 'PublishLayer levert de operationele laag achter die strategie.',
+                                    'title' => 'Hoe Argusly AI zoekmachine optimalisatie ondersteunt',
+                                    'intro' => 'Argusly levert de operationele laag achter die strategie.',
                                     'paragraphs' => [
                                         'Teams kunnen content chains plannen en publiceren, paginastructuren consistent houden, SEO- en GEO-signalen combineren en LLM-zichtbaarheid verbeteren zonder tussen losse systemen te schakelen.',
-                                        'Omdat de output gestructureerd is en kan worden geleverd in formaten zoals markdown en llms.txt, helpt PublishLayer teams een contentomgeving bouwen die voor zoekmachines, AI-systemen en mensen eenvoudiger te gebruiken is.',
+                                        'Omdat de output gestructureerd is en kan worden geleverd in formaten zoals markdown en llms.txt, helpt Argusly teams een contentomgeving bouwen die voor zoekmachines, AI-systemen en mensen eenvoudiger te gebruiken is.',
                                     ],
                                     'bullets' => [
                                         'Verbind SEO, GEO en LLM-zichtbaarheid in één workflow',
@@ -1122,7 +1122,7 @@ class MarketingPageSeeder extends Seeder
                                         'AI zoekmachine optimalisatie is de overkoepelende discipline voor discovery in zoek- en AI-antwoordsystemen',
                                         'Het combineert SEO, GEO en LLM-zichtbaarheid in plaats van één discipline te vervangen',
                                         'De sterkste aanpak is een verbonden contentcluster met heldere structuur en interne links',
-                                        'PublishLayer helpt teams AI zoekmachine optimalisatie operationeel maken van planning tot publicatie',
+                                        'Argusly helpt teams AI zoekmachine optimalisatie operationeel maken van planning tot publicatie',
                                     ],
                                 ],
                             ],
@@ -1135,7 +1135,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Gebruik één operating layer',
                                 'title' => 'Run AI zoekmachine optimalisatie als gestructureerd programma',
-                                'text' => 'Gebruik PublishLayer om SEO, GEO, LLM-zichtbaarheid en publishing in één herhaalbare workflow te verbinden.',
+                                'text' => 'Gebruik Argusly om SEO, GEO, LLM-zichtbaarheid en publishing in één herhaalbare workflow te verbinden.',
                                 'primary_label' => 'Plan een demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -1215,8 +1215,8 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'How PublishLayer helps teams use both',
-                                    'intro' => 'PublishLayer is built for mixed discovery environments.',
+                                    'title' => 'How Argusly helps teams use both',
+                                    'intro' => 'Argusly is built for mixed discovery environments.',
                                     'paragraphs' => [
                                         'Teams can create structured page sets, combine SEO and GEO workflows, and connect topic pages through content chains and internal linking instead of managing traditional search and AI visibility in separate content systems.',
                                         'That makes it easier to publish content that ranks, supports AI retrieval, and stays available in LLM-ready formats such as markdown and llms.txt.',
@@ -1234,7 +1234,7 @@ class MarketingPageSeeder extends Seeder
                                         'SEO and GEO are different, but they depend on many of the same content fundamentals',
                                         'SEO focuses on rankings and clicks, while GEO focuses on answer inclusion and citation',
                                         'Most teams should keep SEO and add GEO, not replace one with the other',
-                                        'PublishLayer helps teams manage both in one operating layer',
+                                        'Argusly helps teams manage both in one operating layer',
                                     ],
                                 ],
                             ],
@@ -1247,7 +1247,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Use both deliberately',
                                 'title' => 'Manage SEO and GEO from one content system',
-                                'text' => 'Use PublishLayer to structure, link, and publish pages that perform in search results and AI answers.',
+                                'text' => 'Use Argusly to structure, link, and publish pages that perform in search results and AI answers.',
                                 'primary_label' => 'Book a demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -1321,8 +1321,8 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'Hoe PublishLayer helpt om beide te gebruiken',
-                                    'intro' => 'PublishLayer is gebouwd voor gemengde discovery-omgevingen.',
+                                    'title' => 'Hoe Argusly helpt om beide te gebruiken',
+                                    'intro' => 'Argusly is gebouwd voor gemengde discovery-omgevingen.',
                                     'paragraphs' => [
                                         'Teams kunnen gestructureerde paginasets maken, SEO- en GEO-workflows combineren en topicpagina’s verbinden via content chains en interne links in plaats van traditionele search en AI-zichtbaarheid in aparte systemen te beheren.',
                                         'Daardoor wordt het eenvoudiger om content te publiceren die kan ranken, AI retrieval ondersteunt en beschikbaar blijft in LLM-ready formaten zoals markdown en llms.txt.',
@@ -1340,7 +1340,7 @@ class MarketingPageSeeder extends Seeder
                                         'SEO en GEO verschillen, maar leunen op veel van dezelfde contentfundamenten',
                                         'SEO focust op rankings en klikken, GEO op opname in antwoorden en citatie',
                                         'De meeste teams houden SEO en voegen GEO toe in plaats van het ene door het andere te vervangen',
-                                        'PublishLayer helpt teams beide disciplines in één operating layer te beheren',
+                                        'Argusly helpt teams beide disciplines in één operating layer te beheren',
                                     ],
                                 ],
                             ],
@@ -1353,7 +1353,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Gebruik beide bewust',
                                 'title' => 'Beheer SEO en GEO vanuit één contentsysteem',
-                                'text' => 'Gebruik PublishLayer om pagina’s te structureren, intern te linken en te publiceren voor zoekresultaten én AI-antwoorden.',
+                                'text' => 'Gebruik Argusly om pagina’s te structureren, intern te linken en te publiceren voor zoekresultaten én AI-antwoorden.',
                                 'primary_label' => 'Plan een demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -1429,11 +1429,11 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'How PublishLayer supports AI Visibility Score workflows',
-                                    'intro' => 'PublishLayer connects the score to content operations.',
+                                    'title' => 'How Argusly supports AI Visibility Score workflows',
+                                    'intro' => 'Argusly connects the score to content operations.',
                                     'paragraphs' => [
                                         'Teams can use AI visibility data alongside structured content, content chains, and internal linking decisions instead of viewing the score in a reporting vacuum. The platform makes it easier to see which pages should be refreshed and what related pages are missing.',
-                                        'Because PublishLayer combines SEO and GEO thinking with LLM-ready outputs such as markdown and llms.txt, the score becomes a practical trigger for publishing improvements rather than a disconnected dashboard number.',
+                                        'Because Argusly combines SEO and GEO thinking with LLM-ready outputs such as markdown and llms.txt, the score becomes a practical trigger for publishing improvements rather than a disconnected dashboard number.',
                                     ],
                                     'bullets' => [
                                         'Use score changes to prioritize refreshes, new pages, and linking improvements',
@@ -1448,7 +1448,7 @@ class MarketingPageSeeder extends Seeder
                                         'An AI Visibility Score summarizes brand presence across monitored AI answers',
                                         'A useful score includes presence, position, sentiment, citations, and competitor context',
                                         'The score is most valuable when it leads to page-level improvements',
-                                        'PublishLayer turns AI visibility scoring into a structured content workflow',
+                                        'Argusly turns AI visibility scoring into a structured content workflow',
                                     ],
                                 ],
                             ],
@@ -1461,7 +1461,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Measure what matters',
                                 'title' => 'Turn AI visibility scores into content decisions',
-                                'text' => 'Use PublishLayer to connect answer visibility metrics to source-page improvements, content chains, and internal linking.',
+                                'text' => 'Use Argusly to connect answer visibility metrics to source-page improvements, content chains, and internal linking.',
                                 'primary_label' => 'Book a demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],
@@ -1532,11 +1532,11 @@ class MarketingPageSeeder extends Seeder
                                     ],
                                 ],
                                 [
-                                    'title' => 'Hoe PublishLayer AI Visibility Score-workflows ondersteunt',
-                                    'intro' => 'PublishLayer verbindt de score direct met contentoperaties.',
+                                    'title' => 'Hoe Argusly AI Visibility Score-workflows ondersteunt',
+                                    'intro' => 'Argusly verbindt de score direct met contentoperaties.',
                                     'paragraphs' => [
                                         'Teams kunnen AI-zichtbaarheid naast gestructureerde content, content chains en beslissingen over interne links gebruiken in plaats van de score los te bekijken. Het platform maakt het eenvoudiger om te zien welke pagina’s refreshes nodig hebben en welke verwante pagina’s nog ontbreken.',
-                                        'Omdat PublishLayer SEO en GEO combineert met LLM-ready output zoals markdown en llms.txt, wordt de score een praktisch startsignaal voor publicatieverbetering in plaats van een los dashboardgetal.',
+                                        'Omdat Argusly SEO en GEO combineert met LLM-ready output zoals markdown en llms.txt, wordt de score een praktisch startsignaal voor publicatieverbetering in plaats van een los dashboardgetal.',
                                     ],
                                     'bullets' => [
                                         'Gebruik scoreveranderingen om refreshes, nieuwe pagina’s en linkingverbeteringen te prioriteren',
@@ -1551,7 +1551,7 @@ class MarketingPageSeeder extends Seeder
                                         'Een AI Visibility Score vat merkpresence samen over gemonitorde AI-antwoorden',
                                         'Een bruikbare score bevat presence, positie, sentiment, citaties en concurrentcontext',
                                         'De score is het meest waardevol wanneer die leidt tot verbeteringen op paginaniveau',
-                                        'PublishLayer maakt van AI visibility scoring een gestructureerde contentworkflow',
+                                        'Argusly maakt van AI visibility scoring een gestructureerde contentworkflow',
                                     ],
                                 ],
                             ],
@@ -1564,7 +1564,7 @@ class MarketingPageSeeder extends Seeder
                             'cta' => [
                                 'eyebrow' => 'Meet wat ertoe doet',
                                 'title' => 'Maak van AI visibility scores concrete contentbeslissingen',
-                                'text' => 'Gebruik PublishLayer om answer visibility te koppelen aan verbeteringen in bronpagina’s, content chains en interne linking.',
+                                'text' => 'Gebruik Argusly om answer visibility te koppelen aan verbeteringen in bronpagina’s, content chains en interne linking.',
                                 'primary_label' => 'Plan een demo',
                                 'primary_route' => 'public.early-access.show',
                                 'primary_params' => ['intent' => 'demo'],

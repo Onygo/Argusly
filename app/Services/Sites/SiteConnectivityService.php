@@ -82,7 +82,7 @@ class SiteConnectivityService
                     ];
                 }
 
-                $site->last_error = 'WP plugin endpoint not found. Checked known and discovered PublishLayer routes with GET and POST.';
+                $site->last_error = 'WP plugin endpoint not found. Checked known and discovered Argusly routes with GET and POST.';
             } else {
                 $site->last_error = 'Ping failed with status ' . (string) $lastStatus;
             }
@@ -509,7 +509,7 @@ class SiteConnectivityService
     }
 
     /**
-     * Discover WP REST routes that look like PublishLayer routes.
+     * Discover WP REST routes that look like Argusly routes.
      *
      * @return list<string>
      */

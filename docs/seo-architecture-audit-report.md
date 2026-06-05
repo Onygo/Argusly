@@ -1,10 +1,10 @@
-# PublishLayer SEO Architecture Audit
+# Argusly SEO Architecture Audit
 
 ## 1. Executive Summary
 
 **Current Maturity Level: Partially Structured (approaching "Close to Target")**
 
-The PublishLayer codebase demonstrates a surprisingly advanced SEO architecture that already implements many components of the target architecture, often with good engineering patterns. The system is **not foundational** - it has evolved significantly with:
+The Argusly codebase demonstrates a surprisingly advanced SEO architecture that already implements many components of the target architecture, often with good engineering patterns. The system is **not foundational** - it has evolved significantly with:
 
 - **Direct SEO field storage** on both `drafts` and `contents` tables (9 SEO fields each)
 - **A comprehensive SEO audit system** with crawling, issue detection, AI-powered fix suggestions, and apply flows
@@ -71,7 +71,7 @@ The PublishLayer codebase demonstrates a surprisingly advanced SEO architecture 
 ### How Suggestions are Created
 1. User selects issues in the audit dashboard UI
 2. Controller dispatches `GenerateSeoFixSuggestionsJob` with selected issue IDs
-3. For each issue linked to a PublishLayer article:
+3. For each issue linked to a Argusly article:
    - `SeoAuditAiFixService::buildInputSnapshot()` creates context
    - `SeoAuditAiFixService::generateSuggestion()` calls LLM (OpenAI reasoning model)
    - Result stored in `SeoAuditFixSuggestion` with status 'generated'
@@ -206,7 +206,7 @@ $content->update([
 The Laravel flow simply marks content as published locally and generates a guessed `published_url` based on `/blog/{slug}` pattern.
 
 #### Rendering Strategy for Meta Tags
-**Not Applicable:** PublishLayer doesn't control meta tag rendering on Laravel sites. It's assumed the Laravel site would:
+**Not Applicable:** Argusly doesn't control meta tag rendering on Laravel sites. It's assumed the Laravel site would:
 1. Pull content via API (the `/v1/drafts` endpoint returns all SEO fields)
 2. Handle its own meta tag rendering in Blade views
 

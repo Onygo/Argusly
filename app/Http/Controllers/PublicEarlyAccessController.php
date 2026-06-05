@@ -18,8 +18,8 @@ class PublicEarlyAccessController extends Controller
 
         return view('public.early-access', [
             'intent' => $intent,
-            'metaTitle' => 'Early access | PublishLayer',
-            'metaDescription' => 'Request early access to PublishLayer or book a guided demo.',
+            'metaTitle' => 'Early access | Argusly',
+            'metaDescription' => 'Request early access to Argusly or book a guided demo.',
             'canonicalUrl' => LocalizedMarketingUrl::route('public.early-access.show', ['intent' => $intent], $locale),
             'hreflangUrls' => LocalizedMarketingUrl::hreflangsForRoute('public.early-access.show', ['intent' => $intent]),
         ]);

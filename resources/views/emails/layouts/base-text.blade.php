@@ -1,4 +1,4 @@
-{{ $headline ?? 'PublishLayer' }}
+{{ $headline ?? 'Argusly' }}
 
 @if (!empty($intro))
 {{ $intro }}
@@ -18,10 +18,10 @@
 @endisset
 @yield('content')
 @if (!empty($cta_url))
-Action: {{ $cta_label ?? 'Open PublishLayer' }}
+Action: {{ $cta_label ?? 'Open Argusly' }}
 Link: {{ $cta_url }}
 
 @endif
-This is a system email from PublishLayer.
+This is a system email from Argusly.
 If you did not expect this message, you can safely ignore it.
 

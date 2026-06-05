@@ -1,4 +1,4 @@
-# PublishLayer Headless API Notes
+# Argusly Headless API Notes
 
 ## API key creation
 - API keys are workspace-scoped and can be destination-scoped.
@@ -6,7 +6,7 @@
 - Store it in a secret manager and never in client-side code.
 
 ## Webhook signature verification
-- Header: `X-PublishLayer-Signature`
+- Header: `X-Argusly-Signature`
 - Format: `sha256=<hex_digest>`
 - Compute HMAC SHA-256 over the raw request body using the webhook secret.
 

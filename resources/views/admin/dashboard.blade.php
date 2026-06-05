@@ -86,7 +86,7 @@
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h3 class="font-semibold text-textPrimary">SEO readiness</h3>
-                <p class="mt-1 text-sm text-textSecondary">Crawl, indexation and metadata checks for public PublishLayer pages.</p>
+                <p class="mt-1 text-sm text-textSecondary">Crawl, indexation and metadata checks for public Argusly pages.</p>
             </div>
             <div class="flex flex-wrap gap-2 text-xs">
                 <a href="{{ $seoDashboard['sitemap_url'] }}" class="rounded border border-border px-2.5 py-1.5">Sitemap</a>
@@ -128,7 +128,7 @@
     </div>
 
     <div class="rounded-lg border border-border bg-surface p-5 mb-8">
-        <h3 class="font-semibold text-textPrimary mb-4">PublishLayer onboarding</h3>
+        <h3 class="font-semibold text-textPrimary mb-4">Argusly onboarding</h3>
         <div class="grid gap-4 sm:grid-cols-3">
             <div class="rounded border border-border p-4">
                 <p class="text-xs text-textSecondary">New registrations (7 days)</p>

@@ -39,7 +39,7 @@
     @if (($generatedPluginLicenseKey ?? null) && (string) ($generatedPluginLicenseSiteId ?? '') === (string) $site->id)
         <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
             <p class="text-sm font-semibold text-textPrimary">WordPress update license key</p>
-            <p class="mt-1 text-xs text-textSecondary">This key is shown only once. Paste it into the PublishLayer plugin License key field in WordPress.</p>
+            <p class="mt-1 text-xs text-textSecondary">This key is shown only once. Paste it into the Argusly plugin License key field in WordPress.</p>
             <div class="mt-3 rounded border border-amber-200 bg-surface px-3 py-2 font-mono text-sm text-textPrimary" id="plugin-license-key-value">{{ $generatedPluginLicenseKey }}</div>
             <button type="button" class="mt-3 rounded border border-border px-3 py-1.5 text-xs" onclick="navigator.clipboard.writeText(document.getElementById('plugin-license-key-value').innerText)">Copy license key</button>
         </div>
@@ -309,7 +309,7 @@
         @if ($isLaravel)
             <div id="laravel-connector-setup" class="rounded-lg border border-border bg-surface p-4 md:col-span-2">
                 <h2 class="text-sm font-semibold text-textPrimary">Laravel connector setup</h2>
-                <p class="mt-2 text-xs text-textSecondary">Configure your Laravel app to send briefs/drafts through the official PublishLayer connector.</p>
+                <p class="mt-2 text-xs text-textSecondary">Configure your Laravel app to send briefs/drafts through the official Argusly connector.</p>
                 <div class="mt-3 rounded border border-border bg-background p-3 text-xs text-textSecondary">
                     <div><code>composer require publishlayer/laravel-connector</code></div>
                     <div class="mt-2"><code>PL_CONNECTOR_BASE_URL={{ config('publishlayer_connector.api.base_url', config('publishlayer_connector.base_url', 'https://api.publishlayer.com')) }}</code></div>

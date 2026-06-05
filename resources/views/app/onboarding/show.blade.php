@@ -3,7 +3,7 @@
 @section('content')
     <div class="space-y-6">
         <div class="rounded-lg border border-border bg-surface p-5">
-            <h1 class="text-xl font-semibold text-textPrimary">Welcome to PublishLayer</h1>
+            <h1 class="text-xl font-semibold text-textPrimary">Welcome to Argusly</h1>
             <p class="mt-1 text-sm text-textSecondary">Complete setup to unlock your first content outcome.</p>
 
             <div class="mt-4 grid gap-2 sm:grid-cols-3">
@@ -72,9 +72,9 @@
 
         <div class="rounded-lg border border-border bg-surface p-5">
             <h2 class="text-sm font-semibold text-textPrimary">Step 3: Connect your website</h2>
-            <p class="mt-2 text-sm text-textSecondary">Download the PublishLayer WordPress plugin, generate a site key, paste the key, and run connection test.</p>
+            <p class="mt-2 text-sm text-textSecondary">Download the Argusly WordPress plugin, generate a site key, paste the key, and run connection test.</p>
             <ol class="mt-3 list-decimal space-y-1 pl-5 text-sm text-textSecondary">
-                <li>Download and install the PublishLayer WordPress plugin</li>
+                <li>Download and install the Argusly WordPress plugin</li>
                 <li>Go to Sites and add your website</li>
                 <li>Generate a site key and copy it</li>
                 <li>Open the plugin in WordPress and paste the key</li>

@@ -127,7 +127,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-textSecondary mb-1">CTA text</label>
-                    <textarea name="bottom_cta_text" rows="2" placeholder="e.g., Start with PublishLayer today..." class="w-full rounded border border-border px-3 py-2 text-sm">{{ $content['bottom_cta_text'] ?? '' }}</textarea>
+                    <textarea name="bottom_cta_text" rows="2" placeholder="e.g., Start with Argusly today..." class="w-full rounded border border-border px-3 py-2 text-sm">{{ $content['bottom_cta_text'] ?? '' }}</textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-textSecondary mb-1">Button label</label>

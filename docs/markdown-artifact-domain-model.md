@@ -1,6 +1,6 @@
 # Markdown Artifact Domain Model
 
-PublishLayer now has a dedicated markdown artifact layer for publishable content.
+Argusly now has a dedicated markdown artifact layer for publishable content.
 
 ## Architecture decisions
 

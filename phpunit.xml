@@ -30,7 +30,7 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="ONBOARDING_FEE_WAIVED" value="false"/>
-        <env name="DOMAIN_BASE" value="publishlayer.local"/>
+        <env name="DOMAIN_BASE" value="argusly.local"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

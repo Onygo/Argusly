@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['domains.base' => 'publishlayer.local']);
+    config(['domains.base' => 'argusly.local']);
     config(['analytics.enabled' => true]);
     config(['analytics.privacy.salt' => 'test-salt']);
 });
@@ -132,7 +132,7 @@ function createLearningsAdvancedMetricsContext(): array
 
 function postTrackingEvents(object $testCase, AnalyticsSite $analyticsSite, array $events): void
 {
-    $baseDomain = config('domains.base', 'publishlayer.local');
+    $baseDomain = config('domains.base', 'argusly.local');
     $host = "track.{$baseDomain}";
     $url = "http://{$host}/api/tracking/events";
 

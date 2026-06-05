@@ -22,7 +22,7 @@ class CompetitorOpportunityScorer
         $opportunities = [];
 
         if ($status === 'missing') {
-            $opportunities[] = $this->make($workspace, 'missing_topic', $competitor, $topic, $signal, 'Create authoritative coverage for ' . $topic, 'PublishLayer has no matching owned content while competitors repeat this topic.');
+            $opportunities[] = $this->make($workspace, 'missing_topic', $competitor, $topic, $signal, 'Create authoritative coverage for ' . $topic, 'Argusly has no matching owned content while competitors repeat this topic.');
         }
 
         if ($status === 'weak') {
@@ -30,7 +30,7 @@ class CompetitorOpportunityScorer
         }
 
         if (($formats['comparison_page'] ?? 0) > 0 || ($intentMix['comparison'] ?? 0) > 0) {
-            $opportunities[] = $this->make($workspace, 'comparison_page', $competitor, $topic, $signal, 'Build a comparison page around ' . $topic, 'Competitors use comparison intent that PublishLayer can answer with a controlled BOFU page.', 'comparison_page');
+            $opportunities[] = $this->make($workspace, 'comparison_page', $competitor, $topic, $signal, 'Build a comparison page around ' . $topic, 'Competitors use comparison intent that Argusly can answer with a controlled BOFU page.', 'comparison_page');
         }
 
         if (($intentMix['transactional'] ?? 0) > 0 && $status !== 'covered') {
@@ -46,7 +46,7 @@ class CompetitorOpportunityScorer
         }
 
         if ($status !== 'covered' && $this->needsAnswerBlock($signal)) {
-            $opportunities[] = $this->make($workspace, 'answer_block_gap', $competitor, $topic, $signal, 'Add answer blocks for ' . $topic, 'Competitor content shows answer-oriented patterns and PublishLayer coverage is missing or weak.', 'answer_block');
+            $opportunities[] = $this->make($workspace, 'answer_block_gap', $competitor, $topic, $signal, 'Add answer blocks for ' . $topic, 'Competitor content shows answer-oriented patterns and Argusly coverage is missing or weak.', 'answer_block');
         }
 
         return $opportunities;
@@ -118,7 +118,7 @@ class CompetitorOpportunityScorer
         $name = $competitor?->name ?: 'competitors';
 
         return match ($type) {
-            'comparison_page' => 'Position PublishLayer against ' . $name . ' with clearer implementation proof, AI visibility outcomes, and owned answer blocks.',
+            'comparison_page' => 'Position Argusly against ' . $name . ' with clearer implementation proof, AI visibility outcomes, and owned answer blocks.',
             'missing_bofu_page' => 'Create a focused BOFU page that connects ' . $topic . ' to pricing, proof points, objections, and conversion paths.',
             'implementation_guide' => 'Win practical intent with a step-by-step guide, schema-ready answers, and internal links to product workflows.',
             'use_case_page' => 'Turn the topic into a use-case narrative with ICP-specific pain, trigger, workflow, proof, and CTA.',

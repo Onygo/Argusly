@@ -3,11 +3,11 @@
 namespace App\Enums;
 
 /**
- * PublishLayer internal content lifecycle status.
+ * Argusly internal content lifecycle status.
  *
- * This represents the content's state within PublishLayer, independent of
+ * This represents the content's state within Argusly, independent of
  * any remote delivery or publication status. A content item can be "delivered"
- * in PublishLayer terms even if the remote publication failed.
+ * in Argusly terms even if the remote publication failed.
  */
 enum ContentLifecycleStatus: string
 {

@@ -419,7 +419,7 @@ class MolliePaymentProvider implements PaymentProvider
                 'value' => number_format(((int) $subscription->price_cents) / 100, 2, '.', ''),
             ],
             'interval' => $mollieInterval,
-            'description' => 'PublishLayer subscription ' . (string) ($subscription->plan?->name ?? 'Plan'),
+            'description' => 'Argusly subscription ' . (string) ($subscription->plan?->name ?? 'Plan'),
             'webhookUrl' => (string) config('billing.urls.pack_webhook'),
             'metadata' => [
                 'purpose' => 'subscription_renewal',
@@ -555,7 +555,7 @@ class MolliePaymentProvider implements PaymentProvider
         $name = trim((string) (
             $organization?->billing_company_name
             ?: $organization?->name
-            ?: 'PublishLayer customer'
+            ?: 'Argusly customer'
         ));
 
         $email = trim((string) (

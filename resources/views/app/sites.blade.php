@@ -86,7 +86,7 @@
             </div>
             <div class="md:col-span-4 rounded border border-border bg-background px-3 py-2 text-xs text-textSecondary">
                 <div id="site-type-instructions-wordpress">
-                    WordPress setup: download and install the PublishLayer WP plugin, paste key, connect, then run WP connection test.
+                    WordPress setup: download and install the Argusly WP plugin, paste key, connect, then run WP connection test.
                     <div class="mt-2">
                         <a href="{{ route('app.sites.wordpress-plugin.download') }}" class="inline-flex rounded border border-border px-2 py-1 text-xs text-textPrimary hover:bg-surfaceMuted">Download WP plugin (.zip)</a>
                     </div>

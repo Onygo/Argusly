@@ -51,7 +51,7 @@ class LaravelConnectorDestinationHealthService
                 ->withHeaders([
                     'X-PublishLayer-Key' => $apiKey,
                     'X-PublishLayer-Site' => $siteId,
-                    'User-Agent' => 'PublishLayer/LaravelConnectorHealthCheck',
+                    'User-Agent' => 'Argusly/LaravelConnectorHealthCheck',
                 ])
                 ->get($healthUrl);
 

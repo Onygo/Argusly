@@ -39,7 +39,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Represents a content item (article, page, etc.) in PublishLayer.
+ * Represents a content item (article, page, etc.) in Argusly.
  *
  * ## Architecture Notes (Phase 1 Refactor)
  *

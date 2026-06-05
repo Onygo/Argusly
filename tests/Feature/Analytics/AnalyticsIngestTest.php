@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['domains.base' => 'publishlayer.local']);
+    config(['domains.base' => 'argusly.local']);
     config(['analytics.enabled' => true]);
     config(['analytics.privacy.salt' => 'test-salt']);
 });
@@ -54,7 +54,7 @@ function createAnalyticsSite(bool $verified = true, bool $enabled = true, array 
 
 function makeTrackRequest(object $testCase, string $method, string $path, array $data = [], array $headers = [])
 {
-    $baseDomain = config('domains.base', 'publishlayer.local');
+    $baseDomain = config('domains.base', 'argusly.local');
     $host = "track.{$baseDomain}";
     $url = "http://{$host}{$path}";
 

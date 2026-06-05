@@ -219,7 +219,7 @@ class AppSiteSeoAuditController extends Controller
         $page = $suggestion->page;
         $content = $page?->publishlayerArticle;
         if (! $page || ! $content) {
-            return back()->withErrors(['ai_fix' => 'This suggestion can only be applied to PublishLayer content.']);
+            return back()->withErrors(['ai_fix' => 'This suggestion can only be applied to Argusly content.']);
         }
 
         $this->authorize('update', $content);
@@ -252,7 +252,7 @@ class AppSiteSeoAuditController extends Controller
         $page = $suggestion->page;
         $content = $page?->publishlayerArticle;
         if (! $page || ! $content) {
-            return back()->withErrors(['ai_fix' => 'This suggestion is not linked to editable PublishLayer content.']);
+            return back()->withErrors(['ai_fix' => 'This suggestion is not linked to editable Argusly content.']);
         }
 
         $this->authorize('update', $content);
@@ -298,7 +298,7 @@ class AppSiteSeoAuditController extends Controller
         $page = $suggestion->page;
         $content = $page?->publishlayerArticle;
         if (! $page || ! $content) {
-            return back()->withErrors(['ai_fix' => 'This suggestion is informational only and is not linked to editable PublishLayer content.']);
+            return back()->withErrors(['ai_fix' => 'This suggestion is informational only and is not linked to editable Argusly content.']);
         }
 
         $this->authorize('update', $content);

@@ -7,12 +7,12 @@ return [
     | Base Domain
     |--------------------------------------------------------------------------
     |
-    | The root domain without subdomain prefix (e.g., publishlayer.local for
+    | The root domain without subdomain prefix (e.g., argusly.local for
     | local development, publishlayer.com for production).
     |
     */
 
-    'base' => env('DOMAIN_BASE', 'publishlayer.local'),
+    'base' => env('DOMAIN_BASE', 'argusly.local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -58,7 +58,7 @@ return [
     */
 
     'excluded_hosts' => [
-        'wordpress.publishlayer.local',
+        'wordpress.argusly.local',
         'laravel.publishlayer.com',
     ],
 

@@ -44,7 +44,7 @@ class PublicLlmsService
 
     private function buildHeader(): array
     {
-        $siteName = (string) config('llms.site_name', config('app.name', 'PublishLayer'));
+        $siteName = (string) config('llms.site_name', config('app.name', 'Argusly'));
         $descriptionKey = (string) config('llms.site_description', 'public.landing.meta_description');
         $description = trim((string) __($descriptionKey));
 

@@ -224,7 +224,7 @@ class ContentHealthService
             ($metrics['translation_parity_score'] ?? 100) < 65 ? ['label' => 'Translation Drift', 'tone' => 'amber', 'tooltip' => 'Localized variants are incomplete or lagging behind the source.'] : null,
             ($metrics['indexation_health']['indexed'] ?? true) === false ? ['label' => 'Not indexed', 'tone' => 'red', 'tooltip' => 'Google Search Console reports this page as not indexed.'] : null,
             ($metrics['indexation_health']['duplicate_detected'] ?? false) ? ['label' => 'Duplicate detected', 'tone' => 'red', 'tooltip' => 'This content family has duplicate locale or canonical conflicts.'] : null,
-            ($metrics['indexation_health']['canonical_accepted'] ?? true) === false ? ['label' => 'Google ignored canonical', 'tone' => 'red', 'tooltip' => 'Google chose a different canonical URL than the one PublishLayer expects.'] : null,
+            ($metrics['indexation_health']['canonical_accepted'] ?? true) === false ? ['label' => 'Google ignored canonical', 'tone' => 'red', 'tooltip' => 'Google chose a different canonical URL than the one Argusly expects.'] : null,
             ($metrics['decay_risk_level'] ?? '') === 'critical' ? ['label' => 'High Decay', 'tone' => 'red', 'tooltip' => 'This content is decaying and should enter refresh operations.'] : null,
             ($metrics['ai_visibility_score'] ?? 100) < 40 ? ['label' => 'AI Visibility Low', 'tone' => 'red', 'tooltip' => 'AI visibility is below the healthy threshold.'] : null,
             ($metrics['answer_block_score'] ?? 100) < 35 ? ['label' => 'Missing Answer Blocks', 'tone' => 'red', 'tooltip' => 'Structured answer coverage is missing or failing.'] : null,

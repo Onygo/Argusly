@@ -1,4 +1,4 @@
-<title>{{ $metaTitle ?? config('app.name', 'PublishLayer') }}</title>
+<title>{{ $metaTitle ?? config('app.name', 'Argusly') }}</title>
 <meta name="description" content="{{ $metaDescription ?? '' }}" />
 @if (filled(config('services.google.search_console_verification')))
     <meta name="google-site-verification" content="{{ config('services.google.search_console_verification') }}" />
@@ -32,21 +32,21 @@
 <script type="application/ld+json">{!! json_encode([
     "\x40context" => 'https://schema.org',
     '@type' => 'Organization',
-    'name' => 'PublishLayer',
+    'name' => 'Argusly',
     'url' => url('/'),
     'logo' => asset('images/publishlayer-logo.png'),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 <script type="application/ld+json">{!! json_encode([
     "\x40context" => 'https://schema.org',
     '@type' => 'WebSite',
-    'name' => 'PublishLayer',
+    'name' => 'Argusly',
     'url' => url('/'),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 @if (request()->routeIs('*.public.product.*') || request()->routeIs('*.pricing') || request()->routeIs('pricing'))
     <script type="application/ld+json">{!! json_encode([
         "\x40context" => 'https://schema.org',
         '@type' => 'SoftwareApplication',
-        'name' => 'PublishLayer',
+        'name' => 'Argusly',
         'applicationCategory' => 'BusinessApplication',
         'operatingSystem' => 'Web',
         'url' => $canonicalUrl ?? url('/'),

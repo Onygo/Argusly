@@ -51,7 +51,7 @@ class ContentOpportunityCandidateGenerator
                 sourceSignals: ['source' => 'company_intelligence', 'topic' => $topic],
                 relatedEntities: $entities,
                 targetAudience: $audiences[0] ?? 'marketers',
-                suggestedCta: 'Explore PublishLayer workflows',
+                suggestedCta: 'Explore Argusly workflows',
                 suggestedSchema: 'Article',
             );
             $items[] = new ContentOpportunityCandidate(
@@ -135,7 +135,7 @@ class ContentOpportunityCandidateGenerator
                 type: ((string) ($signal['coverage_status'] ?? 'missing')) === 'weak' ? 'refresh_opportunity' : 'article_idea',
                 title: $this->title('Close the gap on ' . $topic),
                 topic: $topic,
-                reasoning: 'Competitor topic overlap indicates missing or weak PublishLayer coverage.',
+                reasoning: 'Competitor topic overlap indicates missing or weak Argusly coverage.',
                 angle: 'Publish a more useful answer with proof, examples, schema, and internal links.',
                 sourceSignals: ['source' => 'competitor_topic_signal', 'signal' => $signal],
                 relatedEntities: array_keys((array) ($signal['entities'] ?? [])),
@@ -228,7 +228,7 @@ class ContentOpportunityCandidateGenerator
                     sourceSignals: ['source' => 'workspace_fallback', 'context' => data_get($input, 'workspace_context', [])],
                     relatedEntities: [$topic],
                     targetAudience: 'marketers',
-                    suggestedCta: 'Explore PublishLayer',
+                    suggestedCta: 'Explore Argusly',
                     suggestedSchema: 'Article',
                 ),
                 new ContentOpportunityCandidate(

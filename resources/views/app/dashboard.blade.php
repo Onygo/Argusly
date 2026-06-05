@@ -410,7 +410,7 @@
                                     <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
                                         <i data-lucide="rocket" class="h-7 w-7 text-primary"></i>
                                     </div>
-                                    <h3 class="text-base font-semibold text-textPrimary">Welcome to PublishLayer!</h3>
+                                    <h3 class="text-base font-semibold text-textPrimary">Welcome to Argusly!</h3>
                                     <p class="mt-2 max-w-sm mx-auto text-sm text-textSecondary">Get started by connecting your website and creating your first piece of content.</p>
                                     <div class="mt-5 flex flex-wrap items-center justify-center gap-3">
                                         <a href="{{ route('app.sites') }}" class="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">

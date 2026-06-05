@@ -5,7 +5,7 @@
 | Marketing Subdomain Routes
 |--------------------------------------------------------------------------
 |
-| These routes are loaded on the apex domain (publishlayer.local in dev,
+| These routes are loaded on the apex domain (argusly.local in dev,
 | publishlayer.com in production). They serve public marketing pages.
 |
 */

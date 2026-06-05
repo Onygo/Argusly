@@ -22,7 +22,7 @@ return [
     | Basic site information shown at the top of llms.txt
     |
     */
-    'site_name' => env('APP_NAME', 'PublishLayer'),
+    'site_name' => env('APP_NAME', 'Argusly'),
     'site_description' => 'public.landing.meta_description',
 
     /*

@@ -1,5 +1,5 @@
 {{--
-    Automatic PublishLayer analytics tracking injection for first-party marketing pages.
+    Automatic Argusly analytics tracking injection for first-party marketing pages.
 
     Usage in Blade templates:
     @include('public.partials.publishlayer-tracking')

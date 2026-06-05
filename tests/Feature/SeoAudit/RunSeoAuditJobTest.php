@@ -199,15 +199,15 @@ it('disables tls verification only for local development crawler fetches and cra
     config()->set('app.env', 'local');
 
     $site->update([
-        'site_url' => 'https://wordpress.publishlayer.local',
-        'base_url' => 'https://wordpress.publishlayer.local',
-        'allowed_domains' => ['wordpress.publishlayer.local'],
+        'site_url' => 'https://wordpress.argusly.local',
+        'base_url' => 'https://wordpress.argusly.local',
+        'allowed_domains' => ['wordpress.argusly.local'],
     ]);
 
     Http::fake([
-        'https://wordpress.publishlayer.local/sitemap.xml' => Http::response('not found', 404),
-        'https://wordpress.publishlayer.local/' => Http::response('<html><head><title>Home</title><meta name="description" content="Home description"><link rel="canonical" href="https://wordpress.publishlayer.local/"></head><body><h1>Home</h1><a href="/about">About</a></body></html>', 200, ['Content-Type' => 'text/html']),
-        'https://wordpress.publishlayer.local/about' => Http::response('<html><head><title>About</title><meta name="description" content="About description"><link rel="canonical" href="https://wordpress.publishlayer.local/about"></head><body><h1>About</h1></body></html>', 200, ['Content-Type' => 'text/html']),
+        'https://wordpress.argusly.local/sitemap.xml' => Http::response('not found', 404),
+        'https://wordpress.argusly.local/' => Http::response('<html><head><title>Home</title><meta name="description" content="Home description"><link rel="canonical" href="https://wordpress.argusly.local/"></head><body><h1>Home</h1><a href="/about">About</a></body></html>', 200, ['Content-Type' => 'text/html']),
+        'https://wordpress.argusly.local/about' => Http::response('<html><head><title>About</title><meta name="description" content="About description"><link rel="canonical" href="https://wordpress.argusly.local/about"></head><body><h1>About</h1></body></html>', 200, ['Content-Type' => 'text/html']),
         '*' => Http::response('', 404),
     ]);
 

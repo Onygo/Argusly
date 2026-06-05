@@ -31,7 +31,7 @@ class PublishLayerConnectorBlogSource implements PublicBlogSource
     public function fetchPublishedPosts(): array
     {
         if (! $this->isEnabled()) {
-            throw new PublicBlogSourceUnavailableException('PublishLayer connector blog source is disabled.');
+            throw new PublicBlogSourceUnavailableException('Argusly connector blog source is disabled.');
         }
 
         $scope = $this->sourceScope->resolve();
@@ -46,7 +46,7 @@ class PublishLayerConnectorBlogSource implements PublicBlogSource
 
             if ($response->failed()) {
                 throw new PublicBlogSourceUnavailableException(
-                    sprintf('PublishLayer connector blog source failed with status %d.', $response->status())
+                    sprintf('Argusly connector blog source failed with status %d.', $response->status())
                 );
             }
 
@@ -54,7 +54,7 @@ class PublishLayerConnectorBlogSource implements PublicBlogSource
         } catch (PublicBlogSourceUnavailableException $e) {
             throw $e;
         } catch (Throwable $e) {
-            throw new PublicBlogSourceUnavailableException('PublishLayer connector blog source is currently unavailable.', previous: $e);
+            throw new PublicBlogSourceUnavailableException('Argusly connector blog source is currently unavailable.', previous: $e);
         }
     }
 

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('contents', function (Blueprint $table): void {
-            // Lifecycle stage - internal PublishLayer workflow state
+            // Lifecycle stage - internal Argusly workflow state
             $table->string('lifecycle_stage', 32)->default('idea')->after('status');
 
             // Assignment tracking

@@ -10,7 +10,7 @@ it('returns true for local env, enabled flag, and local host', function () {
     $method = new ReflectionMethod($service, 'shouldDisableTlsVerifyFor');
     $method->setAccessible(true);
 
-    $result = $method->invoke($service, 'https://publishlayer.local/');
+    $result = $method->invoke($service, 'https://argusly.local/');
 
     expect($result)->toBeTrue();
 });
@@ -23,7 +23,7 @@ it('returns false when local flag is disabled', function () {
     $method = new ReflectionMethod($service, 'shouldDisableTlsVerifyFor');
     $method->setAccessible(true);
 
-    $result = $method->invoke($service, 'https://publishlayer.local/');
+    $result = $method->invoke($service, 'https://argusly.local/');
 
     expect($result)->toBeFalse();
 });
@@ -36,7 +36,7 @@ it('throws in production when insecure local flag is enabled', function () {
     $method = new ReflectionMethod($service, 'shouldDisableTlsVerifyFor');
     $method->setAccessible(true);
 
-    expect(fn () => $method->invoke($service, 'https://publishlayer.local/'))
+    expect(fn () => $method->invoke($service, 'https://argusly.local/'))
         ->toThrow(RuntimeException::class, 'PUBLISHLAYER_HTTP_INSECURE_LOCAL must never be enabled in production.');
 });
 

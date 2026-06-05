@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PublishLayer Inbox</title>
+    <title>Argusly Inbox</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-900">
 <div class="mx-auto max-w-6xl px-4 py-8">
     <div class="mb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-semibold">PublishLayer Inbox</h1>
+            <h1 class="text-2xl font-semibold">Argusly Inbox</h1>
             <p class="text-sm text-slate-500">Site: {{ $siteKey }}</p>
         </div>
     </div>

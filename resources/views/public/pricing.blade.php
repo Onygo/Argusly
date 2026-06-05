@@ -64,7 +64,7 @@
                         {{ $hero['subheadline'] ?? 'Plan, generate, optimize, localize and publish content from one platform.' }}
                     </p>
                     <p class="mt-4 max-w-2xl text-base leading-7 text-textSecondary">
-                        {{ $hero['supporting_text'] ?? 'More than AI writing. PublishLayer manages the full content lifecycle.' }}
+                        {{ $hero['supporting_text'] ?? 'More than AI writing. Argusly manages the full content lifecycle.' }}
                     </p>
                     <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                         <a href="#plans" class="inline-flex items-center justify-center rounded-xl bg-publicPrimary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">
@@ -229,14 +229,14 @@
                     {{ $comparison['title'] ?? 'More than AI writing' }}
                 </h2>
                 <p class="mt-4 text-base leading-7 text-textSecondary">
-                    {{ $comparison['subtitle'] ?? 'PublishLayer helps teams manage the full content lifecycle from planning to publishing and AI discoverability.' }}
+                    {{ $comparison['subtitle'] ?? 'Argusly helps teams manage the full content lifecycle from planning to publishing and AI discoverability.' }}
                 </p>
             </div>
 
             <div class="mt-10 overflow-hidden rounded-[28px] border border-border/80 bg-white">
                 <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] border-b border-border/70 bg-[#fcfbf8] px-6 py-4 text-sm font-semibold text-textPrimary">
                     <div>Capabilities</div>
-                    <div class="text-center">{{ $comparison['left_label'] ?? 'PublishLayer' }}</div>
+                    <div class="text-center">{{ $comparison['left_label'] ?? 'Argusly' }}</div>
                     <div class="text-center">{{ $comparison['right_label'] ?? 'Traditional AI writers' }}</div>
                 </div>
                 @foreach((array) ($comparison['rows'] ?? []) as $row)

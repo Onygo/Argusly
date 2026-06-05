@@ -49,7 +49,7 @@ class PublicProductUpdatesController extends Controller
             'activeTag' => $tag,
             'searchTerm' => $search,
             'availableTags' => $availableTags,
-            'metaTitle' => __('public.product_updates.title').' | PublishLayer',
+            'metaTitle' => __('public.product_updates.title').' | Argusly',
             'metaDescription' => __('public.product_updates.subtitle'),
             'canonicalUrl' => $this->localizedRoute('public.product_updates.index', [], $locale),
             'ogType' => 'website',

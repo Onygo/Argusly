@@ -15,14 +15,14 @@
         default => 'Er ging iets scheef',
     };
     $message = trim($__env->yieldContent('message')) ?: match ($code) {
-        '401' => 'Je probeerde binnen te komen zonder badge. Heel menselijk, maar PublishLayer vraagt toch even om in te loggen.',
+        '401' => 'Je probeerde binnen te komen zonder badge. Heel menselijk, maar Argusly vraagt toch even om in te loggen.',
         '403' => 'Je bent op de juiste verdieping, maar deze kamer staat niet op je sleutelbos.',
         '404' => 'We hebben overal gekeken: briefs, drafts, publicaties, zelfs tussen de audit logs. Deze pagina is er niet.',
         '419' => 'De pagina stond te lang open en is uit beleefdheid zelf naar huis gegaan. Ververs of log opnieuw in.',
         '429' => 'Je bent sneller dan onze wachtrij comfortabel vindt. Geef het een paar tellen en probeer het opnieuw.',
         '500' => 'Onze contentmotor deed een dramatische cough, zette een semicolon verkeerd en kijkt nu heel schuldbewust.',
         '503' => 'We zijn kort aan het sleutelen. De boel komt zo weer terug met minder rook en meer vertrouwen.',
-        default => 'PublishLayer vond een onverwachte afslag. We hebben de kaart rechtgelegd en je kunt zo weer verder.',
+        default => 'Argusly vond een onverwachte afslag. We hebben de kaart rechtgelegd en je kunt zo weer verder.',
     };
 
     $homeUrl = url('/');

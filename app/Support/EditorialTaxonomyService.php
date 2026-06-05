@@ -59,7 +59,7 @@ class EditorialTaxonomyService
             $defaultSet = TaxonomySet::query()->firstOrCreate(
                 ['name' => 'PL Basis'],
                 [
-                    'description' => 'Default PublishLayer editorial taxonomy',
+                    'description' => 'Default Argusly editorial taxonomy',
                     'is_default' => true,
                 ]
             );

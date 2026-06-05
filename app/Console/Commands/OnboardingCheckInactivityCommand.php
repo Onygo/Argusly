@@ -11,7 +11,7 @@ class OnboardingCheckInactivityCommand extends Command
 {
     protected $signature = 'onboarding:check-inactivity {--limit=500}';
 
-    protected $description = 'Evaluate onboarding inactivity and queue PublishLayer re-engagement emails.';
+    protected $description = 'Evaluate onboarding inactivity and queue Argusly re-engagement emails.';
 
     public function handle(OnboardingStateService $states): int
     {

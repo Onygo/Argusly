@@ -130,7 +130,7 @@
                     <div class="rounded-lg border border-primary/30 bg-primary/5 p-6">
                         <h2 class="text-sm font-semibold text-primary">First-Party Domain Verified</h2>
                         <p class="mt-2 text-sm text-textSecondary">
-                            This site is verified as a PublishLayer first-party domain. Analytics tracking is injected automatically on the marketing site.
+                            This site is verified as an Argusly first-party domain. Analytics tracking is injected automatically on the marketing site.
                         </p>
                         <p class="mt-2 text-xs text-textSecondary">
                             Internal domain: <span class="font-mono">{{ $analyticsSite->flags['internal_domain'] ?? 'Unknown' }}</span>
@@ -151,7 +151,7 @@
                 @endif
 
                 <div class="rounded-lg border border-border bg-surface p-6">
-                <h2 class="text-sm font-semibold text-textPrimary">Install PublishLayer Tracking</h2>
+                <h2 class="text-sm font-semibold text-textPrimary">Install Argusly Tracking</h2>
                 @if ($analyticsSite->isInternallyVerified())
                     <p class="mt-2 text-sm text-textSecondary">
                         Tracking is automatically injected on the marketing site. No manual installation required.
@@ -167,7 +167,7 @@
                     </details>
                 @else
                     <p class="mt-2 text-sm text-textSecondary">
-                        Add this script to your website to track PublishLayer article performance.
+                        Add this script to your website to track Argusly article performance.
                     </p>
                     <p class="mt-1 text-xs text-textSecondary">
                         Script host: <span class="font-mono text-xs">{{ $trackingBaseUrl }}/pl.js?v={{ $scriptVersion }}</span>
@@ -212,7 +212,7 @@
                 <form method="GET" class="mt-3">
                     <select name="scope" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
                         <option value="all" {{ $scope === 'all' ? 'selected' : '' }}>All pages</option>
-                        <option value="publishlayer_content" {{ $scope === 'publishlayer_content' ? 'selected' : '' }}>PublishLayer content</option>
+                        <option value="publishlayer_content" {{ $scope === 'publishlayer_content' ? 'selected' : '' }}>Argusly content</option>
                         <option value="other_page" {{ $scope === 'other_page' ? 'selected' : '' }}>Other site pages</option>
                     </select>
                 </form>

@@ -209,7 +209,7 @@ class ContentOpportunityEngine
         return match ($type) {
             'comparison_page', 'bofu_page', 'feature_page' => 'Book a demo',
             'campaign_cluster' => 'Plan this campaign',
-            default => 'Explore PublishLayer',
+            default => 'Explore Argusly',
         };
     }
 

@@ -8,7 +8,7 @@ class PublishLayerDiagnosticsCommand extends Command
 {
     protected $signature = 'publishlayer:diagnostics';
 
-    protected $description = 'Show effective PublishLayer server and connector configuration (safe fields only).';
+    protected $description = 'Show effective Argusly server and connector configuration (safe fields only).';
 
     public function handle(): int
     {

@@ -43,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         using: function () {
-            $baseDomain = config('domains.base', 'publishlayer.local');
+            $baseDomain = config('domains.base', 'argusly.local');
 
             // Canonicalize www marketing traffic to the apex domain.
             Route::domain("www.{$baseDomain}")

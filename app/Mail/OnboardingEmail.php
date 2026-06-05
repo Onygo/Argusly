@@ -24,7 +24,7 @@ class OnboardingEmail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address((string) config('mail.from.address'), 'PublishLayer'),
+            from: new Address((string) config('mail.from.address'), 'Argusly'),
             subject: $this->subjectFor($this->emailKey),
         );
     }
@@ -82,7 +82,7 @@ class OnboardingEmail extends Mailable
                 'headline' => 'Your workspace is ready',
                 'intro' => 'Your workspace is ready for first use.',
                 'body' => 'Log in and complete onboarding to connect your first site.',
-                'cta_label' => 'Log in to PublishLayer',
+                'cta_label' => 'Log in to Argusly',
                 'cta_url' => $loginUrl,
             ],
             'nudge_no_action' => [
@@ -114,12 +114,12 @@ class OnboardingEmail extends Mailable
                 'headline' => 'Your workspace is ready',
                 'intro' => 'Your workspace has been inactive.',
                 'body' => 'Return to your dashboard to continue operations.',
-                'cta_label' => 'Return to PublishLayer',
+                'cta_label' => 'Return to Argusly',
                 'cta_url' => route('app.dashboard'),
             ],
             default => [
-                'preheader' => 'Welcome to PublishLayer.',
-                'headline' => 'Welcome to PublishLayer',
+                'preheader' => 'Welcome to Argusly.',
+                'headline' => 'Welcome to Argusly',
                 'intro' => 'Your account is ready.',
                 'body' => 'Complete onboarding and connect your first site.',
                 'cta_label' => 'Get started',
@@ -139,7 +139,7 @@ class OnboardingEmail extends Mailable
             'first_value_ready' => 'Your draft is ready',
             'trial_ending' => 'Trial ending soon',
             'reengage' => 'Your workspace is ready',
-            default => 'Welcome to PublishLayer',
+            default => 'Welcome to Argusly',
         };
     }
 }

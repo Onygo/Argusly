@@ -297,7 +297,7 @@
 
         <x-settings.section-card
             title="Agentic Marketing Execution"
-            description="Choose how PublishLayer may turn Agentic Marketing opportunities into work for this workspace."
+            description="Choose how Argusly may turn Agentic Marketing opportunities into work for this workspace."
         >
             @php
                 $agenticSettings = $agenticExecutionSettings;
@@ -330,7 +330,7 @@
                                         <input type="radio" name="agentic_execution_mode" value="autonomous" @checked($currentMode === 'autonomous')>
                                         <span>
                                             <span class="block font-medium text-amber-950">Autonomous</span>
-                                            <span class="block text-xs text-amber-900">PublishLayer may execute only the selected action types within these limits.</span>
+                                            <span class="block text-xs text-amber-900">Argusly may execute only the selected action types within these limits.</span>
                                         </span>
                                     </span>
                                 </label>
@@ -339,10 +339,10 @@
 
                             <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
                                 <p class="font-medium">Autonomous mode is never enabled by default.</p>
-                                <p class="mt-1 text-xs">Only enable it after selecting a publishing site, setting limits, and choosing the exact action types PublishLayer may execute. High-priority, new-page, and external publication approvals remain controlled by the rules below.</p>
+                                <p class="mt-1 text-xs">Only enable it after selecting a publishing site, setting limits, and choosing the exact action types Argusly may execute. High-priority, new-page, and external publication approvals remain controlled by the rules below.</p>
                                 <label class="mt-3 flex items-start gap-2 text-xs">
                                     <input type="checkbox" name="autonomous_opt_in_confirmation" value="1">
-                                    <span>I understand autonomous mode allows PublishLayer to execute selected Agentic Marketing actions automatically within these limits.</span>
+                                    <span>I understand autonomous mode allows Argusly to execute selected Agentic Marketing actions automatically within these limits.</span>
                                 </label>
                                 @error('autonomous_opt_in_confirmation') <p class="mt-2 text-xs text-rose-700">{{ $message }}</p> @enderror
                             </div>

@@ -17,7 +17,7 @@ class SiteApiKeyService
             'id' => (string) Str::uuid(),
             'client_site_id' => $site->id,
             'workspace_id' => $site->workspace_id,
-            'name' => $name ?: 'PublishLayer WordPress key',
+            'name' => $name ?: 'Argusly WordPress key',
             'token_hash' => hash('sha256', $plain),
             'token_encrypted' => Crypt::encryptString($plain),
             'key_prefix' => substr($plain, 0, 14),

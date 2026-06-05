@@ -115,7 +115,7 @@ class SeoQualityAuditService
 
         if (! preg_match('/href=["\']https?:\/\/([^"\']*publishlayer|publishlayer\.)/i', $html)
             && ! preg_match('/href=["\']\/(?:en|nl)\//i', $html)) {
-            $issues[] = 'Add useful internal links to related PublishLayer pages or articles.';
+            $issues[] = 'Add useful internal links to related Argusly pages or articles.';
             $issueTypes[] = 'links';
         }
 

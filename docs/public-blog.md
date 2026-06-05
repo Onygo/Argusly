@@ -9,8 +9,8 @@ The public blog is available at:
 
 ## Source of truth
 
-The blog uses the PublishLayer connector API as primary source.
-If connector retrieval is unavailable and fallback is enabled, it falls back to connector-synchronized content already stored in PublishLayer core tables (`contents` + `content_versions`).
+The blog uses the Argusly connector API as primary source.
+If connector retrieval is unavailable and fallback is enabled, it falls back to connector-synchronized content already stored in Argusly core tables (`contents` + `content_versions`).
 No separate posts CMS table is introduced.
 
 Only published article content is exposed publicly.
@@ -31,7 +31,7 @@ PUBLISHLAYER_PUBLIC_BLOG_MAX_POSTS=300
 
 `PL_MARKETING_BLOG_SOURCE_MODE` supports `workspace` or `site`.
 If mode/id are missing or invalid, the marketing blog returns no posts by default (safe no-leak behavior).
-`PUBLISHLAYER_PUBLIC_BLOG_CONNECTOR_ENDPOINT` should point to a PublishLayer API endpoint returning a list of posts (`[]`, `{data: []}`, or `{posts: []}`).
+`PUBLISHLAYER_PUBLIC_BLOG_CONNECTOR_ENDPOINT` should point to a Argusly API endpoint returning a list of posts (`[]`, `{data: []}`, or `{posts: []}`).
 Source scope options are read from `config/marketing.php` (`blog_source` section).
 
 ## Caching
@@ -48,7 +48,7 @@ php artisan cache:clear
 
 ## Publishing flow
 
-1. Create and publish content inside PublishLayer.
+1. Create and publish content inside Argusly.
 2. Public blog fetches published content via the connector API endpoint.
 3. If connector fetch fails and fallback is enabled, it reads local synchronized `contents` + `content_versions`.
 4. Public blog renders with SEO metadata.

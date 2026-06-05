@@ -5,7 +5,7 @@ namespace App\Support\Webhooks;
 /**
  * Central registry of all webhook events.
  *
- * This class defines the canonical list of webhook events available in PublishLayer.
+ * This class defines the canonical list of webhook events available in Argusly.
  * It provides event metadata, versioning, and categorization for the webhook system.
  *
  * ## Event Naming Convention

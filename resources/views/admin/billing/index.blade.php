@@ -8,7 +8,7 @@
     </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-5">
-        <h2 class="mb-3 text-sm font-semibold text-textPrimary">Invoice Issuer (PublishLayer)</h2>
+        <h2 class="mb-3 text-sm font-semibold text-textPrimary">Invoice Issuer (Argusly)</h2>
         <form method="POST" action="{{ route('admin.billing.invoice-issuer.update') }}" class="grid gap-2 md:grid-cols-3">
             @csrf
             <input type="text" name="company_name" value="{{ old('company_name', $issuer['company_name'] ?? '') }}" placeholder="Company name" class="rounded border border-border px-3 py-2 text-sm" required>

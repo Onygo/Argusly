@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -84,9 +85,7 @@ return new class extends Migration
             $table->index(['queue', 'reserved_at', 'created_at'], 'jobs_q_res_cr_idx');
         });
 
-        $this->addIndexIfMissing('failed_jobs', 'fj_queue_fail_idx', function (Blueprint $table): void {
-            $table->index(['queue', 'failed_at'], 'fj_queue_fail_idx');
-        });
+        $this->addFailedJobsQueueIndexIfMissing();
     }
 
     public function down(): void
@@ -135,6 +134,23 @@ return new class extends Migration
 
         Schema::table($table, function (Blueprint $blueprint) use ($name): void {
             $blueprint->dropIndex($name);
+        });
+    }
+
+    private function addFailedJobsQueueIndexIfMissing(): void
+    {
+        if ($this->hasIndex('failed_jobs', 'fj_queue_fail_idx')) {
+            return;
+        }
+
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('alter table `failed_jobs` add index `fj_queue_fail_idx` (`queue`(191), `failed_at`)');
+
+            return;
+        }
+
+        Schema::table('failed_jobs', function (Blueprint $table): void {
+            $table->index(['queue', 'failed_at'], 'fj_queue_fail_idx');
         });
     }
 

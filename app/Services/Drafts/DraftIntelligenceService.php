@@ -784,7 +784,7 @@ class DraftIntelligenceService
 
         $response = $this->llmManager->generateJson($request, [
             'name' => 'draft_intelligence_analysis',
-            'description' => 'Structured analysis for one PublishLayer draft.',
+            'description' => 'Structured analysis for one Argusly draft.',
             'schema' => $schema,
             'strict' => true,
         ]);
@@ -1042,7 +1042,7 @@ class DraftIntelligenceService
     private function analysisSystemPrompt(): string
     {
         return <<<'PROMPT'
-You are PublishLayer Draft Intelligence. Analyze one draft and return ONLY valid JSON.
+You are Argusly Draft Intelligence. Analyze one draft and return ONLY valid JSON.
 
 CRITICAL RULES:
 1. Return ONLY a JSON object - no markdown, no prose, no code fences

@@ -18,7 +18,7 @@ use Illuminate\Support\Collection;
 /**
  * Presenter for content status display.
  *
- * Separates PublishLayer internal state from remote delivery state,
+ * Separates Argusly internal state from remote delivery state,
  * providing clean computed properties for UI presentation.
  */
 class ContentStatusPresenter
@@ -79,7 +79,7 @@ class ContentStatusPresenter
     }
 
     // =========================================================================
-    // PublishLayer Lifecycle Status
+    // Argusly Lifecycle Status
     // =========================================================================
 
     public function lifecycleStatus(): ContentLifecycleStatus
@@ -194,7 +194,7 @@ class ContentStatusPresenter
 
     /**
      * Primary status badge info for content listings.
-     * Shows PublishLayer lifecycle status.
+     * Shows Argusly lifecycle status.
      */
     public function primaryBadge(): array
     {
@@ -248,7 +248,7 @@ class ContentStatusPresenter
     {
         return [
             'publishlayer' => [
-                'label' => 'PublishLayer Status',
+                'label' => 'Argusly Status',
                 'value' => $this->lifecycleLabel(),
                 'color' => $this->lifecycleColor(),
                 'icon' => $this->lifecycleIcon(),
@@ -346,7 +346,7 @@ class ContentStatusPresenter
     public function isFullyPublished(): bool
     {
         // Content is fully published only when:
-        // 1. PublishLayer status is delivered
+        // 1. Argusly status is delivered
         // 2. Delivery was successful
         // 3. Remote resource exists (or UNKNOWN for native destinations)
         $destinationType = $this->destinationType
@@ -360,7 +360,7 @@ class ContentStatusPresenter
 
     public function isPartiallyPublished(): bool
     {
-        // Published in PublishLayer but remote has issues
+        // Published in Argusly but remote has issues
         $destinationType = $this->destinationType
             ? ContentDestinationType::fromNormalized($this->destinationType)
             : null;
@@ -507,7 +507,7 @@ class ContentStatusPresenter
 
             return match ($existence) {
                 RemoteExistenceStatus::MISSING =>
-                    sprintf('This content exists in PublishLayer, but the linked %s resource no longer exists. Republishing will recreate it.', strtolower($destinationLabel)),
+                    sprintf('This content exists in Argusly, but the linked %s resource no longer exists. Republishing will recreate it.', strtolower($destinationLabel)),
                 RemoteExistenceStatus::TRASHED =>
                     sprintf('The %s resource is in the trash. Restore it on the destination, or republish to create a new resource.', strtolower($destinationLabel)),
                 RemoteExistenceStatus::DELETED =>

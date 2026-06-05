@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: PublishLayer Headless API
+  title: Argusly Headless API
   version: 1.0.0
   description: |
-    Headless and hybrid API surface for PublishLayer workspaces.
+    Headless and hybrid API surface for Argusly workspaces.
 servers:
   - url: https://api.publishlayer.com/api/v1
 security:

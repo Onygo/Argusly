@@ -36,7 +36,7 @@ use Illuminate\Support\Str;
  *
  * - No native remote_id return (uses content ID as reference)
  * - No verification endpoint (verification not supported)
- * - No native remote scheduling support (PublishLayer handles due dispatching)
+ * - No native remote scheduling support (Argusly handles due dispatching)
  * - Safe to execute in the generic queued publication flow
  */
 class LaravelConnector implements ConnectorContract
@@ -92,7 +92,7 @@ class LaravelConnector implements ConnectorContract
      *
      * Note: This is informational verification for debugging purposes.
      * Unlike WordPress destinations (truly remote), Laravel destinations
-     * are native to PublishLayer's ecosystem and don't require strict
+     * are native to Argusly's ecosystem and don't require strict
      * remote existence verification for the publish workflow.
      *
      * This method checks if the published URL returns a successful response,
@@ -241,7 +241,7 @@ class LaravelConnector implements ConnectorContract
             'X-PublishLayer-Site' => $siteId,
             'X-PublishLayer-Content' => (string) $content->id,
             'X-PublishLayer-Idempotency-Key' => $idempotencyKey,
-            'User-Agent' => 'PublishLayer/LaravelConnector',
+            'User-Agent' => 'Argusly/LaravelConnector',
         ];
 
         try {

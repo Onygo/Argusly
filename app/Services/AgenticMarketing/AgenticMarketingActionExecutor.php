@@ -612,7 +612,7 @@ class AgenticMarketingActionExecutor
             'search_intent' => $action ? $this->payloadText($action, 'search_intent', 'informational') : 'informational',
             'unique_angle' => $action ? $this->payloadText($action, 'angle', $this->payloadText($action, 'reason')) : null,
             'key_points' => $action ? $this->articleKeyPoints($action) : [],
-            'call_to_action' => $action ? $this->payloadText($action, 'suggested_cta', 'Explore PublishLayer') : 'Explore PublishLayer',
+            'call_to_action' => $action ? $this->payloadText($action, 'suggested_cta', 'Explore Argusly') : 'Explore Argusly',
             'notes' => $action ? $this->briefingNotes($action) : null,
             'client_refs' => [
                 'source' => 'agentic_marketing',
@@ -701,7 +701,7 @@ class AgenticMarketingActionExecutor
         $audience = $this->publicAudience($this->payloadText($action, 'target_audience', $action->objective?->audience ?: 'marketing and content teams'));
         $answerBlock = $this->publicText($this->proposalItemText($action, 'generated_answer_block', 'answer'));
         $angle = $this->publicText($this->payloadText($action, 'angle', $answerBlock ?: 'Use this page to explain the topic clearly, show why it matters, and help readers decide what to do next.'));
-        $cta = $this->payloadText($action, 'suggested_cta', $this->proposalItemText($action, 'generated_cta', 'label') ?: 'Explore PublishLayer');
+        $cta = $this->payloadText($action, 'suggested_cta', $this->proposalItemText($action, 'generated_cta', 'label') ?: 'Explore Argusly');
         $searchIntent = $this->payloadText($action, 'search_intent', $this->payloadText($action, 'primary_search_intent', 'informational'));
         $links = collect((array) data_get($action->payload, 'proposal_details.items', []))
             ->firstWhere('type', 'suggested_links');

@@ -41,11 +41,11 @@ return [
     ],
     'blog' => [
         'title' => 'Blog',
-        'subtitle' => 'Practical notes on content operations, SEO and GEO, connectors, governance, and product changes inside PublishLayer.',
-        'meta_title' => 'PublishLayer Blog',
-        'meta_title_tag' => 'PublishLayer Blog - tag: :tag',
-        'meta_title_category' => 'PublishLayer Blog - category: :category',
-        'meta_description' => 'Updates, insights, and showcase content from PublishLayer.',
+        'subtitle' => 'Practical notes on content operations, SEO and GEO, connectors, governance, and product changes inside Argusly.',
+        'meta_title' => 'Argusly Blog',
+        'meta_title_tag' => 'Argusly Blog - tag: :tag',
+        'meta_title_category' => 'Argusly Blog - category: :category',
+        'meta_description' => 'Updates, insights, and showcase content from Argusly.',
         'page_suffix' => 'page :page',
         'min_read' => 'min read',
         'read_more' => 'Read article',
@@ -55,7 +55,7 @@ return [
         'unavailable_text' => 'The connector source for blog content is temporarily unavailable. Please try again in a few minutes.',
         'back_to_blog' => 'Back to blog',
         'back_home' => 'Back to home',
-        'generated_badge' => 'Generated with PublishLayer',
+        'generated_badge' => 'Generated with Argusly',
         'cta_product' => 'View product',
         'cta_pricing' => 'View pricing',
     ],
@@ -79,20 +79,20 @@ return [
     ],
     'early_access' => [
         // Meta
-        'meta_title' => 'Early access | PublishLayer',
-        'meta_description' => 'Request early access to PublishLayer or book a guided demo.',
+        'meta_title' => 'Early access | Argusly',
+        'meta_description' => 'Request early access to Argusly or book a guided demo.',
 
         // Soft launch homepage
-        'soft_launch_meta_title' => 'PublishLayer | Private rollout',
-        'soft_launch_meta_description' => 'PublishLayer is onboarding a limited number of early partners.',
+        'soft_launch_meta_title' => 'Argusly | Private rollout',
+        'soft_launch_meta_description' => 'Argusly is onboarding a limited number of early partners.',
         'soft_launch_badge' => 'Currently onboarding a limited number of early partners',
-        'soft_launch_title' => 'PublishLayer for controlled AI content operations.',
-        'soft_launch_description' => 'PublishLayer gives teams one system for planning content, enforcing governance, running SEO and GEO intelligence, and publishing to connected sites.',
+        'soft_launch_title' => 'Argusly for controlled AI content operations.',
+        'soft_launch_description' => 'Argusly gives teams one system for planning content, enforcing governance, running SEO and GEO intelligence, and publishing to connected sites.',
         'soft_launch_limited_title' => 'Early access is intentionally limited.',
         'soft_launch_limited_description' => 'We are enabling production access for selected clients first to ensure a stable rollout and high quality onboarding. Request access or book a demo to join the queue.',
 
         // Soft launch cards
-        'card_what_title' => 'What PublishLayer does',
+        'card_what_title' => 'What Argusly does',
         'card_what_description' => 'Brings briefs, drafts, calendars, site insights, and publishing workflows together without losing governance or traceability.',
         'card_who_title' => 'Who it is for',
         'card_who_description' => 'B2B marketing teams, agencies, and content operations leads who need repeatable quality across sites and teams.',
@@ -106,8 +106,8 @@ return [
 
         // Form page
         'badge' => 'Limited early access',
-        'title_early_access' => 'Request early access to PublishLayer',
-        'title_demo' => 'Book a PublishLayer demo',
+        'title_early_access' => 'Request early access to Argusly',
+        'title_demo' => 'Book an Argusly demo',
         'description_early_access' => 'Share your stack, publishing setup, and use case. We review fit for the current onboarding wave and connect the right product walkthrough.',
         'description_demo' => 'Tell us about your sites, workflows, and growth goals. We will tailor the demo around governance, intelligence, and publishing.',
 
@@ -130,8 +130,8 @@ return [
 
         // Invite acceptance
         'invite_title' => 'Activate early access',
-        'invite_approved_with_company' => 'Your PublishLayer early access request for :company is approved.',
-        'invite_approved' => 'Your PublishLayer early access request is approved.',
+        'invite_approved_with_company' => 'Your Argusly early access request for :company is approved.',
+        'invite_approved' => 'Your Argusly early access request is approved.',
         'invite_expires' => 'This activation link expires on :date.',
         'invite_full_name' => 'Full name',
         'invite_password' => 'Password',
@@ -175,7 +175,7 @@ return [
             'schedule_call' => 'Schedule a call',
         ],
         'cta' => [
-            'heading' => 'Plan your next step with PublishLayer.',
+            'heading' => 'Plan your next step with Argusly.',
             'text' => 'Review pricing or talk through your connector, governance, and rollout requirements.',
             'primary' => 'View pricing',
             'secondary' => 'Contact team',
@@ -206,7 +206,7 @@ return [
             'what_you_get_cards' => [
                 [
                     'icon' => 'layers',
-                    'title' => 'What PublishLayer is',
+                    'title' => 'What Argusly is',
                     'intro' => '',
                     'bullets' => [
                         'One operating layer for content',
@@ -248,7 +248,7 @@ return [
             'cta_text' => 'Built for teams that need governed planning, intelligence, and publishing in one place.',
             'cta_points' => ['One time guided onboarding on paid plans', 'WordPress and Laravel connectors', 'Insights, governance, and billing in one app'],
             'agentic_title' => 'Add an agentic layer to your content operations.',
-            'agentic_text' => 'PublishLayer connects objectives, AI visibility, lifecycle intelligence, and governed execution so teams can move from manual content tasks to autonomous improvement loops.',
+            'agentic_text' => 'Argusly connects objectives, AI visibility, lifecycle intelligence, and governed execution so teams can move from manual content tasks to autonomous improvement loops.',
             'agentic_points' => [
                 'AI visibility and answer readiness scoring',
                 'Content decay, refresh, and internal link recommendations',
@@ -258,13 +258,13 @@ return [
         ],
     ],
     'landing' => [
-        'meta_title' => 'PublishLayer | AI Content Governance Platform',
-        'meta_description' => 'PublishLayer combines content operations, governance, intelligence, and connected publishing for B2B teams.',
-        'pricing_meta_title' => 'Pricing | PublishLayer',
-        'pricing_meta_description' => 'Explore PublishLayer pricing plans and credit packs for enterprise content operations.',
+        'meta_title' => 'Argusly | AI Content Governance Platform',
+        'meta_description' => 'Argusly combines content operations, governance, intelligence, and connected publishing for B2B teams.',
+        'pricing_meta_title' => 'Pricing | Argusly',
+        'pricing_meta_description' => 'Explore Argusly pricing plans and credit packs for enterprise content operations.',
         'hero_badge' => 'Content, governance, intelligence, and publishing',
         'hero_title' => 'One platform for governed content operations and AI-first visibility.',
-        'hero_text' => 'PublishLayer brings briefs, brand context, planning, SEO and GEO insights, and connected publishing together for teams running content across sites.',
+        'hero_text' => 'Argusly brings briefs, brand context, planning, SEO and GEO insights, and connected publishing together for teams running content across sites.',
         'hero_primary' => 'Request Demo',
         'hero_secondary' => 'See how it works',
         'problem_title' => 'Most teams still run content in fragments',
@@ -276,7 +276,7 @@ return [
             ['icon' => 'bar-chart-3', 'title' => 'Search feedback is incomplete', 'text' => 'SEO, GEO, analytics, and content-chain insights rarely feed back into the next brief.'],
         ],
         'how_title' => 'A governed operating layer',
-        'how_text' => 'PublishLayer connects planning, creation, intelligence, and publishing in one repeatable workflow.',
+        'how_text' => 'Argusly connects planning, creation, intelligence, and publishing in one repeatable workflow.',
         'steps' => [
             ['icon' => 'list-checks', 'title' => 'Plan', 'text' => 'Briefs, calendars, and site context'],
             ['icon' => 'sparkles', 'title' => 'Create', 'text' => 'Structured drafting with AI'],
@@ -341,7 +341,7 @@ return [
                     'context_blocks' => [
                         ['label' => 'Tone', 'value' => 'Clear and precise', 'meta' => 'No hype, proof first'],
                         ['label' => 'Audience', 'value' => 'Marketing ops leads', 'meta' => 'Scaling across sites'],
-                        ['label' => 'Brand', 'value' => 'PublishLayer', 'meta' => 'Structured AI publishing'],
+                        ['label' => 'Brand', 'value' => 'Argusly', 'meta' => 'Structured AI publishing'],
                         ['label' => 'Domain', 'value' => 'SEO + GEO workflows', 'meta' => 'Governance and distribution'],
                     ],
                     'suggestions_label' => 'Suggestions',
@@ -395,7 +395,7 @@ return [
         ],
         'gov_badge' => 'Governance built into daily work',
         'gov_title' => 'Controls are part of the workflow, not an afterthought.',
-        'gov_text' => 'PublishLayer is built for teams that need roles, revisions, brand guardrails, and clear publication responsibility across multiple sites.',
+        'gov_text' => 'Argusly is built for teams that need roles, revisions, brand guardrails, and clear publication responsibility across multiple sites.',
         'gov_points' => [
             'Role-based access across app, workspaces, and connected sites',
             'Revision history, review steps, and publish controls',
@@ -414,7 +414,7 @@ return [
         'workflow_signoff' => 'Marketing lead sign off',
         'intel_badge' => 'SEO plus GEO feedback loops',
         'intel_title' => 'Use search intelligence to improve the next brief.',
-        'intel_text' => 'PublishLayer connects LLM visibility, SEO audits, analytics signals, and content-chain context so search performance informs future production.',
+        'intel_text' => 'Argusly connects LLM visibility, SEO audits, analytics signals, and content-chain context so search performance informs future production.',
         'intel_note' => 'Signals from published content stay connected to planning, so each new brief starts from stronger context instead of guesswork.',
         'intel_loop' => 'Performance loop',
         'intel_last_months' => 'Last 6 months',
@@ -426,7 +426,7 @@ return [
         ],
         'agentic_badge' => 'Agentic Marketing',
         'agentic_title' => 'Move from content production to autonomous AI visibility operations.',
-        'agentic_text' => 'PublishLayer is evolving into an agentic marketing layer: objectives define the goal, intelligence agents find opportunity gaps, and governed workflows turn those signals into briefs, refreshes, answer blocks, internal links, and publishing actions.',
+        'agentic_text' => 'Argusly is evolving into an agentic marketing layer: objectives define the goal, intelligence agents find opportunity gaps, and governed workflows turn those signals into briefs, refreshes, answer blocks, internal links, and publishing actions.',
         'agentic_points' => [
             'Set objectives such as AI visibility, topical authority, GEO performance, pipeline, or locale expansion',
             'Detect missing entities, weak pages, topic gaps, refresh candidates, and internal link opportunities',
@@ -443,7 +443,7 @@ return [
         'integration_title' => 'Seamless integration',
         'integration_layer' => 'Governance and creation layer',
         'integration_delivery' => 'Delivery and distribution',
-        'integration_text' => 'PublishLayer sits on top of your current content stack and adds control, intelligence, and publishing workflows without forcing a CMS rewrite.',
+        'integration_text' => 'Argusly sits on top of your current content stack and adds control, intelligence, and publishing workflows without forcing a CMS rewrite.',
         'integration_api_label' => 'JSON API',
         'integration_targets' => [
             [
@@ -458,7 +458,7 @@ return [
             ],
         ],
         'ai_search_title' => 'Built for SEO and GEO',
-        'ai_search_text' => 'PublishLayer supports traditional SEO and Generative Engine Optimization with LLM visibility tracking, entity-aware content workflows, and site-level search intelligence.',
+        'ai_search_text' => 'Argusly supports traditional SEO and Generative Engine Optimization with LLM visibility tracking, entity-aware content workflows, and site-level search intelligence.',
         'ai_search_text_2' => 'Connected publishing, structured content, and machine-readable exports help your brand stay usable for both search engines and answer engines.',
         'ai_search_badge' => 'SEO + GEO ready',
         'ai_search_points' => [
@@ -482,7 +482,7 @@ return [
         'pricing_title' => 'Publishing infrastructure for the AI era',
         'pricing_badge' => 'Plans',
         'pricing_subline' => 'Scale your authority across search engines and AI platforms.',
-        'pricing_text_1' => 'PublishLayer combines content orchestration, multi-site publishing, and AI visibility tracking in one platform.',
+        'pricing_text_1' => 'Argusly combines content orchestration, multi-site publishing, and AI visibility tracking in one platform.',
         'pricing_text_2' => 'Build discoverability for both traditional search and generative AI with structured workflows, governed publishing, and machine-readable outputs.',
         'pricing_monthly_no_setup' => 'Monthly subscription. Implementation support included.',
         'credits_usage_note' => 'Platform credits power content generation, optimization, and AI analysis workflows.',
@@ -585,7 +585,7 @@ return [
         'compare_yes' => 'Included',
         'compare_no' => '—',
         'compare_unlimited' => 'Unlimited',
-        'why_title' => 'Why teams choose PublishLayer',
+        'why_title' => 'Why teams choose Argusly',
         'why_points' => [
             'One platform for SEO, GEO, and AI visibility instead of disconnected tools',
             'Structured publishing workflows built for the AI era',
@@ -643,7 +643,7 @@ return [
     'product_updates' => [
         'badge' => 'Changelog',
         'title' => 'Product updates',
-        'subtitle' => 'Recent improvements, fixes, and release notes for PublishLayer.',
+        'subtitle' => 'Recent improvements, fixes, and release notes for Argusly.',
         'search_label' => 'Search updates',
         'search_placeholder' => 'Search title or details',
         'search' => 'Search',
@@ -652,26 +652,26 @@ return [
         'empty' => 'No updates found for the selected filters.',
         'empty_title' => 'No updates yet',
         'view_roadmap' => 'View roadmap',
-        'cta_title' => 'Stay informed about PublishLayer.',
+        'cta_title' => 'Stay informed about Argusly.',
         'cta_text' => 'Check back for updates or get started with early access to experience new features firsthand.',
     ],
     'legal' => [
         'meta' => [
-            'hub_title' => 'Legal | PublishLayer',
-            'hub_description' => 'Overview of PublishLayer legal documentation, including Privacy, Terms, Security, Cookies, and Subprocessors.',
-            'privacy_title' => 'Privacy | PublishLayer',
-            'privacy_description' => 'Overview of the personal data PublishLayer processes to operate the platform, customer accounts, and public website.',
-            'terms_title' => 'Terms | PublishLayer',
-            'terms_description' => 'Contractual terms for using PublishLayer, including subscriptions, credits, and access.',
-            'security_title' => 'Security | PublishLayer',
-            'security_description' => 'PublishLayer security overview, including practical safeguards, access controls, and monitoring.',
-            'cookies_title' => 'Cookies | PublishLayer',
-            'cookies_description' => 'Current cookie and similar technology information for PublishLayer public pages and app access.',
-            'subprocessors_title' => 'Subprocessors | PublishLayer',
-            'subprocessors_description' => 'External providers that may process data as part of PublishLayer service delivery.',
+            'hub_title' => 'Legal | Argusly',
+            'hub_description' => 'Overview of Argusly legal documentation, including Privacy, Terms, Security, Cookies, and Subprocessors.',
+            'privacy_title' => 'Privacy | Argusly',
+            'privacy_description' => 'Overview of the personal data Argusly processes to operate the platform, customer accounts, and public website.',
+            'terms_title' => 'Terms | Argusly',
+            'terms_description' => 'Contractual terms for using Argusly, including subscriptions, credits, and access.',
+            'security_title' => 'Security | Argusly',
+            'security_description' => 'Argusly security overview, including practical safeguards, access controls, and monitoring.',
+            'cookies_title' => 'Cookies | Argusly',
+            'cookies_description' => 'Current cookie and similar technology information for Argusly public pages and app access.',
+            'subprocessors_title' => 'Subprocessors | Argusly',
+            'subprocessors_description' => 'External providers that may process data as part of Argusly service delivery.',
         ],
         'page_hero_title' => ':page',
-        'page_hero_subtitle' => 'Legal documentation and governance details for PublishLayer customers and partners.',
+        'page_hero_subtitle' => 'Legal documentation and governance details for Argusly customers and partners.',
         'ownership_line' => ':product is a product developed and operated by :parent.',
         'last_updated_label' => 'Last updated',
         'last_updated' => [
@@ -685,18 +685,18 @@ return [
         'hub' => [
             'badge' => 'Trust and compliance',
             'hero_title' => 'Legal',
-            'hero_subtitle' => 'Transparency, governance, and data protection for PublishLayer customers and partners.',
-            'intro' => 'PublishLayer is built for professional content teams and organizations that require clarity around data processing, security, and contractual terms. This section provides an overview of our legal framework and how we operate.',
+            'hero_subtitle' => 'Transparency, governance, and data protection for Argusly customers and partners.',
+            'intro' => 'Argusly is built for professional content teams and organizations that require clarity around data processing, security, and contractual terms. This section provides an overview of our legal framework and how we operate.',
             'cards' => [
                 [
                     'title' => 'Privacy',
-                    'description' => 'How we collect, use, and protect personal data within PublishLayer and our public website.',
+                    'description' => 'How we collect, use, and protect personal data within Argusly and our public website.',
                     'link_label' => 'Read Privacy policy',
                     'route' => 'public.legal.privacy',
                 ],
                 [
                     'title' => 'Terms',
-                    'description' => 'The contractual terms governing the use of PublishLayer, including subscriptions, credits, and platform access.',
+                    'description' => 'The contractual terms governing the use of Argusly, including subscriptions, credits, and platform access.',
                     'link_label' => 'Read Terms of service',
                     'route' => 'public.legal.terms',
                 ],
@@ -708,7 +708,7 @@ return [
                 ],
                 [
                     'title' => 'Cookies',
-                    'description' => 'Information about cookies, analytics, and tracking technologies used on the PublishLayer website.',
+                    'description' => 'Information about cookies, analytics, and tracking technologies used on the Argusly website.',
                     'link_label' => 'Read Cookie policy',
                     'route' => 'public.legal.cookies',
                 ],
@@ -720,7 +720,7 @@ return [
                 ],
             ],
             'section_1_title' => 'Built with governance in mind',
-            'section_1_text' => 'PublishLayer is designed to support structured, accountable content workflows. Transparency around infrastructure, data processing, and responsibilities is part of that design. We maintain and update our legal documentation as the platform evolves.',
+            'section_1_text' => 'Argusly is designed to support structured, accountable content workflows. Transparency around infrastructure, data processing, and responsibilities is part of that design. We maintain and update our legal documentation as the platform evolves.',
             'section_2_title' => 'Document updates',
             'section_2_text' => 'Each document includes a Last updated date. Material changes are reflected directly in the relevant document. For enterprise customers, additional contractual documentation such as Data Processing Agreements may apply.',
             'section_3_title' => 'Questions about legal or compliance',
@@ -732,7 +732,7 @@ return [
         'cta_button' => 'Contact us',
         'security' => [
             'trust_title' => 'Security built into platform design',
-            'trust_text' => 'PublishLayer is built with security and data protection as foundational requirements, not afterthoughts. We apply consistent controls across infrastructure, application code, and operational practices.',
+            'trust_text' => 'Argusly is built with security and data protection as foundational requirements, not afterthoughts. We apply consistent controls across infrastructure, application code, and operational practices.',
             'trust_points' => [
                 'Encrypted data in transit and at rest',
                 'Role-based access controls',
@@ -742,7 +742,7 @@ return [
         ],
         'subprocessors' => [
             'table_title' => 'Verified subprocessors',
-            'table_intro' => 'The following subprocessors are currently integrated into PublishLayer platform operations and may process data as part of service delivery.',
+            'table_intro' => 'The following subprocessors are currently integrated into Argusly platform operations and may process data as part of service delivery.',
             'fields' => [
                 'legal_entity' => 'Legal entity',
                 'service_category' => 'Service category',
@@ -781,7 +781,7 @@ return [
         ],
         'cookies' => [
             'table_title' => 'Current cookies and similar technologies',
-            'table_intro' => 'Only technologies confirmed in the current PublishLayer codebase are listed below.',
+            'table_intro' => 'Only technologies confirmed in the current Argusly codebase are listed below.',
             'columns' => [
                 'category' => 'Category',
                 'provider' => 'Provider',
@@ -792,14 +792,14 @@ return [
             'rows' => [
                 [
                     'category' => 'Functional',
-                    'provider' => 'PublishLayer',
+                    'provider' => 'Argusly',
                     'purpose' => 'Essential session handling, authentication, request security, and core site or app behavior.',
                     'type' => 'First-party cookies',
                     'persistence' => 'Depends on session configuration',
                 ],
                 [
                     'category' => 'Performance monitoring',
-                    'provider' => 'PublishLayer',
+                    'provider' => 'Argusly',
                     'purpose' => 'Pageview and content engagement measurement for public pages, blog content, and related performance reporting.',
                     'type' => 'First-party script and session-scoped storage',
                     'persistence' => 'Session-scoped identifier stored in sessionStorage',
@@ -809,16 +809,16 @@ return [
     ],
     'pages' => [
         'product.overview' => [
-            'metaTitle' => 'Product Overview | PublishLayer',
+            'metaTitle' => 'Product Overview | Argusly',
             'metaDescription' => 'Content planning, governance, intelligence, and publishing in one structured workflow.',
             'heading' => 'Product Overview',
-            'intro' => 'PublishLayer is a content operations platform for teams that need one workflow for planning, drafting, governance, search intelligence, and publishing across connected sites.',
+            'intro' => 'Argusly is a content operations platform for teams that need one workflow for planning, drafting, governance, search intelligence, and publishing across connected sites.',
         ],
         'product.platform' => [
-            'metaTitle' => 'Platform | PublishLayer',
+            'metaTitle' => 'Platform | Argusly',
             'metaDescription' => 'Capabilities, governance, and intelligence brought together on one central product page.',
-            'heading' => 'The PublishLayer platform',
-            'intro' => 'PublishLayer combines content operations, governance, and intelligence into one central product layer so teams do not need to switch between fragmented product stories or disconnected workflows.',
+            'heading' => 'The Argusly platform',
+            'intro' => 'Argusly combines content operations, governance, and intelligence into one central product layer so teams do not need to switch between fragmented product stories or disconnected workflows.',
             'sections' => [
                 'capabilities' => [
                     'eyebrow' => 'Capabilities',
@@ -833,7 +833,7 @@ return [
                     ],
                     'callout' => [
                         'title' => 'Built for modern content teams',
-                        'text' => 'Capabilities in PublishLayer are not a disconnected feature set, but a coherent workflow layer for planning, creation, review, and publishing.',
+                        'text' => 'Capabilities in Argusly are not a disconnected feature set, but a coherent workflow layer for planning, creation, review, and publishing.',
                         'points' => ['One workspace for briefs, drafts, and calendar planning', 'Connectors and publishing built into the primary flow', 'Operational control without tool sprawl'],
                     ],
                 ],
@@ -849,7 +849,7 @@ return [
                     ],
                     'callout' => [
                         'title' => 'Governance only works when it is part of the product flow',
-                        'text' => 'That is why PublishLayer connects review, context, and publishing control directly to the daily content process instead of leaving them in separate checklists after the fact.',
+                        'text' => 'That is why Argusly connects review, context, and publishing control directly to the daily content process instead of leaving them in separate checklists after the fact.',
                         'points' => ['Governed handoffs across create, review, and publish', 'Brand context and permissions embedded per workspace', 'Auditable change and publishing steps'],
                     ],
                 ],
@@ -866,7 +866,7 @@ return [
                     ],
                     'callout' => [
                         'title' => 'Intelligence should flow back into the brief',
-                        'text' => 'PublishLayer uses signals not just for reporting, but to improve decisions across planning, revision, and publishing.',
+                        'text' => 'Argusly uses signals not just for reporting, but to improve decisions across planning, revision, and publishing.',
                         'points' => ['SEO and GEO signals feed the content workflow', 'Insights stay tied to real publishing properties', 'Learnings improve the next draft directly'],
                     ],
                 ],
@@ -893,10 +893,10 @@ return [
             ],
         ],
         'product.capabilities' => [
-            'metaTitle' => 'Capabilities | PublishLayer',
+            'metaTitle' => 'Capabilities | Argusly',
             'metaDescription' => 'Capabilities across content workflows, workspace intelligence, site insights, connectors, and billing.',
             'heading' => 'Capabilities',
-            'intro' => 'PublishLayer combines creation, governance, intelligence, and publishing into one operating workflow for content teams.',
+            'intro' => 'Argusly combines creation, governance, intelligence, and publishing into one operating workflow for content teams.',
             'sections' => [
                 ['title' => 'Content creation', 'bullets' => ['Structured briefs and guided drafting', 'Compare flows, rewrites, and revisions', 'Content calendar and publishing states', 'Series support for repeatable output']],
                 ['title' => 'Publishing', 'bullets' => ['Connected WordPress publishing', 'Laravel connector support', 'Review-to-publish workflow', 'Verification after delivery']],
@@ -905,10 +905,10 @@ return [
             ],
         ],
         'product.governance' => [
-            'metaTitle' => 'Governance | PublishLayer',
+            'metaTitle' => 'Governance | Argusly',
             'metaDescription' => 'Structured content control with brand rules, approval flows and auditability.',
             'heading' => 'Governance',
-            'intro' => 'Governance in PublishLayer keeps content production clear, reviewable, and scalable across teams and sites.',
+            'intro' => 'Governance in Argusly keeps content production clear, reviewable, and scalable across teams and sites.',
             'sections' => [
                 ['title' => 'Roles and permissions', 'bullets' => ['Control who can create, review, approve, and publish', 'Keep responsibilities clear across teams and sites', 'Support governance without blocking everyday work']],
                 ['title' => 'Workspaces and brand context', 'bullets' => ['Separate brands, teams, or clients into dedicated workspaces', 'Apply company profile, persona, and brand voice context per workspace', 'Keep shared standards without losing local control']],
@@ -916,10 +916,10 @@ return [
             ],
         ],
         'product.intelligence' => [
-            'metaTitle' => 'Intelligence | PublishLayer',
+            'metaTitle' => 'Intelligence | Argusly',
             'metaDescription' => 'SEO, GEO, analytics, competitor context, and content-chain intelligence for connected sites.',
             'heading' => 'Intelligence',
-            'intro' => 'PublishLayer turns content and site signals into practical next steps for planning, improving, and publishing better content.',
+            'intro' => 'Argusly turns content and site signals into practical next steps for planning, improving, and publishing better content.',
             'sections' => [
                 ['title' => 'Content intelligence', 'bullets' => ['Evaluate content quality, structure, and improvement opportunities', 'Bring signals back into briefs and revisions', 'Support teams with practical next actions instead of dashboards alone']],
                 ['title' => 'Insights per site', 'bullets' => ['Track SEO, GEO, competitors, and analytics on connected properties', 'Use the verification script for cleaner measurement', 'Keep insights tied to the sites you actually publish to']],
@@ -928,17 +928,17 @@ return [
             ],
         ],
         'company.about' => [
-            'metaTitle' => 'About | PublishLayer',
-            'metaDescription' => 'PublishLayer is built around the operational reality of B2B content teams working across governance, intelligence, and publishing.',
+            'metaTitle' => 'About | Argusly',
+            'metaDescription' => 'Argusly is built around the operational reality of B2B content teams working across governance, intelligence, and publishing.',
             'heading' => 'About',
-            'intro' => 'PublishLayer is shaped by the practical needs of teams that manage content across strategy, governance, search visibility, and connected publishing.',
+            'intro' => 'Argusly is shaped by the practical needs of teams that manage content across strategy, governance, search visibility, and connected publishing.',
             'sections' => [
-                ['title' => 'Why we built it', 'bullets' => ['Most teams still stitch together briefs, AI tools, publishing plugins, and reporting manually.', 'We built PublishLayer to make content operations more structured, measurable, and reliable.']],
+                ['title' => 'Why we built it', 'bullets' => ['Most teams still stitch together briefs, AI tools, publishing plugins, and reporting manually.', 'We built Argusly to make content operations more structured, measurable, and reliable.']],
                 ['title' => 'How we think about the product', 'bullets' => ['AI should strengthen professional teams instead of bypassing review and governance.', 'Search intelligence, brand context, and publishing controls should feed one operating workflow.']],
             ],
         ],
         'company.contact' => [
-            'metaTitle' => 'Contact | PublishLayer',
+            'metaTitle' => 'Contact | Argusly',
             'metaDescription' => 'Questions about integration, enterprise usage or partnerships? Reach out to our team.',
             'heading' => 'Contact',
             'intro' => 'Questions about connectors, governance setup, pricing, or rollout? Reach out and we respond within one business day.',
@@ -947,17 +947,17 @@ return [
             ],
         ],
         'company.roadmap' => [
-            'metaTitle' => 'Roadmap | PublishLayer',
-            'metaDescription' => 'Current roadmap themes and how PublishLayer prioritizes product development.',
+            'metaTitle' => 'Roadmap | Argusly',
+            'metaDescription' => 'Current roadmap themes and how Argusly prioritizes product development.',
             'heading' => 'Roadmap',
-            'intro' => 'PublishLayer evolves continuously with input from product usage, rollout work, and customer feedback.',
+            'intro' => 'Argusly evolves continuously with input from product usage, rollout work, and customer feedback.',
             'sections' => [
                 ['title' => 'Current focus areas', 'bullets' => ['Deeper content workflow controls', 'Richer site intelligence and learnings', 'Stronger connector and publishing verification flows', 'Better multi-workspace governance and rollout support']],
                 ['title' => 'How we prioritize', 'bullets' => ['Roadmap work is guided by real implementation needs and operational bottlenecks.', 'Customer feedback and product usage shape what ships next.']],
             ],
         ],
         'legal.index' => [
-            'metaTitle' => 'Legal Hub | PublishLayer',
+            'metaTitle' => 'Legal Hub | Argusly',
             'metaDescription' => 'Central overview of legal and compliance documentation.',
             'heading' => 'Legal Hub',
             'intro' => 'Central overview of all legal and compliance documentation.',
@@ -966,10 +966,10 @@ return [
             ],
         ],
         'legal.privacy' => [
-            'metaTitle' => 'Privacy | PublishLayer',
-            'metaDescription' => 'Overview of the personal data PublishLayer processes to operate the platform, customer accounts, and public website.',
+            'metaTitle' => 'Privacy | Argusly',
+            'metaDescription' => 'Overview of the personal data Argusly processes to operate the platform, customer accounts, and public website.',
             'heading' => 'Privacy',
-            'intro' => 'PublishLayer processes personal data needed to operate the platform, manage customer accounts, handle public website requests, and secure the service.',
+            'intro' => 'Argusly processes personal data needed to operate the platform, manage customer accounts, handle public website requests, and secure the service.',
             'sections' => [
                 ['title' => 'Includes', 'bullets' => ['Account and contact data', 'Organization and workspace data', 'Customer content and content metadata', 'Billing, integration, and operational records']],
                 ['title' => 'Updates', 'bullets' => ['This page reflects the current product implementation', 'Cookies, Security, and Subprocessors are linked below for related details']],
@@ -989,14 +989,14 @@ return [
                     'title' => 'Data ownership',
                     'points' => [
                         'Customers retain ownership of the content they create or manage through the platform.',
-                        'PublishLayer stores and processes that content to provide generation, editing, workflow, analytics, and delivery features.',
+                        'Argusly stores and processes that content to provide generation, editing, workflow, analytics, and delivery features.',
                     ],
                 ],
                 [
                     'title' => 'Processing roles',
                     'points' => [
-                        'PublishLayer may act as a processor or service provider when customers use the platform to generate, manage, or publish their own content and related account data.',
-                        'PublishLayer acts as its own controller for website operations, account administration, billing, support, and service security.',
+                        'Argusly may act as a processor or service provider when customers use the platform to generate, manage, or publish their own content and related account data.',
+                        'Argusly acts as its own controller for website operations, account administration, billing, support, and service security.',
                     ],
                 ],
                 [
@@ -1017,56 +1017,56 @@ return [
             ],
         ],
         'legal.terms' => [
-            'metaTitle' => 'Terms and Conditions | PublishLayer',
-            'metaDescription' => 'Terms and conditions for business use of PublishLayer.',
-            'heading' => 'Terms and Conditions PublishLayer',
+            'metaTitle' => 'Terms and Conditions | Argusly',
+            'metaDescription' => 'Terms and conditions for business use of Argusly.',
+            'heading' => 'Terms and Conditions Argusly',
             'intro' => 'B2B SaaS Platform',
             'sections' => [],
             'articles' => [
-                ['title' => 'Article 1. Definitions', 'points' => ['PublishLayer: the Netherlands-based company operating the PublishLayer SaaS platform.', 'Customer: any natural person or legal entity acting in the exercise of a profession or business that enters into an agreement with PublishLayer.', 'Platform: the online SaaS application PublishLayer including AI functionalities, credit system, API, and integrations with external systems such as WordPress.', 'Account: access to the Platform through unique login credentials.', 'Subscription: periodic access to the Platform for a fixed fee.', 'Credits: prepaid units used to perform AI-based content generation.', 'Content: all data entered by Customer and all output generated by the Platform.']],
-                ['title' => 'Article 2. Applicability', 'points' => ['These terms apply exclusively to agreements with business customers.', 'PublishLayer is intended exclusively for B2B use.', 'Customer general terms and conditions are explicitly excluded.']],
-                ['title' => 'Article 3. Services', 'points' => ['PublishLayer provides an AI content and workflow platform enabling Customer to:', 'a. create briefings', 'b. generate AI-produced content through credits', 'c. manage and revise content', 'd. export or publish content via WordPress integrations', 'PublishLayer has an obligation of effort and not an obligation of result.', 'Functionalities may be changed or expanded.']],
-                ['title' => 'Article 4. Subscriptions and Credits', 'points' => ['Use of the Platform requires an active subscription.', 'Additional AI functionality is charged through credits.', 'All amounts displayed on the website and within the Platform are inclusive of VAT.', 'Credits are prepaid and non-refundable.', 'Unused credits do not expire during an active subscription period unless stated otherwise.', 'PublishLayer may adjust prices with a reasonable notice period.']],
+                ['title' => 'Article 1. Definitions', 'points' => ['Argusly: the Netherlands-based company operating the Argusly SaaS platform.', 'Customer: any natural person or legal entity acting in the exercise of a profession or business that enters into an agreement with Argusly.', 'Platform: the online SaaS application Argusly including AI functionalities, credit system, API, and integrations with external systems such as WordPress.', 'Account: access to the Platform through unique login credentials.', 'Subscription: periodic access to the Platform for a fixed fee.', 'Credits: prepaid units used to perform AI-based content generation.', 'Content: all data entered by Customer and all output generated by the Platform.']],
+                ['title' => 'Article 2. Applicability', 'points' => ['These terms apply exclusively to agreements with business customers.', 'Argusly is intended exclusively for B2B use.', 'Customer general terms and conditions are explicitly excluded.']],
+                ['title' => 'Article 3. Services', 'points' => ['Argusly provides an AI content and workflow platform enabling Customer to:', 'a. create briefings', 'b. generate AI-produced content through credits', 'c. manage and revise content', 'd. export or publish content via WordPress integrations', 'Argusly has an obligation of effort and not an obligation of result.', 'Functionalities may be changed or expanded.']],
+                ['title' => 'Article 4. Subscriptions and Credits', 'points' => ['Use of the Platform requires an active subscription.', 'Additional AI functionality is charged through credits.', 'All amounts displayed on the website and within the Platform are inclusive of VAT.', 'Credits are prepaid and non-refundable.', 'Unused credits do not expire during an active subscription period unless stated otherwise.', 'Argusly may adjust prices with a reasonable notice period.']],
                 ['title' => 'Article 5. Payment', 'points' => ['Payment is made in advance via an external payment provider such as Mollie.', 'Subscriptions renew automatically unless cancelled in time.', 'In case of non-payment, access to the Platform may be suspended.']],
-                ['title' => 'Article 6. AI-Generated Content', 'points' => ['AI output is automatically generated based on Customer input.', 'PublishLayer does not guarantee that output is:', 'a. factually correct', 'b. legally correct', 'c. free from third-party rights', 'Customer is fully responsible for review, editing, and publication of content.', 'PublishLayer is not liable for damage resulting from publication of AI-generated content.']],
-                ['title' => 'Article 7. WordPress and External Integrations', 'points' => ['The Platform can connect with external systems such as WordPress via API or plugin.', 'PublishLayer is not responsible for:', 'a. changes in external APIs', 'b. security vulnerabilities in external systems', 'c. incorrect configuration by Customer', 'Customer remains responsible for final publication on external systems.']],
-                ['title' => 'Article 8. Intellectual Property', 'points' => ['All rights to the Platform are vested in PublishLayer.', 'Customer obtains a non-transferable right of use.', 'Content entered by Customer remains the property of Customer.', 'AI output may be used commercially by Customer at its own responsibility.']],
+                ['title' => 'Article 6. AI-Generated Content', 'points' => ['AI output is automatically generated based on Customer input.', 'Argusly does not guarantee that output is:', 'a. factually correct', 'b. legally correct', 'c. free from third-party rights', 'Customer is fully responsible for review, editing, and publication of content.', 'Argusly is not liable for damage resulting from publication of AI-generated content.']],
+                ['title' => 'Article 7. WordPress and External Integrations', 'points' => ['The Platform can connect with external systems such as WordPress via API or plugin.', 'Argusly is not responsible for:', 'a. changes in external APIs', 'b. security vulnerabilities in external systems', 'c. incorrect configuration by Customer', 'Customer remains responsible for final publication on external systems.']],
+                ['title' => 'Article 8. Intellectual Property', 'points' => ['All rights to the Platform are vested in Argusly.', 'Customer obtains a non-transferable right of use.', 'Content entered by Customer remains the property of Customer.', 'AI output may be used commercially by Customer at its own responsibility.']],
                 ['title' => 'Article 9. Liability', 'points' => ['Total liability is limited to the amount paid by Customer in the 12 months preceding the damaging event.', 'Liability for indirect damage is excluded.', 'Limitations do not apply in cases of intent or gross negligence.']],
-                ['title' => 'Article 10. Termination', 'points' => ['Subscriptions run for the selected term.', 'Cancellation must occur before renewal.', 'PublishLayer may immediately suspend accounts for violation of the AUP.']],
+                ['title' => 'Article 10. Termination', 'points' => ['Subscriptions run for the selected term.', 'Cancellation must occur before renewal.', 'Argusly may immediately suspend accounts for violation of the AUP.']],
                 ['title' => 'Article 11. Governing Law', 'points' => ['All agreements are governed by Dutch law.']],
             ],
-            'ctaHeading' => 'Plan your next step with PublishLayer.',
+            'ctaHeading' => 'Plan your next step with Argusly.',
             'ctaText' => 'View plans or request enterprise pricing.',
             'ctaPrimary' => 'View pricing',
             'ctaSecondary' => 'Contact team',
         ],
         'legal.security' => [
-            'metaTitle' => 'Security | PublishLayer',
-            'metaDescription' => 'PublishLayer applies practical security safeguards including access controls, validation, rate limiting, and monitoring.',
+            'metaTitle' => 'Security | Argusly',
+            'metaDescription' => 'Argusly applies practical security safeguards including access controls, validation, rate limiting, and monitoring.',
             'heading' => 'Security',
-            'intro' => 'Security is built into the platform design and development process. PublishLayer currently applies practical technical and organizational safeguards appropriate to its current stage.',
+            'intro' => 'Security is built into the platform design and development process. Argusly currently applies practical technical and organizational safeguards appropriate to its current stage.',
             'sections' => [
                 ['title' => 'Security controls', 'bullets' => ['Encrypted connections and secure session settings', 'Authentication flows with hashed passwords and protected sessions', 'Role based permissions and restricted admin access', 'Workspace scoped access checks across customer data and integrations', 'Server side validation and framework protections such as CSRF defenses', 'Rate limiting on public submissions, analytics, and API endpoints', 'Application monitoring, logging, and error tracking', 'Regular framework and dependency updates as the platform evolves']],
-                ['title' => 'Security approach', 'bullets' => ['PublishLayer applies practical safeguards appropriate to the current product and infrastructure footprint.', 'Security controls are reviewed and expanded as platform usage and infrastructure maturity grow.', 'This page is updated when material security practices or supporting providers change.']],
+                ['title' => 'Security approach', 'bullets' => ['Argusly applies practical safeguards appropriate to the current product and infrastructure footprint.', 'Security controls are reviewed and expanded as platform usage and infrastructure maturity grow.', 'This page is updated when material security practices or supporting providers change.']],
             ],
         ],
         'legal.cookies' => [
-            'metaTitle' => 'Cookies | PublishLayer',
-            'metaDescription' => 'Current cookie and similar technology usage for PublishLayer public pages and app access.',
+            'metaTitle' => 'Cookies | Argusly',
+            'metaDescription' => 'Current cookie and similar technology usage for Argusly public pages and app access.',
             'heading' => 'Cookies',
-            'intro' => 'This page describes the limited cookies and similar technologies currently used by PublishLayer.',
+            'intro' => 'This page describes the limited cookies and similar technologies currently used by Argusly.',
             'articles' => [
                 [
                     'title' => 'Functional cookies',
                     'points' => [
-                        'PublishLayer uses essential first-party cookies to keep the website and platform working, including session handling, authentication, and request security.',
+                        'Argusly uses essential first-party cookies to keep the website and platform working, including session handling, authentication, and request security.',
                         'These cookies support sign-in, form protection, and other core interface behavior.',
                     ],
                 ],
                 [
-                    'title' => 'PublishLayer monitoring script',
+                    'title' => 'Argusly monitoring script',
                     'points' => [
-                        'The public site loads PublishLayer\'s own pl.js monitoring script from the PublishLayer tracking subdomain.',
+                        'The public site loads Argusly\'s own pl.js monitoring script from the Argusly tracking subdomain.',
                         'The script records page views and engagement signals such as scroll depth, read-through, and read time for blog and content performance reporting.',
                         'The script uses a session-scoped identifier in browser sessionStorage rather than a long-lived marketing cookie.',
                         'The tracking script respects Do Not Track when it is enabled in the browser.',
@@ -1077,20 +1077,20 @@ return [
                     'points' => [
                         'No dedicated cookie banner or preference center is currently implemented in this codebase.',
                         'No advertising, retargeting, social media, or separate third-party analytics tracking snippets were found on the public site or app.',
-                        'If PublishLayer introduces new tracking tools, this page will be updated.',
+                        'If Argusly introduces new tracking tools, this page will be updated.',
                     ],
                 ],
             ],
             'sections' => [
                 ['title' => 'Includes', 'bullets' => ['Functional cookies for essential site and app behavior', 'First-party performance monitoring for public pages and blog content']],
-                ['title' => 'Management', 'bullets' => ['No dedicated cookie preference center is currently implemented in this codebase', 'You can manage or block cookies through your browser settings', 'PublishLayer updates this page when new tools are introduced']],
+                ['title' => 'Management', 'bullets' => ['No dedicated cookie preference center is currently implemented in this codebase', 'You can manage or block cookies through your browser settings', 'Argusly updates this page when new tools are introduced']],
             ],
         ],
         'legal.subprocessors' => [
-            'metaTitle' => 'Subprocessors | PublishLayer',
+            'metaTitle' => 'Subprocessors | Argusly',
             'metaDescription' => 'Up to date list of external services that may process data.',
             'heading' => 'Subprocessors',
-            'intro' => 'Overview of verified external services that may process data as part of PublishLayer service delivery.',
+            'intro' => 'Overview of verified external services that may process data as part of Argusly service delivery.',
             'sections' => [
                 ['title' => 'Includes', 'bullets' => ['AI model providers', 'Transactional email services', 'Payment processors', 'Error monitoring services']],
                 ['title' => 'Maintenance', 'bullets' => ['Full and up to date list maintained here.']],
@@ -1101,7 +1101,7 @@ return [
     // About page
     'about' => [
         'hero_title' => 'Content operations are broken for most teams.',
-        'hero_text' => 'Teams still work across fragmented tools, disconnected publishing flows, and limited review control. PublishLayer exists to bring planning, governance, intelligence, and connected publishing into one operating layer.',
+        'hero_text' => 'Teams still work across fragmented tools, disconnected publishing flows, and limited review control. Argusly exists to bring planning, governance, intelligence, and connected publishing into one operating layer.',
 
         'problem_title' => 'Why most teams still struggle',
         'problem_text' => 'Even with AI tools and more content demand, teams spend too much time on coordination, context switching, and quality control instead of publishing with confidence.',
@@ -1114,15 +1114,15 @@ return [
         ],
 
         'why_eyebrow' => 'Our approach',
-        'why_title' => 'Why PublishLayer exists',
-        'why_text' => 'PublishLayer brings together the workflows that content teams actually need: structured planning, governed creation, search intelligence, and connected publishing.',
+        'why_title' => 'Why Argusly exists',
+        'why_text' => 'Argusly brings together the workflows that content teams actually need: structured planning, governed creation, search intelligence, and connected publishing.',
         'approach_blocks' => [
-            ['icon' => 'layers', 'title' => 'One operating layer', 'text' => 'Instead of adding more point solutions, PublishLayer combines briefs, drafts, governance, insights, and connectors into one coherent workflow.'],
+            ['icon' => 'layers', 'title' => 'One operating layer', 'text' => 'Instead of adding more point solutions, Argusly combines briefs, drafts, governance, insights, and connectors into one coherent workflow.'],
             ['icon' => 'shield-check', 'title' => 'Governance by design', 'text' => 'AI output only scales when brand context, roles, revision history, and publishing controls are part of the daily process.'],
         ],
 
         'principles_title' => 'Product principles',
-        'principles_text' => 'These ideas guide how PublishLayer is built and what we choose to prioritize.',
+        'principles_text' => 'These ideas guide how Argusly is built and what we choose to prioritize.',
         'principles' => [
             ['icon' => 'git-merge', 'title' => 'Workflow over tool sprawl', 'text' => 'Teams need fewer tools, not more integrations.'],
             ['icon' => 'shield', 'title' => 'Governance without bottlenecks', 'text' => 'Review and control should not slow down production.'],
@@ -1132,7 +1132,7 @@ return [
 
         'trust_badge' => 'Built for professional teams',
         'trust_title' => 'Governance, workflow, and connected publishing',
-        'trust_text' => 'PublishLayer is designed for teams that need credible production processes with roles, audit trails, and publishing accountability.',
+        'trust_text' => 'Argusly is designed for teams that need credible production processes with roles, audit trails, and publishing accountability.',
         'trust_points' => [
             'Multi-tenant workspace architecture',
             'Role-based access and review workflows',
@@ -1140,7 +1140,7 @@ return [
             'WordPress and Laravel connector support',
         ],
 
-        'cta_title' => 'See how PublishLayer works for your team.',
+        'cta_title' => 'See how Argusly works for your team.',
         'cta_text' => 'Review pricing or talk through your connector, governance, and rollout requirements.',
     ],
 
@@ -1148,11 +1148,11 @@ return [
     'contact' => [
         'success' => 'Thanks. We respond within one business day.',
 
-        'hero_title' => 'Talk to the team behind PublishLayer.',
+        'hero_title' => 'Talk to the team behind Argusly.',
         'hero_text' => 'From setup and connectors to governance and rollout, we help teams build content operations that scale.',
 
         'options' => [
-            ['icon' => 'message-circle', 'title' => 'Talk through your workflow', 'text' => 'Discuss how PublishLayer fits your current setup, tools, and publishing flow.'],
+            ['icon' => 'message-circle', 'title' => 'Talk through your workflow', 'text' => 'Discuss how Argusly fits your current setup, tools, and publishing flow.'],
             ['icon' => 'credit-card', 'title' => 'Ask about pricing or rollout', 'text' => 'Questions about plans, credits, onboarding, or enterprise requirements.'],
             ['icon' => 'plug', 'title' => 'Connector and implementation', 'text' => 'WordPress, Laravel connector, or custom publishing integration.'],
         ],
@@ -1183,7 +1183,7 @@ return [
     // Roadmap page
     'roadmap' => [
         'hero_title' => 'Roadmap',
-        'hero_text' => 'PublishLayer evolves continuously with input from product usage, implementation work, and customer feedback.',
+        'hero_text' => 'Argusly evolves continuously with input from product usage, implementation work, and customer feedback.',
 
         'focus_eyebrow' => 'Current direction',
         'focus_title' => 'Where the product is heading',
@@ -1206,7 +1206,7 @@ return [
 
         'feedback_badge' => 'Customer driven',
         'feedback_title' => 'Your input shapes what ships next',
-        'feedback_text' => 'PublishLayer is built with direct customer input. Production experience and real workflows guide what we prioritize.',
+        'feedback_text' => 'Argusly is built with direct customer input. Production experience and real workflows guide what we prioritize.',
         'feedback_points' => [
             'Direct feedback channels for active customers',
             'Implementation insights from onboarding',
