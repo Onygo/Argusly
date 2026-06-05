@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\RunSourceSyncJob;
 use App\Models\Account;
 use App\Models\Brand;
 use App\Models\Integration;
@@ -15,6 +16,7 @@ use Database\Seeders\IntegrationCatalogSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class SourceRegistryTest extends TestCase
@@ -88,6 +90,8 @@ class SourceRegistryTest extends TestCase
 
     public function test_planned_sync_records_create_history_without_running_sync(): void
     {
+        Queue::fake();
+
         [$user, $account, $brand] = $this->tenantUser('owner');
         $source = Source::query()->create([
             'account_id' => $account->id,
@@ -107,6 +111,7 @@ class SourceRegistryTest extends TestCase
             'status' => 'planned',
             'records_found' => null,
         ]);
+        Queue::assertPushed(RunSourceSyncJob::class, fn (RunSourceSyncJob $job) => $job->sourceSyncId === $source->syncs()->firstOrFail()->id);
 
         $this->actingAs($user)
             ->get(route('app.sources.syncs'))
@@ -114,6 +119,34 @@ class SourceRegistryTest extends TestCase
             ->assertSee('Sync history')
             ->assertSee('Perplexity answers')
             ->assertSee('Planned');
+    }
+
+    public function test_source_sync_job_completes_lifecycle_on_named_queue(): void
+    {
+        [$user, $account, $brand] = $this->tenantUser('owner');
+        $source = Source::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'RSS Monitor',
+            'type' => 'blog',
+            'provider' => 'rss',
+            'status' => 'active',
+        ]);
+        $sync = app(SourceRegistryService::class)->createPlannedSync($source);
+        $job = new RunSourceSyncJob($sync->id);
+
+        $job->handle(app(SourceRegistryService::class));
+
+        $this->assertSame('completed', $sync->refresh()->status);
+        $this->assertSame(0, $sync->records_found);
+        $this->assertNotNull($sync->started_at);
+        $this->assertNotNull($sync->completed_at);
+        $this->assertDatabaseHas('domain_events', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'event_type' => 'SourceSyncCompleted',
+            'subject_id' => $sync->id,
+        ]);
     }
 
     public function test_service_rejects_cross_account_integration_connection(): void

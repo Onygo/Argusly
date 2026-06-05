@@ -19,7 +19,7 @@ class ContentLifecycleService
 
     public function requestForContentAsset(ContentAsset $contentAsset, User $user): void
     {
-        $this->credits->consume(
+        $creditTransaction = $this->credits->consume(
             $contentAsset->account,
             $user,
             'content_lifecycle',
@@ -27,6 +27,7 @@ class ContentLifecycleService
             $contentAsset,
             ['content_asset_id' => $contentAsset->id],
         );
+        $creditTransaction->forceFill(['type' => 'content_lifecycle'])->save();
 
         CalculateContentLifecycleScoreJob::dispatch($contentAsset->id);
     }

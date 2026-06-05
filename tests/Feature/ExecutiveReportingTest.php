@@ -37,7 +37,17 @@ class ExecutiveReportingTest extends TestCase
         $report = app(ExecutiveReportService::class)->generate($account, $brand, $user, 'executive');
 
         $this->assertSame('executive', $report->type);
-        $this->assertSame(8, $report->sections()->count());
+        $this->assertSame(12, $report->sections()->count());
+        $this->assertDatabaseHas('report_sections', [
+            'report_id' => $report->id,
+            'section_type' => 'executive_summary',
+            'title' => 'Executive summary',
+        ]);
+        $this->assertDatabaseHas('report_sections', [
+            'report_id' => $report->id,
+            'section_type' => 'kpi_tracking',
+            'title' => 'KPI tracking',
+        ]);
         $this->assertDatabaseHas('report_sections', [
             'report_id' => $report->id,
             'section_type' => 'ai_visibility',
@@ -47,10 +57,18 @@ class ExecutiveReportingTest extends TestCase
             'report_id' => $report->id,
             'section_type' => 'next_actions',
         ]);
+        $this->assertDatabaseHas('report_sections', [
+            'report_id' => $report->id,
+            'section_type' => 'board_summary',
+        ]);
+        $this->assertDatabaseHas('report_sections', [
+            'report_id' => $report->id,
+            'section_type' => 'trend_report',
+        ]);
 
         $snapshot = $report->snapshots()->firstOrFail();
         $this->assertStringContainsString('Executive report', $snapshot->html);
-        $this->assertCount(8, $snapshot->payload['sections']);
+        $this->assertCount(12, $snapshot->payload['sections']);
     }
 
     public function test_reports_index_detail_and_generate_button_are_tenant_safe(): void
@@ -72,11 +90,14 @@ class ExecutiveReportingTest extends TestCase
         $this->actingAs($user)
             ->get(route('app.reports.show', $visibleReport))
             ->assertOk()
-            ->assertSee('HTML export')
+            ->assertSee('Snapshot export')
+            ->assertSee('KPI tracking')
             ->assertSee('AI visibility')
             ->assertSee('Content performance')
             ->assertSee('Search performance')
-            ->assertSee('Social distribution');
+            ->assertSee('Social distribution')
+            ->assertSee('Board summary')
+            ->assertSee('Trend report');
 
         $this->actingAs($user)
             ->get(route('app.reports.show', $hiddenReport))
@@ -90,6 +111,47 @@ class ExecutiveReportingTest extends TestCase
             'account_id' => $account->id,
             'brand_id' => $brand->id,
             'type' => 'monthly',
+        ]);
+    }
+
+    public function test_executive_dashboard_pdf_powerpoint_and_scheduled_reports_are_operational(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner', 'executive-dashboard');
+        $this->seedMetrics($account, $brand, $user);
+        $report = app(ExecutiveReportService::class)->generate($account, $brand, $user, 'executive');
+
+        $this->actingAs($user)
+            ->get(route('app.reporting.executive'))
+            ->assertOk()
+            ->assertSee('Executive dashboard')
+            ->assertSee('KPI tracking')
+            ->assertSee('Board summary')
+            ->assertSee('Trend report')
+            ->assertSee('PDF')
+            ->assertSee('PPTX');
+
+        $pdf = $this->actingAs($user)
+            ->get(route('app.reports.export.pdf', $report))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->assertStringStartsWith('%PDF', $pdf->baseResponse->getContent());
+
+        $pptx = $this->actingAs($user)
+            ->get(route('app.reports.export.powerpoint', $report))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+
+        $this->assertStringStartsWith('PK', $pptx->baseResponse->getContent());
+
+        $this->artisan('reports:generate-scheduled', ['--type' => 'weekly', '--limit' => 5, '--sync' => true])
+            ->assertExitCode(0);
+
+        $this->assertDatabaseHas('reports', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'type' => 'weekly',
+            'generated_by' => null,
         ]);
     }
 

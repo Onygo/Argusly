@@ -12,6 +12,8 @@ use App\Models\PublishingAction;
 use App\Models\User;
 use App\Services\ContentAssetService;
 use App\Services\ContentAuditService;
+use App\Services\BrandKnowledgeCenterService;
+use App\Services\ContentFirstDraftService;
 use App\Services\ContentGenerationService;
 use App\Services\ContentLanguageService;
 use App\Services\ContentLifecycleService;
@@ -92,8 +94,12 @@ class ContentAssetController extends Controller
         Gate::authorize('create', ContentAsset::class);
         /** @var User $user */
         $user = request()->user();
+        $account = app(CurrentAccountContract::class)->get($user);
         $brand = app(CurrentBrandContract::class)->get($user);
         $languages = app(ContentLanguageService::class);
+        $brandContext = $account && $brand
+            ? app(BrandKnowledgeCenterService::class)->centerForBrand($account, $brand)
+            : null;
 
         return view('app.content.create', [
             'asset' => new ContentAsset([
@@ -105,6 +111,7 @@ class ContentAssetController extends Controller
             ]),
             'types' => ContentAsset::TYPES,
             'contentLanguages' => $languages->enabledForBrand($brand),
+            'brandContext' => $brandContext,
         ]);
     }
 
@@ -113,6 +120,7 @@ class ContentAssetController extends Controller
         CurrentAccountContract $currentAccount,
         CurrentBrandContract $currentBrand,
         ContentAssetService $contentAssets,
+        ContentFirstDraftService $firstDrafts,
     ): RedirectResponse {
         /** @var User $user */
         $user = $request->user();
@@ -122,7 +130,18 @@ class ContentAssetController extends Controller
         abort_unless($account && $brand, 403);
         Gate::authorize('create', ContentAsset::class);
 
+        if ($request->input('creation_mode') === 'guided_first_draft') {
+            $attributes = $this->validatedFirstDraftAttributes($request, $brand);
+            $attributes['locale'] = app(ContentLanguageService::class)->localeForLanguage($attributes['language']);
+            $created = $firstDrafts->create($account, $brand, $user, $attributes);
+
+            return redirect()
+                ->route('app.content.show', $created->first())
+                ->with('status', $created->count() === 1 ? 'First draft created.' : $created->count().' chained drafts created.');
+        }
+
         $attributes = $this->validatedAttributes($request, $brand);
+        $attributes['locale'] = app(ContentLanguageService::class)->localeForLanguage($attributes['language']);
         $this->authorizeStatus($user, $attributes['status'] ?? 'draft', $account->id, $brand->id);
         $asset = $contentAssets->create($account, $brand, $attributes, $user);
 
@@ -295,12 +314,32 @@ class ContentAssetController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255'],
             'language' => app(ContentLanguageService::class)->validationRules($brand),
-            'locale' => ['required', 'string', 'max:32'],
+            'locale' => ['nullable', 'string', 'max:32'],
             'source' => ['required', 'string', 'max:255'],
             'source_url' => ['nullable', 'url', 'max:2048'],
             'canonical_url' => ['nullable', 'url', 'max:2048'],
             'excerpt' => ['nullable', 'string'],
             'body' => ['nullable', 'string'],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedFirstDraftAttributes(Request $request, ?Brand $brand = null): array
+    {
+        return $request->validate([
+            'creation_mode' => ['required', 'string', Rule::in(['guided_first_draft'])],
+            'draft_mode' => ['required', 'string', Rule::in(['single', 'chain'])],
+            'title' => ['nullable', 'string', 'max:255', 'required_without:primary_keyword'],
+            'primary_keyword' => ['nullable', 'string', 'max:255', 'required_without:title'],
+            'secondary_keywords' => ['nullable', 'string', 'max:1000'],
+            'angle' => ['nullable', 'string', 'max:1000'],
+            'audience' => ['nullable', 'string', 'max:500'],
+            'chain_count' => ['exclude_unless:draft_mode,chain', 'required', 'integer', 'min:2', 'max:6'],
+            'type' => ['required', 'string', Rule::in(['article', 'page', 'landing_page', 'faq'])],
+            'language' => app(ContentLanguageService::class)->validationRules($brand),
+            'locale' => ['nullable', 'string', 'max:32'],
         ]);
     }
 

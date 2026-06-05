@@ -4,23 +4,26 @@
             <div>
                 <p class="eyebrow">Executive reporting</p>
                 <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Reports</h1>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">Static HTML reports for {{ $account->name }}{{ $brand ? ' and '.$brand->name : '' }} generated from current visibility, content, search, social and recommendation metrics.</p>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">Executive reports for {{ $account->name }}{{ $brand ? ' and '.$brand->name : '' }} generated from current visibility, content, search, social, recommendations, KPIs and board summaries.</p>
             </div>
-            <form method="POST" action="{{ route('app.reports.store') }}" class="flex flex-wrap items-center gap-2">
-                @csrf
-                <select name="type" class="h-10 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink">
-                    @foreach ($types as $type)
-                        <option value="{{ $type }}">{{ str($type)->headline() }}</option>
-                    @endforeach
-                </select>
-                <x-ui.button type="submit">Generate report</x-ui.button>
-            </form>
+            <div class="flex flex-wrap gap-2">
+                <x-ui.button href="{{ route('app.reporting.executive') }}" variant="secondary">Executive dashboard</x-ui.button>
+                <form method="POST" action="{{ route('app.reports.store') }}" class="flex flex-wrap items-center gap-2">
+                    @csrf
+                    <select name="type" class="h-10 rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink">
+                        @foreach ($types as $type)
+                            <option value="{{ $type }}">{{ str($type)->headline() }}</option>
+                        @endforeach
+                    </select>
+                    <x-ui.button type="submit">Generate report</x-ui.button>
+                </form>
+            </div>
         </div>
 
         <div class="mt-8 grid gap-4 md:grid-cols-3">
             <x-dashboard.info-card label="Reports" :value="$reports->count()" />
-            <x-dashboard.info-card label="Formats" value="HTML" />
-            <x-dashboard.info-card label="Delivery" value="Manual" />
+            <x-dashboard.info-card label="Formats" value="HTML, PDF, PPTX" />
+            <x-dashboard.info-card label="Delivery" value="Manual + scheduled" />
         </div>
 
         <x-ui.card class="mt-6 overflow-hidden">

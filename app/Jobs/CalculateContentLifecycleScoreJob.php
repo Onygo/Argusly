@@ -14,7 +14,10 @@ class CalculateContentLifecycleScoreJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $contentAssetId) {}
+    public function __construct(public readonly int $contentAssetId)
+    {
+        $this->onQueue(config('queue.names.intelligence', 'intelligence'));
+    }
 
     public function handle(ContentLifecycleService $lifecycle): void
     {

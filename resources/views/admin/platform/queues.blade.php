@@ -20,6 +20,34 @@
     </div>
 
     <div class="mt-6 grid gap-4 xl:grid-cols-2">
+        <div class="rounded-md border border-line bg-white p-4 xl:col-span-2">
+            <h2 class="text-lg font-bold text-ink">Named Queues</h2>
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full divide-y divide-line text-sm">
+                    <thead>
+                        <tr class="text-left text-xs uppercase tracking-[0.08em] text-muted">
+                            <th class="py-2 pr-4">Queue</th>
+                            <th class="py-2 pr-4">Status</th>
+                            <th class="py-2 pr-4">Pending</th>
+                            <th class="py-2 pr-4">Failed</th>
+                            <th class="py-2 pr-4">Workers</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-line">
+                        @foreach ($queue['queue_matrix'] as $row)
+                            <tr>
+                                <td class="py-2 pr-4 font-semibold text-ink">{{ $row['name'] }}</td>
+                                <td class="py-2 pr-4">@include('admin._status', ['value' => $row['status']])</td>
+                                <td class="py-2 pr-4 text-muted">{{ $row['pending'] }}</td>
+                                <td class="py-2 pr-4 text-muted">{{ $row['failed'] }}</td>
+                                <td class="py-2 pr-4 text-muted">{{ $row['workers'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="rounded-md border border-line bg-white p-4">
             <h2 class="text-lg font-bold text-ink">Pending</h2>
             <div class="mt-4 overflow-x-auto">
@@ -89,5 +117,10 @@
                 <p class="text-sm text-muted">No worker heartbeats recorded yet.</p>
             @endforelse
         </div>
+        @if ($queue['stale_heartbeats']->isNotEmpty())
+            <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                {{ $queue['stale_heartbeats']->count() }} worker heartbeat(s) are stale.
+            </div>
+        @endif
     </div>
 </x-app.layout>

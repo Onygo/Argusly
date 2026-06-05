@@ -105,6 +105,12 @@
                         <div>
                             <p class="text-sm font-semibold text-ink">{{ $delivery->event }} · {{ $delivery->endpoint?->name }}</p>
                             <p class="text-xs text-muted">{{ $delivery->created_at?->format('Y-m-d H:i') }} · attempts {{ $delivery->attempts }}</p>
+                            @if ($delivery->next_retry_at || $delivery->available_at)
+                                <p class="mt-1 text-xs text-muted">Next retry {{ ($delivery->next_retry_at ?? $delivery->available_at)?->format('Y-m-d H:i') }}</p>
+                            @endif
+                            @if ($delivery->error_message)
+                                <p class="mt-1 text-xs text-red-700">{{ $delivery->error_message }}</p>
+                            @endif
                         </div>
                         <div class="flex items-center gap-2">
                             @include('admin._status', ['value' => $delivery->status])

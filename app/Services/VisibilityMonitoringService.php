@@ -11,6 +11,7 @@ use App\Models\VisibilityProviderRun;
 use App\Models\VisibilityResult;
 use App\Models\VisibilitySnapshot;
 use App\Services\Llm\LlmPromptRuntime;
+use App\Services\Visibility\VisibilityScoreCalculator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -21,6 +22,7 @@ class VisibilityMonitoringService
         private readonly EvidenceService $evidence,
         private readonly ContentLanguageService $languages,
         private readonly LlmPromptRuntime $llm,
+        private readonly VisibilityScoreCalculator $scoreCalculator,
     ) {}
 
     /**
@@ -108,6 +110,7 @@ class VisibilityMonitoringService
             'captured_at' => now(),
         ]);
         $providerRun = $this->recordPlaceholderProviderRun($check, $result);
+        $visibilityScore = $this->scoreCalculator->calculateForResult($result);
 
         $check->forceFill(['last_checked_at' => $result->captured_at])->save();
         $this->evidence->createForSubject($result, [
@@ -156,6 +159,7 @@ class VisibilityMonitoringService
             'score' => $result->score,
             'position' => $result->position,
             'mention_found' => $result->mention_found,
+            'ai_attention_score' => $visibilityScore->ai_attention_score,
         ], $result->captured_at);
 
         return $result;
@@ -429,6 +433,15 @@ class VisibilityMonitoringService
         $run->citations()->create([
             'account_id' => $check->account_id,
             'brand_id' => $check->brand_id,
+            'visibility_check_id' => $check->id,
+            'source_url' => "https://{$domain}/ai-visibility-reference",
+            'source_domain' => $domain,
+            'source_title' => "{$check->brand} visibility reference",
+            'citation_type' => 'owned',
+            'is_owned_source' => true,
+            'is_competitor_source' => false,
+            'confidence_score' => $result->score,
+            'metadata_json' => ['placeholder' => true],
             'url' => "https://{$domain}/ai-visibility-reference",
             'domain' => $domain,
             'title' => "{$check->brand} visibility reference",

@@ -9,11 +9,28 @@
                             <p class="truncate text-sm font-semibold text-ink">{{ $member['user']->name }}</p>
                             <p class="truncate text-xs text-muted">{{ $member['user']->email }}</p>
                         </div>
-                        <div class="flex shrink-0 items-center gap-3 text-right">
-                            <div>
-                            <p class="text-sm font-semibold text-ink">{{ $member['role'] ?? 'No role' }}</p>
-                            <p class="text-xs text-muted">{{ str($member['status'])->headline() }}</p>
-                            </div>
+                            <div class="flex shrink-0 items-center gap-3 text-right">
+                            <form method="POST" action="{{ route('settings.team.memberships.update', $member['membership']) }}" class="grid gap-2 text-left sm:grid-cols-[minmax(0,150px)_minmax(0,150px)_auto] sm:items-end">
+                                @csrf
+                                @method('PATCH')
+                                <label class="block">
+                                    <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Role</span>
+                                    <select name="role_id" class="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-xs text-ink">
+                                        @foreach ($roles as $role)
+                                            <option value="{{ $role->id }}" @selected($member['role_id'] === $role->id)>{{ $role->display_name }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <label class="block">
+                                    <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
+                                    <select name="status" class="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-xs text-ink">
+                                        @foreach (['active', 'inactive'] as $status)
+                                            <option value="{{ $status }}" @selected($member['status'] === $status)>{{ str($status)->headline() }}</option>
+                                        @endforeach
+                                    </select>
+                                </label>
+                                <button class="rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/70">Save</button>
+                            </form>
                             @if ($impersonationActive)
                                 <span class="text-xs font-semibold text-muted">Impersonation active</span>
                             @elseif (auth()->id() === $member['user']->id)
@@ -44,10 +61,27 @@
                                 <p class="truncate text-xs text-muted">{{ $member['user']->email }}</p>
                             </div>
                             <div class="flex shrink-0 items-center gap-3 text-right">
-                                <div>
-                                <p class="text-sm font-semibold text-ink">{{ $member['role'] ?? 'No role' }}</p>
-                                <p class="text-xs text-muted">{{ str($member['status'])->headline() }}</p>
-                                </div>
+                                <form method="POST" action="{{ route('settings.team.brand-memberships.update', $member['membership']) }}" class="grid gap-2 text-left sm:grid-cols-[minmax(0,150px)_minmax(0,150px)_auto] sm:items-end">
+                                    @csrf
+                                    @method('PATCH')
+                                    <label class="block">
+                                        <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Role</span>
+                                        <select name="role_id" class="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-xs text-ink">
+                                            @foreach ($roles as $role)
+                                                <option value="{{ $role->id }}" @selected($member['role_id'] === $role->id)>{{ $role->display_name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <label class="block">
+                                        <span class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Status</span>
+                                        <select name="status" class="mt-1 w-full rounded-md border border-line bg-white px-2 py-1.5 text-xs text-ink">
+                                            @foreach (['active', 'inactive'] as $status)
+                                                <option value="{{ $status }}" @selected($member['status'] === $status)>{{ str($status)->headline() }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <button class="rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold text-ink transition hover:bg-white/70">Save</button>
+                                </form>
                                 @if ($impersonationActive)
                                     <span class="text-xs font-semibold text-muted">Impersonation active</span>
                                 @elseif (auth()->id() === $member['user']->id)
@@ -64,11 +98,29 @@
                         <x-dashboard.empty-state title="No brand members" message="No members are assigned to the current brand yet." />
                     @endforelse
                 </div>
+                @if ($brandAssignableMembers->isNotEmpty())
+                    <form method="POST" action="{{ route('settings.team.brand-memberships.store') }}" class="mt-5 grid gap-3 rounded-md border border-line bg-panel p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,180px)_auto] md:items-end">
+                        @csrf
+                        <label class="block">
+                            <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Add workspace member to brand</span>
+                            <select name="user_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                                @foreach ($brandAssignableMembers as $member)
+                                    <option value="{{ $member->id }}">{{ $member->name }} · {{ $member->email }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Brand role</span>
+                            <select name="role_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                                @foreach ($roles as $role)
+                                    <option value="{{ $role->id }}">{{ $role->display_name }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <x-ui.button type="submit" size="sm">Assign</x-ui.button>
+                    </form>
+                @endif
             @endif
         </x-dashboard.section>
-    </div>
-
-    <div class="mt-6">
-        <x-dashboard.empty-state title="Invite placeholder" message="Invitations will be added later. No email or role mutation is performed on this screen." />
     </div>
 </x-app.settings.layout>

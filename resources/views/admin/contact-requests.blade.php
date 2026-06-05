@@ -27,6 +27,14 @@
                     $metadata = json_decode((string) $contactRequest->metadata, true) ?: [];
                     $signals = $metadata['lead_signals'] ?? [];
                     $suggestedReply = $metadata['suggested_reply'] ?? "Hi,\n\nThanks for reaching out. Could you share a little more about your company, website, and what you want to solve with Argusly?\n\nBest,\nArgusly";
+                    $replySubject = 'Re: Argusly contact request';
+                    $replyUrl = 'https://mail.google.com/mail/?'.http_build_query([
+                        'view' => 'cm',
+                        'fs' => '1',
+                        'to' => $contactRequest->email,
+                        'su' => $replySubject,
+                        'body' => $suggestedReply,
+                    ], '', '&', PHP_QUERY_RFC3986);
                     $topicLabel = [
                         'pilot' => 'Pilot request',
                         'sales' => 'Sales conversation',
@@ -62,7 +70,7 @@
                         </div>
 
                         <div class="flex flex-wrap gap-2">
-                            <a href="mailto:{{ $contactRequest->email }}?subject={{ rawurlencode('Re: Argusly contact request') }}&body={{ rawurlencode($suggestedReply) }}" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">Reply</a>
+                            <a href="{{ $replyUrl }}" target="_blank" rel="noreferrer" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">Reply</a>
                             @if ($contactRequest->website)
                                 <a href="{{ $contactRequest->website }}" target="_blank" rel="noreferrer" class="rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink transition hover:bg-panel">Open website</a>
                             @endif
@@ -116,6 +124,7 @@
                                     'reviewing' => 'Mark reviewing',
                                     'contacted' => 'Mark contacted',
                                     'unqualified' => 'Mark unqualified',
+                                    'spam' => 'Mark spam',
                                     'closed' => 'Close request',
                                     'new' => 'Reset new',
                                 ] as $status => $label)
@@ -125,9 +134,9 @@
                                         <input type="hidden" name="status" value="{{ $status }}">
                                         <button type="submit" @class([
                                             'w-full rounded-md border px-3 py-2 text-left text-sm font-semibold transition',
-                                            'border-red-200 bg-red-50 text-red-800 hover:bg-red-100' => $status === 'unqualified',
+                                            'border-red-200 bg-red-50 text-red-800 hover:bg-red-100' => in_array($status, ['unqualified', 'spam'], true),
                                             'border-slate-200 bg-slate-50 text-slate-800 hover:bg-slate-100' => $status === 'closed',
-                                            'border-line text-ink hover:bg-panel' => ! in_array($status, ['unqualified', 'closed'], true),
+                                            'border-line text-ink hover:bg-panel' => ! in_array($status, ['unqualified', 'spam', 'closed'], true),
                                         ])>{{ $label }}</button>
                                     </form>
                                 @endforeach

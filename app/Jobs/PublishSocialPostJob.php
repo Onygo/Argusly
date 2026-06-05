@@ -15,7 +15,10 @@ class PublishSocialPostJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $socialPostId) {}
+    public function __construct(public readonly int $socialPostId)
+    {
+        $this->onQueue(config('queue.names.publishing', 'publishing'));
+    }
 
     public function handle(SocialPublishingService $publishing): void
     {

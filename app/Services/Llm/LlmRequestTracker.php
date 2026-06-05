@@ -31,6 +31,9 @@ class LlmRequestTracker
             'model' => $request->model,
             'purpose' => $this->purpose($request),
             'status' => 'running',
+            'prompt_version' => $this->promptVersion($request),
+            'prompt_hash' => $this->promptHash($request),
+            'fallback_of_llm_request_id' => $this->intMetadata($request, 'fallback_of_llm_request_id'),
             'metadata' => [
                 ...($request->metadata ?? []),
                 'method' => $method,
@@ -53,6 +56,7 @@ class LlmRequestTracker
                 'completion_tokens' => $usage?->outputTokens,
                 'total_tokens' => $usage?->totalTokens,
                 'estimated_cost' => $this->estimatedCost($record, $response),
+                'actual_cost' => $this->estimatedCost($record, $response),
                 'credits_charged' => $creditsCharged,
                 'latency_ms' => $response->latencyMs,
                 'metadata' => [
@@ -116,6 +120,10 @@ class LlmRequestTracker
 
     private function chargeCredits(LlmRequest $record): int
     {
+        if (($record->metadata['credits_precharged'] ?? false) === true) {
+            return 0;
+        }
+
         if ($record->account_id === null || $record->credits_charged > 0) {
             return 0;
         }
@@ -191,6 +199,7 @@ class LlmRequestTracker
             'completion_tokens' => $record->completion_tokens,
             'total_tokens' => $record->total_tokens,
             'estimated_cost' => $record->estimated_cost,
+            'actual_cost' => $record->actual_cost,
             'credits_charged' => $record->credits_charged,
             'latency_ms' => $record->latency_ms,
         ], $record->completed_at, dispatch: false);
@@ -224,5 +233,23 @@ class LlmRequestTracker
         $value = $request->metadata[$key] ?? null;
 
         return is_numeric($value) ? (int) $value : null;
+    }
+
+    private function promptVersion(LlmRequestData $request): ?string
+    {
+        $version = $request->metadata['prompt_version'] ?? $request->metadata['prompt_template_version'] ?? null;
+
+        return is_string($version) && $version !== ''
+            ? str($version)->limit(255, '')->toString()
+            : null;
+    }
+
+    private function promptHash(LlmRequestData $request): string
+    {
+        return hash('sha256', json_encode([
+            'system' => $request->systemPrompt,
+            'messages' => $request->messages,
+            'response_format' => $request->responseFormat,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '');
     }
 }

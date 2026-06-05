@@ -548,8 +548,10 @@ class AdminControlCenterTest extends TestCase
             ->assertSee('zekisuquc419@gmail.com')
             ->assertSee('Hola, volia saber el seu preu.')
             ->assertSee('Personal email domain')
+            ->assertSee('https://mail.google.com/mail/', false)
             ->assertSee('Mark contacted')
-            ->assertSee('Mark unqualified');
+            ->assertSee('Mark unqualified')
+            ->assertSee('Mark spam');
     }
 
     public function test_platform_admin_can_update_contact_request_status(): void
@@ -582,6 +584,35 @@ class AdminControlCenterTest extends TestCase
 
         $this->assertNotNull(DB::table('contact_requests')->where('id', $id)->value('handled_at'));
         $this->assertDatabaseHas('activity_logs', ['event' => 'admin.contact_request.updated']);
+    }
+
+    public function test_platform_admin_can_mark_contact_request_as_spam(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $id = DB::table('contact_requests')->insertGetId([
+            'name' => 'Spam Lead',
+            'email' => 'spam@example.com',
+            'company' => null,
+            'topic' => 'other',
+            'message' => 'Generic outreach.',
+            'status' => 'new',
+            'metadata' => json_encode(['source' => 'marketing_contact']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $admin = $this->platformAdmin();
+
+        $this->actingAs($admin)
+            ->patch(route('admin.contact-requests.update', $id), ['status' => 'spam'])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('contact_requests', [
+            'id' => $id,
+            'status' => 'spam',
+            'handled_by' => $admin->id,
+        ]);
     }
 
     public function test_platform_admin_can_update_pilot_request_status(): void

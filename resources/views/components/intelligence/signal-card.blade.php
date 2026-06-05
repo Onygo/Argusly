@@ -34,6 +34,9 @@
             </div>
             <h3 class="mt-3 text-base font-semibold text-ink">{{ $signal->title }}</h3>
             <p class="mt-2 text-sm leading-6 text-muted">{{ $signal->summary }}</p>
+            @if (! $compact)
+                <a href="{{ route('app.intelligence.show', $signal) }}" class="mt-3 inline-flex text-sm font-semibold text-blue">Open signal</a>
+            @endif
         </div>
 
         <div class="grid shrink-0 grid-cols-2 gap-2 text-right sm:w-32">

@@ -8,6 +8,8 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <x-ui.badge variant="blue">{{ str($report->type)->headline() }}</x-ui.badge>
+                <x-ui.button href="{{ route('app.reports.export.pdf', $report) }}" variant="secondary">PDF</x-ui.button>
+                <x-ui.button href="{{ route('app.reports.export.powerpoint', $report) }}" variant="secondary">PPTX</x-ui.button>
                 <x-ui.button href="{{ route('app.reports') }}" variant="secondary">All reports</x-ui.button>
             </div>
         </div>
@@ -55,8 +57,8 @@
             <x-ui.card class="mt-6 p-5">
                 <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                     <div>
-                        <h2 class="text-lg font-semibold text-ink">HTML export</h2>
-                        <p class="mt-1 text-sm text-muted">Static HTML snapshot generated with the report. PDF and email delivery are intentionally not enabled yet.</p>
+                        <h2 class="text-lg font-semibold text-ink">Snapshot export</h2>
+                        <p class="mt-1 text-sm text-muted">Static HTML snapshot generated with the report. PDF and PowerPoint downloads are available from this snapshot.</p>
                     </div>
                     <x-ui.badge>{{ $snapshot->generated_at?->toDayDateTimeString() }}</x-ui.badge>
                 </div>

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\FeatureFlag;
 use App\Models\LlmRequest;
 use App\Models\OutboxMessage;
+use App\Models\SignalAlert;
 use App\Models\WebhookDelivery;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,9 @@ class PlatformHealthService
             'queue' => $this->queue(),
             'ai_runtime' => $this->aiRuntime(),
             'webhooks' => $this->webhooks(),
+            'sources' => $this->sources(),
+            'scheduler' => $this->scheduler(),
+            'alerts' => $this->alerts(),
             'feature_flags' => $this->featureFlags(),
         ];
     }
@@ -120,6 +124,46 @@ class PlatformHealthService
             'status' => $failedOutbox > 0 ? 'warning' : 'healthy',
             'label' => 'Feature Gates',
             'detail' => "{$enabled} enabled flags, {$failedOutbox} failed outbox messages.",
+        ];
+    }
+
+    private function sources(): array
+    {
+        $snapshot = app(SourceHealthService::class)->snapshot();
+        $critical = $snapshot['critical'];
+        $warning = $snapshot['warning'] + $snapshot['stale'];
+
+        return [
+            'status' => $critical > 0 ? 'critical' : ($warning > 0 ? 'warning' : 'healthy'),
+            'label' => 'Sources',
+            'detail' => "{$snapshot['healthy']} healthy, {$snapshot['warning']} warning, {$snapshot['critical']} critical sources.",
+        ];
+    }
+
+    private function scheduler(): array
+    {
+        $snapshot = app(SchedulerMonitorService::class)->snapshot();
+
+        return [
+            'status' => $snapshot['status'],
+            'label' => 'Scheduler',
+            'detail' => ($snapshot['last_run_at'] ? "Last heartbeat {$snapshot['last_run_at']}." : 'No scheduler heartbeat recorded.').' '.$snapshot['due_visibility_schedules'].' due visibility schedules.',
+        ];
+    }
+
+    private function alerts(): array
+    {
+        $open = Schema::hasTable('signal_alerts')
+            ? SignalAlert::query()->open()->count()
+            : 0;
+        $critical = Schema::hasTable('signal_alerts')
+            ? SignalAlert::query()->open()->where('severity', 'critical')->count()
+            : 0;
+
+        return [
+            'status' => $critical > 0 ? 'critical' : ($open > 0 ? 'warning' : 'healthy'),
+            'label' => 'Alerts',
+            'detail' => "{$open} open alerts, {$critical} critical.",
         ];
     }
 }

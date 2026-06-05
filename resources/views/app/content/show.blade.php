@@ -16,10 +16,15 @@
                 <x-ui.button href="{{ route('app.content.index') }}" variant="secondary">Back</x-ui.button>
                 @can('update', $asset)
                     <x-ui.button href="{{ route('app.content.edit', $asset) }}" variant="secondary">Edit</x-ui.button>
+                    <x-ui.button href="{{ route('app.content.operations') }}" variant="secondary">Operations</x-ui.button>
                     <form method="POST" action="{{ route('app.content.generate', $asset) }}">
                         @csrf
                         <input type="hidden" name="type" value="refresh">
                         <x-ui.button type="submit" variant="secondary">Generate · {{ config('credits.costs.content_generation') }}</x-ui.button>
+                    </form>
+                    <form method="POST" action="{{ route('app.content.distribution-bundle', $asset) }}">
+                        @csrf
+                        <x-ui.button type="submit" variant="secondary">Prepare distribution</x-ui.button>
                     </form>
                     <form method="POST" action="{{ route('app.content.audit', $asset) }}">
                         @csrf
@@ -61,6 +66,12 @@
         @if ($errors->has('credits'))
             <div class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                 {{ $errors->first('credits') }}
+            </div>
+        @endif
+
+        @if ($errors->has('generated_asset'))
+            <div class="mt-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {{ $errors->first('generated_asset') }}
             </div>
         @endif
 
@@ -512,10 +523,10 @@
             <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                 <div>
                     <h2 class="text-sm font-semibold text-ink">Generation history</h2>
-                    <p class="mt-1 text-sm text-muted">Static foundation runs for this content asset. Real AI providers are not connected yet.</p>
+                    <p class="mt-1 text-sm text-muted">Provider-backed generation runs for this content asset. If no provider is available, Argusly keeps the workflow moving with a fallback draft.</p>
                 </div>
                 @can('update', $asset)
-                    <form method="POST" action="{{ route('app.content.generate', $asset) }}" class="flex flex-wrap items-end gap-2">
+                    <form method="POST" action="{{ route('app.content.generate-draft', $asset) }}" class="flex flex-wrap items-end gap-2">
                         @csrf
                         <label>
                             <span class="sr-only">Generation type</span>
@@ -556,9 +567,17 @@
                         @if ($run->body)
                             <p class="mt-3 text-sm leading-6 text-muted">{{ str($run->body)->limit(220) }}</p>
                         @endif
+                        @if (in_array($run->status, ['completed', 'approved'], true) && $run->body)
+                            @can('update', $asset)
+                                <form method="POST" action="{{ route('app.content.generated-assets.apply', [$asset, $run]) }}" class="mt-3">
+                                    @csrf
+                                    <x-ui.button type="submit" size="sm" variant="secondary">Apply draft</x-ui.button>
+                                </form>
+                            @endcan
+                        @endif
                     </div>
                 @empty
-                    <x-dashboard.empty-state title="No generation runs yet" message="Queue a static generation run to exercise the foundation workflow." />
+                    <x-dashboard.empty-state title="No generation runs yet" message="Queue a generation run to create a new draft from this asset." />
                 @endforelse
             </div>
         </x-ui.card>

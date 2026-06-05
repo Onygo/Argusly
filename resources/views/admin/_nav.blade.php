@@ -14,6 +14,7 @@
         ['label' => 'Modules', 'route' => 'admin.modules'],
         ['label' => 'Subscriptions', 'route' => 'admin.subscriptions'],
         ['label' => 'Credits', 'route' => 'admin.credits'],
+        ['label' => 'Billing', 'route' => 'admin.billing'],
         ['label' => 'Cost Catalog', 'route' => 'admin.credit-costs'],
         ['label' => 'LLM', 'route' => 'admin.llm'],
         ['label' => 'AI Monitor', 'route' => 'admin.ai-runtime.monitor'],
@@ -37,25 +38,30 @@
         ['label' => 'Graph Edges', 'route' => 'admin.developer-tools.show', 'params' => ['graph-edges']],
         ['label' => 'System Health', 'route' => 'admin.developer-tools.show', 'params' => ['system-health']],
     ];
+    $showDeveloperTools = request()->routeIs('admin.platform.*', 'admin.developer-tools*');
 @endphp
 
-<div class="mb-6 rounded-md border border-line bg-white p-3">
-    <div class="flex flex-wrap gap-2">
-        @foreach ($primary as $item)
-            <a href="{{ route($item['route']) }}" @class([
-                'rounded-md px-3 py-2 text-sm font-semibold transition',
-                'bg-blue text-white' => request()->routeIs($item['route']),
-                'text-muted hover:bg-panel hover:text-ink' => ! request()->routeIs($item['route']),
-            ])>
-                {{ $item['label'] }}
-                @if (($item['badge'] ?? 0) > 0)
-                    <span class="ml-1 inline-flex min-w-5 justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">{{ $item['badge'] }}</span>
-                @endif
-            </a>
-        @endforeach
-    </div>
-    <div class="mt-3 border-t border-line pt-3">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">Developer Tools</p>
+<div class="mb-6 space-y-3">
+    @if (! $showDeveloperTools)
+        <section class="rounded-md border border-line bg-white p-3">
+            <div class="flex flex-wrap gap-2">
+                @foreach ($primary as $item)
+                    <a href="{{ route($item['route']) }}" @class([
+                        'rounded-md px-3 py-2 text-sm font-semibold transition',
+                        'bg-blue text-white' => request()->routeIs($item['route']),
+                        'text-muted hover:bg-panel hover:text-ink' => ! request()->routeIs($item['route']),
+                    ])>
+                        {{ $item['label'] }}
+                        @if (($item['badge'] ?? 0) > 0)
+                            <span class="ml-1 inline-flex min-w-5 justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">{{ $item['badge'] }}</span>
+                        @endif
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @else
+        <section class="rounded-md border border-line bg-white p-3">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted">Developer Tools</p>
         <div class="flex flex-wrap gap-2">
             @foreach ($developer as $item)
                 <a href="{{ route($item['route'], $item['params']) }}" @class([
@@ -65,5 +71,6 @@
                 ])>{{ $item['label'] }}</a>
             @endforeach
         </div>
-    </div>
+        </section>
+    @endif
 </div>

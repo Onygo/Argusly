@@ -19,6 +19,7 @@ use Illuminate\Support\Str;
     'type',
     'category',
     'priority',
+    'severity',
     'dedupe_key',
     'title',
     'summary',
@@ -40,6 +41,8 @@ class IntelligenceSignal extends Model
 
     public const PRIORITIES = ['low', 'medium', 'high', 'critical'];
 
+    public const SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'];
+
     public const CATEGORIES = ['content', 'visibility', 'competitor', 'social', 'system', 'billing', 'integration', 'narrative'];
 
     public const TYPES = [
@@ -59,6 +62,10 @@ class IntelligenceSignal extends Model
         'publishing_failed',
         'publishing_completed',
         'narrative_gap_detected',
+        'mention_captured',
+        'sentiment_shift',
+        'topic_velocity',
+        'competitor_mention',
     ];
 
     protected static function booted(): void
@@ -91,6 +98,11 @@ class IntelligenceSignal extends Model
     public function recommendations(): HasMany
     {
         return $this->hasMany(Recommendation::class, 'signal_id');
+    }
+
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(SignalAlert::class, 'intelligence_signal_id');
     }
 
     /**

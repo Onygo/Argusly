@@ -37,6 +37,13 @@ class CreditCostCatalogSeeder extends Seeder
     {
         return [
             'blog_generation' => ['name' => 'Blog Generation', 'category' => 'content', 'default_cost' => 100],
+            'content_generation' => [
+                'name' => 'Content Generation',
+                'description' => 'General first draft and generated asset creation.',
+                'category' => 'content',
+                'default_cost' => 100,
+                'metadata' => ['canonical_code' => 'blog_generation'],
+            ],
             'landing_page_generation' => ['name' => 'Landing Page Generation', 'category' => 'content', 'default_cost' => 125],
             'newsletter_generation' => ['name' => 'Newsletter Generation', 'category' => 'newsletter', 'default_cost' => 75],
             'social_post_generation' => ['name' => 'Social Post Generation', 'category' => 'social', 'default_cost' => 25],

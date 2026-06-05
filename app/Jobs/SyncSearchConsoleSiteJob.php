@@ -17,7 +17,9 @@ class SyncSearchConsoleSiteJob implements ShouldQueue
     public function __construct(
         public readonly int $searchConsoleSiteId,
         public readonly int $days = 30,
-    ) {}
+    ) {
+        $this->onQueue(config('queue.names.integrations', 'integrations'));
+    }
 
     public function handle(SearchConsolePerformanceService $searchConsole): void
     {

@@ -3,15 +3,20 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\AgentRun;
 use App\Models\AgentTask;
+use App\Models\Approval;
 use App\Models\Brand;
+use App\Models\Briefing;
 use App\Models\Recommendation;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AgenticMarketingWorkflowService;
 use App\Services\AgentManager;
 use App\Services\AgentRunner;
 use App\Services\AgentTaskDispatcher;
 use App\Services\AgentTaskPlannerService;
+use App\Services\ApprovalService;
 use App\Services\CreditService;
 use App\Services\RecommendationActionService;
 use App\Services\Subscriptions\SubscriptionService;
@@ -227,6 +232,142 @@ class AgentFrameworkTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         app(AgentTaskPlannerService::class)->planForRecommendation($foreignRecommendation, $user);
+    }
+
+    public function test_agentic_workflow_plans_recommendations_with_approval_and_audit_trail(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Create campaign task plan',
+            'summary' => 'Campaign needs coordinated work.',
+            'recommended_action' => 'Create a task plan for the launch campaign.',
+            'action_type' => 'create_campaign_task_plan',
+            'status' => 'new',
+            'impact_score' => 82,
+            'confidence_score' => 88,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('app.agents'))
+            ->assertOk()
+            ->assertSee('Workflow engine')
+            ->assertSee('Planning engine')
+            ->assertSee('Create campaign task plan');
+
+        $this->actingAs($user)
+            ->post(route('app.agents.recommendations.plan', $recommendation))
+            ->assertRedirect(route('app.agents.tasks'));
+
+        $task = AgentTask::query()->where('recommendation_id', $recommendation->id)->firstOrFail();
+
+        $this->assertSame('Content Agent', $task->agent->name);
+        $this->assertSame('pending', $task->status);
+        $this->assertDatabaseHas('approvals', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'subject_type' => AgentTask::class,
+            'subject_id' => $task->id,
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseHas('domain_events', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'event_type' => 'AgenticWorkflowPlanned',
+            'subject_type' => AgentTask::class,
+            'subject_id' => $task->id,
+        ]);
+    }
+
+    public function test_approved_agentic_task_can_be_queued_run_and_monitored(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Run visibility check',
+            'summary' => 'Visibility needs a follow-up run.',
+            'recommended_action' => 'Run a visibility follow-up task.',
+            'action_type' => 'run_visibility_check',
+            'status' => 'accepted',
+        ]);
+        $task = app(AgenticMarketingWorkflowService::class)->planRecommendation($recommendation, $user);
+        $approval = Approval::query()
+            ->where('subject_type', AgentTask::class)
+            ->where('subject_id', $task->id)
+            ->firstOrFail();
+
+        app(ApprovalService::class)->approve($approval, $user, 'Ready.');
+
+        $this->actingAs($user)
+            ->post(route('app.agents.tasks.queue', $task->refresh()))
+            ->assertRedirect();
+        $this->assertSame('queued', $task->refresh()->status);
+
+        $this->actingAs($user)
+            ->post(route('app.agents.tasks.run', $task->refresh()))
+            ->assertRedirect(route('app.agents.runs'));
+
+        $task->refresh();
+        $run = AgentRun::query()->where('id', $task->agent_run_id)->firstOrFail();
+
+        $this->assertSame('completed', $task->status);
+        $this->assertSame('completed', $run->status);
+        $this->assertSame('guarded', $run->result['runtime']);
+        $this->assertDatabaseHas('domain_events', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'event_type' => 'AgentRunStarted',
+            'subject_id' => $run->id,
+        ]);
+        $this->assertDatabaseHas('domain_events', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'event_type' => 'AgenticWorkflowCompleted',
+            'subject_id' => $task->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('app.agents.runs'))
+            ->assertOk()
+            ->assertSee('Run monitoring')
+            ->assertSee('Visibility Agent');
+    }
+
+    public function test_briefing_can_seed_agentic_planning_workflow(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $briefing = Briefing::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Launch narrative briefing',
+            'objective' => 'Prepare campaign content from the approved narrative.',
+            'audience' => 'Enterprise buyers',
+            'tone_of_voice' => 'Clear',
+            'key_message' => 'Argusly turns intelligence into action.',
+            'channels' => ['blog', 'linkedin'],
+            'languages' => ['en'],
+            'status' => 'approved',
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('app.agents.briefings.plan', $briefing))
+            ->assertRedirect(route('app.agents.tasks'));
+
+        $task = AgentTask::query()->where('title', 'Prepare content plan for Launch narrative briefing')->firstOrFail();
+
+        $this->assertSame('Content Agent', $task->agent->name);
+        $this->assertSame('briefing_to_plan', $task->payload['workflow']);
+        $this->assertSame($briefing->id, $task->payload['briefing_id']);
+        $this->assertDatabaseHas('approvals', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'subject_type' => AgentTask::class,
+            'subject_id' => $task->id,
+            'status' => 'pending',
+        ]);
     }
 
     /**

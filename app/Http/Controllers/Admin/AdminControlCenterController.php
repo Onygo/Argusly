@@ -42,9 +42,11 @@ use App\Models\SubscriptionModule;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Services\ActivityLogger;
+use App\Services\CommercialOperationsService;
 use App\Services\CreditService;
 use App\Services\DomainEventService;
 use App\Services\LlmSettingsService;
+use App\Services\MollieBillingService;
 use App\Services\Subscriptions\SubscriptionService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -357,9 +359,29 @@ class AdminControlCenterController extends Controller
     public function modules(): View
     {
         return view('admin.modules', [
+            'plans' => Plan::query()->with('modules')->withCount('subscriptions')->orderBy('amount')->get(),
             'modules' => Module::query()->withCount('subscriptionModules')->orderBy('name')->get(),
             'accounts' => Account::query()->with('subscriptionModules.module', 'activeSubscription.plan')->orderBy('name')->paginate(20),
         ]);
+    }
+
+    public function updatePlan(Request $request, Plan $plan): RedirectResponse
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'amount' => ['required', 'integer', 'min:0'],
+            'billing_interval' => ['required', 'in:monthly,yearly,one_time'],
+            'currency' => ['required', 'string', 'size:3'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $plan->update([
+            ...$data,
+            'is_active' => $request->boolean('is_active'),
+        ]);
+
+        return back()->with('status', "{$plan->name} plan updated.");
     }
 
     public function enableModule(Request $request): RedirectResponse
@@ -391,7 +413,58 @@ class AdminControlCenterController extends Controller
         return view('admin.credits', [
             'accounts' => Account::query()->with('creditBalance')->orderBy('name')->paginate(20),
             'transactions' => CreditTransaction::query()->with(['account', 'user'])->latest()->limit(30)->get(),
+            'usage' => CreditUsageStat::query()->with(['account', 'brand'])->latest('period_start')->limit(30)->get(),
         ]);
+    }
+
+    public function billing(CommercialOperationsService $commercial): View
+    {
+        return view('admin.billing', [
+            'dashboard' => $commercial->dashboard(),
+            'plans' => Plan::query()->where('is_active', true)->orderBy('amount')->get(),
+            'accounts' => Account::query()->with(['activeSubscription.plan', 'creditBalance'])->orderBy('name')->get(),
+        ]);
+    }
+
+    public function startMollieCheckout(Request $request, MollieBillingService $mollie): RedirectResponse
+    {
+        $data = $request->validate([
+            'account_id' => ['required', 'exists:accounts,id'],
+            'plan_id' => ['required', 'exists:plans,id'],
+        ]);
+
+        $account = Account::query()->findOrFail($data['account_id']);
+        $plan = Plan::query()->findOrFail($data['plan_id']);
+        $checkout = $mollie->createCheckout($account, $plan, $request->user());
+
+        return back()->with('status', 'Mollie checkout created: '.$checkout['checkout_url']);
+    }
+
+    public function createInvoice(Request $request, CommercialOperationsService $commercial): RedirectResponse
+    {
+        $data = $request->validate([
+            'account_id' => ['required', 'exists:accounts,id'],
+        ]);
+
+        $account = Account::query()->findOrFail($data['account_id']);
+        $invoice = $commercial->createInvoice($account);
+
+        return back()->with('status', "Invoice {$invoice->uuid} created.");
+    }
+
+    public function recordOverage(Request $request, CommercialOperationsService $commercial): RedirectResponse
+    {
+        $data = $request->validate([
+            'account_id' => ['required', 'exists:accounts,id'],
+            'limit_key' => ['required', 'string', 'max:255'],
+            'usage' => ['required', 'integer', 'min:0'],
+            'limit' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $account = Account::query()->findOrFail($data['account_id']);
+        $transaction = $commercial->recordOverage($account, $data['limit_key'], (int) $data['usage'], (int) $data['limit'], $request->user());
+
+        return back()->with('status', $transaction ? 'Overage recorded.' : 'No overage found.');
     }
 
     public function creditCosts(Request $request): View
@@ -493,12 +566,17 @@ class AdminControlCenterController extends Controller
     {
         return view('admin.llm-requests', [
             'accounts' => Account::query()->orderBy('name')->get(),
+            'brands' => Brand::query()->orderBy('name')->get(),
             'requests' => LlmRequest::query()
                 ->with(['account', 'brand', 'user'])
                 ->when($request->integer('account_id'), fn (Builder $query, int $accountId) => $query->where('account_id', $accountId))
+                ->when($request->integer('brand_id'), fn (Builder $query, int $brandId) => $query->where('brand_id', $brandId))
                 ->when($request->string('provider')->toString(), fn (Builder $query, string $provider) => $query->where('provider', $provider))
+                ->when($request->string('model')->toString(), fn (Builder $query, string $model) => $query->where('model', $model))
                 ->when($request->string('purpose')->toString(), fn (Builder $query, string $purpose) => $query->where('purpose', $purpose))
                 ->when($request->string('status')->toString(), fn (Builder $query, string $status) => $query->where('status', $status))
+                ->when($request->date('from'), fn (Builder $query, $date) => $query->where('created_at', '>=', $date->startOfDay()))
+                ->when($request->date('to'), fn (Builder $query, $date) => $query->where('created_at', '<=', $date->endOfDay()))
                 ->latest('created_at')
                 ->paginate(30)
                 ->withQueryString(),
@@ -529,13 +607,28 @@ class AdminControlCenterController extends Controller
             'fallback_model_id' => ['nullable', 'integer', 'exists:llm_models,id'],
             'temperature' => ['nullable', 'numeric', 'between:0,2'],
             'max_tokens' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'allowed_providers' => ['nullable', 'string', 'max:500'],
+            'denied_providers' => ['nullable', 'string', 'max:500'],
+            'allowed_models' => ['nullable', 'string', 'max:1000'],
+            'denied_models' => ['nullable', 'string', 'max:1000'],
+            'monthly_credit_budget' => ['nullable', 'integer', 'min:0'],
+            'brand_monthly_credit_budget' => ['nullable', 'integer', 'min:0'],
+            'user_monthly_credit_budget' => ['nullable', 'integer', 'min:0'],
         ]);
         $validated = $this->nullableLlmAttributes($validated);
 
         $this->validateLlmPair($validated['default_provider_id'] ?? null, $validated['default_model_id'] ?? null, 'default');
         $this->validateLlmPair($validated['fallback_provider_id'] ?? null, $validated['fallback_model_id'] ?? null, 'fallback');
 
-        $settings->upsertGlobal($validated);
+        $settings->upsertGlobal([
+            'default_provider_id' => $validated['default_provider_id'] ?? null,
+            'default_model_id' => $validated['default_model_id'] ?? null,
+            'fallback_provider_id' => $validated['fallback_provider_id'] ?? null,
+            'fallback_model_id' => $validated['fallback_model_id'] ?? null,
+            'temperature' => $validated['temperature'] ?? null,
+            'max_tokens' => $validated['max_tokens'] ?? null,
+            'settings' => $this->llmPolicySettings($validated),
+        ]);
 
         return back()->with('status', 'Global LLM defaults updated.');
     }
@@ -697,7 +790,7 @@ class AdminControlCenterController extends Controller
         abort_unless(Schema::hasTable('contact_requests'), 404);
 
         $data = $request->validate([
-            'status' => ['required', 'in:new,reviewing,contacted,unqualified,closed'],
+            'status' => ['required', 'in:new,reviewing,contacted,unqualified,spam,closed'],
         ]);
 
         $current = DB::table('contact_requests')->where('id', $contactRequest)->first();
@@ -1055,6 +1148,49 @@ class AdminControlCenterController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>|null
+     */
+    private function llmPolicySettings(array $attributes): ?array
+    {
+        $settings = [
+            'allowed_providers' => $this->commaList($attributes['allowed_providers'] ?? null),
+            'denied_providers' => $this->commaList($attributes['denied_providers'] ?? null),
+            'allowed_models' => $this->commaList($attributes['allowed_models'] ?? null),
+            'denied_models' => $this->commaList($attributes['denied_models'] ?? null),
+            'monthly_credit_budget' => $this->nullablePositiveInt($attributes['monthly_credit_budget'] ?? null),
+            'brand_monthly_credit_budget' => $this->nullablePositiveInt($attributes['brand_monthly_credit_budget'] ?? null),
+            'user_monthly_credit_budget' => $this->nullablePositiveInt($attributes['user_monthly_credit_budget'] ?? null),
+        ];
+
+        $settings = array_filter($settings, fn ($value) => $value !== null && $value !== []);
+
+        return $settings === [] ? null : $settings;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function commaList(mixed $value): array
+    {
+        return collect(explode(',', (string) $value))
+            ->map(fn (string $item) => trim($item))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function nullablePositiveInt(mixed $value): ?int
+    {
+        if (! is_numeric($value) || (int) $value <= 0) {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    /**
      * @return array<string, array<string, mixed>>
      */
     private function developerTools(Request $request): array
@@ -1171,7 +1307,7 @@ class AdminControlCenterController extends Controller
     private function contactRequestStats(): array
     {
         if (! Schema::hasTable('contact_requests')) {
-            return ['new' => 0, 'reviewing' => 0, 'contacted' => 0, 'unqualified' => 0, 'closed' => 0, 'total' => 0];
+            return ['new' => 0, 'reviewing' => 0, 'contacted' => 0, 'unqualified' => 0, 'spam' => 0, 'closed' => 0, 'total' => 0];
         }
 
         $counts = DB::table('contact_requests')
@@ -1184,6 +1320,7 @@ class AdminControlCenterController extends Controller
             'reviewing' => (int) ($counts['reviewing'] ?? 0),
             'contacted' => (int) ($counts['contacted'] ?? 0),
             'unqualified' => (int) ($counts['unqualified'] ?? 0),
+            'spam' => (int) ($counts['spam'] ?? 0),
             'closed' => (int) ($counts['closed'] ?? 0),
             'total' => (int) $counts->sum(),
         ];

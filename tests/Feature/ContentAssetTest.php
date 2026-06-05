@@ -4,6 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\BrandNarrative;
+use App\Models\BrandProfile;
+use App\Models\BrandService;
 use App\Models\ContentAsset;
 use App\Models\Role;
 use App\Models\User;
@@ -96,6 +99,210 @@ class ContentAssetTest extends TestCase
         ]);
     }
 
+    public function test_create_page_prioritizes_guided_first_draft_controls(): void
+    {
+        [$editor] = $this->tenantWithRole('editor');
+
+        $this->actingAs($editor)
+            ->get(route('app.content.create'))
+            ->assertOk()
+            ->assertSee('Generate first draft')
+            ->assertSee('Primary keyword')
+            ->assertSee('Chained content')
+            ->assertSee('Number of drafts')
+            ->assertSee('Use 1 for a single draft')
+            ->assertSee('Context used')
+            ->assertSee('Create manual asset')
+            ->assertSee('Credits')
+            ->assertSee('1,000')
+            ->assertDontSee('Locale');
+    }
+
+    public function test_editor_can_create_guided_first_draft_from_keyword_and_brand_context(): void
+    {
+        [$editor, $account, $brand] = $this->tenantWithRole('editor');
+        BrandProfile::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'official_name' => 'Alpha Labs',
+            'short_description' => 'Alpha Labs helps teams improve AI visibility.',
+            'tone_of_voice' => 'Practical, direct and evidence-led.',
+            'primary_audience' => 'Marketing leaders',
+            'value_proposition' => 'Clear workflows for answer-ready content.',
+        ]);
+        BrandService::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Content intelligence',
+            'description' => 'Finds content gaps before competitors do.',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($editor)
+            ->post(route('app.content.store'), [
+                'creation_mode' => 'guided_first_draft',
+                'draft_mode' => 'single',
+                'title' => 'AI visibility roadmap',
+                'primary_keyword' => 'AI visibility',
+                'secondary_keywords' => 'answer engine optimization, GEO',
+                'angle' => 'Make it useful for teams planning next quarter.',
+                'audience' => 'B2B marketing teams',
+                'type' => 'article',
+                'language' => 'en',
+            ]);
+
+        $asset = ContentAsset::query()->where('title', 'AI visibility roadmap')->firstOrFail();
+        $response->assertRedirect(route('app.content.show', $asset));
+
+        $this->assertSame('draft', $asset->status);
+        $this->assertSame('en_US', $asset->locale);
+        $this->assertSame('guided_first_draft', $asset->source);
+        $this->assertSame('guided_first_draft', $asset->metadata['workflow']);
+        $this->assertSame('AI visibility', $asset->metadata['primary_keyword']);
+        $this->assertSame(['answer engine optimization', 'GEO'], $asset->metadata['secondary_keywords']);
+        $this->assertContains('company_profile', $asset->metadata['context_sources']);
+        $this->assertContains('services', $asset->metadata['context_sources']);
+        $this->assertStringContainsString('Practical, direct and evidence-led.', $asset->body);
+        $this->assertStringContainsString('Content intelligence', $asset->body);
+    }
+
+    public function test_editor_can_create_single_guided_first_draft_with_chain_count_one(): void
+    {
+        [$editor] = $this->tenantWithRole('editor');
+
+        $this->actingAs($editor)
+            ->post(route('app.content.store'), [
+                'creation_mode' => 'guided_first_draft',
+                'draft_mode' => 'single',
+                'primary_keyword' => 'agentic marketing',
+                'chain_count' => 1,
+                'type' => 'article',
+                'language' => 'en',
+            ])
+            ->assertRedirect();
+
+        $asset = ContentAsset::query()->where('source', 'guided_first_draft')->firstOrFail();
+
+        $this->assertSame('single', $asset->metadata['draft_mode']);
+        $this->assertNull($asset->metadata['chain_count']);
+        $this->assertSame('Agentic Marketing', $asset->title);
+    }
+
+    public function test_chained_guided_first_draft_requires_at_least_two_items(): void
+    {
+        [$editor] = $this->tenantWithRole('editor');
+
+        $this->actingAs($editor)
+            ->from(route('app.content.create'))
+            ->post(route('app.content.store'), [
+                'creation_mode' => 'guided_first_draft',
+                'draft_mode' => 'chain',
+                'primary_keyword' => 'agentic marketing',
+                'chain_count' => 1,
+                'type' => 'article',
+                'language' => 'en',
+            ])
+            ->assertRedirect(route('app.content.create'))
+            ->assertSessionHasErrors('chain_count');
+
+        $this->assertSame(0, ContentAsset::query()->where('source', 'guided_first_draft')->count());
+    }
+
+    public function test_content_locale_is_inferred_from_selected_language(): void
+    {
+        [$editor, , $brand] = $this->tenantWithRole('editor');
+        $brand->update([
+            'default_content_language' => 'en',
+            'enabled_content_languages' => ['en', 'nl'],
+        ]);
+
+        $this->actingAs($editor)
+            ->post(route('app.content.store'), $this->assetPayload([
+                'title' => 'Nederlandse content',
+                'language' => 'nl',
+                'locale' => null,
+            ]))
+            ->assertRedirect();
+
+        $asset = ContentAsset::query()->where('title', 'Nederlandse content')->firstOrFail();
+
+        $this->assertSame('nl', $asset->language);
+        $this->assertSame('nl_NL', $asset->locale);
+    }
+
+    public function test_guided_first_draft_locale_is_inferred_from_selected_language(): void
+    {
+        [$editor, , $brand] = $this->tenantWithRole('editor');
+        $brand->update([
+            'default_content_language' => 'en',
+            'enabled_content_languages' => ['en', 'nl'],
+        ]);
+
+        $this->actingAs($editor)
+            ->post(route('app.content.store'), [
+                'creation_mode' => 'guided_first_draft',
+                'draft_mode' => 'single',
+                'primary_keyword' => 'contentstrategie',
+                'type' => 'article',
+                'language' => 'nl',
+            ])
+            ->assertRedirect();
+
+        $asset = ContentAsset::query()->where('source', 'guided_first_draft')->firstOrFail();
+
+        $this->assertSame('nl', $asset->language);
+        $this->assertSame('nl_NL', $asset->locale);
+    }
+
+    public function test_editor_can_create_chained_guided_first_drafts(): void
+    {
+        [$editor, $account, $brand] = $this->tenantWithRole('editor');
+        BrandProfile::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'official_name' => 'Alpha Labs',
+            'short_description' => 'Alpha Labs helps teams improve AI visibility.',
+            'tone_of_voice' => 'Practical and concise.',
+        ]);
+        BrandNarrative::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'AI-first marketing operations',
+            'description' => 'Modern teams need integrated intelligence and execution.',
+            'importance' => 'high',
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($editor)
+            ->post(route('app.content.store'), [
+                'creation_mode' => 'guided_first_draft',
+                'draft_mode' => 'chain',
+                'primary_keyword' => 'content planning',
+                'chain_count' => 3,
+                'type' => 'article',
+                'language' => 'en',
+                'locale' => 'en_US',
+            ])
+            ->assertRedirect();
+
+        $assets = ContentAsset::query()
+            ->where('source', 'guided_first_draft')
+            ->where('metadata->primary_keyword', 'content planning')
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(3, $assets);
+        $chainId = $assets->first()->metadata['chain_id'];
+        $this->assertNotEmpty($chainId);
+
+        $assets->each(function (ContentAsset $asset, int $index) use ($chainId): void {
+            $this->assertSame($chainId, $asset->metadata['chain_id']);
+            $this->assertSame($index + 1, $asset->metadata['chain_position']);
+            $this->assertSame(3, $asset->metadata['chain_count']);
+            $this->assertStringContainsString('article '.($index + 1).' of 3', $asset->body);
+        });
+    }
+
     public function test_publisher_and_admin_can_approve_and_publish_content_assets(): void
     {
         [$publisher, , $publisherBrand] = $this->tenantWithRole('publisher');
@@ -122,6 +329,39 @@ class ContentAssetTest extends TestCase
         $this->assertSame('published', $adminAsset->status);
         $this->assertNotNull($adminAsset->published_at);
         $this->assertNotNull($adminAsset->first_published_at);
+    }
+
+    public function test_editor_can_queue_generation_for_existing_content_asset(): void
+    {
+        [$editor, , $brand] = $this->tenantWithRole('editor');
+        $asset = ContentAsset::factory()->forBrand($brand)->create([
+            'type' => 'article',
+            'status' => 'draft',
+            'title' => 'Existing article',
+            'language' => 'en',
+            'locale' => 'en_US',
+        ]);
+
+        $this->actingAs($editor)
+            ->post(route('app.content.generate', $asset), [
+                'type' => 'article',
+                'prompt' => 'Improve this article.',
+                'language' => 'en',
+            ])
+            ->assertRedirect(route('app.content.show', $asset));
+
+        $this->assertDatabaseHas('generated_assets', [
+            'content_asset_id' => $asset->id,
+            'status' => 'completed',
+            'type' => 'article',
+            'cost_credits' => 100,
+        ]);
+        $this->assertDatabaseHas('credit_transactions', [
+            'account_id' => $asset->account_id,
+            'user_id' => $editor->id,
+            'type' => 'content_generation',
+            'amount' => -100,
+        ]);
     }
 
     /**

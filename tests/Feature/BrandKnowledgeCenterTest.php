@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\Audience;
 use App\Models\Brand;
+use App\Models\BrandNarrative;
 use App\Models\BrandProduct;
 use App\Models\BrandProfile;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\BrandKnowledgeCenterService;
+use App\Services\CreditService;
 use App\Services\Subscriptions\SubscriptionService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
@@ -89,6 +92,140 @@ class BrandKnowledgeCenterTest extends TestCase
             ->assertSee('AI-first brand memory')
             ->assertSee('Creator matching')
             ->assertSee('Relationship intelligence');
+    }
+
+    public function test_editor_can_access_brand_voice_from_content_navigation(): void
+    {
+        [$editor, $account, $brand] = $this->tenantWithRole('editor');
+
+        $this->actingAs($editor)
+            ->get(route('app.content.brand-voice'))
+            ->assertOk()
+            ->assertSee('Brand Voice')
+            ->assertSee('Tone of voice')
+            ->assertSee('Primary audience');
+
+        $this->actingAs($editor)
+            ->patch(route('app.content.brand-voice.profile.update'), [
+                'official_name' => 'Alpha Brand',
+                'tagline' => 'Be answer-ready.',
+                'short_description' => 'A practical content operations brand.',
+                'long_description' => null,
+                'mission' => null,
+                'vision' => null,
+                'positioning' => null,
+                'value_proposition' => null,
+                'tone_of_voice' => 'Sharp, useful and direct.',
+                'primary_audience' => 'Marketing teams and editors.',
+                'secondary_audience' => 'Agency strategists.',
+                'website' => null,
+            ])
+            ->assertRedirect(route('app.content.brand-voice'));
+
+        $this->assertDatabaseHas('brand_profiles', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'tone_of_voice' => 'Sharp, useful and direct.',
+            'primary_audience' => 'Marketing teams and editors.',
+        ]);
+    }
+
+    public function test_ai_setup_can_generate_preview_and_apply_to_argusly_structures(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+
+        app(CreditService::class)->grant($account, 1000, $user, 'Brand setup generation test credits');
+
+        $this->actingAs($user)
+            ->post(route('settings.knowledge-center.setup.generate'), [
+                'input_method' => 'paste_text',
+                'source_text' => 'Argusly helps marketing teams understand and improve how AI systems describe their brand.',
+                'sections' => ['company_profile', 'brand_voices', 'buyer_personas', 'team_personas'],
+            ])
+            ->assertRedirect(route('settings.knowledge-center'))
+            ->assertSessionHas('brand_setup_preview');
+
+        $payload = [
+            'company_profile' => [
+                'official_name' => 'Argusly',
+                'tagline' => 'Be found by AI.',
+                'short_description' => 'AI visibility platform.',
+                'long_description' => 'Argusly helps brands improve representation in answer engines.',
+                'mission' => 'Make brands machine-understandable.',
+                'vision' => 'Every brand has an AI-ready source of truth.',
+                'positioning' => 'AI visibility operating system.',
+                'value_proposition' => 'Centralize brand knowledge for content and visibility workflows.',
+                'tone_of_voice' => 'Clear and pragmatic.',
+                'primary_audience' => 'Marketing leaders.',
+                'secondary_audience' => 'Content teams.',
+                'website' => 'https://argusly.example',
+            ],
+            'brand_voices' => [
+                [
+                    'name' => 'Expert operator',
+                    'description' => 'Specific, practical and evidence-led.',
+                    'do' => ['Use concrete examples'],
+                    'dont' => ['Use generic claims'],
+                ],
+            ],
+            'buyer_personas' => [
+                [
+                    'name' => 'Marketing leader',
+                    'description' => 'Owns visibility and content outcomes.',
+                    'needs' => ['Clear priorities'],
+                    'pain_points' => ['Fragmented brand knowledge'],
+                ],
+            ],
+            'team_personas' => [
+                [
+                    'name' => 'Founder spokesperson',
+                    'description' => 'Explains the market point of view.',
+                    'role' => 'Founder',
+                    'expertise' => ['Strategy'],
+                ],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->post(route('settings.knowledge-center.setup.apply'), [
+                'payload' => json_encode($payload),
+                'sections' => ['company_profile', 'brand_voices', 'buyer_personas', 'team_personas'],
+            ])
+            ->assertRedirect(route('settings.knowledge-center'));
+
+        $this->assertDatabaseHas('brand_profiles', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'official_name' => 'Argusly',
+            'primary_audience' => 'Marketing leaders.',
+        ]);
+        $this->assertDatabaseHas('brand_narratives', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Brand voice: Expert operator',
+        ]);
+        $this->assertDatabaseHas('audiences', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Marketing leader',
+        ]);
+        $this->assertDatabaseHas('audiences', [
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Founder spokesperson',
+        ]);
+
+        $this->assertSame(1, BrandNarrative::query()->where('brand_id', $brand->id)->count());
+        $this->assertSame(2, Audience::query()->where('brand_id', $brand->id)->count());
+    }
+
+    public function test_old_signals_route_redirects_to_intelligence_feed(): void
+    {
+        [$editor] = $this->tenantWithRole('editor');
+
+        $this->actingAs($editor)
+            ->get(route('app.intelligence.signals'))
+            ->assertRedirect(route('app.intelligence'));
     }
 
     public function test_knowledge_center_is_one_profile_per_brand_and_brand_scoped(): void

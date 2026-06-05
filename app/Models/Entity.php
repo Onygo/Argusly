@@ -53,11 +53,16 @@ class Entity extends Model
         });
 
         static::created(function (Entity $entity): void {
-            app(DomainEventService::class)->recordForSubject('EntityCreated', $entity, null, [
-                'name' => $entity->name,
-                'entity_type' => $entity->entity_type,
-            ], dispatch: false);
-            app(\App\Services\Graph\GraphProjectionService::class)->project($entity);
+            if ($entity->account_id !== null) {
+                app(DomainEventService::class)->recordForSubject('EntityCreated', $entity, null, [
+                    'name' => $entity->name,
+                    'entity_type' => $entity->entity_type,
+                ], dispatch: false);
+            }
+
+            if ($entity->account_id !== null) {
+                app(\App\Services\Graph\GraphProjectionService::class)->project($entity);
+            }
         });
 
         static::saving(function (Entity $entity): void {

@@ -158,6 +158,41 @@ class RecommendationEngineTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_recommendations_can_be_reviewed_archived_and_listed(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $recommendation = Recommendation::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'title' => 'Review positioning',
+            'summary' => 'Review the positioning recommendation.',
+            'recommended_action' => 'Review and decide next step.',
+            'impact_score' => 50,
+            'confidence_score' => 70,
+            'status' => 'new',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('app.intelligence.recommendations'))
+            ->assertOk()
+            ->assertSee('Recommendations')
+            ->assertSee('Review positioning');
+
+        $this->actingAs($user)
+            ->post(route('app.recommendations.review', $recommendation))
+            ->assertRedirect();
+
+        $this->assertSame('reviewed', $recommendation->refresh()->status);
+        $this->assertNotNull($recommendation->reviewed_at);
+
+        $this->actingAs($user)
+            ->post(route('app.recommendations.archive', $recommendation))
+            ->assertRedirect();
+
+        $this->assertSame('archived', $recommendation->refresh()->status);
+        $this->assertNotNull($recommendation->archived_at);
+    }
+
     public function test_executable_recommendation_accepts_and_queues_content_audit_action(): void
     {
         Queue::fake();

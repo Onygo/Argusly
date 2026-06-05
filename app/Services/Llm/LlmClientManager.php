@@ -13,6 +13,7 @@ use App\Services\Llm\Clients\MistralLlmClient;
 use App\Services\Llm\Clients\OpenAiLlmClient;
 use App\Services\Llm\Clients\OpenRouterLlmClient;
 use InvalidArgumentException;
+use RuntimeException;
 use Throwable;
 use Traversable;
 
@@ -27,6 +28,8 @@ class LlmClientManager implements LlmClientInterface
         private readonly OpenRouterLlmClient $openrouter,
         private readonly FakeLlmClient $fake,
         private readonly LlmRequestTracker $tracker,
+        private readonly LlmRuntimeRouter $router,
+        private readonly LlmRuntimeGuard $guard,
     ) {}
 
     public function chat(LlmRequest $request): LlmResponse
@@ -73,10 +76,13 @@ class LlmClientManager implements LlmClientInterface
      */
     private function tracked(LlmRequest $request, string $method, callable $callback): LlmResponse
     {
+        $request = $this->router->route($request, $this->typeForMethod($method));
         $record = $this->tracker->start($request, $method);
 
         try {
+            $this->guard->ensureAllowed($request);
             $response = $callback($this->clientFor($request->provider), $request);
+            $this->validateStructuredOutput($request, $response);
             $this->tracker->complete($record, $response);
 
             return $response;
@@ -93,7 +99,9 @@ class LlmClientManager implements LlmClientInterface
             $fallbackRecord = $this->tracker->start($fallbackRequest, $method);
 
             try {
+                $this->guard->ensureAllowed($fallbackRequest);
                 $response = $callback($this->clientFor($fallbackRequest->provider), $fallbackRequest);
+                $this->validateStructuredOutput($fallbackRequest, $response);
                 $this->tracker->complete($fallbackRecord, $response);
 
                 return $response;
@@ -107,10 +115,12 @@ class LlmClientManager implements LlmClientInterface
 
     private function trackedStream(LlmRequest $request): Traversable
     {
+        $request = $this->router->route($request, 'chat');
         $record = $this->tracker->start($request, 'stream');
         $content = '';
 
         try {
+            $this->guard->ensureAllowed($request);
             foreach ($this->clientFor($request->provider)->stream($request) as $chunk) {
                 $content .= $chunk;
 
@@ -137,6 +147,7 @@ class LlmClientManager implements LlmClientInterface
             $fallbackContent = '';
 
             try {
+                $this->guard->ensureAllowed($fallbackRequest);
                 foreach ($this->clientFor($fallbackRequest->provider)->stream($fallbackRequest) as $chunk) {
                     $fallbackContent .= $chunk;
 
@@ -174,5 +185,31 @@ class LlmClientManager implements LlmClientInterface
         }
 
         return ['provider' => $provider, 'model' => $model];
+    }
+
+    private function typeForMethod(string $method): string
+    {
+        return match ($method) {
+            'embed' => 'embedding',
+            'vision' => 'vision',
+            default => 'chat',
+        };
+    }
+
+    private function validateStructuredOutput(LlmRequest $request, LlmResponse $response): void
+    {
+        $format = $request->responseFormat;
+        $expectsJson = $format === 'json_object'
+            || (is_array($format) && in_array($format['type'] ?? null, ['json_object', 'json_schema'], true));
+
+        if (! $expectsJson) {
+            return;
+        }
+
+        json_decode($response->content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException('LLM structured output validation failed: '.json_last_error_msg());
+        }
     }
 }

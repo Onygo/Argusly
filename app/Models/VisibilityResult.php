@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 
@@ -81,6 +82,14 @@ class VisibilityResult extends Model
     public function visibilityCheck(): BelongsTo
     {
         return $this->belongsTo(VisibilityCheck::class);
+    }
+
+    /**
+     * @return HasMany<VisibilityScore, $this>
+     */
+    public function visibilityScores(): HasMany
+    {
+        return $this->hasMany(VisibilityScore::class);
     }
 
     protected function casts(): array

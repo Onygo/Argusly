@@ -48,23 +48,15 @@
 
                 <input type="hidden" name="status" value="{{ old('status', $asset->status ?: 'draft') }}">
 
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="block">
-                        <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Content language</span>
-                        <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
-                            @foreach ($contentLanguages as $language)
-                                <option value="{{ $language->code }}" @selected(old('language', $asset->language) === $language->code)>{{ $language->name }} · {{ $language->native_name }}</option>
-                            @endforeach
-                        </select>
-                        @error('language') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
-                    </label>
-
-                    <label class="block">
-                        <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Locale</span>
-                        <input name="locale" value="{{ old('locale', $asset->locale ?: 'en_US') }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
-                        @error('locale') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                </div>
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Content language</span>
+                    <select name="language" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink" required>
+                        @foreach ($contentLanguages as $language)
+                            <option value="{{ $language->code }}" @selected(old('language', $asset->language) === $language->code)>{{ $language->name }} · {{ $language->native_name }}</option>
+                        @endforeach
+                    </select>
+                    @error('language') <span class="mt-1 block text-xs text-red-600">{{ $message }}</span> @enderror
+                </label>
 
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Source</span>

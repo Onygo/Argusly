@@ -8,6 +8,7 @@
             </div>
             <div class="flex flex-wrap items-center gap-2">
                 <x-ui.badge variant="blue">{{ $assets->total() }} assets</x-ui.badge>
+                <x-ui.button href="{{ route('app.content.operations') }}" variant="secondary">Operations</x-ui.button>
                 <x-ui.button href="{{ route('app.content.answer-blocks.index') }}" variant="secondary">{{ __('content.answer_blocks') }}</x-ui.button>
                 @can('create', \App\Models\ContentAsset::class)
                     <x-ui.button href="{{ route('app.content.create') }}">{{ __('content.create_content') }}</x-ui.button>

@@ -14,7 +14,10 @@ class RunVisibilityCheckJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $visibilityCheckId) {}
+    public function __construct(public readonly int $visibilityCheckId)
+    {
+        $this->onQueue(config('queue.names.ai', 'ai'));
+    }
 
     public function handle(VisibilityMonitoringService $visibility): void
     {

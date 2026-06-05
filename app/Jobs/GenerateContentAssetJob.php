@@ -16,7 +16,10 @@ class GenerateContentAssetJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $generatedAssetId) {}
+    public function __construct(public readonly int $generatedAssetId)
+    {
+        $this->onQueue(config('queue.names.ai', 'ai'));
+    }
 
     public function handle(ContentGenerationService $generation): void
     {

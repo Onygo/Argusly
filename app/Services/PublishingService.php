@@ -59,6 +59,7 @@ class PublishingService
         $creditTransaction->update([
             'subject_type' => $publishingAction->getMorphClass(),
             'subject_id' => $publishingAction->id,
+            'type' => 'publishing_action',
         ]);
 
         $connectorQueue = $this->usesConnectorQueue($channel);

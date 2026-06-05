@@ -24,6 +24,8 @@ class ReportSection extends Model
     use HasFactory;
 
     public const TYPES = [
+        'executive_summary',
+        'kpi_tracking',
         'ai_visibility',
         'content_performance',
         'search_performance',
@@ -32,6 +34,8 @@ class ReportSection extends Model
         'risks',
         'wins',
         'next_actions',
+        'board_summary',
+        'trend_report',
     ];
 
     protected static function booted(): void

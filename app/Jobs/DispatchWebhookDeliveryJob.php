@@ -10,7 +10,10 @@ class DispatchWebhookDeliveryJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $deliveryId) {}
+    public function __construct(public int $deliveryId)
+    {
+        $this->onQueue(config('queue.names.webhooks', 'webhooks'));
+    }
 
     public function handle(): void
     {
@@ -30,6 +33,7 @@ class DispatchWebhookDeliveryJob implements ShouldQueue
         $delivery->update([
             'status' => 'pending',
             'available_at' => now()->addMinutes(min(60, max(1, $delivery->attempts * 5))),
+            'next_retry_at' => now()->addMinutes(min(60, max(1, $delivery->attempts * 5))),
         ]);
     }
 }

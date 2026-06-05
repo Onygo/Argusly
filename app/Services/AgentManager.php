@@ -36,7 +36,7 @@ class AgentManager
                 fn ($query) => $query->where(fn ($scope) => $scope->whereNull('brand_id')->orWhere('brand_id', $brand->id)),
                 fn ($query) => $query->whereNull('brand_id'),
             )
-            ->with(['agent', 'brand'])
+            ->with(['agent', 'brand', 'tasks'])
             ->recent()
             ->limit($limit)
             ->get();

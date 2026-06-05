@@ -16,7 +16,10 @@ class SendNewsletterJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $newsletterSendId) {}
+    public function __construct(public readonly int $newsletterSendId)
+    {
+        $this->onQueue(config('queue.names.mail', 'mail'));
+    }
 
     public function handle(NewsletterSendingService $sending): void
     {

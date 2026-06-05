@@ -211,6 +211,12 @@ class NotificationService
                 'body' => 'The account credit balance is low.',
                 'payload' => $payload,
             ],
+            'SourceSyncCompleted' => (($payload['status'] ?? 'completed') === 'failed') ? [
+                'type' => 'source_unhealthy',
+                'title' => 'Source sync failed',
+                'body' => $payload['error'] ?? 'A source sync failed.',
+                'payload' => $payload,
+            ] : null,
             default => null,
         };
     }

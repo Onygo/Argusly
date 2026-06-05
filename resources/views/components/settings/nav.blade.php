@@ -34,13 +34,6 @@
         ],
         'Developer Tools' => [
             ['label' => 'Domain Events', 'route' => 'app.domain-events', 'permission' => 'manage_account'],
-            ['label' => 'Source Syncs', 'route' => 'app.admin.developer-tools.source-syncs', 'permission' => 'manage_account'],
-            ['label' => 'Connector Logs', 'route' => 'app.admin.developer-tools.connector-logs', 'permission' => 'manage_account'],
-            ['label' => 'Outbox Messages', 'route' => 'app.admin.developer-tools.outbox', 'permission' => 'manage_account'],
-            ['label' => 'Activity Logs', 'route' => 'app.admin.developer-tools.activity', 'permission' => 'manage_account'],
-            ['label' => 'Queue Monitoring', 'route' => 'app.admin.developer-tools.queue', 'permission' => 'manage_account'],
-            ['label' => 'System Health', 'route' => 'app.admin.developer-tools.system-health', 'permission' => 'manage_account'],
-            ['label' => 'Diagnostics', 'route' => 'app.admin.developer-tools.diagnostics', 'permission' => 'manage_account'],
         ],
     ];
 
@@ -50,6 +43,9 @@
         ],
         'Platform' => [
             ['label' => 'Admin Control Center', 'route' => 'admin.overview', 'permission' => 'manage_platform', 'platform' => true],
+            ['label' => 'Platform Operations', 'route' => 'admin.platform.overview', 'permission' => 'manage_platform', 'platform' => true],
+            ['label' => 'Queue Monitor', 'route' => 'admin.platform.queues', 'permission' => 'manage_platform', 'platform' => true],
+            ['label' => 'Developer Tools', 'route' => 'admin.developer-tools', 'permission' => 'manage_platform', 'platform' => true],
             ['label' => 'Pilot Requests', 'route' => 'admin.pilot-signups', 'permission' => 'manage_platform', 'platform' => true],
             ['label' => 'Contact Requests', 'route' => 'admin.contact-requests', 'permission' => 'manage_platform', 'platform' => true],
         ],

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 #[Fillable([
     'account_id',
@@ -45,6 +46,22 @@ class Property extends Model
         static::creating(function (Property $property): void {
             $property->uuid ??= (string) Str::uuid();
             $property->status ??= 'active';
+        });
+
+        static::saving(function (Property $property): void {
+            if (! in_array($property->type, self::TYPES, true)) {
+                throw new InvalidArgumentException("Invalid property type [{$property->type}].");
+            }
+
+            if (! in_array($property->status, self::STATUSES, true)) {
+                throw new InvalidArgumentException("Invalid property status [{$property->status}].");
+            }
+
+            $brand = Brand::query()->find($property->brand_id);
+
+            if (! $brand || $brand->account_id !== $property->account_id) {
+                throw new InvalidArgumentException('Property brand must belong to the same account.');
+            }
         });
     }
 

@@ -132,12 +132,12 @@ class SourceController extends Controller
         $source = $sources->findForTenant($account, $brand, $source->id);
 
         try {
-            $sources->createPlannedSync($source);
+            $sources->dispatchSync($source);
         } catch (InvalidArgumentException $exception) {
             return redirect()->route('app.sources.show', $source)->withErrors(['sync' => $exception->getMessage()]);
         }
 
-        return redirect()->route('app.sources.show', $source)->with('status', 'Planned sync record created. No sync was executed.');
+        return redirect()->route('app.sources.show', $source)->with('status', 'Source sync queued.');
     }
 
     /**

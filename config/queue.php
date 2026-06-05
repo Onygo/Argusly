@@ -15,6 +15,19 @@ return [
 
     'default' => env('QUEUE_CONNECTION', 'database'),
 
+    'names' => [
+        'default' => env('QUEUE_NAME_DEFAULT', 'default'),
+        'critical' => env('QUEUE_NAME_CRITICAL', 'critical'),
+        'ai' => env('QUEUE_NAME_AI', 'ai'),
+        'intelligence' => env('QUEUE_NAME_INTELLIGENCE', 'intelligence'),
+        'publishing' => env('QUEUE_NAME_PUBLISHING', 'publishing'),
+        'webhooks' => env('QUEUE_NAME_WEBHOOKS', 'webhooks'),
+        'integrations' => env('QUEUE_NAME_INTEGRATIONS', 'integrations'),
+        'mail' => env('QUEUE_NAME_MAIL', 'mail'),
+        'maintenance' => env('QUEUE_NAME_MAINTENANCE', 'maintenance'),
+        'source_sync' => env('QUEUE_NAME_SOURCE_SYNC', env('QUEUE_NAME_INTEGRATIONS', 'integrations')),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Queue Connections

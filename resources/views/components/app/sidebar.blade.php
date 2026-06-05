@@ -13,8 +13,16 @@
         ? \Illuminate\Support\Facades\DB::table('pilot_signups')->whereIn('status', ['pending', 'reviewing'])->count()
         : 0;
 
-    $canSee = function (array $item, ?array $parent = null) use ($account, $user, $activeModuleKeys): bool {
-        if (! $account || ! $user) {
+    $canSee = function (array $item, ?array $parent = null) use ($account, $user, $activeModuleKeys, $permissionService): bool {
+        if (! $user) {
+            return false;
+        }
+
+        if (($item['platform'] ?? false) || ($parent['platform'] ?? false)) {
+            return $permissionService->userCan($user, 'manage_platform', ['account_id' => null, 'brand_id' => null]);
+        }
+
+        if (! $account) {
             return false;
         }
 
@@ -68,7 +76,25 @@
         ->filter(fn (array $group) => count($group['items'] ?? []) > 0)
         ->values();
 
+    if ($isPlatformAdmin) {
+        $groups->push([
+            'label' => 'Developer Tools',
+            'items' => [[
+                'key' => 'developer-tools',
+                'label' => 'Platform Operations',
+                'description' => 'Queues, webhooks, feature flags, events and system health.',
+                'route' => 'admin.platform.overview',
+                'active' => ['admin.platform.*', 'admin.developer-tools*'],
+                'icon' => 'activity',
+                'can_access' => true,
+                'visible' => true,
+                'children' => [],
+            ]],
+        ]);
+    }
+
     $isActive = fn (array $item): bool => request()->routeIs(...($item['active'] ?? [$item['route'] ?? '']));
+    $isDeveloperToolsRoute = fn (): bool => request()->routeIs('admin.platform.*', 'admin.developer-tools*');
 @endphp
 
 <aside @class([
@@ -94,7 +120,7 @@
                             @php
                                 $platformAdminItem = $isPlatformAdmin && ($item['key'] ?? null) === 'administration';
                                 $itemActive = $platformAdminItem
-                                    ? request()->routeIs('admin.*', 'settings.*', 'app.admin.*', 'app.domain-events')
+                                    ? request()->routeIs('admin.*', 'settings.*', 'app.domain-events') && ! $isDeveloperToolsRoute()
                                     : ($isActive($item) || collect($item['children'] ?? [])->contains(fn (array $child) => $isActive($child)));
                                 $fallbackRoute = $item['children'][0]['route'] ?? null;
                                 $hrefRoute = $platformAdminItem
@@ -119,6 +145,7 @@
                                     <span class="inline-flex min-w-5 justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800">{{ $pendingPilotSignupCount }}</span>
                                 @endif
                             </a>
+
                         @endforeach
                     </div>
                 </section>

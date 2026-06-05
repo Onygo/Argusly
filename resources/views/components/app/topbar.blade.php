@@ -10,6 +10,9 @@
     $unreadNotifications = ($user && $account && ! $isPlatformAdmin)
         ? app(\App\Services\NotificationService::class)->unreadCount($user, $account, $brand)
         : 0;
+    $availableCredits = ($account && ! $isPlatformAdmin)
+        ? app(\App\Services\CreditService::class)->balance($account)
+        : null;
     $accounts = $user && ! $isPlatformAdmin ? $user->accounts()->wherePivot('status', 'active')->orderBy('name')->get() : collect();
     $brands = $user && $account && ! $isPlatformAdmin
         ? $user->brands()->wherePivot('status', 'active')->wherePivot('account_id', $account->id)->orderBy('name')->get()
@@ -65,6 +68,17 @@
 
         <div class="ml-auto flex items-center gap-2">
             @unless ($isPlatformAdmin)
+            <div class="hidden h-10 items-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink shadow-sm sm:flex" title="Available credits">
+                <span class="grid size-6 place-items-center rounded-full bg-panel text-blue">
+                    <x-app.icon name="coins" class="size-3.5" />
+                </span>
+                <span class="text-muted">Credits</span>
+                <span>{{ number_format($availableCredits ?? 0) }}</span>
+            </div>
+            <div class="grid size-10 place-items-center rounded-md border border-line bg-white text-ink shadow-sm sm:hidden" title="Credits: {{ number_format($availableCredits ?? 0) }}" aria-label="Credits: {{ number_format($availableCredits ?? 0) }}">
+                <x-app.icon name="coins" class="size-4 text-blue" />
+            </div>
+
             <a href="{{ route('app.notifications') }}" class="relative grid size-10 place-items-center rounded-md border border-line bg-white text-muted transition hover:border-slate-300 hover:bg-panel hover:text-ink" aria-label="Notifications">
                 <x-app.icon name="bell" class="size-4" />
                 @if ($unreadNotifications > 0)

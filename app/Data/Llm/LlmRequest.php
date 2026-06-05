@@ -34,4 +34,26 @@ class LlmRequest
             ...$this->messages,
         ];
     }
+
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     */
+    public function withRuntime(
+        ?string $provider = null,
+        ?string $model = null,
+        ?float $temperature = null,
+        ?int $maxTokens = null,
+        ?array $metadata = null,
+    ): self {
+        return new self(
+            provider: $provider ?? $this->provider,
+            model: $model ?? $this->model,
+            messages: $this->messages,
+            systemPrompt: $this->systemPrompt,
+            temperature: $temperature ?? $this->temperature,
+            maxTokens: $maxTokens ?? $this->maxTokens,
+            responseFormat: $this->responseFormat,
+            metadata: $metadata ?? $this->metadata,
+        );
+    }
 }

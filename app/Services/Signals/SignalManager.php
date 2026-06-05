@@ -7,6 +7,7 @@ use App\Models\Account;
 use App\Models\Brand;
 use App\Models\IntelligenceSignal;
 use App\Services\EvidenceService;
+use App\Services\AlertService;
 use App\Services\RecommendationEngineService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -59,6 +60,7 @@ class SignalManager
             if ($generateRecommendations) {
                 app(RecommendationEngineService::class)->generateForSignal($signal);
             }
+            app(AlertService::class)->triggerForSignal($signal);
 
             return $signal;
         }
@@ -74,6 +76,7 @@ class SignalManager
             if ($generateRecommendations) {
                 app(RecommendationEngineService::class)->generateForSignal($signal);
             }
+            app(AlertService::class)->triggerForSignal($signal);
 
             return $signal;
         }
@@ -88,6 +91,7 @@ class SignalManager
         if ($generateRecommendations) {
             app(RecommendationEngineService::class)->generateForSignal($signal);
         }
+        app(AlertService::class)->triggerForSignal($signal);
 
         return $signal;
     }
@@ -146,6 +150,12 @@ class SignalManager
 
         if (! in_array($attributes['priority'], IntelligenceSignal::PRIORITIES, true)) {
             throw new InvalidArgumentException("Invalid intelligence signal priority [{$attributes['priority']}].");
+        }
+
+        $severity = $attributes['severity'] ?? $attributes['priority'];
+
+        if (! in_array($severity, IntelligenceSignal::SEVERITIES, true)) {
+            throw new InvalidArgumentException("Invalid intelligence signal severity [{$severity}].");
         }
 
         if (! in_array($attributes['category'], IntelligenceSignal::CATEGORIES, true)) {

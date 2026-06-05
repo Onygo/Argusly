@@ -37,7 +37,7 @@ class Recommendation extends Model
 
     public const UPDATED_AT = null;
 
-    public const STATUSES = ['new', 'accepted', 'dismissed', 'completed'];
+    public const STATUSES = ['new', 'reviewed', 'accepted', 'dismissed', 'completed', 'archived'];
 
     public const ACTION_TYPES = [
         'run_content_audit',
@@ -142,7 +142,15 @@ class Recommendation extends Model
      */
     public function scopeOpen(Builder $query): Builder
     {
-        return $query->whereIn('status', ['new', 'accepted']);
+        return $query->whereIn('status', ['new', 'reviewed', 'accepted']);
+    }
+
+    public function markReviewed(): bool
+    {
+        return $this->forceFill([
+            'status' => 'reviewed',
+            'reviewed_at' => now(),
+        ])->save();
     }
 
     public function accept(?User $user = null): bool
@@ -157,7 +165,18 @@ class Recommendation extends Model
 
     public function dismiss(): bool
     {
-        return $this->forceFill(['status' => 'dismissed'])->save();
+        return $this->forceFill([
+            'status' => 'dismissed',
+            'dismissed_at' => now(),
+        ])->save();
+    }
+
+    public function archive(): bool
+    {
+        return $this->forceFill([
+            'status' => 'archived',
+            'archived_at' => now(),
+        ])->save();
     }
 
     public function complete(): bool
@@ -177,9 +196,12 @@ class Recommendation extends Model
             'impact_score' => 'integer',
             'confidence_score' => 'integer',
             'action_payload' => 'array',
+            'reviewed_at' => 'datetime',
             'accepted_at' => 'datetime',
+            'dismissed_at' => 'datetime',
             'executed_at' => 'datetime',
             'completed_at' => 'datetime',
+            'archived_at' => 'datetime',
             'created_at' => 'datetime',
         ];
     }

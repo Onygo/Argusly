@@ -10,6 +10,8 @@ use App\Models\User;
 use App\Models\VisibilityCheck;
 use App\Models\VisibilityPromptTemplate;
 use App\Services\ContentLanguageService;
+use App\Services\Visibility\AiVisibilityDashboardService;
+use App\Services\Visibility\CitationClassificationService;
 use App\Services\Visibility\ProviderRegistry;
 use App\Services\Visibility\ProviderRunService;
 use App\Services\VisibilityMonitoringService;
@@ -27,6 +29,7 @@ class VisibilityController extends Controller
         CurrentAccountContract $currentAccount,
         CurrentBrandContract $currentBrand,
         VisibilityMonitoringService $visibility,
+        AiVisibilityDashboardService $dashboard,
     ): View {
         /** @var User $user */
         $user = $request->user();
@@ -46,10 +49,51 @@ class VisibilityController extends Controller
             'promptTemplates' => $visibility->promptTemplatesForTenant($account, $brand, $filters),
             'providerRuns' => $visibility->providerRunsForTenant($account, $brand, filters: $filters),
             'latestRunsByLanguage' => $visibility->latestRunsByLanguage($account, $brand, $filters),
+            'visibilityDashboard' => $dashboard->dashboard($account, $brand, $filters),
             'providers' => VisibilityCheck::PROVIDERS,
             'adapterProviders' => app(ProviderRegistry::class)->providers(),
             'brands' => $account->brands()->orderBy('name')->get(),
             'examplePrompts' => $this->examplePrompts($brand),
+            'contentLanguages' => app(ContentLanguageService::class)->enabledForBrand($brand),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function citations(
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        AiVisibilityDashboardService $dashboard,
+        CitationClassificationService $citations,
+    ): View {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('viewAny', VisibilityCheck::class);
+
+        $filters = $this->visibilityFilters($request);
+        $filters = [
+            ...$filters,
+            ...array_filter([
+                'provider' => $request->string('provider')->toString() ?: null,
+                'domain' => $request->string('domain')->toString() ?: null,
+                'q' => $request->string('q')->toString() ?: null,
+                'from' => $request->date('from')?->toDateString(),
+                'to' => $request->date('to')?->toDateString(),
+            ], fn ($value) => $value !== null && $value !== ''),
+        ];
+
+        $sources = $citations->sourceOverviewForBrand($brand, $filters);
+
+        return view('app.visibility.citations', [
+            'account' => $account,
+            'brand' => $brand,
+            'citations' => $dashboard->citations($account, $brand, $filters),
+            'sources' => $sources,
+            'providers' => VisibilityCheck::PROVIDERS,
             'contentLanguages' => app(ContentLanguageService::class)->enabledForBrand($brand),
             'filters' => $filters,
         ]);

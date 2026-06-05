@@ -5,9 +5,12 @@ namespace App\Providers;
 use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
 use App\Contracts\LlmClientInterface;
+use App\Models\Account;
 use App\Models\Agent;
 use App\Models\AnswerBlock;
 use App\Models\Audience;
+use App\Models\Brand;
+use App\Models\BrandMembership;
 use App\Models\BrandNarrative;
 use App\Models\BrandProduct;
 use App\Models\BrandProfile;
@@ -18,25 +21,37 @@ use App\Models\Competitor;
 use App\Models\Contact;
 use App\Models\ContentAsset;
 use App\Models\Entity;
+use App\Models\EvidenceItem;
+use App\Models\IntelligenceSignal;
 use App\Models\MarketingObjective;
 use App\Models\MarketingTask;
 use App\Models\MarketingWorkspace;
+use App\Models\Membership;
 use App\Models\Mention;
+use App\Models\Module;
 use App\Models\Narrative;
 use App\Models\Newsletter;
 use App\Models\Organization;
+use App\Models\Permission;
+use App\Models\Property;
+use App\Models\Recommendation;
 use App\Models\Relationship;
+use App\Models\Role;
 use App\Models\Segment;
 use App\Models\SocialPost;
 use App\Models\Source;
 use App\Models\SourceConnection;
 use App\Models\SourceSync;
+use App\Models\Subscription;
 use App\Models\Topic;
 use App\Models\User;
 use App\Models\VisibilityCheck;
+use App\Policies\AccountPolicy;
 use App\Policies\AgentPolicy;
 use App\Policies\AnswerBlockPolicy;
 use App\Policies\AudiencePolicy;
+use App\Policies\BrandPolicy;
+use App\Policies\BrandMembershipPolicy;
 use App\Policies\BrandNarrativePolicy;
 use App\Policies\BrandProductPolicy;
 use App\Policies\BrandProfilePolicy;
@@ -47,19 +62,28 @@ use App\Policies\CompetitorPolicy;
 use App\Policies\ContactPolicy;
 use App\Policies\ContentAssetPolicy;
 use App\Policies\EntityPolicy;
+use App\Policies\EvidenceItemPolicy;
+use App\Policies\IntelligenceSignalPolicy;
 use App\Policies\MarketingObjectivePolicy;
 use App\Policies\MarketingTaskPolicy;
 use App\Policies\MarketingWorkspacePolicy;
+use App\Policies\MembershipPolicy;
 use App\Policies\MentionPolicy;
+use App\Policies\ModulePolicy;
 use App\Policies\NarrativePolicy;
 use App\Policies\NewsletterPolicy;
 use App\Policies\OrganizationPolicy;
+use App\Policies\PermissionPolicy;
+use App\Policies\PropertyPolicy;
+use App\Policies\RecommendationPolicy;
 use App\Policies\RelationshipPolicy;
+use App\Policies\RolePolicy;
 use App\Policies\SegmentPolicy;
 use App\Policies\SocialPostPolicy;
 use App\Policies\SourceConnectionPolicy;
 use App\Policies\SourcePolicy;
 use App\Policies\SourceSyncPolicy;
+use App\Policies\SubscriptionPolicy;
 use App\Policies\TopicPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\VisibilityCheckPolicy;
@@ -158,6 +182,21 @@ class AppServiceProvider extends ServiceProvider
                 ->by('analytics:'.hash('sha256', $siteKey));
         });
 
+        RateLimiter::for('auth-actions', fn (Request $request) => Limit::perMinute(10)
+            ->by('auth:'.strtolower((string) $request->input('email', $request->ip()))));
+
+        RateLimiter::for('marketing-forms', fn (Request $request) => Limit::perMinute(5)
+            ->by('marketing:'.$request->ip()));
+
+        RateLimiter::for('admin-actions', fn (Request $request) => Limit::perMinute(120)
+            ->by('admin:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('tenant-switch', fn (Request $request) => Limit::perMinute(30)
+            ->by('tenant-switch:'.($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('ai-actions', fn (Request $request) => Limit::perMinute(30)
+            ->by('ai:'.($request->user()?->id ?? $request->ip())));
+
         Event::listen(Login::class, function (Login $event): void {
             if ($event->user instanceof User) {
                 app(ActivityLogger::class)->log(
@@ -180,7 +219,16 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        Gate::policy(Account::class, AccountPolicy::class);
+        Gate::policy(Brand::class, BrandPolicy::class);
+        Gate::policy(Membership::class, MembershipPolicy::class);
+        Gate::policy(BrandMembership::class, BrandMembershipPolicy::class);
+        Gate::policy(Property::class, PropertyPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(Permission::class, PermissionPolicy::class);
+        Gate::policy(Module::class, ModulePolicy::class);
+        Gate::policy(Subscription::class, SubscriptionPolicy::class);
         Gate::policy(Audience::class, AudiencePolicy::class);
         Gate::policy(BrandProfile::class, BrandProfilePolicy::class);
         Gate::policy(BrandProduct::class, BrandProductPolicy::class);
@@ -200,6 +248,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Newsletter::class, NewsletterPolicy::class);
         Gate::policy(Topic::class, TopicPolicy::class);
         Gate::policy(Mention::class, MentionPolicy::class);
+        Gate::policy(IntelligenceSignal::class, IntelligenceSignalPolicy::class);
+        Gate::policy(Recommendation::class, RecommendationPolicy::class);
+        Gate::policy(EvidenceItem::class, EvidenceItemPolicy::class);
         Gate::policy(Narrative::class, NarrativePolicy::class);
         Gate::policy(Relationship::class, RelationshipPolicy::class);
         Gate::policy(Segment::class, SegmentPolicy::class);

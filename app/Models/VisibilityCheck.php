@@ -94,6 +94,14 @@ class VisibilityCheck extends Model
     }
 
     /**
+     * @return HasMany<VisibilityScore, $this>
+     */
+    public function visibilityScores(): HasMany
+    {
+        return $this->hasMany(VisibilityScore::class);
+    }
+
+    /**
      * @return HasMany<VisibilityProviderRun, $this>
      */
     public function latestProviderRun(): HasMany

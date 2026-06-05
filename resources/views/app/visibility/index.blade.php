@@ -6,7 +6,10 @@
                 <h1 class="mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">{{ __('visibility.title') }}</h1>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-muted">{{ __('visibility.description', ['brand' => $brand->name]) }}</p>
             </div>
-            <x-ui.badge variant="blue">{{ $checks->count() }} checks</x-ui.badge>
+            <div class="flex flex-wrap items-center gap-2">
+                <x-ui.button href="{{ route('app.visibility.citations') }}" variant="secondary">Sources & Citations</x-ui.button>
+                <x-ui.badge variant="blue">{{ $checks->count() }} checks</x-ui.badge>
+            </div>
         </div>
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -14,7 +17,21 @@
             <x-dashboard.info-card label="Latest score" :value="$stats['latest_score']" empty="No data" />
             <x-dashboard.info-card label="Mentions found" :value="$stats['mentions_found']" />
             <x-dashboard.info-card label="Providers" :value="$stats['providers']" />
+            <x-dashboard.info-card label="Share of AI voice" :value="$visibilityDashboard['scorecards']['share_of_ai_voice'].'%'" />
+            <x-dashboard.info-card label="Brand presence" :value="$visibilityDashboard['scorecards']['brand_presence']" />
+            <x-dashboard.info-card label="Competitor presence" :value="$visibilityDashboard['scorecards']['competitor_presence']" />
+            <x-dashboard.info-card label="Avg. citations" :value="$visibilityDashboard['scorecards']['avg_citations']" />
         </div>
+
+        @if ($visibilityDashboard['deepScoringEnabled'])
+            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <x-dashboard.info-card label="AI Attention Score" :value="$visibilityDashboard['deepScorecards']['ai_attention_score']" empty="No data" />
+                <x-dashboard.info-card label="Answer Presence" :value="$visibilityDashboard['deepScorecards']['answer_presence_score']" empty="No data" />
+                <x-dashboard.info-card label="Citation Score" :value="$visibilityDashboard['deepScorecards']['citation_score']" empty="No data" />
+                <x-dashboard.info-card label="Owned Source Presence" :value="$visibilityDashboard['deepScorecards']['owned_source_presence']" empty="No data" />
+                <x-dashboard.info-card label="Competitor Presence" :value="$visibilityDashboard['deepScorecards']['competitor_presence_score']" empty="No data" />
+            </div>
+        @endif
 
         <form method="GET" action="{{ route('app.visibility') }}" class="mt-6 flex flex-col gap-3 rounded-md border border-line bg-white p-4 sm:flex-row sm:items-end">
             <label class="block sm:w-48">
@@ -47,6 +64,170 @@
                 @endforeach
             </div>
         @endif
+
+        <div class="mt-6 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+            <x-dashboard.section title="AI Visibility benchmark" description="Compare provider performance, brand presence, competitor presence and citation coverage for the current brand.">
+                @if ($visibilityDashboard['providerBenchmarks']->isEmpty())
+                    <x-dashboard.empty-state title="No benchmarks yet" message="Provider benchmarks will appear after AI visibility runs complete." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($visibilityDashboard['providerBenchmarks'] as $benchmark)
+                            <div class="rounded-md border border-line bg-white p-4">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-semibold text-ink">{{ $benchmark['provider'] }}</p>
+                                        <p class="mt-1 text-xs text-muted">{{ $benchmark['runs'] }} runs · {{ $benchmark['citations'] }} citations</p>
+                                    </div>
+                                    <x-ui.badge variant="blue">{{ $benchmark['score'] ?? '-' }} score</x-ui.badge>
+                                </div>
+                                <div class="mt-4 grid grid-cols-3 gap-2 text-right">
+                                    <div class="rounded-md bg-panel p-3">
+                                        <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Brand</p>
+                                        <p class="mt-1 text-lg font-semibold text-ink">{{ $benchmark['brand_presence'] }}</p>
+                                    </div>
+                                    <div class="rounded-md bg-panel p-3">
+                                        <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Competitors</p>
+                                        <p class="mt-1 text-lg font-semibold text-ink">{{ $benchmark['competitor_presence'] }}</p>
+                                    </div>
+                                    <div class="rounded-md bg-panel p-3">
+                                        <p class="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Citations</p>
+                                        <p class="mt-1 text-lg font-semibold text-ink">{{ $benchmark['citations'] }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-dashboard.section>
+
+            <x-dashboard.section title="Score trends" description="Daily average visibility score across completed AI provider runs.">
+                @if ($visibilityDashboard['scoreTrend']->isEmpty())
+                    <x-dashboard.empty-state title="No score trend yet" message="Scores will trend as scheduled prompt runs build history." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($visibilityDashboard['scoreTrend'] as $point)
+                            <div class="grid grid-cols-[1fr_auto] items-center gap-3 rounded-md border border-line bg-white p-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-ink">{{ \Illuminate\Support\Carbon::parse($point['date'])->format('M j') }}</p>
+                                    <p class="mt-1 text-xs text-muted">{{ $point['runs'] }} runs</p>
+                                </div>
+                                <div class="w-36">
+                                    <div class="h-2 rounded-full bg-panel">
+                                        <div class="h-2 rounded-full bg-ink" style="width: {{ max(2, (int) ($point['score'] ?? 0)) }}%"></div>
+                                    </div>
+                                    <p class="mt-1 text-right text-xs font-semibold text-ink">{{ $point['score'] ?? '-' }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-dashboard.section>
+        </div>
+
+        @if ($visibilityDashboard['deepScoringEnabled'])
+            <div class="mt-6">
+                <x-dashboard.section title="AI attention trend" description="Deep scoring trend across answer presence, citations, owned source presence and competitor attention.">
+                    @if ($visibilityDashboard['deepTrend']->isEmpty())
+                        <x-dashboard.empty-state title="No AI attention trend yet" message="Deep scoring trend appears after visibility results are scored." />
+                    @else
+                        <div class="space-y-3">
+                            @foreach ($visibilityDashboard['deepTrend'] as $point)
+                                <div class="rounded-md border border-line bg-white p-4">
+                                    <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                                        <div>
+                                            <p class="text-sm font-semibold text-ink">{{ \Illuminate\Support\Carbon::parse($point['date'])->format('M j') }}</p>
+                                            <p class="mt-1 text-xs text-muted">{{ $point['count'] }} scored result{{ $point['count'] === 1 ? '' : 's' }}</p>
+                                        </div>
+                                        <x-ui.badge variant="blue">{{ $point['score'] ?? '-' }} attention</x-ui.badge>
+                                    </div>
+                                    <div class="mt-4 grid gap-3 md:grid-cols-4">
+                                        @foreach ([
+                                            'answer_presence' => 'Answer',
+                                            'citation' => 'Citations',
+                                            'owned_source' => 'Owned sources',
+                                            'competitor_presence' => 'Competitors',
+                                        ] as $key => $label)
+                                            <div>
+                                                <div class="flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                                                    <span>{{ $label }}</span>
+                                                    <span>{{ $point[$key] ?? '-' }}</span>
+                                                </div>
+                                                <div class="mt-2 h-2 rounded-full bg-panel">
+                                                    <div class="h-2 rounded-full {{ $key === 'competitor_presence' ? 'bg-red-500' : 'bg-ink' }}" style="width: {{ max(2, (int) ($point[$key] ?? 0)) }}%"></div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </x-dashboard.section>
+            </div>
+        @endif
+
+        <div class="mt-6 grid gap-6 xl:grid-cols-3">
+            <x-dashboard.section title="Topic ownership">
+                @if ($visibilityDashboard['topicOwnership']->isEmpty())
+                    <x-dashboard.empty-state title="No topic ownership yet" message="Topic ownership appears when prompts or answers match tracked topics." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($visibilityDashboard['topicOwnership'] as $topic)
+                            <div class="rounded-md border border-line bg-white p-4">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-ink">{{ $topic['topic'] }}</p>
+                                        <p class="mt-1 text-xs text-muted">{{ $topic['runs'] }} runs · {{ $topic['score'] ?? '-' }} avg. score</p>
+                                    </div>
+                                    <x-ui.badge>{{ $topic['ownership'] }}%</x-ui.badge>
+                                </div>
+                                <p class="mt-3 text-xs text-muted">{{ $topic['brand_presence'] }} brand mentions · {{ $topic['competitor_presence'] }} competitor mentions</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-dashboard.section>
+
+            <x-dashboard.section title="Competitor comparison">
+                @if ($visibilityDashboard['competitorComparison']->isEmpty())
+                    <x-dashboard.empty-state title="No competitors tracked" message="Competitor benchmarking uses existing brand competitors and completed AI visibility runs." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($visibilityDashboard['competitorComparison'] as $competitor)
+                            <div class="rounded-md border border-line bg-white p-4">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-ink">{{ $competitor['name'] }}</p>
+                                        <p class="mt-1 text-xs text-muted">{{ $competitor['positive'] }} positive mentions</p>
+                                    </div>
+                                    <x-ui.badge>{{ $competitor['mentions'] }} mentions</x-ui.badge>
+                                </div>
+                                <p class="mt-3 text-xs text-muted">Latest seen: {{ $competitor['latest_seen_at']?->diffForHumans() ?? 'Never' }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-dashboard.section>
+
+            <x-dashboard.section title="AI recommendations">
+                @if ($visibilityDashboard['recommendations']->isEmpty())
+                    <x-dashboard.empty-state title="No AI recommendations" message="Recommendations appear when scores, citations or competitor presence need attention." />
+                @else
+                    <div class="space-y-3">
+                        @foreach ($visibilityDashboard['recommendations'] as $recommendation)
+                            <div class="rounded-md border border-line bg-white p-4">
+                                <div class="flex items-start justify-between gap-3">
+                                    <p class="text-sm font-semibold text-ink">{{ $recommendation['title'] }}</p>
+                                    <x-ui.badge>{{ str($recommendation['priority'])->headline() }}</x-ui.badge>
+                                </div>
+                                <p class="mt-2 text-sm leading-6 text-muted">{{ $recommendation['summary'] }}</p>
+                                <p class="mt-3 text-xs text-muted">{{ $recommendation['provider'] }} · {{ $recommendation['score'] ?? '-' }} score</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </x-dashboard.section>
+        </div>
 
         <div class="mt-6 grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
             <x-dashboard.section :title="__('visibility.create_check')" description="Define a query and provider lane. The placeholder job will create a deterministic result without calling external APIs.">

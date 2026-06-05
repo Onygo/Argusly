@@ -47,7 +47,7 @@
             'secondary' => [['label' => 'View Visibility', 'route' => 'app.visibility']],
         ],
         'intelligence' => [
-            'primary' => ['label' => 'Review Signals', 'route' => 'app.intelligence.signals'],
+            'primary' => ['label' => 'Open Feed', 'route' => 'app.intelligence'],
             'secondary' => [['label' => 'Notifications', 'route' => 'app.notifications']],
         ],
         'visibility' => [

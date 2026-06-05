@@ -12,7 +12,10 @@ class ProjectDomainEventJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $domainEventId) {}
+    public function __construct(public int $domainEventId)
+    {
+        $this->onQueue(config('queue.names.intelligence', 'intelligence'));
+    }
 
     public function handle(ProjectorRegistry $projectors): void
     {

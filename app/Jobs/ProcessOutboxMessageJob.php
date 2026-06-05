@@ -11,7 +11,10 @@ class ProcessOutboxMessageJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $outboxMessageId) {}
+    public function __construct(public int $outboxMessageId)
+    {
+        $this->onQueue(config('queue.names.publishing', 'publishing'));
+    }
 
     public function handle(OutboxService $outbox): void
     {

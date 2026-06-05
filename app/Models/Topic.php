@@ -38,10 +38,15 @@ class Topic extends Model
         });
 
         static::created(function (Topic $topic): void {
-            app(DomainEventService::class)->recordForSubject('TopicCreated', $topic, null, [
-                'name' => $topic->name,
-            ], dispatch: false);
-            app(\App\Services\Graph\GraphProjectionService::class)->project($topic);
+            if ($topic->account_id !== null) {
+                app(DomainEventService::class)->recordForSubject('TopicCreated', $topic, null, [
+                    'name' => $topic->name,
+                ], dispatch: false);
+            }
+
+            if ($topic->account_id !== null) {
+                app(\App\Services\Graph\GraphProjectionService::class)->project($topic);
+            }
         });
 
         static::saving(function (Topic $topic): void {

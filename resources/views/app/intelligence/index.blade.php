@@ -10,7 +10,7 @@
         </div>
 
         <x-ui.card class="mt-8 p-4">
-            <form method="GET" action="{{ route('app.intelligence') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
+            <form method="GET" action="{{ route('app.intelligence') }}" class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <label class="block">
                     <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">{{ __('common.status') }}</span>
                     <select name="status" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
@@ -49,6 +49,67 @@
                             <option value="{{ $priority }}" @selected(($filters['priority'] ?? '') === $priority)>{{ str($priority)->headline() }}</option>
                         @endforeach
                     </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Brand</span>
+                    <select name="brand_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <option value="">Current scope</option>
+                        <option value="account" @selected(($filters['brand_id'] ?? '') === 'account')>Account level</option>
+                        @foreach ($brands as $filterBrand)
+                            <option value="{{ $filterBrand->id }}" @selected(($filters['brand_id'] ?? '') === (string) $filterBrand->id)>{{ $filterBrand->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Source</span>
+                    <select name="source_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <option value="">All sources</option>
+                        @foreach ($sources as $source)
+                            <option value="{{ $source->id }}" @selected(($filters['source_id'] ?? '') == $source->id)>{{ $source->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Topic</span>
+                    <select name="topic_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <option value="">All topics</option>
+                        @foreach ($topics as $topic)
+                            <option value="{{ $topic->id }}" @selected(($filters['topic_id'] ?? '') == $topic->id)>{{ $topic->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Entity</span>
+                    <select name="entity_id" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <option value="">All entities</option>
+                        @foreach ($entities as $entity)
+                            <option value="{{ $entity->id }}" @selected(($filters['entity_id'] ?? '') == $entity->id)>{{ $entity->name }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">Sentiment</span>
+                    <select name="sentiment" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                        <option value="">All sentiment</option>
+                        @foreach ($sentiments as $sentiment)
+                            <option value="{{ $sentiment }}" @selected(($filters['sentiment'] ?? '') === $sentiment)>{{ str($sentiment)->headline() }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">From</span>
+                    <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
+                </label>
+
+                <label class="block">
+                    <span class="text-xs font-semibold uppercase tracking-[0.1em] text-muted">To</span>
+                    <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink">
                 </label>
 
                 <div class="flex items-end gap-2">

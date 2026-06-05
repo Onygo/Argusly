@@ -28,8 +28,9 @@ class CreditCostCatalogTest extends TestCase
         $resolver = app(CreditCostResolver::class);
 
         $this->assertSame(100, $resolver->resolveCost('blog_generation')['cost']);
-        $this->assertSame('blog_generation', $resolver->resolveCost('content_generation')['code']);
+        $this->assertSame(100, $resolver->resolveCost('content_generation')['cost']);
         $this->assertSame(50, $resolver->resolveCost('translation')['cost']);
+        $this->assertTrue($resolver->supportsOverride('content_generation'));
         $this->assertTrue($resolver->supportsOverride('social_repurpose'));
         $this->assertDatabaseHas('credit_cost_catalog', [
             'code' => 'agent_task',
@@ -83,6 +84,7 @@ class CreditCostCatalogTest extends TestCase
 
         $this->assertSame(-25, $transaction->amount);
         $this->assertSame('social_post_generation', $transaction->type);
+        $this->assertSame('social_post_generation', $transaction->metadata['catalog_code']);
         $this->assertSame(175, app(CreditService::class)->balance($account));
         $this->assertDatabaseHas('credit_usage_stats', [
             'account_id' => $account->id,

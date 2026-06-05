@@ -17,7 +17,9 @@ class SyncGA4PropertyJob implements ShouldQueue
     public function __construct(
         public readonly int $ga4PropertyId,
         public readonly int $days = 30,
-    ) {}
+    ) {
+        $this->onQueue(config('queue.names.integrations', 'integrations'));
+    }
 
     public function handle(GA4DataService $ga4): void
     {

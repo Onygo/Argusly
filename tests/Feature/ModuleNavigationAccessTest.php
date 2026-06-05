@@ -34,11 +34,11 @@ class ModuleNavigationAccessTest extends TestCase
             ->assertSee('Dashboard')
             ->assertSee('Intelligence')
             ->assertSee('Visibility')
-            ->assertSee('Competitors')
-            ->assertSee('Mentions')
+            ->assertSee('Research')
+            ->assertSee('Competitive Intelligence')
             ->assertSee('Content')
             ->assertSee('Campaigns')
-            ->assertSee('Reports')
+            ->assertSee('Reporting')
             ->assertDontSee('Automations')
             ->assertDontSee('Settings');
     }

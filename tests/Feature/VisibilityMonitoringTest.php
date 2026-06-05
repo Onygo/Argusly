@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Jobs\RunVisibilityCheckJob;
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\Competitor;
 use App\Models\Role;
+use App\Models\Topic;
 use App\Models\User;
 use App\Models\VisibilityAnswerEntity;
 use App\Models\VisibilityCheck;
@@ -119,6 +121,9 @@ class VisibilityMonitoringTest extends TestCase
             ->get(route('app.visibility'))
             ->assertOk()
             ->assertSee('Visibility timeline')
+            ->assertSee('AI Attention Score')
+            ->assertSee('Owned Source Presence')
+            ->assertSee('AI attention trend')
             ->assertSee('Perplexity')
             ->assertSee('Provider runs')
             ->assertSee('Prompt library')
@@ -295,6 +300,150 @@ class VisibilityMonitoringTest extends TestCase
             ->assertSee('Dutch market prompt')
             ->assertSee('NL latest')
             ->assertDontSee('English market prompt');
+    }
+
+    public function test_ai_visibility_dashboard_shows_benchmarking_topic_ownership_and_recommendations(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $otherAccount = Account::query()->create(['name' => 'Hidden Account', 'slug' => 'hidden-account']);
+        $otherBrand = Brand::query()->create(['account_id' => $otherAccount->id, 'name' => 'Hidden Brand', 'slug' => 'hidden-brand']);
+
+        Competitor::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'RivalStack',
+            'website' => 'https://rival.example',
+            'industry' => 'AI visibility',
+        ]);
+        Topic::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'AI visibility',
+            'slug' => 'ai-visibility',
+            'status' => 'active',
+        ]);
+
+        $run = VisibilityProviderRun::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'provider' => 'ChatGPT',
+            'query' => 'AI visibility platform benchmark',
+            'language' => 'en',
+            'locale' => 'en_US',
+            'market' => 'US',
+            'normalized_answer' => "{$brand->name} and RivalStack are visible in AI visibility answers.",
+            'input_language' => 'en',
+            'normalized_answer_language' => 'en',
+            'status' => 'completed',
+            'captured_at' => now(),
+            'metadata' => ['visibility_score' => 45],
+        ]);
+        $run->citations()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'url' => 'https://alpha.example/visibility-proof',
+            'domain' => 'alpha.example',
+            'title' => 'Alpha visibility proof',
+            'rank' => 1,
+            'trust_score' => 82,
+        ]);
+        $run->answerEntities()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'entity_name' => $brand->name,
+            'entity_type' => 'brand',
+            'sentiment' => 'positive',
+            'position' => 1,
+        ]);
+        $run->answerEntities()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'entity_name' => 'RivalStack',
+            'entity_type' => 'competitor',
+            'sentiment' => 'positive',
+            'position' => 2,
+        ]);
+
+        VisibilityProviderRun::query()->create([
+            'account_id' => $otherAccount->id,
+            'brand_id' => $otherBrand->id,
+            'provider' => 'Claude',
+            'query' => 'Hidden visibility run',
+            'status' => 'completed',
+            'captured_at' => now(),
+            'metadata' => ['visibility_score' => 95],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('app.visibility'))
+            ->assertOk()
+            ->assertSee('Share of AI voice')
+            ->assertSee('AI Visibility benchmark')
+            ->assertSee('Topic ownership')
+            ->assertSee('Competitor comparison')
+            ->assertSee('AI recommendations')
+            ->assertSee('RivalStack')
+            ->assertSee('AI visibility')
+            ->assertDontSee('Hidden visibility run');
+    }
+
+    public function test_citation_explorer_is_tenant_scoped_and_filterable(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $otherAccount = Account::query()->create(['name' => 'Hidden Account', 'slug' => 'hidden-citations']);
+        $otherBrand = Brand::query()->create(['account_id' => $otherAccount->id, 'name' => 'Hidden Brand', 'slug' => 'hidden-citations-brand']);
+
+        $run = VisibilityProviderRun::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'provider' => 'Perplexity',
+            'query' => 'citation explorer prompt',
+            'language' => 'en',
+            'locale' => 'en_US',
+            'market' => 'US',
+            'normalized_answer' => 'Citation explorer answer',
+            'input_language' => 'en',
+            'normalized_answer_language' => 'en',
+            'status' => 'completed',
+            'captured_at' => now(),
+            'metadata' => ['visibility_score' => 76],
+        ]);
+        $run->citations()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'url' => 'https://visible.example/ai-citation',
+            'domain' => 'visible.example',
+            'title' => 'Visible AI citation',
+            'snippet' => 'Visible citation snippet',
+            'rank' => 1,
+            'trust_score' => 90,
+        ]);
+
+        $foreignRun = VisibilityProviderRun::query()->create([
+            'account_id' => $otherAccount->id,
+            'brand_id' => $otherBrand->id,
+            'provider' => 'Perplexity',
+            'query' => 'foreign citation prompt',
+            'status' => 'completed',
+            'captured_at' => now(),
+        ]);
+        $foreignRun->citations()->create([
+            'account_id' => $otherAccount->id,
+            'brand_id' => $otherBrand->id,
+            'url' => 'https://hidden.example/ai-citation',
+            'domain' => 'hidden.example',
+            'title' => 'Hidden AI citation',
+            'rank' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('app.visibility.citations', ['domain' => 'visible.example']))
+            ->assertOk()
+            ->assertSee('Sources &amp; Citations', false)
+            ->assertSee('Visible AI citation')
+            ->assertSee('visible.example')
+            ->assertDontSee('Hidden AI citation')
+            ->assertDontSee('hidden.example');
     }
 
     public function test_prompt_library_actions_are_current_brand_safe(): void

@@ -231,12 +231,15 @@ class PerformanceInsightService
             ->where('brand_id', $brand->id)
             ->where('status', 'completed')
             ->where('captured_at', '>=', now()->subDays(30))
+            ->with(['citations', 'answerEntities'])
             ->get()
-            ->filter(fn (VisibilityProviderRun $run) => (int) ($run->metadata['visibility_score'] ?? 100) < 50)
+            ->filter(fn (VisibilityProviderRun $run) => (int) ($run->metadata['visibility_score'] ?? 100) < 50
+                || $run->citations->isEmpty()
+                || $run->answerEntities->contains(fn ($entity) => $entity->entity_type === 'competitor'))
             ->map(fn (VisibilityProviderRun $run) => [
                 'type' => 'visibility_gap',
                 'title' => 'AI visibility is weak for '.$run->provider,
-                'summary' => 'The latest provider run scored below 50 for the tracked prompt.',
+                'summary' => $this->visibilityGapSummary($run),
                 'severity' => ((int) ($run->metadata['visibility_score'] ?? 0)) < 30 ? 'high' : 'medium',
                 'impact_score' => 100 - (int) ($run->metadata['visibility_score'] ?? 0),
                 'payload' => [
@@ -244,11 +247,39 @@ class PerformanceInsightService
                     'provider' => $run->provider,
                     'query' => $run->query,
                     'visibility_score' => $run->metadata['visibility_score'] ?? null,
-                    'recommendation' => 'Create or refresh answer-led content for this prompt and strengthen citations.',
+                    'citation_count' => $run->citations->count(),
+                    'competitor_mentions' => $run->answerEntities->where('entity_type', 'competitor')->pluck('entity_name')->values()->all(),
+                    'recommendation' => $this->visibilityGapRecommendation($run),
                 ],
             ])
             ->values()
             ->all();
+    }
+
+    private function visibilityGapSummary(VisibilityProviderRun $run): string
+    {
+        if ($run->citations->isEmpty()) {
+            return 'The latest provider run has no citations for the tracked prompt.';
+        }
+
+        if ($run->answerEntities->contains(fn ($entity) => $entity->entity_type === 'competitor')) {
+            return 'The latest provider run includes competitor presence for the tracked prompt.';
+        }
+
+        return 'The latest provider run scored below 50 for the tracked prompt.';
+    }
+
+    private function visibilityGapRecommendation(VisibilityProviderRun $run): string
+    {
+        if ($run->citations->isEmpty()) {
+            return 'Strengthen authoritative cited sources and rerun this visibility prompt.';
+        }
+
+        if ($run->answerEntities->contains(fn ($entity) => $entity->entity_type === 'competitor')) {
+            return 'Clarify brand positioning against competitors and improve citation depth for this topic.';
+        }
+
+        return 'Create or refresh answer-led content for this prompt and strengthen citations.';
     }
 
     /**

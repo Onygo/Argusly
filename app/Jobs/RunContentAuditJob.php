@@ -15,7 +15,10 @@ class RunContentAuditJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public readonly int $contentAuditId) {}
+    public function __construct(public readonly int $contentAuditId)
+    {
+        $this->onQueue(config('queue.names.ai', 'ai'));
+    }
 
     public function handle(ContentAuditService $audits): void
     {

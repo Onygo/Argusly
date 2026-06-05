@@ -23,6 +23,7 @@ use InvalidArgumentException;
     'response_body',
     'error_message',
     'available_at',
+    'next_retry_at',
     'delivered_at',
     'failed_at',
 ])]
@@ -78,6 +79,7 @@ class WebhookDelivery extends Model
         return [
             'payload' => 'array',
             'available_at' => 'datetime',
+            'next_retry_at' => 'datetime',
             'delivered_at' => 'datetime',
             'failed_at' => 'datetime',
         ];

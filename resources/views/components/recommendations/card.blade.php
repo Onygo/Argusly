@@ -3,9 +3,11 @@
 @php
     $statusClasses = [
         'new' => 'border-blue/15 bg-blue/5 text-blue',
+        'reviewed' => 'border-line bg-white text-muted',
         'accepted' => 'border-amber-200 bg-amber-50 text-amber-700',
         'dismissed' => 'border-slate-200 bg-slate-50 text-slate-500',
         'completed' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        'archived' => 'border-slate-200 bg-slate-50 text-slate-500',
     ];
     $executionClasses = [
         'pending' => 'border-amber-200 bg-amber-50 text-amber-700',
@@ -67,6 +69,12 @@
         </time>
         @if (! $compact)
             <div class="flex flex-wrap items-center gap-2">
+                @if ($recommendation->status === 'new')
+                    <form method="POST" action="{{ route('app.recommendations.review', $recommendation) }}">
+                        @csrf
+                        <x-ui.button type="submit" variant="light" size="sm">Review</x-ui.button>
+                    </form>
+                @endif
                 @if ($recommendation->status !== 'accepted')
                     <form method="POST" action="{{ route('app.recommendations.accept', $recommendation) }}">
                         @csrf
@@ -85,6 +93,12 @@
                     <form method="POST" action="{{ route('app.recommendations.dismiss', $recommendation) }}">
                         @csrf
                         <x-ui.button type="submit" variant="light" size="sm">Dismiss</x-ui.button>
+                    </form>
+                @endif
+                @if (! in_array($recommendation->status, ['archived', 'accepted'], true))
+                    <form method="POST" action="{{ route('app.recommendations.archive', $recommendation) }}">
+                        @csrf
+                        <x-ui.button type="submit" variant="light" size="sm">Archive</x-ui.button>
                     </form>
                 @endif
             </div>

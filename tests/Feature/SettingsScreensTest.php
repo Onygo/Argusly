@@ -66,8 +66,75 @@ class SettingsScreensTest extends TestCase
             ->assertSee('Primary brand profile.')
             ->assertSee('https://alpha.example')
             ->assertSee('Netherlands')
-            ->assertSee('Competitors placeholder')
+            ->assertSee(route('settings.brands.update', $brand), false)
             ->assertDontSee('Other Brand');
+    }
+
+    public function test_workspace_owner_can_update_account_settings(): void
+    {
+        [$user, $account] = $this->tenantWithRole('owner');
+
+        $this->actingAs($user)
+            ->patch(route('settings.account.update'), [
+                'name' => 'Argusly Workspace',
+                'default_locale' => 'nl',
+                'default_content_language' => 'en',
+                'timezone' => 'Europe/Amsterdam',
+            ])
+            ->assertRedirect(route('settings.account'));
+
+        $this->assertDatabaseHas('accounts', [
+            'id' => $account->id,
+            'name' => 'Argusly Workspace',
+            'default_locale' => 'nl',
+            'default_content_language' => 'en',
+        ]);
+        $this->assertSame('Europe/Amsterdam', $account->fresh()->settings['timezone']);
+    }
+
+    public function test_workspace_owner_can_update_only_brands_inside_current_account(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $foreignAccount = Account::query()->create(['name' => 'Foreign', 'slug' => 'foreign']);
+        $foreignBrand = Brand::query()->create([
+            'account_id' => $foreignAccount->id,
+            'name' => 'Foreign Brand',
+            'slug' => 'foreign-brand',
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('settings.brands.update', $brand), [
+                'name' => 'Updated Alpha',
+                'slug' => 'updated-alpha',
+                'domain' => 'updated.example',
+                'website_url' => 'https://updated.example',
+                'description' => 'Updated brand profile.',
+                'market' => 'Benelux',
+                'language' => 'nl',
+                'default_content_language' => 'en',
+                'enabled_content_languages' => 'en, nl',
+                'status' => 'active',
+            ])
+            ->assertRedirect(route('settings.brands'));
+
+        $this->assertDatabaseHas('brands', [
+            'id' => $brand->id,
+            'account_id' => $account->id,
+            'name' => 'Updated Alpha',
+            'slug' => 'updated-alpha',
+            'domain' => 'updated.example',
+            'website_url' => 'https://updated.example',
+            'market' => 'Benelux',
+        ]);
+        $this->assertSame(['en', 'nl'], $brand->fresh()->enabled_content_languages);
+
+        $this->actingAs($user)
+            ->patch(route('settings.brands.update', $foreignBrand), [
+                'name' => 'Should Not Update',
+                'slug' => 'should-not-update',
+                'status' => 'active',
+            ])
+            ->assertForbidden();
     }
 
     public function test_team_settings_show_account_and_brand_members_with_roles(): void
@@ -77,10 +144,12 @@ class SettingsScreensTest extends TestCase
         $editor = Role::query()->where('name', 'editor')->firstOrFail();
         $otherAccount = Account::query()->create(['name' => 'Other Company', 'slug' => 'other-company']);
         $otherUser = User::factory()->create(['name' => 'Other Company User']);
+        $assignable = User::factory()->create(['name' => 'Assignable Team Member']);
 
         $member->accounts()->attach($account, ['status' => 'active']);
         $member->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
         $member->roles()->attach($editor, ['account_id' => $account->id, 'brand_id' => $brand->id]);
+        $assignable->accounts()->attach($account, ['status' => 'active']);
         $otherUser->accounts()->attach($otherAccount, ['status' => 'active']);
 
         $this->actingAs($user)
@@ -90,7 +159,77 @@ class SettingsScreensTest extends TestCase
             ->assertSee('Editor')
             ->assertSee(route('workspace.users.impersonate', $member), false)
             ->assertDontSee('Other Company User')
-            ->assertSee('Invite placeholder');
+            ->assertSee('Add workspace member to brand');
+    }
+
+    public function test_workspace_owner_can_update_memberships_and_brand_roles(): void
+    {
+        [$owner, $account, $brand] = $this->tenantWithRole('owner');
+        $member = User::factory()->create(['name' => 'Assignable Member']);
+        $member->accounts()->attach($account, ['status' => 'active']);
+
+        $admin = Role::query()->where('name', 'admin')->firstOrFail();
+        $editor = Role::query()->where('name', 'editor')->firstOrFail();
+        $membership = $member->memberships()->where('account_id', $account->id)->firstOrFail();
+
+        $this->assertTrue($owner->can('update', $membership));
+
+        $this->actingAs($owner)
+            ->patch(route('settings.team.memberships.update', $membership), [
+                'status' => 'active',
+                'role_id' => $admin->id,
+            ])
+            ->assertRedirect(route('settings.team'));
+
+        $this->assertDatabaseHas('memberships', [
+            'id' => $membership->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $member->id,
+            'role_id' => $admin->id,
+            'account_id' => $account->id,
+            'brand_id' => null,
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('settings.team.brand-memberships.store'), [
+                'user_id' => $member->id,
+                'role_id' => $editor->id,
+            ])
+            ->assertRedirect(route('settings.team'));
+
+        $brandMembership = $member->brandMemberships()->where('brand_id', $brand->id)->firstOrFail();
+        $this->assertDatabaseHas('brand_memberships', [
+            'id' => $brandMembership->id,
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $member->id,
+            'role_id' => $editor->id,
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+        ]);
+
+        $this->actingAs($owner)
+            ->patch(route('settings.team.brand-memberships.update', $brandMembership), [
+                'status' => 'inactive',
+                'role_id' => $admin->id,
+            ])
+            ->assertRedirect(route('settings.team'));
+
+        $this->assertDatabaseHas('brand_memberships', [
+            'id' => $brandMembership->id,
+            'status' => 'inactive',
+        ]);
+        $this->assertDatabaseHas('user_roles', [
+            'user_id' => $member->id,
+            'role_id' => $admin->id,
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+        ]);
     }
 
     public function test_workspace_owner_can_impersonate_only_users_inside_own_account(): void
@@ -420,6 +559,63 @@ class SettingsScreensTest extends TestCase
         $this->actingAs($ownerNoContent)
             ->get(route('settings.properties'))
             ->assertForbidden();
+    }
+
+    public function test_workspace_owner_can_create_and_update_only_current_brand_properties(): void
+    {
+        [$user, $account, $brand] = $this->tenantWithRole('owner');
+        $foreignBrand = Brand::query()->create([
+            'account_id' => $account->id,
+            'name' => 'Foreign Brand',
+            'slug' => 'foreign-brand',
+        ]);
+        $foreignProperty = Property::factory()->forBrand($foreignBrand)->create([
+            'name' => 'Foreign Property',
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('settings.properties.store'), [
+                'name' => 'Knowledge Website',
+                'type' => 'website',
+                'url' => 'https://knowledge.example',
+                'primary_language' => 'en',
+                'status' => 'active',
+            ])
+            ->assertRedirect(route('settings.properties'));
+
+        $property = Property::query()
+            ->where('account_id', $account->id)
+            ->where('brand_id', $brand->id)
+            ->where('name', 'Knowledge Website')
+            ->firstOrFail();
+
+        $this->actingAs($user)
+            ->patch(route('settings.properties.update', $property), [
+                'name' => 'Updated Knowledge Website',
+                'type' => 'blog',
+                'url' => 'https://knowledge.example/blog',
+                'primary_language' => 'nl',
+                'status' => 'inactive',
+            ])
+            ->assertRedirect(route('settings.properties'));
+
+        $this->assertDatabaseHas('properties', [
+            'id' => $property->id,
+            'name' => 'Updated Knowledge Website',
+            'type' => 'blog',
+            'url' => 'https://knowledge.example/blog',
+            'primary_language' => 'nl',
+            'status' => 'inactive',
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('settings.properties.update', $foreignProperty), [
+                'name' => 'Should Not Update',
+                'type' => 'website',
+                'url' => 'https://blocked.example',
+                'status' => 'active',
+            ])
+            ->assertNotFound();
     }
 
     public function test_channels_settings_are_brand_scoped_and_hide_credentials(): void

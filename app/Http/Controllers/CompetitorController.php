@@ -62,4 +62,48 @@ class CompetitorController extends Controller
 
         return redirect()->route('app.competitors')->with('status', 'Competitor added.');
     }
+
+    public function update(
+        Request $request,
+        Competitor $competitor,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        CompetitorService $competitors,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('update', $competitor);
+
+        $competitors->update($account, $brand, $competitor, $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'website' => ['required', 'string', 'max:2048'],
+            'industry' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'string', Rule::in(Competitor::STATUSES)],
+        ]));
+
+        return redirect()->route('app.competitors')->with('status', 'Competitor updated.');
+    }
+
+    public function monitor(
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        CompetitorService $competitors,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('create', Competitor::class);
+
+        $snapshots = $competitors->monitor($account, $brand);
+
+        return redirect()->route('app.competitors')->with('status', "Competitor monitoring captured {$snapshots->count()} snapshot(s).");
+    }
 }

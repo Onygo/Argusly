@@ -8,6 +8,7 @@ use App\Models\VisibilityCheck;
 use App\Services\CreditService;
 use App\Services\Visibility\ProviderRegistry;
 use App\Services\Visibility\ProviderRunService;
+use Database\Seeders\CreditCostCatalogSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use Tests\TestCase;
@@ -117,6 +118,8 @@ class AiVisibilityProviderAdapterTest extends TestCase
      */
     private function tenant(): array
     {
+        $this->seed(CreditCostCatalogSeeder::class);
+
         $account = Account::query()->create(['name' => 'Visibility Account', 'slug' => fake()->unique()->slug()]);
         $brand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Argusly', 'slug' => fake()->unique()->slug()]);
         app(CreditService::class)->grant($account, 1000, null, 'Test LLM credits');

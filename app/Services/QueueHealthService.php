@@ -14,16 +14,29 @@ class QueueHealthService
      */
     public function snapshot(): array
     {
+        $queues = collect(config('queue.names'))->unique()->values();
+        $pending = $this->pendingJobs();
+        $failed = $this->failedJobs();
+        $heartbeats = Schema::hasTable('worker_heartbeats')
+            ? WorkerHeartbeat::query()->latest('last_seen_at')->limit(50)->get()
+            : collect();
+
         return [
-            'pending_count' => $this->pendingJobs()->count(),
-            'failed_count' => $this->failedJobs()->count(),
-            'pending_by_queue' => $this->pendingJobs()->groupBy('queue')->map->count(),
-            'failed_by_queue' => $this->failedJobs()->groupBy('queue')->map->count(),
-            'pending_jobs' => $this->pendingJobs()->take(20),
-            'failed_jobs' => $this->failedJobs()->take(20),
-            'heartbeats' => Schema::hasTable('worker_heartbeats')
-                ? WorkerHeartbeat::query()->latest('last_seen_at')->limit(20)->get()
-                : collect(),
+            'pending_count' => $pending->count(),
+            'failed_count' => $failed->count(),
+            'pending_by_queue' => $pending->groupBy('queue')->map->count(),
+            'failed_by_queue' => $failed->groupBy('queue')->map->count(),
+            'queue_matrix' => $queues->map(fn (string $queue): array => [
+                'name' => $queue,
+                'pending' => $pending->where('queue', $queue)->count(),
+                'failed' => $failed->where('queue', $queue)->count(),
+                'workers' => $heartbeats->where('queue', $queue)->count(),
+                'status' => $this->queueStatus($queue, $pending, $failed, $heartbeats),
+            ]),
+            'pending_jobs' => $pending->take(20),
+            'failed_jobs' => $failed->take(20),
+            'heartbeats' => $heartbeats,
+            'stale_heartbeats' => $heartbeats->filter(fn (WorkerHeartbeat $heartbeat): bool => $heartbeat->last_seen_at?->lt(now()->subMinutes(5)) ?? true),
         ];
     }
 
@@ -64,5 +77,23 @@ class QueueHealthService
             ->latest('failed_at')
             ->limit(100)
             ->get();
+    }
+
+    private function queueStatus(string $queue, Collection $pending, Collection $failed, Collection $heartbeats): string
+    {
+        if ($failed->where('queue', $queue)->count() > 0) {
+            return 'critical';
+        }
+
+        if ($pending->where('queue', $queue)->count() > 50) {
+            return 'warning';
+        }
+
+        $stale = $heartbeats
+            ->where('queue', $queue)
+            ->filter(fn (WorkerHeartbeat $heartbeat): bool => $heartbeat->last_seen_at?->lt(now()->subMinutes(5)) ?? true)
+            ->isNotEmpty();
+
+        return $stale ? 'warning' : 'healthy';
     }
 }

@@ -21,9 +21,13 @@ use InvalidArgumentException;
     'completion_tokens',
     'total_tokens',
     'estimated_cost',
+    'actual_cost',
     'credits_charged',
     'latency_ms',
     'error_message',
+    'prompt_version',
+    'prompt_hash',
+    'fallback_of_llm_request_id',
     'metadata',
     'completed_at',
 ])]
@@ -86,10 +90,16 @@ class LlmRequest extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function fallbackOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'fallback_of_llm_request_id');
+    }
+
     protected function casts(): array
     {
         return [
             'estimated_cost' => 'decimal:6',
+            'actual_cost' => 'decimal:6',
             'metadata' => 'array',
             'created_at' => 'datetime',
             'completed_at' => 'datetime',

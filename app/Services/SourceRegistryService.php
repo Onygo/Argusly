@@ -8,6 +8,7 @@ use App\Models\IntegrationConnection;
 use App\Models\Source;
 use App\Models\SourceConnection;
 use App\Models\SourceSync;
+use App\Jobs\RunSourceSyncJob;
 use App\Services\Integrations\Google\GoogleTokenService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -107,6 +108,15 @@ class SourceRegistryService
         ]);
     }
 
+    public function dispatchSync(Source $source): SourceSync
+    {
+        $sync = $this->createPlannedSync($source);
+
+        RunSourceSyncJob::dispatch($sync->id);
+
+        return $sync;
+    }
+
     private function assertSourceCanSync(Source $source): void
     {
         if ($source->provider !== 'google') {
@@ -136,8 +146,14 @@ class SourceRegistryService
         $sync->forceFill([
             'status' => 'completed',
             'completed_at' => now(),
+            'next_run_at' => now()->addDay(),
             'records_found' => $recordsFound,
             'error' => null,
+            'health' => [
+                'status' => 'healthy',
+                'records_found' => $recordsFound,
+                'checked_at' => now()->toDateTimeString(),
+            ],
         ])->save();
 
         app(DomainEventService::class)->recordForSubject('SourceSyncCompleted', $sync, null, [

@@ -4,9 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\Entity;
 use App\Models\IntelligenceSignal;
+use App\Models\Mention;
 use App\Models\Role;
+use App\Models\Source;
+use App\Models\Topic;
 use App\Models\User;
+use App\Services\MentionIntelligenceService;
 use App\Services\IntelligenceSignalService;
 use App\Services\Signals\SignalManager;
 use App\Services\Subscriptions\SubscriptionService;
@@ -211,6 +216,78 @@ class IntelligenceSignalTest extends TestCase
 
         $this->assertSame('dismissed', $signal->refresh()->status);
         $this->assertNotNull($signal->dismissed_at);
+    }
+
+    public function test_intelligence_feed_filters_by_source_topic_entity_sentiment_period_and_shows_detail(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(SubscriptionCatalogSeeder::class);
+
+        $user = User::factory()->create();
+        $account = Account::query()->create(['name' => 'Alpha', 'slug' => 'alpha']);
+        $brand = Brand::query()->create(['account_id' => $account->id, 'name' => 'Alpha Brand', 'slug' => 'alpha-brand']);
+        $role = Role::query()->where('name', 'owner')->firstOrFail();
+
+        $user->accounts()->attach($account, ['status' => 'active']);
+        $user->brands()->attach($brand, ['account_id' => $account->id, 'status' => 'active']);
+        $user->roles()->attach($role, ['account_id' => $account->id]);
+        app(SubscriptionService::class)->activatePlan($account, 'starter_monthly');
+
+        $source = Source::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Reddit Monitor',
+            'type' => 'forum',
+            'provider' => 'reddit',
+            'status' => 'active',
+        ]);
+        $topic = Topic::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Pricing',
+            'slug' => 'pricing',
+            'status' => 'active',
+        ]);
+        $entity = Entity::query()->create([
+            'account_id' => $account->id,
+            'brand_id' => $brand->id,
+            'name' => 'Pricing Desk',
+            'slug' => 'pricing-desk',
+            'entity_type' => 'product',
+            'status' => 'active',
+        ]);
+
+        $mention = app(MentionIntelligenceService::class)->create($account, $brand, [
+            'source_id' => $source->id,
+            'title' => 'Pricing Desk mention',
+            'content' => 'Pricing Desk was discussed in a pricing thread.',
+            'sentiment' => 'negative',
+            'impact_score' => 88,
+            'published_at' => now(),
+        ]);
+        $signal = IntelligenceSignal::query()->where('type', 'sentiment_shift')->firstOrFail();
+
+        $this->actingAs($user)
+            ->get(route('app.intelligence', [
+                'source_id' => $source->id,
+                'topic_id' => $topic->id,
+                'entity_id' => $entity->id,
+                'sentiment' => 'negative',
+                'date_from' => now()->subDay()->toDateString(),
+                'date_to' => now()->addDay()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('Negative mention needs review')
+            ->assertDontSee('No signals found');
+
+        $this->actingAs($user)
+            ->get(route('app.intelligence.show', $signal))
+            ->assertOk()
+            ->assertSee('Signal detail')
+            ->assertSee('Negative mention needs review');
+
+        $this->assertTrue($mention->topics()->whereKey($topic->id)->exists());
+        $this->assertTrue($mention->relationships()->where('related_id', $entity->id)->exists());
     }
 
     public function test_dashboard_shows_recent_tenant_scoped_intelligence_signals(): void

@@ -32,6 +32,12 @@ class NotificationPreference extends Model
         'approval_requested',
         'agent_task_completed',
         'credits_low',
+        'operational_alert',
+        'queue_failure',
+        'worker_unhealthy',
+        'source_unhealthy',
+        'scheduler_failure',
+        'webhook_failed',
     ];
 
     protected static function booted(): void

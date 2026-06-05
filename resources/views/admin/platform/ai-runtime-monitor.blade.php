@@ -13,7 +13,14 @@
                     <option value="{{ $account->id }}" @selected((int) request('account_id') === $account->id)>{{ $account->name }}</option>
                 @endforeach
             </select>
+            <select name="brand_id" class="rounded-md border border-line px-3 py-2 text-sm">
+                <option value="">All brands</option>
+                @foreach ($brands as $brand)
+                    <option value="{{ $brand->id }}" @selected((int) request('brand_id') === $brand->id)>{{ $brand->name }}</option>
+                @endforeach
+            </select>
             <input name="provider" value="{{ request('provider') }}" placeholder="Provider" class="rounded-md border border-line px-3 py-2 text-sm">
+            <input name="model" value="{{ request('model') }}" placeholder="Model" class="rounded-md border border-line px-3 py-2 text-sm">
             <select name="purpose" class="rounded-md border border-line px-3 py-2 text-sm">
                 <option value="">All purposes</option>
                 @foreach ($purposes as $purpose)
@@ -26,6 +33,8 @@
                     <option value="{{ $status }}" @selected(request('status') === $status)>{{ str($status)->headline() }}</option>
                 @endforeach
             </select>
+            <input name="from" type="date" value="{{ request('from') }}" class="rounded-md border border-line px-3 py-2 text-sm">
+            <input name="to" type="date" value="{{ request('to') }}" class="rounded-md border border-line px-3 py-2 text-sm">
             <button class="rounded-md bg-ink px-4 py-2 text-sm font-semibold text-white">Filter</button>
         </form>
     </div>
@@ -65,6 +74,7 @@
                         <tr class="text-left text-xs uppercase tracking-[0.08em] text-muted">
                             <th class="py-2 pr-4">Created</th>
                             <th class="py-2 pr-4">Workspace</th>
+                            <th class="py-2 pr-4">Brand</th>
                             <th class="py-2 pr-4">Provider</th>
                             <th class="py-2 pr-4">Purpose</th>
                             <th class="py-2 pr-4">Status</th>
@@ -77,6 +87,7 @@
                             <tr>
                                 <td class="py-2 pr-4 text-muted">{{ $request->created_at?->format('Y-m-d H:i') }}</td>
                                 <td class="py-2 pr-4 text-ink">{{ $request->account?->name ?? 'n/a' }}</td>
+                                <td class="py-2 pr-4 text-ink">{{ $request->brand?->name ?? 'n/a' }}</td>
                                 <td class="py-2 pr-4 text-muted">{{ $request->provider }} / {{ $request->model }}</td>
                                 <td class="py-2 pr-4 text-muted">{{ $request->purpose }}</td>
                                 <td class="py-2 pr-4">@include('admin._status', ['value' => $request->status])</td>
@@ -84,7 +95,7 @@
                                 <td class="py-2 pr-4 text-muted">{{ $request->estimated_cost ?? '0.000000' }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="7" class="py-6 text-muted">No AI requests match these filters.</td></tr>
+                            <tr><td colspan="8" class="py-6 text-muted">No AI requests match these filters.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -9,11 +9,13 @@ use App\Models\Plan;
 use App\Models\Role;
 use App\Models\SearchConsoleSite;
 use App\Models\User;
+use App\Jobs\GenerateScheduledReportsJob;
 use App\Services\Graph\GraphProjectionService;
 use App\Services\Integrations\Google\GA4DataService;
 use App\Services\Integrations\Google\GoogleTokenService;
 use App\Services\Integrations\Google\SearchConsolePerformanceService;
 use App\Services\Integrations\LinkedIn\LinkedInTokenService;
+use App\Services\SchedulerMonitorService;
 use App\Services\Visibility\RunScheduleService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Database\Seeders\SubscriptionCatalogSeeder;
@@ -147,6 +149,24 @@ Artisan::command('visibility:run-due {--limit=50}', function (RunScheduleService
 
     return self::SUCCESS;
 })->purpose('Run due AI visibility prompt schedules');
+
+Artisan::command('reports:generate-scheduled {--type=weekly} {--limit=50} {--sync}', function (): int {
+    $type = (string) $this->option('type');
+    $limit = (int) $this->option('limit');
+    $job = new GenerateScheduledReportsJob($type, $limit);
+
+    if ($this->option('sync')) {
+        app()->call([$job, 'handle']);
+        $this->info("Generated scheduled {$type} report(s) synchronously.");
+
+        return self::SUCCESS;
+    }
+
+    dispatch($job);
+    $this->info("Queued scheduled {$type} report generation.");
+
+    return self::SUCCESS;
+})->purpose('Generate scheduled executive reports for active brands');
 
 Artisan::command('graph:rebuild {--account=} {--brand=}', function (GraphProjectionService $graph): int {
     $account = $this->option('account')
@@ -304,3 +324,4 @@ Artisan::command('search-console:sync {--account=} {--brand=} {--days=30}', func
 
 Schedule::command('linkedin:check-token-health')->hourly();
 Schedule::command('google:check-token-health')->hourly();
+Schedule::call(fn () => app(SchedulerMonitorService::class)->markHeartbeat())->everyMinute()->name('scheduler:heartbeat');

@@ -55,7 +55,7 @@ class ContentGenerationTest extends TestCase
         );
     }
 
-    public function test_generation_job_stores_static_output(): void
+    public function test_generation_job_stores_fallback_draft_output(): void
     {
         Queue::fake();
 
@@ -70,7 +70,8 @@ class ContentGenerationTest extends TestCase
         $this->assertSame('completed', $generatedAsset->status);
         $this->assertSame(100, $generatedAsset->cost_credits);
         $this->assertStringContainsString('Search demand article', $generatedAsset->title);
-        $this->assertStringContainsString('without calling a real AI provider', $generatedAsset->body);
+        $this->assertStringContainsString('Recommended improvements', $generatedAsset->body);
+        $this->assertStringNotContainsString('without calling a real AI provider', $generatedAsset->body);
         $this->assertTrue($generatedAsset->output_payload['fake']);
         $this->assertSame('openai', $generatedAsset->output_payload['llm_response']['provider']);
     }

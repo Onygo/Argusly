@@ -6,15 +6,18 @@ use App\Contracts\CurrentAccountContract;
 use App\Contracts\CurrentBrandContract;
 use App\Models\Account;
 use App\Models\Brand;
+use App\Models\BrandMembership;
 use App\Models\ConnectorInstallation;
 use App\Models\Ga4Property;
 use App\Models\IntegrationConnection;
 use App\Models\LlmModel;
 use App\Models\LlmProvider;
 use App\Models\LlmSetting;
+use App\Models\Membership;
 use App\Models\Module;
 use App\Models\Property;
 use App\Models\PublishingChannel;
+use App\Models\Role;
 use App\Models\SearchConsoleSite;
 use App\Models\SubscriptionModule;
 use App\Models\User;
@@ -28,6 +31,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use InvalidArgumentException;
@@ -56,6 +60,34 @@ class SettingsController extends Controller
         ]);
     }
 
+    public function updateAccount(Request $request): RedirectResponse
+    {
+        $this->resolveContext($request);
+        Gate::authorize('update', $this->account);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'default_locale' => ['nullable', 'string', 'max:16'],
+            'default_content_language' => ['nullable', 'string', 'max:16'],
+            'timezone' => ['nullable', 'timezone'],
+        ]);
+
+        $settings = $this->account->settings ?? [];
+
+        if (array_key_exists('timezone', $validated)) {
+            $settings['timezone'] = $validated['timezone'] ?: null;
+        }
+
+        $this->account->update([
+            'name' => $validated['name'],
+            'default_locale' => $validated['default_locale'] ?: null,
+            'default_content_language' => $validated['default_content_language'] ?: null,
+            'settings' => array_filter($settings, fn ($value) => $value !== null),
+        ]);
+
+        return redirect()->route('settings.account')->with('status', 'Workspace settings updated.');
+    }
+
     public function brands(Request $request): View
     {
         $this->resolveContext($request);
@@ -67,6 +99,46 @@ class SettingsController extends Controller
         ]);
     }
 
+    public function updateBrand(Request $request, Brand $brand): RedirectResponse
+    {
+        $this->resolveContext($request);
+        $brand = $this->brandRecord($brand->id);
+        Gate::authorize('update', $brand);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('brands', 'slug')->where('account_id', $this->account->id)->ignore($brand->id),
+            ],
+            'domain' => ['nullable', 'string', 'max:255'],
+            'website_url' => ['nullable', 'url', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'market' => ['nullable', 'string', 'max:255'],
+            'language' => ['nullable', 'string', 'max:16'],
+            'default_content_language' => ['nullable', 'string', 'max:16'],
+            'enabled_content_languages' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'in:active,inactive,archived'],
+        ]);
+
+        $brand->update([
+            'name' => $validated['name'],
+            'slug' => str($validated['slug'])->slug()->toString(),
+            'domain' => $validated['domain'] ?: null,
+            'website_url' => $validated['website_url'] ?: null,
+            'description' => $validated['description'] ?: null,
+            'market' => $validated['market'] ?: null,
+            'language' => $validated['language'] ?: null,
+            'default_content_language' => $validated['default_content_language'] ?: null,
+            'enabled_content_languages' => $this->languageList($validated['enabled_content_languages'] ?? null),
+            'status' => $validated['status'],
+        ]);
+
+        return redirect()->route('settings.brands')->with('status', 'Brand settings updated.');
+    }
+
     public function team(Request $request): View
     {
         $this->resolveContext($request);
@@ -76,7 +148,84 @@ class SettingsController extends Controller
             'brand' => $this->brand,
             'accountMembers' => $this->accountMembers(),
             'brandMembers' => $this->brandMembers(),
+            'roles' => $this->assignableRoles(),
+            'brandAssignableMembers' => $this->brandAssignableMembers(),
         ]);
+    }
+
+    public function updateMembership(Request $request, Membership $membership): RedirectResponse
+    {
+        $this->resolveContext($request);
+        $membership = $this->accountMembership($membership->id);
+        Gate::authorize('update', $membership);
+
+        $roleIds = $this->assignableRoles()->pluck('id')->all();
+        $validated = $request->validate([
+            'status' => ['required', 'in:active,inactive'],
+            'role_id' => ['required', 'integer', Rule::in($roleIds)],
+        ]);
+
+        $membership->update([
+            'status' => $validated['status'],
+            'joined_at' => $validated['status'] === 'active' ? ($membership->joined_at ?? now()) : $membership->joined_at,
+        ]);
+
+        $this->syncRole($membership->user, (int) $validated['role_id'], $this->account, null);
+
+        return redirect()->route('settings.team')->with('status', 'Workspace member updated.');
+    }
+
+    public function storeBrandMembership(Request $request): RedirectResponse
+    {
+        $this->resolveContext($request);
+        abort_unless($this->brand, 403);
+        Gate::authorize('create', BrandMembership::class);
+
+        $userIds = $this->account->memberships()->where('status', 'active')->pluck('user_id')->all();
+        $roleIds = $this->assignableRoles()->pluck('id')->all();
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', Rule::in($userIds)],
+            'role_id' => ['required', 'integer', Rule::in($roleIds)],
+        ]);
+
+        $membership = BrandMembership::query()->updateOrCreate(
+            [
+                'user_id' => $validated['user_id'],
+                'brand_id' => $this->brand->id,
+            ],
+            [
+                'account_id' => $this->account->id,
+                'status' => 'active',
+                'joined_at' => now(),
+            ],
+        );
+
+        $this->syncRole($membership->user, (int) $validated['role_id'], $this->account, $this->brand);
+
+        return redirect()->route('settings.team')->with('status', 'Brand member assigned.');
+    }
+
+    public function updateBrandMembership(Request $request, BrandMembership $membership): RedirectResponse
+    {
+        $this->resolveContext($request);
+        $membership = $this->brandMembership($membership->id);
+        Gate::authorize('update', $membership);
+
+        $roleIds = $this->assignableRoles()->pluck('id')->all();
+        $validated = $request->validate([
+            'status' => ['required', 'in:active,inactive'],
+            'role_id' => ['required', 'integer', Rule::in($roleIds)],
+        ]);
+
+        $membership->update([
+            'status' => $validated['status'],
+            'joined_at' => $validated['status'] === 'active' ? ($membership->joined_at ?? now()) : $membership->joined_at,
+        ]);
+
+        $this->syncRole($membership->user, (int) $validated['role_id'], $this->account, $membership->brand);
+
+        return redirect()->route('settings.team')->with('status', 'Brand member updated.');
     }
 
     public function modules(Request $request): View
@@ -102,13 +251,13 @@ class SettingsController extends Controller
             'accountSetting' => LlmSetting::query()
                 ->where('account_id', $this->account->id)
                 ->whereNull('brand_id')
-                ->with(['defaultProvider', 'defaultModel'])
+                ->with(['defaultProvider', 'defaultModel', 'fallbackProvider', 'fallbackModel'])
                 ->first(),
             'brandSetting' => $this->brand
                 ? LlmSetting::query()
                     ->where('account_id', $this->account->id)
                     ->where('brand_id', $this->brand->id)
-                    ->with(['defaultProvider', 'defaultModel'])
+                    ->with(['defaultProvider', 'defaultModel', 'fallbackProvider', 'fallbackModel'])
                     ->first()
                 : null,
         ]);
@@ -122,18 +271,31 @@ class SettingsController extends Controller
             'scope' => ['required', 'in:account,brand'],
             'default_provider_id' => ['nullable', 'integer', 'exists:llm_providers,id'],
             'default_model_id' => ['nullable', 'integer', 'exists:llm_models,id'],
+            'fallback_provider_id' => ['nullable', 'integer', 'exists:llm_providers,id'],
+            'fallback_model_id' => ['nullable', 'integer', 'exists:llm_models,id'],
             'temperature' => ['nullable', 'numeric', 'between:0,2'],
             'max_tokens' => ['nullable', 'integer', 'min:1', 'max:1000000'],
+            'allowed_providers' => ['nullable', 'string', 'max:500'],
+            'denied_providers' => ['nullable', 'string', 'max:500'],
+            'allowed_models' => ['nullable', 'string', 'max:1000'],
+            'denied_models' => ['nullable', 'string', 'max:1000'],
+            'monthly_credit_budget' => ['nullable', 'integer', 'min:0'],
+            'brand_monthly_credit_budget' => ['nullable', 'integer', 'min:0'],
+            'user_monthly_credit_budget' => ['nullable', 'integer', 'min:0'],
         ]);
         $validated = $this->nullableLlmAttributes($validated);
 
         $this->validateActiveLlmPair($validated['default_provider_id'] ?? null, $validated['default_model_id'] ?? null);
+        $this->validateActiveLlmPair($validated['fallback_provider_id'] ?? null, $validated['fallback_model_id'] ?? null);
 
         $attributes = [
             'default_provider_id' => $validated['default_provider_id'] ?? null,
             'default_model_id' => $validated['default_model_id'] ?? null,
+            'fallback_provider_id' => $validated['fallback_provider_id'] ?? null,
+            'fallback_model_id' => $validated['fallback_model_id'] ?? null,
             'temperature' => $validated['temperature'] ?? null,
             'max_tokens' => $validated['max_tokens'] ?? null,
+            'settings' => $this->llmPolicySettings($validated),
         ];
 
         if ($validated['scope'] === 'brand') {
@@ -323,7 +485,35 @@ class SettingsController extends Controller
             'brand' => $this->brand,
             'properties' => $this->propertyRecords(),
             'types' => Property::TYPES,
+            'statuses' => Property::STATUSES,
         ]);
+    }
+
+    public function storeProperty(Request $request): RedirectResponse
+    {
+        $this->resolveContext($request);
+        abort_unless($this->brand, 403);
+        Gate::authorize('create', Property::class);
+
+        $validated = $this->propertyAttributes($request);
+
+        Property::query()->create($validated + [
+            'account_id' => $this->account->id,
+            'brand_id' => $this->brand->id,
+        ]);
+
+        return redirect()->route('settings.properties')->with('status', 'Property created.');
+    }
+
+    public function updateProperty(Request $request, Property $property): RedirectResponse
+    {
+        $this->resolveContext($request);
+        $property = $this->property($property->id);
+        Gate::authorize('update', $property);
+
+        $property->update($this->propertyAttributes($request));
+
+        return redirect()->route('settings.properties')->with('status', 'Property updated.');
     }
 
     public function channels(Request $request): View
@@ -387,13 +577,56 @@ class SettingsController extends Controller
      */
     private function nullableLlmAttributes(array $attributes): array
     {
-        foreach (['default_provider_id', 'default_model_id', 'temperature', 'max_tokens'] as $key) {
+        foreach (['default_provider_id', 'default_model_id', 'fallback_provider_id', 'fallback_model_id', 'temperature', 'max_tokens'] as $key) {
             if (($attributes[$key] ?? null) === '') {
                 $attributes[$key] = null;
             }
         }
 
         return $attributes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>|null
+     */
+    private function llmPolicySettings(array $attributes): ?array
+    {
+        $settings = [
+            'allowed_providers' => $this->commaList($attributes['allowed_providers'] ?? null),
+            'denied_providers' => $this->commaList($attributes['denied_providers'] ?? null),
+            'allowed_models' => $this->commaList($attributes['allowed_models'] ?? null),
+            'denied_models' => $this->commaList($attributes['denied_models'] ?? null),
+            'monthly_credit_budget' => $this->nullablePositiveInt($attributes['monthly_credit_budget'] ?? null),
+            'brand_monthly_credit_budget' => $this->nullablePositiveInt($attributes['brand_monthly_credit_budget'] ?? null),
+            'user_monthly_credit_budget' => $this->nullablePositiveInt($attributes['user_monthly_credit_budget'] ?? null),
+        ];
+
+        $settings = array_filter($settings, fn ($value) => $value !== null && $value !== []);
+
+        return $settings === [] ? null : $settings;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function commaList(mixed $value): array
+    {
+        return collect(explode(',', (string) $value))
+            ->map(fn (string $item) => trim($item))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function nullablePositiveInt(mixed $value): ?int
+    {
+        if (! is_numeric($value) || (int) $value <= 0) {
+            return null;
+        }
+
+        return (int) $value;
     }
 
     private function accountMembers(): Collection
@@ -404,8 +637,10 @@ class SettingsController extends Controller
             ->get()
             ->map(fn ($membership) => [
                 'user' => $membership->user,
+                'membership' => $membership,
                 'status' => $membership->status,
                 'role' => $this->roleForUser($membership->user, $this->account, null),
+                'role_id' => $this->roleAssignmentForUser($membership->user, $this->account, null)?->role_id,
                 'joined_at' => $membership->joined_at,
             ]);
     }
@@ -422,13 +657,22 @@ class SettingsController extends Controller
             ->get()
             ->map(fn ($membership) => [
                 'user' => $membership->user,
+                'membership' => $membership,
                 'status' => $membership->status,
                 'role' => $this->roleForUser($membership->user, $this->account, $this->brand),
+                'role_id' => $this->roleAssignmentForUser($membership->user, $this->account, $this->brand)?->role_id,
                 'joined_at' => $membership->joined_at,
             ]);
     }
 
     private function roleForUser(User $user, Account $account, ?Brand $brand): ?string
+    {
+        return $this->roleAssignmentForUser($user, $account, $brand)
+            ?->role
+            ?->display_name;
+    }
+
+    private function roleAssignmentForUser(User $user, Account $account, ?Brand $brand)
     {
         return $user->roleAssignments()
             ->where('account_id', $account->id)
@@ -437,9 +681,35 @@ class SettingsController extends Controller
             ->with('role')
             ->get()
             ->sortByDesc(fn ($assignment) => $assignment->role->priority)
-            ->first()
-            ?->role
-            ?->display_name;
+            ->first();
+    }
+
+    private function assignableRoles(): Collection
+    {
+        return Role::query()
+            ->where('name', '!=', 'platform_admin')
+            ->orderByDesc('priority')
+            ->orderBy('display_name')
+            ->get();
+    }
+
+    private function brandAssignableMembers(): Collection
+    {
+        if (! $this->brand) {
+            return collect();
+        }
+
+        $assignedUserIds = $this->brand->memberships()->pluck('user_id')->all();
+
+        return $this->account->memberships()
+            ->where('status', 'active')
+            ->whereNotIn('user_id', $assignedUserIds)
+            ->with('user')
+            ->orderBy('id')
+            ->get()
+            ->pluck('user')
+            ->filter()
+            ->values();
     }
 
     private function modulesForAccount(): Collection
@@ -618,6 +888,85 @@ class SettingsController extends Controller
                 fn (Builder $query) => $query->whereRaw('1 = 0'),
             )
             ->findOrFail($id);
+    }
+
+    private function brandRecord(int $id): Brand
+    {
+        return Brand::query()
+            ->where('account_id', $this->account->id)
+            ->findOrFail($id);
+    }
+
+    private function accountMembership(int $id): Membership
+    {
+        return Membership::query()
+            ->where('account_id', $this->account->id)
+            ->with('user')
+            ->findOrFail($id);
+    }
+
+    private function brandMembership(int $id): BrandMembership
+    {
+        return BrandMembership::query()
+            ->where('account_id', $this->account->id)
+            ->when($this->brand, fn (Builder $query) => $query->where('brand_id', $this->brand->id), fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->with(['user', 'brand'])
+            ->findOrFail($id);
+    }
+
+    private function property(int $id): Property
+    {
+        return Property::query()
+            ->where('account_id', $this->account->id)
+            ->when($this->brand, fn (Builder $query) => $query->where('brand_id', $this->brand->id), fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->findOrFail($id);
+    }
+
+    /**
+     * @return array{name: string, type: string, url: string, primary_language?: string|null, status: string}
+     */
+    private function propertyAttributes(Request $request): array
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', Rule::in(Property::TYPES)],
+            'url' => ['required', 'url', 'max:2048'],
+            'primary_language' => ['nullable', 'string', 'max:16'],
+            'status' => ['required', Rule::in(Property::STATUSES)],
+        ]);
+
+        $validated['primary_language'] = $validated['primary_language'] ?: null;
+
+        return $validated;
+    }
+
+    private function syncRole(User $user, int $roleId, Account $account, ?Brand $brand): void
+    {
+        $user->roleAssignments()
+            ->where('account_id', $account->id)
+            ->when($brand, fn (Builder $query) => $query->where('brand_id', $brand->id), fn (Builder $query) => $query->whereNull('brand_id'))
+            ->delete();
+
+        $user->roleAssignments()->create([
+            'role_id' => $roleId,
+            'account_id' => $account->id,
+            'brand_id' => $brand?->id,
+        ]);
+    }
+
+    /**
+     * @return array<int, string>|null
+     */
+    private function languageList(?string $languages): ?array
+    {
+        $items = collect(explode(',', (string) $languages))
+            ->map(fn (string $language) => trim($language))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return $items === [] ? null : $items;
     }
 
     private function connectorInstallationRecords(?PublishingChannel $channel = null): Collection

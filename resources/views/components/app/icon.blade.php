@@ -27,6 +27,7 @@
         'panel-left-close' => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m16 10-2 2 2 2"/>',
         'panel-left-open' => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m14 10 2 2-2 2"/>',
         'bell' => '<path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>',
+        'coins' => '<circle cx="8" cy="8" r="5"/><path d="M18.1 10.6A5 5 0 1 1 10.6 18"/><path d="M8 6v4"/><path d="M6 8h4"/><path d="M18 15v4"/><path d="M16 17h4"/>',
         'menu' => '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
     ];
 @endphp

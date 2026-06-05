@@ -10,7 +10,10 @@ class RetryWebhookDeliveryJob implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public int $deliveryId) {}
+    public function __construct(public int $deliveryId)
+    {
+        $this->onQueue(config('queue.names.webhooks', 'webhooks'));
+    }
 
     public function handle(): void
     {
@@ -23,6 +26,7 @@ class RetryWebhookDeliveryJob implements ShouldQueue
         $delivery->update([
             'status' => 'pending',
             'available_at' => now(),
+            'next_retry_at' => null,
             'failed_at' => null,
             'error_message' => null,
         ]);

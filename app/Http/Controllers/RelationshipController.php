@@ -3,10 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\CurrentAccountContract;
+use App\Contracts\CurrentBrandContract;
+use App\Models\Campaign;
 use App\Models\Contact;
 use App\Models\Organization;
 use App\Models\Relationship;
 use App\Models\User;
+use App\Services\InfluencerIntelligenceService;
 use App\Services\RelationshipIntelligenceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -140,6 +143,133 @@ class RelationshipController extends Controller
         ]);
     }
 
+    public function influencers(
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        InfluencerIntelligenceService $influencers,
+    ): View {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('viewAny', Contact::class);
+
+        return view('app.relationships.influencers', [
+            'account' => $account,
+            'brand' => $brand,
+            'dashboard' => $influencers->dashboard($account, $brand),
+            'crmStages' => ['discovered', 'shortlisted', 'outreach', 'negotiation', 'active_campaign', 'nurture', 'archived'],
+        ]);
+    }
+
+    public function storeInfluencer(
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        InfluencerIntelligenceService $influencers,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('create', Contact::class);
+
+        $creator = $influencers->createCreator($account, $brand, $user, $this->validatedInfluencer($request));
+
+        return redirect()->route('app.relationships.influencers')->with('status', $creator->display_name.' added to creator database.');
+    }
+
+    public function monitorInfluencer(
+        Contact $contact,
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        InfluencerIntelligenceService $influencers,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('update', $contact);
+
+        try {
+            $influencers->monitorCreator($account, $brand, $contact, $user);
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['creator' => $exception->getMessage()]);
+        }
+
+        return back()->with('status', 'Influencer monitoring updated.');
+    }
+
+    public function trackInfluencerCampaign(
+        Contact $contact,
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        InfluencerIntelligenceService $influencers,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('update', $contact);
+
+        $attributes = $request->validate([
+            'campaign_id' => ['required', 'integer'],
+        ]);
+        $campaign = Campaign::query()
+            ->where('account_id', $account->id)
+            ->where('brand_id', $brand->id)
+            ->findOrFail((int) $attributes['campaign_id']);
+
+        try {
+            $influencers->attachCampaign($account, $brand, $contact, $campaign, $user);
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['creator' => $exception->getMessage()]);
+        }
+
+        return back()->with('status', 'Influencer campaign tracking updated.');
+    }
+
+    public function updateInfluencerCrm(
+        Contact $contact,
+        Request $request,
+        CurrentAccountContract $currentAccount,
+        CurrentBrandContract $currentBrand,
+        InfluencerIntelligenceService $influencers,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $account = $currentAccount->get($user);
+        $brand = $currentBrand->get($user);
+
+        abort_unless($account && $brand, 403);
+        Gate::authorize('update', $contact);
+
+        $attributes = $request->validate([
+            'stage' => ['required', 'string', Rule::in(['discovered', 'shortlisted', 'outreach', 'negotiation', 'active_campaign', 'nurture', 'archived'])],
+            'next_action' => ['nullable', 'string', 'max:255'],
+            'owner_notes' => ['nullable', 'string'],
+        ]);
+
+        try {
+            $influencers->updateCrm($account, $brand, $contact, $attributes, $user);
+        } catch (InvalidArgumentException $exception) {
+            return back()->withErrors(['creator' => $exception->getMessage()]);
+        }
+
+        return back()->with('status', 'Creator CRM updated.');
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -167,6 +297,31 @@ class RelationshipController extends Controller
             'website' => ['nullable', 'url', 'max:2048'],
             'industry' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatedInfluencer(Request $request): array
+    {
+        return $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'display_name' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'website' => ['nullable', 'url', 'max:2048'],
+            'linkedin_url' => ['nullable', 'url', 'max:2048'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'audience' => ['nullable', 'string', 'max:255'],
+            'channels' => ['nullable', 'string', 'max:255'],
+            'followers' => ['nullable', 'integer', 'min:0'],
+            'engagement_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'avg_views' => ['nullable', 'integer', 'min:0'],
+            'stage' => ['nullable', 'string', Rule::in(['discovered', 'shortlisted', 'outreach', 'negotiation', 'active_campaign', 'nurture', 'archived'])],
+            'next_action' => ['nullable', 'string', 'max:255'],
+            'owner_notes' => ['nullable', 'string'],
+            'notes' => ['nullable', 'string'],
         ]);
     }
 }

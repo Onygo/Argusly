@@ -14,8 +14,10 @@ use Illuminate\Support\Str;
     'status',
     'started_at',
     'completed_at',
+    'next_run_at',
     'records_found',
     'error',
+    'health',
 ])]
 class SourceSync extends Model
 {
@@ -44,7 +46,9 @@ class SourceSync extends Model
         return [
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'next_run_at' => 'datetime',
             'records_found' => 'integer',
+            'health' => 'array',
         ];
     }
 }

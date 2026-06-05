@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminControlCenterController;
 use App\Http\Controllers\Admin\AiRuntimeMonitorController;
+use App\Http\Controllers\Admin\PlatformAlertController;
 use App\Http\Controllers\Admin\PlatformFeatureFlagController;
 use App\Http\Controllers\Admin\PlatformOverviewController;
 use App\Http\Controllers\Admin\PlatformQueueController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\CampaignController;
 use App\Http\Controllers\CompetitorController;
 use App\Http\Controllers\ConnectorController;
 use App\Http\Controllers\ContentAssetController;
+use App\Http\Controllers\ContentOperationsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DistributionController;
 use App\Http\Controllers\DomainEventController;
@@ -38,6 +40,7 @@ use App\Http\Controllers\MentionController;
 use App\Http\Controllers\NarrativeController;
 use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\RecommendationController;
 use App\Http\Controllers\RelationshipController;
 use App\Http\Controllers\ReportController;
@@ -53,6 +56,8 @@ use App\Http\Controllers\UserLocaleController;
 use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\VisibilityController;
 use App\Http\Controllers\WorkspaceImpersonationController;
+use App\Models\BillingInvoice;
+use App\Models\Subscription;
 use App\Services\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
@@ -83,9 +88,9 @@ if (! function_exists('deprecated_redirect')) {
 $marketingRoutes = function (): void {
     Route::get('/', [MarketingController::class, 'home'])->name('marketing.home');
     Route::get('/signup', [MarketingController::class, 'signup'])->name('marketing.signup');
-    Route::post('/signup', [MarketingController::class, 'storeSignup'])->name('marketing.signup.store');
+    Route::post('/signup', [MarketingController::class, 'storeSignup'])->middleware('throttle:marketing-forms')->name('marketing.signup.store');
     Route::get('/contact', [MarketingController::class, 'contact'])->name('marketing.contact');
-    Route::post('/contact', [MarketingController::class, 'storeContact'])->name('marketing.contact.store');
+    Route::post('/contact', [MarketingController::class, 'storeContact'])->middleware('throttle:marketing-forms')->name('marketing.contact.store');
     Route::get('/{page}', [MarketingController::class, 'page'])
         ->whereIn('page', ['platform', 'security', 'about', 'privacy', 'terms'])
         ->name('marketing.page');
@@ -105,11 +110,11 @@ $appRoutes = function (): void {
 
     Route::middleware('guest')->group(function (): void {
         Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
-        Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
+        Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:auth-actions')->name('login.store');
         Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
-        Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
+        Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])->middleware('throttle:auth-actions')->name('password.email');
         Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
-        Route::post('/reset-password', [NewPasswordController::class, 'store'])->name('password.update');
+        Route::post('/reset-password', [NewPasswordController::class, 'store'])->middleware('throttle:auth-actions')->name('password.update');
     });
 
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -124,7 +129,7 @@ $appRoutes = function (): void {
         ->middleware('auth')
         ->name('user.locale.update');
 
-    Route::middleware(['auth', 'platform.admin'])
+    Route::middleware(['auth', 'platform.admin', 'throttle:admin-actions'])
         ->prefix('admin')
         ->name('admin.')
         ->group(function (): void {
@@ -146,7 +151,13 @@ $appRoutes = function (): void {
 
             Route::get('/modules', [AdminControlCenterController::class, 'modules'])->name('modules');
             Route::post('/modules/enable', [AdminControlCenterController::class, 'enableModule'])->name('modules.enable');
+            Route::put('/plans/{plan}', [AdminControlCenterController::class, 'updatePlan'])->name('plans.update');
             Route::get('/subscriptions', [AdminControlCenterController::class, 'modules'])->name('subscriptions');
+
+            Route::get('/billing', [AdminControlCenterController::class, 'billing'])->name('billing');
+            Route::post('/billing/mollie-checkout', [AdminControlCenterController::class, 'startMollieCheckout'])->name('billing.mollie-checkout');
+            Route::post('/billing/invoices', [AdminControlCenterController::class, 'createInvoice'])->name('billing.invoices.store');
+            Route::post('/billing/overages', [AdminControlCenterController::class, 'recordOverage'])->name('billing.overages.store');
 
             Route::get('/credits', [AdminControlCenterController::class, 'credits'])->name('credits');
             Route::post('/credits/adjust', [AdminControlCenterController::class, 'adjustCredits'])->name('credits.adjust');
@@ -173,6 +184,9 @@ $appRoutes = function (): void {
             Route::get('/platform', PlatformOverviewController::class)->name('platform.overview');
             Route::get('/platform/queues', [PlatformQueueController::class, 'index'])->name('platform.queues');
             Route::post('/platform/queues/failed/{failedJob}/retry', [PlatformQueueController::class, 'retry'])->name('platform.queues.retry');
+            Route::get('/platform/alerts', [PlatformAlertController::class, 'index'])->name('platform.alerts');
+            Route::post('/platform/alerts/{alert}/acknowledge', [PlatformAlertController::class, 'acknowledge'])->name('platform.alerts.acknowledge');
+            Route::post('/platform/alerts/{alert}/resolve', [PlatformAlertController::class, 'resolve'])->name('platform.alerts.resolve');
             Route::get('/platform/webhooks', [PlatformWebhookController::class, 'index'])->name('platform.webhooks');
             Route::post('/platform/webhooks', [PlatformWebhookController::class, 'store'])->name('platform.webhooks.store');
             Route::patch('/platform/webhooks/{endpoint}', [PlatformWebhookController::class, 'update'])->name('platform.webhooks.update');
@@ -189,6 +203,24 @@ $appRoutes = function (): void {
             Route::get('/developer-tools', [AdminControlCenterController::class, 'developer'])->defaults('tool', 'system-health')->name('developer-tools');
             Route::get('/developer-tools/{tool}', [AdminControlCenterController::class, 'developer'])->name('developer-tools.show');
         });
+
+    Route::post('/billing/mollie/webhook', function (\Illuminate\Http\Request $request) {
+        $paymentId = (string) $request->input('id');
+
+        if ($paymentId !== '') {
+            BillingInvoice::query()
+                ->where('provider', 'mollie')
+                ->where('provider_payment_id', $paymentId)
+                ->update(['status' => 'paid', 'paid_at' => now()]);
+
+            Subscription::query()
+                ->where('provider', 'mollie')
+                ->where('provider_subscription_id', $paymentId)
+                ->update(['status' => 'active']);
+        }
+
+        return response()->json(['ok' => true]);
+    })->name('billing.mollie.webhook');
 
     Route::get('/developer-tools/domain-events', [DomainEventController::class, 'index'])
         ->middleware(['auth', 'current.account', 'current.brand', 'module.active:core', 'permission:manage_account'])
@@ -210,12 +242,18 @@ $appRoutes = function (): void {
         Route::get('/intelligence', [IntelligenceSignalController::class, 'index'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.intelligence');
-        Route::get('/intelligence/signals', [IntelligenceSignalController::class, 'index'])
+        Route::get('/intelligence/signals', fn () => deprecated_redirect('app.intelligence'))
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.intelligence.signals');
-        Route::get('/intelligence/recommendations', fn () => view('app.module-page', ['title' => 'Recommendations', 'module' => 'Intelligence']))
+        Route::get('/intelligence/recommendations', [RecommendationController::class, 'index'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.intelligence.recommendations');
+        Route::get('/intelligence/opportunities', [OpportunityController::class, 'index'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->name('app.intelligence.opportunities');
+        Route::post('/intelligence/opportunities/project', [OpportunityController::class, 'project'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->name('app.intelligence.opportunities.project');
         Route::get('/intelligence/narratives', [NarrativeController::class, 'index'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.narratives.index');
@@ -237,6 +275,13 @@ $appRoutes = function (): void {
         Route::post('/intelligence/{signal}/dismiss', [IntelligenceSignalController::class, 'dismiss'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.intelligence.dismiss');
+        Route::get('/intelligence/{signal}', [IntelligenceSignalController::class, 'show'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->whereNumber('signal')
+            ->name('app.intelligence.show');
+        Route::post('/recommendations/{recommendation}/review', [RecommendationController::class, 'review'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->name('app.recommendations.review');
         Route::post('/recommendations/{recommendation}/accept', [RecommendationController::class, 'accept'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.recommendations.accept');
@@ -249,6 +294,9 @@ $appRoutes = function (): void {
         Route::post('/recommendations/{recommendation}/dismiss', [RecommendationController::class, 'dismiss'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.recommendations.dismiss');
+        Route::post('/recommendations/{recommendation}/archive', [RecommendationController::class, 'archive'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->name('app.recommendations.archive');
         Route::get('/intelligence/notifications', [NotificationController::class, 'index'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.notifications');
@@ -265,14 +313,14 @@ $appRoutes = function (): void {
         Route::get('/visibility/search', SearchPerformanceController::class)
             ->middleware(['module.active:visibility', 'permission:view_visibility'])
             ->name('app.search-performance');
-        Route::get('/visibility/citations', fn () => view('app.module-page', ['title' => 'Citations', 'module' => 'Visibility']))
+        Route::get('/visibility/citations', [VisibilityController::class, 'citations'])
             ->middleware(['module.active:visibility', 'permission:view_visibility'])
             ->name('app.visibility.citations');
         Route::get('/visibility/prompts', [VisibilityController::class, 'index'])
             ->middleware(['module.active:visibility', 'permission:view_visibility'])
             ->name('app.visibility.prompts');
         Route::post('/visibility/checks', [VisibilityController::class, 'store'])
-            ->middleware(['module.active:visibility', 'permission:manage_visibility'])
+            ->middleware(['module.active:visibility', 'permission:manage_visibility', 'throttle:ai-actions'])
             ->name('app.visibility.checks.store');
         Route::post('/visibility/prompts', [VisibilityController::class, 'storePrompt'])
             ->middleware(['module.active:visibility', 'permission:manage_visibility'])
@@ -287,7 +335,7 @@ $appRoutes = function (): void {
             ->middleware(['module.active:visibility', 'permission:manage_visibility'])
             ->name('app.visibility.prompts.duplicate');
         Route::post('/visibility/prompts/{promptTemplate}/run', [VisibilityController::class, 'runPrompt'])
-            ->middleware(['module.active:visibility', 'permission:manage_visibility'])
+            ->middleware(['module.active:visibility', 'permission:manage_visibility', 'throttle:ai-actions'])
             ->name('app.visibility.prompts.run');
 
         Route::get('/research/competitors', [CompetitorController::class, 'index'])
@@ -296,10 +344,19 @@ $appRoutes = function (): void {
         Route::post('/competitors', [CompetitorController::class, 'store'])
             ->middleware(['module.active:competitive_intelligence', 'permission:view_competitive_intelligence'])
             ->name('app.competitors.store');
+        Route::put('/competitors/{competitor}', [CompetitorController::class, 'update'])
+            ->middleware(['module.active:competitive_intelligence', 'permission:view_competitive_intelligence'])
+            ->name('app.competitors.update');
+        Route::post('/competitors/monitor', [CompetitorController::class, 'monitor'])
+            ->middleware(['module.active:competitive_intelligence', 'permission:view_competitive_intelligence'])
+            ->name('app.competitors.monitor');
 
         Route::get('/research/mentions', [MentionController::class, 'index'])
             ->middleware(['module.active:visibility', 'permission:view_visibility'])
             ->name('app.mentions');
+        Route::get('/research/mentions/export', [MentionController::class, 'export'])
+            ->middleware(['module.active:visibility', 'permission:view_visibility'])
+            ->name('app.mentions.export');
         Route::get('/research/mentions/{mention}', [MentionController::class, 'show'])
             ->middleware(['module.active:visibility', 'permission:view_visibility'])
             ->name('app.mentions.show');
@@ -317,7 +374,13 @@ $appRoutes = function (): void {
         Route::get('/reporting/reports/{report}', [ReportController::class, 'show'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.reports.show');
-        Route::get('/reporting/executive', fn () => view('app.module-page', ['title' => 'Executive Reports', 'module' => 'Reporting']))
+        Route::get('/reporting/reports/{report}/export/pdf', [ReportController::class, 'exportPdf'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->name('app.reports.export.pdf');
+        Route::get('/reporting/reports/{report}/export/powerpoint', [ReportController::class, 'exportPowerPoint'])
+            ->middleware(['module.active:core', 'permission:view_dashboard'])
+            ->name('app.reports.export.powerpoint');
+        Route::get('/reporting/executive', [ReportController::class, 'executive'])
             ->middleware(['module.active:core', 'permission:view_dashboard'])
             ->name('app.reporting.executive');
 
@@ -459,6 +522,39 @@ $appRoutes = function (): void {
             Route::post('/', [ContentAssetController::class, 'store'])
                 ->middleware('permission:create_content')
                 ->name('store');
+            Route::get('/operations', [ContentOperationsController::class, 'index'])
+                ->middleware('permission:view_content')
+                ->name('operations');
+            Route::post('/operations/briefings/{briefing}/plan', [ContentOperationsController::class, 'planBriefing'])
+                ->middleware('permission:create_content')
+                ->name('operations.briefings.plan');
+            Route::post('/operations/briefings/{briefing}/draft', [ContentOperationsController::class, 'draftBriefing'])
+                ->middleware('permission:create_content')
+                ->name('operations.briefings.draft');
+            Route::post('/operations/lifecycle-scores/{score}/recommendation', [ContentOperationsController::class, 'refreshRecommendation'])
+                ->middleware('permission:edit_content')
+                ->name('operations.lifecycle.recommendation');
+            Route::get('/brand-voice', [BrandKnowledgeCenterController::class, 'index'])
+                ->middleware('permission:view_content')
+                ->name('brand-voice');
+            Route::post('/brand-voice/setup/generate', [BrandKnowledgeCenterController::class, 'generateSetup'])
+                ->middleware('permission:edit_content')
+                ->name('brand-voice.setup.generate');
+            Route::post('/brand-voice/setup/apply', [BrandKnowledgeCenterController::class, 'applySetup'])
+                ->middleware('permission:edit_content')
+                ->name('brand-voice.setup.apply');
+            Route::patch('/brand-voice/profile', [BrandKnowledgeCenterController::class, 'updateProfile'])
+                ->middleware('permission:edit_content')
+                ->name('brand-voice.profile.update');
+            Route::post('/brand-voice/products', [BrandKnowledgeCenterController::class, 'storeProduct'])
+                ->middleware('permission:edit_content')
+                ->name('brand-voice.products.store');
+            Route::post('/brand-voice/services', [BrandKnowledgeCenterController::class, 'storeService'])
+                ->middleware('permission:edit_content')
+                ->name('brand-voice.services.store');
+            Route::post('/brand-voice/narratives', [BrandKnowledgeCenterController::class, 'storeNarrative'])
+                ->middleware('permission:edit_content')
+                ->name('brand-voice.narratives.store');
             Route::prefix('answer-blocks')->name('answer-blocks.')->group(function (): void {
                 Route::get('/', [AnswerBlockController::class, 'index'])
                     ->middleware('permission:view_content')
@@ -522,8 +618,17 @@ $appRoutes = function (): void {
                 ->middleware('permission:create_content')
                 ->name('social-posts.repurpose.store');
             Route::post('/{contentAsset}/generate', [ContentAssetController::class, 'generate'])
-                ->middleware('permission:edit_content')
+                ->middleware(['permission:edit_content', 'throttle:ai-actions'])
                 ->name('generate');
+            Route::post('/{contentAsset}/generate-draft', [ContentOperationsController::class, 'generateDraft'])
+                ->middleware(['permission:edit_content', 'throttle:ai-actions'])
+                ->name('generate-draft');
+            Route::post('/{contentAsset}/generated-assets/{generatedAsset}/apply', [ContentOperationsController::class, 'applyGeneratedDraft'])
+                ->middleware('permission:edit_content')
+                ->name('generated-assets.apply');
+            Route::post('/{contentAsset}/distribution-bundle', [ContentOperationsController::class, 'prepareDistribution'])
+                ->middleware('permission:edit_content')
+                ->name('distribution-bundle');
             Route::post('/{contentAsset}/translations', [ContentAssetController::class, 'translate'])
                 ->middleware('permission:edit_content')
                 ->name('translations.store');
@@ -563,12 +668,27 @@ $appRoutes = function (): void {
         Route::view('/agents/automations', 'app.module-page', ['title' => 'Automations', 'module' => 'Agentic Content or Agentic Social'])
             ->middleware(['module.active:agentic_content,agentic_social', 'permission:view_agents'])
             ->name('app.automations');
-        Route::view('/agents/tasks', 'app.module-page', ['title' => 'Agent Tasks', 'module' => 'Agents'])
+        Route::get('/agents/tasks', [AgentController::class, 'tasks'])
             ->middleware(['module.active:agentic_content,agentic_social', 'permission:view_agents'])
             ->name('app.agents.tasks');
-        Route::view('/agents/runs', 'app.module-page', ['title' => 'Runs', 'module' => 'Agents'])
+        Route::get('/agents/runs', [AgentController::class, 'runs'])
             ->middleware(['module.active:agentic_content,agentic_social', 'permission:view_agents'])
             ->name('app.agents.runs');
+        Route::post('/agents/recommendations/{recommendation}/plan', [AgentController::class, 'planRecommendation'])
+            ->middleware(['module.active:agentic_content,agentic_social', 'permission:run_agents'])
+            ->name('app.agents.recommendations.plan');
+        Route::post('/agents/briefings/{briefing}/plan', [AgentController::class, 'planBriefing'])
+            ->middleware(['module.active:agentic_content,agentic_social', 'permission:run_agents'])
+            ->name('app.agents.briefings.plan');
+        Route::post('/agents/tasks/{agentTask}/approval', [AgentController::class, 'requestTaskApproval'])
+            ->middleware(['module.active:agentic_content,agentic_social', 'permission:run_agents'])
+            ->name('app.agents.tasks.approval');
+        Route::post('/agents/tasks/{agentTask}/queue', [AgentController::class, 'queueTask'])
+            ->middleware(['module.active:agentic_content,agentic_social', 'permission:run_agents'])
+            ->name('app.agents.tasks.queue');
+        Route::post('/agents/tasks/{agentTask}/run', [AgentController::class, 'runTask'])
+            ->middleware(['module.active:agentic_content,agentic_social', 'permission:run_agents'])
+            ->name('app.agents.tasks.run');
 
         Route::prefix('marketing/social-posts')->name('app.social-posts.')->middleware(['module.active:content', 'permission:view_content'])->group(function (): void {
             Route::get('/', [SocialPostController::class, 'index'])
@@ -636,9 +756,21 @@ $appRoutes = function (): void {
             Route::view('/journalists', 'app.module-page', ['title' => 'Journalists', 'module' => 'Relationships'])
                 ->middleware('permission:view_dashboard')
                 ->name('app.relationships.journalists');
-            Route::view('/influencers', 'app.module-page', ['title' => 'Influencers', 'module' => 'Relationships'])
+            Route::get('/influencers', [RelationshipController::class, 'influencers'])
                 ->middleware('permission:view_dashboard')
                 ->name('app.relationships.influencers');
+            Route::post('/influencers', [RelationshipController::class, 'storeInfluencer'])
+                ->middleware('permission:manage_account')
+                ->name('app.relationships.influencers.store');
+            Route::post('/influencers/{contact}/monitor', [RelationshipController::class, 'monitorInfluencer'])
+                ->middleware('permission:manage_account')
+                ->name('app.relationships.influencers.monitor');
+            Route::post('/influencers/{contact}/campaigns', [RelationshipController::class, 'trackInfluencerCampaign'])
+                ->middleware('permission:manage_account')
+                ->name('app.relationships.influencers.campaigns.store');
+            Route::post('/influencers/{contact}/crm', [RelationshipController::class, 'updateInfluencerCrm'])
+                ->middleware('permission:manage_account')
+                ->name('app.relationships.influencers.crm');
             Route::view('/experts', 'app.module-page', ['title' => 'Experts', 'module' => 'Relationships'])
                 ->middleware('permission:view_dashboard')
                 ->name('app.relationships.experts');
@@ -689,14 +821,29 @@ $appRoutes = function (): void {
             Route::get('/account', [SettingsController::class, 'account'])
                 ->middleware('permission:manage_account')
                 ->name('account');
+            Route::patch('/account', [SettingsController::class, 'updateAccount'])
+                ->middleware('permission:manage_account')
+                ->name('account.update');
 
             Route::get('/brands', [SettingsController::class, 'brands'])
                 ->middleware('permission:manage_account')
                 ->name('brands');
+            Route::patch('/brands/{brand}', [SettingsController::class, 'updateBrand'])
+                ->middleware('permission:manage_account')
+                ->name('brands.update');
 
             Route::get('/team', [SettingsController::class, 'team'])
                 ->middleware('permission:manage_users')
                 ->name('team');
+            Route::patch('/team/memberships/{membership}', [SettingsController::class, 'updateMembership'])
+                ->middleware('permission:manage_users')
+                ->name('team.memberships.update');
+            Route::post('/team/brand-memberships', [SettingsController::class, 'storeBrandMembership'])
+                ->middleware('permission:manage_users')
+                ->name('team.brand-memberships.store');
+            Route::patch('/team/brand-memberships/{membership}', [SettingsController::class, 'updateBrandMembership'])
+                ->middleware('permission:manage_users')
+                ->name('team.brand-memberships.update');
 
             Route::get('/modules', [SettingsController::class, 'modules'])
                 ->middleware('permission:manage_billing')
@@ -782,6 +929,12 @@ $appRoutes = function (): void {
             Route::get('/properties', [SettingsController::class, 'properties'])
                 ->middleware(['module.active:content', 'permission:manage_account'])
                 ->name('properties');
+            Route::post('/properties', [SettingsController::class, 'storeProperty'])
+                ->middleware(['module.active:content', 'permission:manage_account'])
+                ->name('properties.store');
+            Route::patch('/properties/{property}', [SettingsController::class, 'updateProperty'])
+                ->middleware(['module.active:content', 'permission:manage_account'])
+                ->name('properties.update');
 
             Route::get('/channels', [SettingsController::class, 'channels'])
                 ->middleware(['module.active:content', 'permission:manage_account'])
@@ -803,6 +956,12 @@ $appRoutes = function (): void {
             Route::get('/knowledge-center', [BrandKnowledgeCenterController::class, 'index'])
                 ->middleware('permission:manage_account')
                 ->name('knowledge-center');
+            Route::post('/knowledge-center/setup/generate', [BrandKnowledgeCenterController::class, 'generateSetup'])
+                ->middleware('permission:manage_account')
+                ->name('knowledge-center.setup.generate');
+            Route::post('/knowledge-center/setup/apply', [BrandKnowledgeCenterController::class, 'applySetup'])
+                ->middleware('permission:manage_account')
+                ->name('knowledge-center.setup.apply');
             Route::patch('/knowledge-center/profile', [BrandKnowledgeCenterController::class, 'updateProfile'])
                 ->middleware('permission:manage_account')
                 ->name('knowledge-center.profile.update');
@@ -847,9 +1006,11 @@ $appRoutes = function (): void {
         Route::get('/admin/domain-events', fn () => deprecated_redirect('app.domain-events'))->middleware(['module.active:core', 'permission:manage_account']);
 
         Route::post('/tenant/account', [TenantContextController::class, 'switchAccount'])
+            ->middleware('throttle:tenant-switch')
             ->name('tenant.account.switch');
 
         Route::post('/tenant/brand', [TenantContextController::class, 'switchBrand'])
+            ->middleware('throttle:tenant-switch')
             ->name('tenant.brand.switch');
     });
 };
