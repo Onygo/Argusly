@@ -2,120 +2,66 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Str;
-use InvalidArgumentException;
 
-#[Fillable([
-    'account_id',
-    'brand_id',
-    'user_id',
-    'provider',
-    'model',
-    'purpose',
-    'status',
-    'prompt_tokens',
-    'completion_tokens',
-    'total_tokens',
-    'estimated_cost',
-    'actual_cost',
-    'credits_charged',
-    'latency_ms',
-    'error_message',
-    'prompt_version',
-    'prompt_hash',
-    'fallback_of_llm_request_id',
-    'metadata',
-    'completed_at',
-])]
 class LlmRequest extends Model
 {
-    use HasFactory;
+    use HasUuids;
 
-    public const PURPOSES = [
-        'content_generation',
-        'translation',
-        'answer_block',
-        'audit',
-        'visibility_check',
-        'social_post',
-        'newsletter',
-        'agent_task',
-        'briefing_execution',
-        'url_to_draft',
-        'chained_content',
-        'agentic_marketing',
+    protected $table = 'llm_requests';
+
+    protected $fillable = [
+        'workspace_id',
+        'site_id',
+        'user_id',
+        'feature',
+        'modality',
+        'provider',
+        'model',
+        'input_tokens',
+        'output_tokens',
+        'total_tokens',
+        'credits_consumed',
+        'input_cost_eur',
+        'output_cost_eur',
+        'total_cost_eur',
+        'latency_ms',
+        'status',
+        'error_type',
+        'error_message',
+        'error_code',
+        'request_id',
+        'job_id',
+        'retry_count',
+        'metadata',
     ];
 
-    public const STATUSES = ['running', 'completed', 'failed'];
+    protected $casts = [
+        'input_tokens' => 'integer',
+        'output_tokens' => 'integer',
+        'total_tokens' => 'integer',
+        'credits_consumed' => 'float',
+        'input_cost_eur' => 'float',
+        'output_cost_eur' => 'float',
+        'total_cost_eur' => 'float',
+        'latency_ms' => 'integer',
+        'retry_count' => 'integer',
+        'metadata' => 'array',
+    ];
 
-    public $timestamps = false;
-
-    protected static function booted(): void
+    public function workspace()
     {
-        static::creating(function (LlmRequest $request): void {
-            $request->uuid ??= (string) Str::uuid();
-            $request->status ??= 'running';
-            $request->credits_charged ??= 0;
-        });
-
-        static::saving(function (LlmRequest $request): void {
-            if (! in_array($request->purpose, self::PURPOSES, true)) {
-                throw new InvalidArgumentException("Invalid LLM request purpose [{$request->purpose}].");
-            }
-
-            if (! in_array($request->status, self::STATUSES, true)) {
-                throw new InvalidArgumentException("Invalid LLM request status [{$request->status}].");
-            }
-
-            $request->validateBrand();
-        });
+        return $this->belongsTo(Workspace::class);
     }
 
-    public function account(): BelongsTo
+    public function site()
     {
-        return $this->belongsTo(Account::class);
+        return $this->belongsTo(ClientSite::class, 'site_id');
     }
 
-    public function brand(): BelongsTo
-    {
-        return $this->belongsTo(Brand::class);
-    }
-
-    public function user(): BelongsTo
+    public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function fallbackOf(): BelongsTo
-    {
-        return $this->belongsTo(self::class, 'fallback_of_llm_request_id');
-    }
-
-    protected function casts(): array
-    {
-        return [
-            'estimated_cost' => 'decimal:6',
-            'actual_cost' => 'decimal:6',
-            'metadata' => 'array',
-            'created_at' => 'datetime',
-            'completed_at' => 'datetime',
-        ];
-    }
-
-    private function validateBrand(): void
-    {
-        if ($this->brand_id === null) {
-            return;
-        }
-
-        $brand = Brand::query()->find($this->brand_id);
-
-        if (! $brand || $this->account_id === null || $brand->account_id !== (int) $this->account_id) {
-            throw new InvalidArgumentException('LLM request brand must belong to the same account.');
-        }
     }
 }

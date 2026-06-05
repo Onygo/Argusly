@@ -4,35 +4,54 @@ namespace App\Policies;
 
 use App\Models\Campaign;
 use App\Models\User;
-use App\Policies\Concerns\AuthorizesTenantModels;
-use Illuminate\Auth\Access\Response;
 
 class CampaignPolicy
 {
-    use AuthorizesTenantModels;
-
-    public function viewAny(User $user): Response
+    public function viewAny(User $user): bool
     {
-        return $this->allows($user, 'view_campaigns') ? Response::allow() : Response::deny();
+        return $this->hasAccess($user);
     }
 
-    public function view(User $user, Campaign $campaign): Response
+    public function view(User $user, Campaign $campaign): bool
     {
-        return $this->allows($user, 'view_campaigns', $campaign) ? Response::allow() : Response::deny();
+        if (! $this->hasAccess($user)) {
+            return false;
+        }
+
+        return $user->is_admin || (int) $campaign->organization_id === (int) $user->organization_id;
     }
 
-    public function create(User $user): Response
+    public function create(User $user): bool
     {
-        return $this->allows($user, 'manage_campaigns') ? Response::allow() : Response::deny();
+        return $this->canManage($user);
     }
 
-    public function update(User $user, Campaign $campaign): Response
+    public function update(User $user, Campaign $campaign): bool
     {
-        return $this->allows($user, 'manage_campaigns', $campaign) ? Response::allow() : Response::deny();
+        return $this->view($user, $campaign) && $this->canManage($user);
     }
 
-    public function delete(User $user, Campaign $campaign): Response
+    public function approve(User $user, Campaign $campaign): bool
+    {
+        return $this->view($user, $campaign)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'reviewer'], true));
+    }
+
+    public function delete(User $user, Campaign $campaign): bool
     {
         return $this->update($user, $campaign);
+    }
+
+    private function hasAccess(User $user): bool
+    {
+        return $user->is_admin
+            || ((bool) $user->organization_id
+                && in_array((string) $user->role, ['owner', 'admin', 'editor', 'reviewer', 'viewer', 'member'], true));
+    }
+
+    private function canManage(User $user): bool
+    {
+        return $user->is_admin
+            || ((bool) $user->organization_id && in_array((string) $user->role, ['owner', 'admin', 'editor'], true));
     }
 }

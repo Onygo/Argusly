@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="{{ $appLang ?? app()->getLocale() }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $title ?? \App\Support\Brand::product() }}</title>
+    @include('partials.brand-meta')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="pl-app-shell min-h-screen bg-background antialiased text-textPrimary">
+@php
+    $researchLayerFlag = app(\App\Support\FeatureFlags::class)->isEnabled('research_layer', false);
+    $agenticMarketingFlag = app(\App\Support\FeatureFlags::class)->isEnabled('agentic_marketing', false);
+    $sitesNavActive = request()->routeIs('app.sites') || request()->routeIs('app.sites.show') || request()->routeIs('app.sites.wordpress-plugin.download');
+    $insightsNavActive = request()->routeIs('app.insights*')
+        || request()->routeIs('app.sites.insights*')
+        || request()->routeIs('app.sites.llm-tracking*')
+        || request()->routeIs('app.sites.competitors*')
+        || request()->routeIs('app.sites.seo-audits*')
+        || request()->routeIs('app.sites.analytics*')
+        || request()->routeIs('app.sites.learnings*');
+    $contentIntelligenceWorkspace = auth()->user()?->organization_id
+        ? \App\Models\Workspace::query()
+            ->where('organization_id', auth()->user()->organization_id)
+            ->orderBy('created_at')
+            ->first(['id', 'organization_id'])
+        : null;
+    $pageWidth = in_array(($pageWidth ?? 'wide'), ['wide', 'constrained'], true) ? ($pageWidth ?? 'wide') : 'wide';
+    $pageShellClass = $pageWidth === 'constrained'
+        ? 'pl-page pl-page--constrained'
+        : 'pl-page pl-page--wide';
+    $impersonationActive = session()->has('admin_impersonator_id');
+    $impersonationLabel = trim((string) (auth()->user()?->organization?->name ?? 'this workspace'));
+@endphp
+<div class="flex min-h-screen w-full">
+    <aside id="sidebar" data-collapsed="false" class="hidden lg:flex sticky top-0 h-screen w-64 flex-col border-r border-border bg-surface transition-all duration-300">
+            <div class="flex h-14 items-center gap-2 border-b border-border px-4">
+            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
+                <i data-lucide="layers" class="h-4 w-4"></i>
+            </div>
+            <div data-sidebar-label class="leading-tight">
+                <span class="block text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
+            </div>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto px-2 py-3">
+            <div class="mb-4">
+                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.content')) }}</p>
+                <div class="space-y-1">
+                    <a href="{{ route('app.dashboard') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.dashboard') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.dashboard') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.dashboard') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.dashboard') }}</span>
+                    </a>
+                    <a href="{{ route('app.content.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.content') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.content.index') || request()->routeIs('app.content.show') || request()->routeIs('app.content.series*') || request()->routeIs('app.content.batches*') || request()->routeIs('app.content.automations*') || request()->routeIs('app.content.calendar') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="folder-kanban" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.content') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.content') }}</span>
+                    </a>
+                    <a href="{{ route('app.content.lifecycle.index') }}" data-sidebar-item data-sidebar-title="Lifecycle" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.content.lifecycle*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="git-branch" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">Lifecycle</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Lifecycle</span>
+                    </a>
+                    @if ($contentIntelligenceWorkspace)
+                        <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" data-sidebar-item data-sidebar-title="Content Intelligence" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.workspaces.content-quality.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="scan-search" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Content Intelligence</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Content Intelligence</span>
+                        </a>
+                    @endif
+                    @if ($agenticMarketingFlag)
+                        <a href="{{ route('app.agentic-marketing.index') }}" data-sidebar-item data-sidebar-title="Agentic Marketing" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="workflow" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Agentic Marketing</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Agentic Marketing</span>
+                        </a>
+                        <a href="{{ route('app.agentic-marketing.intelligence.index') }}" data-sidebar-item data-sidebar-title="Opportunity Intelligence" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.intelligence.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="radar" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Intelligence</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Opportunity Intelligence</span>
+                        </a>
+                        <a href="{{ route('app.agentic-marketing.campaign-planner.index') }}" data-sidebar-item data-sidebar-title="Campaign Planner" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.campaign-planner.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="map" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Planner</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Campaign Planner</span>
+                        </a>
+                        <a href="{{ route('app.agentic-marketing.learning.index') }}" data-sidebar-item data-sidebar-title="Learning" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.learning.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="chart-no-axes-combined" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Learning</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Learning</span>
+                        </a>
+                        <a href="{{ route('app.agentic-marketing.workflows.index') }}" data-sidebar-item data-sidebar-title="Workflows" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.workflows.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="route" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Workflows</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Workflows</span>
+                        </a>
+                        <a href="{{ route('app.agentic-marketing.distribution.index') }}" data-sidebar-item data-sidebar-title="Distribution" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="send" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Distribution</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Distribution</span>
+                        </a>
+                    @endif
+                    @if ($researchLayerFlag)
+                        <a href="{{ route('app.research.index') }}" data-sidebar-item data-sidebar-title="Research" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.research*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                <i data-lucide="search-check" class="h-4 w-4"></i>
+                            </span>
+                            <span data-sidebar-label class="truncate">Research</span>
+                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Research</span>
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.publishing')) }}</p>
+                <div class="space-y-1">
+                    <a href="{{ route('app.sites') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.sites') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $sitesNavActive ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="globe" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.sites') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.sites') }}</span>
+                    </a>
+                    <a href="{{ route('app.insights.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.insights') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $insightsNavActive ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="line-chart" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.insights') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.insights') }}</span>
+                    </a>
+                    <a href="{{ route('app.brand.company-profile') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.brand') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.brand.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="palette" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.brand') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.brand') }}</span>
+                    </a>
+                    <a href="{{ route('app.workspace-intelligence.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.workspace_intelligence') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.workspace-intelligence.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="sparkles" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.workspace_intelligence') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.workspace_intelligence') }}</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.administration')) }}</p>
+                <div class="space-y-1">
+                    <a href="{{ route('app.billing.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.billing') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.billing.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="wallet" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.billing') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.billing') }}</span>
+                    </a>
+                    <a href="{{ route('app.developer.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.developer') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.developer.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="code-2" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.developer') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.developer') }}</span>
+                    </a>
+                    <a href="{{ route('app.settings') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.settings') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.settings*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="settings" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">{{ __('app.nav.settings') }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.settings') }}</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="border-t border-border p-2">
+            @if (config('brand.show_parent_branding', true))
+                <div class="px-4 pb-2 text-[10px] text-textMuted" data-sidebar-label>
+                    by {{ \App\Support\Brand::parentLinked() }}
+                </div>
+            @endif
+            <button id="collapseBtn" data-sidebar-item data-sidebar-title="Collapse sidebar" class="group relative flex h-9 w-full items-center justify-start gap-3 rounded-md px-3 text-sm font-medium text-textSecondary hover:bg-surfaceMuted">
+                <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                    <i data-collapse-icon="expanded" data-lucide="panel-left-close" class="h-4 w-4"></i>
+                    <i data-collapse-icon="collapsed" data-lucide="panel-left-open" class="hidden h-4 w-4"></i>
+                </span>
+                <span data-sidebar-label class="truncate">Collapse</span>
+                <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Expand sidebar</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex flex-1 flex-col min-w-0">
+        <header class="sticky top-0 z-30 border-b border-border bg-surface">
+            <div class="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 md:px-6">
+                <div class="flex min-w-0 flex-1 items-center gap-3">
+                    <button id="mobileMenuBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-textSecondary hover:bg-surfaceMuted lg:hidden">
+                        <i data-lucide="menu" class="h-4 w-4"></i>
+                    </button>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs text-textFaint">{{ auth()->user()?->organization?->name ?? 'Client App' }}</p>
+                        <h1 class="truncate text-sm font-semibold text-textPrimary">{{ $title ?? 'Workspace' }}</h1>
+                    </div>
+                </div>
+                <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:flex-1">
+                    @php
+                        $notificationBell = $appNotificationBell ?? ['workspace_id' => null, 'unread_count' => 0, 'recent' => collect()];
+                        $notificationBellUnreadCount = (int) ($notificationBell['unread_count'] ?? 0);
+                    @endphp
+                    @if ($impersonationActive)
+                        <div class="inline-flex h-9 max-w-[14rem] items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/60 px-2.5 text-xs text-amber-900 sm:max-w-none sm:gap-2">
+                            <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                                <i data-lucide="shield-user" class="h-3 w-3"></i>
+                            </span>
+                            <span class="min-w-0 truncate font-medium">
+                                <span class="sm:hidden">Impersonating</span>
+                                <span class="hidden sm:inline">Impersonating {{ $impersonationLabel }}</span>
+                            </span>
+                            <form method="POST" action="{{ route('impersonation.stop') }}" class="shrink-0">
+                                @csrf
+                                <button type="submit" class="inline-flex items-center rounded-full border border-amber-200 px-2 py-1 text-[11px] font-medium text-amber-900 transition hover:bg-amber-100">
+                                    Return
+                                </button>
+                            </form>
+                        </div>
+                    @endif
+                    @if (($appCreditNav['available'] ?? null) !== null)
+                        @php
+                            $creditNavIsLow = (bool) ($appCreditNav['is_low'] ?? false);
+                            $creditNavCanTopUp = ($appCreditNav['show_upgrade'] ?? false) === true;
+                            $creditTopUpUrl = (string) ($appCreditNav['top_up_url'] ?? route('app.billing.index').'#buy-credit-packs');
+                            $creditNavBaseClass = $creditNavIsLow
+                                ? 'border-rose-300 bg-rose-50 text-rose-800 hover:bg-rose-100'
+                                : 'border-border bg-surface text-textSecondary hover:bg-surfaceMuted';
+                        @endphp
+                        <div class="inline-flex h-9 items-stretch">
+                            <a
+                                href="{{ route('app.billing.index') }}"
+                                class="inline-flex items-center gap-2 border px-2.5 text-sm {{ $creditNavBaseClass }} {{ $creditNavCanTopUp ? 'rounded-l-md border-r-0' : 'rounded-md' }}"
+                                title="{{ $creditNavIsLow ? 'Credits are running low' : 'Available credits' }}"
+                            >
+                                <i data-lucide="coins" class="h-4 w-4"></i>
+                                <span class="hidden sm:inline">Credits</span>
+                                <span class="font-semibold">{{ number_format((int) ($appCreditNav['available'] ?? 0)) }}</span>
+                            </a>
+                            @if ($creditNavCanTopUp)
+                                <a
+                                    href="{{ $creditTopUpUrl }}"
+                                    class="inline-flex w-9 items-center justify-center rounded-r-md border text-sm {{ $creditNavIsLow ? 'border-rose-300 bg-rose-100 text-rose-900 hover:bg-rose-200' : 'border-border bg-surface text-textSecondary hover:bg-surfaceMuted' }}"
+                                    title="Add credits"
+                                    aria-label="Add credits"
+                                >
+                                    <i data-lucide="plus" class="h-4 w-4"></i>
+                                </a>
+                            @endif
+                        </div>
+                    @endif
+                    <div class="relative hidden md:block">
+                        <form method="GET" action="{{ route('app.search') }}" class="relative">
+                            <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textFaint"></i>
+                            <input
+                                type="text"
+                                name="q"
+                                value="{{ (string) request()->query('q', '') }}"
+                                class="pl-search w-72"
+                                placeholder="Search content"
+                                aria-label="Search"
+                                autocomplete="off"
+                                data-global-search
+                                data-search-endpoint="{{ route('app.search.suggest') }}"
+                            >
+                            <div class="absolute left-0 right-0 top-11 z-50 hidden overflow-hidden rounded-md border border-border bg-surface" data-search-dropdown>
+                                <div class="max-h-80 overflow-auto py-1" data-search-results></div>
+                                <a href="{{ route('app.search') }}" class="block border-t border-border px-3 py-2 text-xs font-medium text-textSecondary hover:bg-surfaceSubtle" data-search-all-link>View all results</a>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="relative" data-notification-bell>
+                        <button id="notificationBellBtn" type="button" class="relative pl-icon-btn" aria-label="Notifications" data-notification-bell-toggle>
+                            <i data-lucide="bell" class="h-4 w-4"></i>
+                            @if ($notificationBellUnreadCount > 0)
+                                <span
+                                    data-notification-bell-badge
+                                    class="absolute -right-1 -top-1 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-white"
+                                >{{ min(99, $notificationBellUnreadCount) }}</span>
+                            @endif
+                        </button>
+                        <div id="notificationBellMenu" data-notification-bell-menu class="pl-elevation-overlay hidden absolute right-0 top-11 z-50 w-96 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-border bg-surface">
+                            <p data-notification-bell-error class="hidden border-b border-danger/20 bg-danger/5 px-3 py-2 text-xs text-danger" role="alert"></p>
+                            <div data-notification-bell-content>
+                                @include('partials.notifications.app-bell-menu', ['notificationBell' => $notificationBell])
+                            </div>
+                            <a href="{{ route('app.notifications.index', array_filter(['workspace_id' => $notificationBell['workspace_id'] ?? null])) }}" class="block border-t border-border px-3 py-2 text-xs font-medium text-textSecondary hover:bg-surfaceSubtle">
+                                View all notifications
+                            </a>
+                        </div>
+                    </div>
+                    @php
+                        $appLocale = (string) ($appLang ?? app()->getLocale());
+                        $languageSwitchQuery = request()->query();
+                        unset($languageSwitchQuery['lang'], $languageSwitchQuery['selected_date']);
+                        $languageSwitchBaseUrl = url()->current();
+                        $languageSwitchToNl = $languageSwitchBaseUrl.(count($languageSwitchQuery) || $appLocale !== 'nl' ? '?'.http_build_query(array_merge($languageSwitchQuery, ['lang' => 'nl'])) : '');
+                        $languageSwitchToEn = $languageSwitchBaseUrl.(count($languageSwitchQuery) || $appLocale !== 'en' ? '?'.http_build_query(array_merge($languageSwitchQuery, ['lang' => 'en'])) : '');
+                    @endphp
+                    <div class="hidden items-center gap-1 rounded-md border border-border bg-surface px-1 py-1 text-xs md:inline-flex">
+                        <a href="{{ $languageSwitchToNl }}" class="rounded px-2 py-1 {{ $appLocale === 'nl' ? 'bg-primary text-textInverse' : 'text-textSecondary hover:bg-surfaceMuted' }}">NL</a>
+                        <a href="{{ $languageSwitchToEn }}" class="rounded px-2 py-1 {{ $appLocale === 'en' ? 'bg-primary text-textInverse' : 'text-textSecondary hover:bg-surfaceMuted' }}">EN</a>
+                    </div>
+                    <button id="userMenuBtn" type="button" class="inline-flex h-9 max-w-[9rem] items-center gap-2 rounded-md border border-border bg-surface px-2.5 text-sm hover:bg-surfaceMuted" aria-label="User menu">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-surfaceMuted text-xs font-medium text-textPrimary">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
+                        <span class="hidden max-w-28 truncate text-textSecondary md:inline">{{ auth()->user()->name ?? 'User' }}</span>
+                        <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                    </button>
+                    <div id="userMenu" class="hidden absolute right-4 top-12 z-50 w-56 rounded-md border border-border bg-surface md:right-6">
+                        <div class="p-1">
+                            <a href="{{ route('app.settings') }}" class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary">
+                                <i data-lucide="user" class="h-4 w-4"></i> Profile
+                            </a>
+                            <div class="my-1 h-px bg-divider"></div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-danger hover:bg-surfaceMuted">
+                                    <i data-lucide="log-out" class="h-4 w-4"></i> Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="mobileSidebar" class="hidden fixed inset-0 z-50 lg:hidden">
+            <div class="fixed inset-0 bg-black/35" id="mobileOverlay"></div>
+            <div class="fixed inset-y-0 left-0 w-72 bg-surface border-r border-border z-50">
+                <div class="flex h-14 items-center justify-between border-b border-border px-4">
+                    <div class="flex items-center gap-2">
+                        <div class="flex h-7 w-7 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
+                            <i data-lucide="layers" class="h-4 w-4"></i>
+                        </div>
+                        <div class="leading-tight">
+                            <span class="block text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
+                            @if (config('brand.show_parent_branding', true))
+                                <span class="block text-[10px] text-textMuted">by {{ \App\Support\Brand::parentLinked() }}</span>
+                            @endif
+                        </div>
+                    </div>
+                    <button id="closeMobileMenu" class="pl-icon-btn border-0" aria-label="Close menu">
+                        <i data-lucide="x" class="h-4 w-4"></i>
+                    </button>
+                </div>
+                <nav class="space-y-3 p-4">
+                    <div>
+                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">CONTENT</p>
+                        <div class="space-y-1">
+                            <a href="{{ route('app.dashboard') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.dashboard') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="layout-dashboard" class="h-4 w-4"></i> Dashboard</a>
+                            <a href="{{ route('app.content.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.content*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="folder-kanban" class="h-4 w-4"></i> Content</a>
+                            <a href="{{ route('app.content.lifecycle.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.content.lifecycle*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="git-branch" class="h-4 w-4"></i> Lifecycle</a>
+                            @if ($contentIntelligenceWorkspace)
+                                <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.workspaces.content-quality.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="scan-search" class="h-4 w-4"></i> Content Intelligence</a>
+                            @endif
+                            @if ($agenticMarketingFlag)
+                                <a href="{{ route('app.agentic-marketing.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="workflow" class="h-4 w-4"></i> Agentic Marketing</a>
+                                <a href="{{ route('app.agentic-marketing.intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.intelligence.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="radar" class="h-4 w-4"></i> Intelligence</a>
+                                <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="send" class="h-4 w-4"></i> Distribution</a>
+                            @endif
+                            @if ($researchLayerFlag)
+                                <a href="{{ route('app.research.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.research*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="search-check" class="h-4 w-4"></i> Research</a>
+                            @endif
+                        </div>
+                    </div>
+                    <div>
+                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">PUBLISHING</p>
+                        <div class="space-y-1">
+                            <a href="{{ route('app.sites') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $sitesNavActive ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="globe" class="h-4 w-4"></i> Sites</a>
+                            <a href="{{ route('app.insights.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $insightsNavActive ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="line-chart" class="h-4 w-4"></i> {{ __('app.nav.insights') }}</a>
+                            <a href="{{ route('app.brand.company-profile') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.brand.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="palette" class="h-4 w-4"></i> Brand</a>
+                            <a href="{{ route('app.workspace-intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.workspace-intelligence.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="sparkles" class="h-4 w-4"></i> {{ __('app.nav.workspace_intelligence') }}</a>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">ADMINISTRATION</p>
+                        <div class="space-y-1">
+                            <a href="{{ route('app.billing.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.billing.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="wallet" class="h-4 w-4"></i> Billing</a>
+                            <a href="{{ route('app.developer.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.developer.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="code-2" class="h-4 w-4"></i> Developer</a>
+                            <a href="{{ route('app.settings') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.settings*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="settings" class="h-4 w-4"></i> Settings</a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <main class="flex-1 overflow-auto">
+            <div class="{{ $pageShellClass }}">
+                @php
+                    $supportCtx = app(\App\Services\Support\SupportContext::class);
+                @endphp
+                @if ($supportCtx->isEnabled() && $supportCtx->targetUser() && $supportCtx->targetCompany())
+                    <x-alert class="mb-4 md:items-center md:justify-between" :icon="true">
+                        <x-slot:title>Support Mode active</x-slot:title>
+                        Target: {{ $supportCtx->targetUser()->name }} at {{ $supportCtx->targetCompany()->name }}. Read only. Actions are blocked.
+                        <x-slot:actions>
+                            <a href="{{ route('admin.support.diagnostics') }}" class="inline-flex h-9 items-center rounded-md border border-accentYellow-900/25 text-accentYellow-900 px-3 text-xs font-medium text-accentYellow-900 hover:text-accentYellow-900/80">View diagnostics</a>
+                            <a href="{{ route('admin.support.snapshot') }}" class="inline-flex h-9 items-center rounded-md border border-accentYellow-900/25 text-accentYellow-900 px-3 text-xs font-medium text-accentYellow-900 hover:text-accentYellow-900/80">Download snapshot</a>
+                            <form method="POST" action="{{ route('admin.support.stop') }}">
+                                @csrf
+                                <button type="submit" class="inline-flex h-9 items-center rounded-md border border-accentYellow-900/25 text-accentYellow-900 px-3 text-xs font-medium text-accentYellow-900 hover:text-accentYellow-900/80">Stop Support Mode</button>
+                            </form>
+                        </x-slot:actions>
+                    </x-alert>
+                @endif
+                @if (! empty($appAccessOverrideBanner))
+                    <x-alert class="mb-4 md:items-center md:justify-between" :icon="true">
+                        <x-slot:title>{{ $appAccessOverrideBanner['label'] }}</x-slot:title>
+                        {{ $appAccessOverrideBanner['message'] }}
+                    </x-alert>
+                @endif
+                @yield('content')
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+
+    var userMenuBtn = document.getElementById('userMenuBtn');
+    var userMenu = document.getElementById('userMenu');
+    if (userMenuBtn && userMenu) {
+        userMenuBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            userMenu.classList.toggle('hidden');
+        });
+    }
+
+    var notificationBellBtn = document.getElementById('notificationBellBtn');
+    var notificationBellMenu = document.getElementById('notificationBellMenu');
+    if (notificationBellBtn && notificationBellMenu) {
+        notificationBellBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            notificationBellMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', function (event) {
+            if (notificationBellMenu.classList.contains('hidden')) {
+                return;
+            }
+
+            if (notificationBellBtn.contains(event.target) || notificationBellMenu.contains(event.target)) {
+                return;
+            }
+
+            notificationBellMenu.classList.add('hidden');
+        });
+    }
+
+    var mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    var mobileSidebar = document.getElementById('mobileSidebar');
+    var mobileOverlay = document.getElementById('mobileOverlay');
+    var closeMobileMenu = document.getElementById('closeMobileMenu');
+    if (mobileMenuBtn && mobileSidebar) {
+        mobileMenuBtn.addEventListener('click', function () {
+            mobileSidebar.classList.remove('hidden');
+        });
+    }
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', function () {
+            mobileSidebar.classList.add('hidden');
+        });
+    }
+    if (closeMobileMenu) {
+        closeMobileMenu.addEventListener('click', function () {
+            mobileSidebar.classList.add('hidden');
+        });
+    }
+
+    var collapseBtn = document.getElementById('collapseBtn');
+    var sidebar = document.getElementById('sidebar');
+    if (collapseBtn && sidebar) {
+        var sidebarStateKey = 'pl_app_sidebar_collapsed';
+        var setSidebarCollapsed = function (collapsed) {
+            sidebar.dataset.collapsed = collapsed ? 'true' : 'false';
+            sidebar.classList.toggle('w-20', collapsed);
+            sidebar.classList.toggle('w-64', !collapsed);
+
+            sidebar.querySelectorAll('[data-sidebar-item]').forEach(function (item) {
+                item.classList.toggle('justify-center', collapsed);
+                item.classList.toggle('justify-start', !collapsed);
+                item.classList.toggle('gap-0', collapsed);
+                item.classList.toggle('gap-3', !collapsed);
+                item.classList.toggle('px-2', collapsed);
+                item.classList.toggle('px-3', !collapsed);
+
+                var title = item.getAttribute('data-sidebar-title') || '';
+                item.setAttribute('title', collapsed ? title : '');
+            });
+
+            sidebar.querySelectorAll('[data-sidebar-label]').forEach(function (el) {
+                el.classList.toggle('hidden', collapsed);
+            });
+
+            sidebar.querySelectorAll('[data-sidebar-tooltip]').forEach(function (el) {
+                el.classList.toggle('hidden', !collapsed);
+            });
+
+            var expandedIcon = sidebar.querySelector('[data-collapse-icon="expanded"]');
+            var collapsedIcon = sidebar.querySelector('[data-collapse-icon="collapsed"]');
+            if (expandedIcon) {
+                expandedIcon.classList.toggle('hidden', collapsed);
+            }
+            if (collapsedIcon) {
+                collapsedIcon.classList.toggle('hidden', !collapsed);
+            }
+        };
+
+        var storedState = localStorage.getItem(sidebarStateKey);
+        var startCollapsed = storedState === '1';
+        setSidebarCollapsed(startCollapsed);
+
+        collapseBtn.addEventListener('click', function () {
+            var nextCollapsed = sidebar.dataset.collapsed !== 'true';
+            setSidebarCollapsed(nextCollapsed);
+            localStorage.setItem(sidebarStateKey, nextCollapsed ? '1' : '0');
+        });
+    }
+</script>
+</body>
+</html>

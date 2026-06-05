@@ -1,84 +1,54 @@
-<x-marketing.layout title="Sign in | Argusly" :show-chrome="false">
-    <section class="flex min-h-screen bg-white">
-        <div class="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-blue to-purple p-10 text-white lg:flex">
-            <x-brand tone="light" :href="route('marketing.home')" />
+@extends('layouts.auth', ['title' => __('public.auth.login_title')])
 
-            <div>
-                <h1 class="max-w-xl text-4xl font-semibold leading-tight tracking-tight">
-                    The operating system for<br>AI Visibility & Agentic Marketing.
-                </h1>
-                <p class="mt-6 max-w-md text-base leading-7 text-white/75">
-                    Monitor how AI, search and competitors talk about your brand. Discover opportunities, automate actions, grow your presence.
-                </p>
-                <div class="mt-8 flex flex-wrap items-center gap-4 text-sm text-white/70">
-                    <span class="inline-flex items-center gap-1.5"><x-app.icon name="eye" class="size-4" /> AI Visibility</span>
-                    <span class="inline-flex items-center gap-1.5"><x-app.icon name="mail" class="size-4" /> Brand Intelligence</span>
-                    <span class="inline-flex items-center gap-1.5"><x-app.icon name="arrow-right" class="size-4" /> Agentic Marketing</span>
-                </div>
-            </div>
+@section('content')
+    <div class="flex flex-col items-center gap-3">
+        <a href="{{ route('landing') }}" class="inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-surfaceMuted">
+            <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
+                <i data-lucide="layers" class="h-5 w-5"></i>
+            </span>
+            <span class="leading-tight">
+                <span class="block text-lg font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
+            </span>
+        </a>
+        <p class="text-sm text-textSecondary">{{ __('public.auth.login_subtitle') }}</p>
+    </div>
 
-            <p class="text-sm text-white/45">Built for teams preparing for AI-first discovery.</p>
+    @if ($errors->any())
+        <div class="rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+            <ul class="list-disc list-inside">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
+    @endif
 
-        <div class="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-20">
-            <div class="mx-auto w-full max-w-md">
-                <x-brand class="mb-10 lg:hidden" :href="route('marketing.home')" />
-
-                <div>
-                    <h2 class="text-3xl font-semibold tracking-tight text-ink">Welcome back</h2>
-                    <p class="mt-2 text-base text-muted">Sign in to continue to your workspace.</p>
-                </div>
-
-                <form method="POST" action="{{ route('login.store') }}" class="mt-9 space-y-5">
-                    @csrf
-
-                    <label class="block">
-                        <span class="text-sm font-semibold text-ink">Email address</span>
-                        <input
-                            type="email"
-                            name="email"
-                            value="{{ old('email') }}"
-                            required
-                            autofocus
-                            autocomplete="email"
-                            placeholder="you@company.com"
-                            class="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-base text-ink outline-none transition placeholder:text-muted focus:border-blue focus:ring-2 focus:ring-blue/10"
-                        >
-                        @error('email')
-                            <span class="mt-2 block text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </label>
-
-                    <label class="block">
-                        <span class="text-sm font-semibold text-ink">Password</span>
-                        <input
-                            type="password"
-                            name="password"
-                            required
-                            autocomplete="current-password"
-                            placeholder="••••••••"
-                            class="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-base text-ink outline-none transition placeholder:text-muted focus:border-blue focus:ring-2 focus:ring-blue/10"
-                        >
-                        @error('password')
-                            <span class="mt-2 block text-sm text-red-600">{{ $message }}</span>
-                        @enderror
-                    </label>
-
-                    <div class="flex items-center justify-between text-sm">
-                        <label class="flex items-center gap-2 text-muted">
-                            <input type="checkbox" name="remember" value="1" class="size-4 rounded border-line text-ink focus:ring-blue/20">
-                            <span>Remember me</span>
-                        </label>
-                        <a href="{{ route('password.request') }}" class="font-medium text-blue hover:underline">Forgot password?</a>
-                    </div>
-
-                    <x-ui.button type="submit" variant="dark" shape="lg" class="w-full">Sign in</x-ui.button>
-                </form>
-
-                <p class="mt-9 text-center text-sm text-muted">Don't have an account? <a href="{{ route('marketing.signup') }}" class="font-semibold text-ink hover:underline">Sign up</a></p>
-                <p class="mt-4 text-center text-sm text-muted">Looking for Argusly? <a href="{{ route('marketing.home') }}" class="font-semibold text-ink hover:underline">Back to the marketing site</a></p>
-                <p class="mt-12 text-center text-sm text-muted">By continuing, you agree to our <a href="{{ route('marketing.page', 'terms') }}" class="underline hover:text-ink">Terms</a> and <a href="{{ route('marketing.page', 'privacy') }}" class="underline hover:text-ink">Privacy Policy</a>.</p>
-            </div>
+    <form class="space-y-4" method="POST" action="{{ route('login.store') }}">
+        @csrf
+        <div class="space-y-2">
+            <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" for="email">{{ __('public.auth.email') }}</label>
+            <input type="email" class="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm placeholder:text-textSecondary focus:outline-none focus:ring-2 focus:ring-primarySoftRing" id="email" name="email" placeholder="you@company.com" required value="{{ old('email') }}">
         </div>
-    </section>
-</x-marketing.layout>
+        <div class="space-y-2">
+            <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" for="password">{{ __('public.auth.password') }}</label>
+            <input type="password" class="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm placeholder:text-textSecondary focus:outline-none focus:ring-2 focus:ring-primarySoftRing" id="password" name="password" placeholder="••••••••" required>
+        </div>
+        <button class="inline-flex h-10 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse transition-colors hover:bg-primaryHover focus:outline-none focus:ring-2 focus:ring-primarySoftRing" type="submit">{{ __('public.auth.sign_in') }}</button>
+    </form>
+
+    @if ((bool) config('publishlayer.launch.public_registration_enabled', true))
+        <p class="text-center text-sm text-textSecondary">
+            {{ __('public.auth.no_account') }}
+            <a class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline h-auto p-0" href="{{ route('register', ['plan' => 'creator']) }}">{{ __('public.auth.request_account') }}</a>
+        </p>
+    @else
+        <p class="text-center text-sm text-textSecondary">
+            {{ __('public.auth.need_access') }}
+            <a class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium text-primary underline-offset-4 hover:underline h-auto p-0" href="{{ route('public.early-access.show') }}">{{ __('public.auth.request_early_access') }}</a>
+        </p>
+    @endif
+
+    <p class="text-center text-sm">
+        <a class="text-textSecondary hover:text-textPrimary underline-offset-4 hover:underline" href="{{ route('landing') }}">{{ __('public.auth.back_to_site') }}</a>
+    </p>
+@endsection

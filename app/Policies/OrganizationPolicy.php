@@ -4,35 +4,61 @@ namespace App\Policies;
 
 use App\Models\Organization;
 use App\Models\User;
-use App\Policies\Concerns\AuthorizesTenantModels;
-use Illuminate\Auth\Access\Response;
 
 class OrganizationPolicy
 {
-    use AuthorizesTenantModels;
-
-    public function viewAny(User $user): Response
+    public function updateLegalName(User $user, Organization $organization): bool
     {
-        return $this->allows($user, 'view_dashboard') ? Response::allow() : Response::deny();
+        if ($user->is_admin) {
+            return true;
+        }
+
+        return false;
     }
 
-    public function view(User $user, Organization $organization): Response
+    /**
+     * Determine whether the user can deactivate (set on hold) the organization.
+     */
+    public function deactivate(User $user, Organization $organization): bool
     {
-        return $this->allows($user, 'view_dashboard', $organization, requireCurrentBrand: false) ? Response::allow() : Response::deny();
+        // Any admin can deactivate organizations
+        return $user->is_admin;
     }
 
-    public function create(User $user): Response
+    /**
+     * Determine whether the user can archive the organization.
+     */
+    public function archive(User $user, Organization $organization): bool
     {
-        return $this->allows($user, 'manage_account') ? Response::allow() : Response::deny();
+        // Any admin can archive organizations
+        return $user->is_admin;
     }
 
-    public function update(User $user, Organization $organization): Response
+    /**
+     * Determine whether the user can unarchive/restore the organization.
+     */
+    public function unarchive(User $user, Organization $organization): bool
     {
-        return $this->allows($user, 'manage_account', $organization, requireCurrentBrand: false) ? Response::allow() : Response::deny();
+        // Any admin can unarchive organizations
+        return $user->is_admin;
     }
 
-    public function delete(User $user, Organization $organization): Response
+    /**
+     * Determine whether the user can permanently delete the organization.
+     * Only superadmins can perform this dangerous action.
+     */
+    public function delete(User $user, Organization $organization): bool
     {
-        return $this->update($user, $organization);
+        // Only superadmins can delete organizations
+        return $user->isSuperadmin();
+    }
+
+    /**
+     * Determine whether the user can force delete an organization with dependencies.
+     * This is an extremely dangerous action only for superadmins.
+     */
+    public function forceDelete(User $user, Organization $organization): bool
+    {
+        return $user->isSuperadmin();
     }
 }

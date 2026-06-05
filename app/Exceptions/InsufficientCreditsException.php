@@ -7,9 +7,14 @@ use RuntimeException;
 class InsufficientCreditsException extends RuntimeException
 {
     public function __construct(
-        public readonly int $requiredCredits,
-        public readonly int $availableCredits,
+        public readonly int $required,
+        public readonly int $available,
+        ?string $message = null
     ) {
-        parent::__construct("Insufficient credits. {$requiredCredits} required, {$availableCredits} available.");
+        parent::__construct($message ?: sprintf(
+            'Insufficient credits. Required: %d, available: %d.',
+            $required,
+            $available
+        ));
     }
 }

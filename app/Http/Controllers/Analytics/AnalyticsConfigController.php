@@ -17,18 +17,24 @@ class AnalyticsConfigController extends Controller
             return response()->json(['error' => 'Missing site parameter'], 400);
         }
 
-        $site = AnalyticsSite::query()->where('public_key', $publicKey)->first();
+        $site = AnalyticsSite::where('public_key', $publicKey)->first();
 
         if (! $site) {
             return response()->json(['error' => 'Site not found'], 404);
         }
 
         if (! $site->is_enabled) {
-            return response()->json(['allowed' => false, 'reason' => 'disabled']);
+            return response()->json([
+                'allowed' => false,
+                'reason' => 'disabled',
+            ]);
         }
 
         if (! $site->verified_at) {
-            return response()->json(['allowed' => false, 'reason' => 'unverified']);
+            return response()->json([
+                'allowed' => false,
+                'reason' => 'unverified',
+            ]);
         }
 
         return response()->json([

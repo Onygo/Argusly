@@ -1,2 +1,38 @@
 User-agent: *
-Disallow:
+Allow: /
+
+# Technische / niet-indexeerbare delen blokkeren
+Disallow: /app
+Disallow: /dashboard
+Disallow: /api
+Disallow: /login
+Disallow: /register
+Disallow: /password
+Disallow: /settings
+Disallow: /billing
+Disallow: /email
+Disallow: /verify
+Disallow: /invitation
+
+# Tracking en marketing parameters blokkeren
+Disallow: /*?utm_*
+Disallow: /*?ref=*
+Disallow: /*?source=*
+Disallow: /*?preview=*
+Disallow: /*?intent=*
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+# Sitemap(s)
+Sitemap: https://publishlayer.com/sitemap.xml
+Sitemap: https://publishlayer.com/llms.txt

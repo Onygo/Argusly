@@ -23,10 +23,10 @@ class AnalyticsUrlKey
 
         $port = isset($parts['port']) ? (int) $parts['port'] : null;
         $path = self::normalizePathComponent((string) ($parts['path'] ?? '/'));
-        $normalized = $scheme.'://'.$host;
 
+        $normalized = $scheme . '://' . $host;
         if ($port !== null && ! (($scheme === 'http' && $port === 80) || ($scheme === 'https' && $port === 443))) {
-            $normalized .= ':'.$port;
+            $normalized .= ':' . $port;
         }
 
         $normalized .= $path;
@@ -34,27 +34,59 @@ class AnalyticsUrlKey
         return strlen($normalized) > 2000 ? substr($normalized, 0, 2000) : $normalized;
     }
 
+    public static function normalizePathValue(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '/';
+        }
+
+        $parts = self::parse($value);
+        if (is_array($parts) && ! empty($parts['host'])) {
+            return self::normalizePathComponent((string) ($parts['path'] ?? '/'));
+        }
+
+        return self::normalizePathComponent($value);
+    }
+
     public static function fromUrl(string $url): string
     {
         $host = self::hostFromUrl($url);
-        $path = self::pathFromUrl($url);
-
-        if ($host === '' || $path === '') {
+        if ($host === '') {
             return '';
         }
 
-        $key = $host.$path;
+        $path = self::pathFromUrl($url);
+        if ($path === '') {
+            return '';
+        }
 
-        return strlen($key) > 512 ? substr($key, 0, 512) : $key;
+        return self::build($host, $path);
+    }
+
+    public static function fromUrlUsingHost(string $url, string $host): string
+    {
+        $normalizedHost = strtolower(trim($host));
+        if ($normalizedHost === '') {
+            return '';
+        }
+
+        $path = self::pathFromUrl($url);
+        if ($path === '') {
+            return '';
+        }
+
+        return self::build($normalizedHost, $path);
     }
 
     public static function hostFromUrl(string $url): string
     {
         $parts = self::parse($url);
+        if (! is_array($parts) || empty($parts['host'])) {
+            return '';
+        }
 
-        return is_array($parts) && ! empty($parts['host'])
-            ? strtolower((string) $parts['host'])
-            : '';
+        return strtolower((string) $parts['host']);
     }
 
     public static function pathFromUrl(string $url): string
@@ -65,6 +97,31 @@ class AnalyticsUrlKey
         }
 
         return self::normalizePathComponent((string) ($parts['path'] ?? '/'));
+    }
+
+    private static function decodeSafePathCharacters(string $path): string
+    {
+        return preg_replace_callback('/%[0-9a-fA-F]{2}/', static function (array $matches): string {
+            $hex = strtoupper((string) $matches[0]);
+            $char = chr(hexdec(substr($hex, 1)));
+
+            if (preg_match('/[A-Za-z0-9\\-._~]/', $char) === 1) {
+                return $char;
+            }
+
+            return $hex;
+        }, $path) ?? $path;
+    }
+
+    private static function build(string $host, string $path): string
+    {
+        $key = $host . $path;
+
+        if (strlen($key) > 512) {
+            return substr($key, 0, 512);
+        }
+
+        return $key;
     }
 
     /**
@@ -78,7 +135,7 @@ class AnalyticsUrlKey
         }
 
         if (! str_contains($url, '://') && ! str_starts_with($url, '/')) {
-            $url = 'https://'.ltrim($url, '/');
+            $url = 'https://' . ltrim($url, '/');
         }
 
         $parts = parse_url($url);
@@ -95,12 +152,16 @@ class AnalyticsUrlKey
 
         $path = explode('#', $path, 2)[0];
         $path = explode('?', $path, 2)[0];
-        $path = '/'.ltrim($path, '/');
+        $path = '/' . ltrim($path, '/');
         $path = preg_replace('#/+#', '/', $path) ?? $path;
+        $path = self::decodeSafePathCharacters($path);
         $path = strtolower($path);
 
         if ($path !== '/') {
-            $path = rtrim($path, '/') ?: '/';
+            $path = rtrim($path, '/');
+            if ($path === '') {
+                $path = '/';
+            }
         }
 
         return $path;

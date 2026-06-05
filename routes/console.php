@@ -1,327 +1,180 @@
 <?php
 
-use App\Models\Account;
-use App\Models\Brand;
-use App\Models\Ga4Property;
-use App\Models\IntegrationConnection;
-use App\Models\Module;
-use App\Models\Plan;
-use App\Models\Role;
-use App\Models\SearchConsoleSite;
-use App\Models\User;
-use App\Jobs\GenerateScheduledReportsJob;
-use App\Services\Graph\GraphProjectionService;
-use App\Services\Integrations\Google\GA4DataService;
-use App\Services\Integrations\Google\GoogleTokenService;
-use App\Services\Integrations\Google\SearchConsolePerformanceService;
-use App\Services\Integrations\LinkedIn\LinkedInTokenService;
-use App\Services\SchedulerMonitorService;
-use App\Services\Visibility\RunScheduleService;
-use Database\Seeders\RolesAndPermissionsSeeder;
-use Database\Seeders\SubscriptionCatalogSeeder;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schedule;
+use App\Jobs\Analytics\BuildAnalyticsRollupsJob;
+use App\Jobs\Analytics\PurgeOldAnalyticsEventsJob;
+use App\Jobs\BillingBackfillMonthlyCreditsJob;
+use App\Jobs\CreditExpiryJob;
+use App\Jobs\CreditResetJob;
+use App\Jobs\DetectDuplicateCanonicalIssuesJob;
+use App\Jobs\DetectRedirectChainsJob;
+use App\Jobs\DunningJob;
+use App\Jobs\MandateActivationRetryJob;
+use App\Jobs\LlmTracking\BuildLlmTrackingAggregatesJob;
+use App\Jobs\SyncSearchConsoleIndexationJob;
+use App\Jobs\Stats\RecalculateContentMetricsJob;
+use App\Jobs\Stats\RecalculateAiSeoScoresJob;
+use App\Jobs\Stats\UpdateContentAiVisibilityJob;
+use App\Jobs\ValidateCanonicalIntegrityJob;
+use App\Jobs\ValidateSitemapEntriesJob;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('argusly:bootstrap-admin {email} {--password=} {--account=Argusly} {--brand=Argusly}', function (): int {
-    $email = strtolower((string) $this->argument('email'));
-    $password = $this->option('password') ?: str()->random(32);
-    $accountName = (string) $this->option('account');
-    $brandName = (string) $this->option('brand');
+$scheduleLogPath = storage_path('logs/schedule');
+File::ensureDirectoryExists($scheduleLogPath);
 
-    $this->call('db:seed', ['--class' => RolesAndPermissionsSeeder::class]);
-    $this->call('db:seed', ['--class' => SubscriptionCatalogSeeder::class]);
+// Argusly brief pipeline:
+// 1. Process incoming briefs from the app and WordPress.
+// 2. Generate drafts for briefs that are ready.
+// 3. Deliver completed drafts back to their origin.
+//
+// These steps are intentionally scheduled in order and kept synchronous so
+// downstream commands do not start before upstream work has had a chance to run.
+Schedule::command('publishlayer:processBriefs')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->appendOutputTo($scheduleLogPath . '/publishlayer-process-briefs.log');
 
-    DB::transaction(function () use ($email, $password, $accountName, $brandName): void {
-        $user = User::query()->firstOrCreate(
-            ['email' => $email],
-            [
-                'name' => 'platform_admin',
-                'password' => Hash::make($password),
-            ],
-        );
+Schedule::command('publishlayer:generateDrafts')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->appendOutputTo($scheduleLogPath . '/publishlayer-generate-drafts.log');
 
-        if ($user->name !== 'platform_admin') {
-            $user->forceFill(['name' => 'platform_admin'])->save();
-        }
+Schedule::command('publishlayer:deliverDrafts')
+    ->everyMinute()
+    ->withoutOverlapping(10)
+    ->appendOutputTo($scheduleLogPath . '/publishlayer-deliver-drafts.log');
 
-        $role = Role::query()->updateOrCreate(
-            ['name' => 'platform_admin'],
-            [
-                'display_name' => 'Platform Admin',
-                'description' => 'Global platform administrator.',
-                'all_permissions' => true,
-                'is_system' => true,
-                'priority' => 110,
-            ],
-        );
+Schedule::command('drafts:dispatch-deliveries --limit=25')
+    ->everyMinute()
+    ->withoutOverlapping();
 
-        DB::table('user_roles')->updateOrInsert(
-            [
-                'user_id' => $user->id,
-                'role_id' => $role->id,
-                'account_id' => null,
-                'brand_id' => null,
-            ],
-            [
-                'starts_at' => null,
-                'expires_at' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+Schedule::command('queue:worker-heartbeat')
+    ->everyMinute()
+    ->withoutOverlapping();
 
-        $account = Account::query()->firstOrCreate(
-            ['slug' => str($accountName)->slug()->toString()],
-            ['name' => $accountName, 'status' => 'active'],
-        );
+Schedule::job(new CreditResetJob())
+    ->hourly()
+    ->withoutOverlapping();
 
-        $brand = Brand::query()->firstOrCreate(
-            ['account_id' => $account->id, 'slug' => str($brandName)->slug()->toString()],
-            ['name' => $brandName, 'domain' => 'argusly.com', 'status' => 'active'],
-        );
+Schedule::job(new CreditExpiryJob())
+    ->dailyAt('01:00')
+    ->withoutOverlapping();
 
-        DB::table('memberships')->updateOrInsert(
-            ['user_id' => $user->id, 'account_id' => $account->id],
-            ['status' => 'active', 'joined_at' => now(), 'created_at' => now(), 'updated_at' => now()],
-        );
+Schedule::job(new BillingBackfillMonthlyCreditsJob())
+    ->dailyAt('01:30')
+    ->withoutOverlapping();
 
-        DB::table('brand_memberships')->updateOrInsert(
-            ['user_id' => $user->id, 'brand_id' => $brand->id],
-            ['account_id' => $account->id, 'status' => 'active', 'joined_at' => now(), 'created_at' => now(), 'updated_at' => now()],
-        );
+Schedule::job(new MandateActivationRetryJob())
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
 
-        $plan = Plan::query()->where('key', 'starter_monthly')->firstOrFail();
-        $core = Module::query()->where('key', 'core')->firstOrFail();
+Schedule::job(new DunningJob())
+    ->hourly()
+    ->withoutOverlapping();
 
-        DB::table('subscriptions')->updateOrInsert(
-            ['account_id' => $account->id, 'provider' => 'manual', 'provider_subscription_id' => 'bootstrap-admin'],
-            [
-                'plan_id' => $plan->id,
-                'status' => 'active',
-                'billing_interval' => 'monthly',
-                'currency' => 'EUR',
-                'amount' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
+Schedule::command('onboarding:check-inactivity')
+    ->dailyAt('08:00')
+    ->withoutOverlapping();
 
-        $subscription = DB::table('subscriptions')
-            ->where('account_id', $account->id)
-            ->where('provider', 'manual')
-            ->where('provider_subscription_id', 'bootstrap-admin')
-            ->first();
+Schedule::command('llm-tracking:dispatch-daily --max-dispatch=120 --queue=default')
+    ->hourlyAt(7)
+    ->withoutOverlapping();
 
-        DB::table('subscription_modules')->updateOrInsert(
-            ['subscription_id' => $subscription->id, 'module_id' => $core->id],
-            [
-                'account_id' => $account->id,
-                'status' => 'active',
-                'starts_at' => null,
-                'ends_at' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        );
-    });
+Schedule::job(new BuildLlmTrackingAggregatesJob())
+    ->dailyAt('02:15')
+    ->withoutOverlapping();
 
-    $this->info("Platform admin bootstrapped for {$email}.");
+Schedule::command('content:dispatch-scheduled-publishes --limit=50')
+    ->everyMinute()
+    ->withoutOverlapping();
 
-    if (! $this->option('password')) {
-        $this->warn("User was created with generated password: {$password}");
-        $this->warn('If the user already existed, the password was not changed.');
-    }
+Schedule::command('social:dispatch-scheduled-publications --limit=50')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->appendOutputTo($scheduleLogPath . '/social-dispatch-scheduled-publications.log');
 
-    return self::SUCCESS;
-})->purpose('Create or repair the first platform admin, workspace, brand, and core module access');
+Schedule::command('content:run-automations --limit=25')
+    ->everyMinute()
+    ->withoutOverlapping();
 
-Artisan::command('visibility:run-due {--limit=50}', function (RunScheduleService $schedules): int {
-    $runs = $schedules->runDue((int) $this->option('limit'));
+Schedule::command('credits:check-low-balance-warnings --limit=100')
+    ->hourly()
+    ->withoutOverlapping();
 
-    $this->info("Processed {$runs->count()} due AI visibility run schedule(s).");
+Schedule::command('support:cleanup-snapshots --days=7')
+    ->dailyAt('03:10')
+    ->withoutOverlapping();
 
-    return self::SUCCESS;
-})->purpose('Run due AI visibility prompt schedules');
+Schedule::command('billing:diagnose-mollie-webhook-gaps --hours=6 --limit=300 --notify-email=dev@publishlayer.com --alert-cooldown-minutes=120 --fail-on-issues')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
 
-Artisan::command('reports:generate-scheduled {--type=weekly} {--limit=50} {--sync}', function (): int {
-    $type = (string) $this->option('type');
-    $limit = (int) $this->option('limit');
-    $job = new GenerateScheduledReportsJob($type, $limit);
+Schedule::command('generations:reconcile-stale --limit=250')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
 
-    if ($this->option('sync')) {
-        app()->call([$job, 'handle']);
-        $this->info("Generated scheduled {$type} report(s) synchronously.");
+Schedule::command('credits:expire-reservations --limit=100')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
 
-        return self::SUCCESS;
-    }
+Schedule::command('access-overrides:expire')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
 
-    dispatch($job);
-    $this->info("Queued scheduled {$type} report generation.");
+Schedule::job(new BuildAnalyticsRollupsJob())
+    ->hourly()
+    ->withoutOverlapping();
 
-    return self::SUCCESS;
-})->purpose('Generate scheduled executive reports for active brands');
+Schedule::job(new PurgeOldAnalyticsEventsJob())
+    ->dailyAt('02:30')
+    ->withoutOverlapping();
 
-Artisan::command('graph:rebuild {--account=} {--brand=}', function (GraphProjectionService $graph): int {
-    $account = $this->option('account')
-        ? Account::query()->where('id', is_numeric($this->option('account')) ? (int) $this->option('account') : 0)->orWhere('slug', $this->option('account'))->firstOrFail()
-        : null;
+Schedule::job(new RecalculateContentMetricsJob())
+    ->dailyAt('02:40')
+    ->withoutOverlapping();
 
-    $brand = $this->option('brand')
-        ? Brand::query()
-            ->when($account, fn ($query) => $query->where('account_id', $account->id))
-            ->where(fn ($query) => $query->where('id', is_numeric($this->option('brand')) ? (int) $this->option('brand') : 0)->orWhere('slug', $this->option('brand')))
-            ->firstOrFail()
-        : null;
+Schedule::job(new UpdateContentAiVisibilityJob())
+    ->dailyAt('02:50')
+    ->withoutOverlapping();
 
-    $result = $graph->rebuild($account, $brand);
+Schedule::job(new RecalculateAiSeoScoresJob())
+    ->dailyAt('03:00')
+    ->withoutOverlapping();
 
-    $this->info("Knowledge graph rebuilt: {$result['nodes']} node(s), {$result['edges']} edge(s), {$result['invalidEdges']} invalid edge(s).");
+Schedule::command('agents:dispatch-scheduled-scans --site-limit=10 --content-limit=25 --queue=default')
+    ->hourlyAt(20)
+    ->withoutOverlapping();
 
-    return $result['invalidEdges'] === 0 ? self::SUCCESS : self::FAILURE;
-})->purpose('Rebuild the knowledge graph projection from source tables');
+// Safe autonomous Agentic Marketing runner.
+// Intentionally not scheduled aggressively by default: enable only after
+// workspace policies, queues, and monitoring are ready, e.g. hourly or daily:
+// Schedule::command('agentic:run-autonomous --limit=10')
+//     ->hourlyAt(35)
+//     ->withoutOverlapping()
+//     ->appendOutputTo($scheduleLogPath . '/agentic-run-autonomous.log');
 
-Artisan::command('graph:verify {--account=} {--brand=}', function (GraphProjectionService $graph): int {
-    $account = $this->option('account')
-        ? Account::query()->where('id', is_numeric($this->option('account')) ? (int) $this->option('account') : 0)->orWhere('slug', $this->option('account'))->firstOrFail()
-        : null;
+Schedule::job(new ValidateCanonicalIntegrityJob())
+    ->dailyAt('03:20')
+    ->withoutOverlapping();
 
-    $brand = $this->option('brand')
-        ? Brand::query()
-            ->when($account, fn ($query) => $query->where('account_id', $account->id))
-            ->where(fn ($query) => $query->where('id', is_numeric($this->option('brand')) ? (int) $this->option('brand') : 0)->orWhere('slug', $this->option('brand')))
-            ->firstOrFail()
-        : null;
+Schedule::job(new DetectDuplicateCanonicalIssuesJob())
+    ->dailyAt('03:25')
+    ->withoutOverlapping();
 
-    $result = $graph->verify($account, $brand);
+Schedule::job(new ValidateSitemapEntriesJob())
+    ->dailyAt('03:30')
+    ->withoutOverlapping();
 
-    $this->info("Knowledge graph verified: {$result['nodes']} node(s), {$result['edges']} edge(s), {$result['invalidEdges']} invalid edge(s).");
+Schedule::job(new DetectRedirectChainsJob())
+    ->dailyAt('03:35')
+    ->withoutOverlapping();
 
-    return $result['invalidEdges'] === 0 ? self::SUCCESS : self::FAILURE;
-})->purpose('Verify knowledge graph projection tenant and edge integrity');
-
-Artisan::command('linkedin:check-token-health {--limit=100}', function (LinkedInTokenService $tokens): int {
-    $connections = IntegrationConnection::query()
-        ->whereHas('integration', fn ($query) => $query->where('key', 'linkedin'))
-        ->whereIn('status', ['active', 'expired'])
-        ->whereNotNull('account_id')
-        ->with(['integration', 'account', 'brand', 'owner'])
-        ->orderBy('id')
-        ->limit((int) $this->option('limit'))
-        ->get();
-
-    $processed = 0;
-
-    foreach ($connections as $connection) {
-        if ($tokens->isExpired($connection) || $tokens->willExpireSoon($connection)) {
-            $tokens->refreshIfPossible($connection);
-            $processed++;
-        }
-    }
-
-    $this->info("Checked {$connections->count()} LinkedIn connection(s); processed {$processed} token health update(s).");
-
-    return self::SUCCESS;
-})->purpose('Check LinkedIn token expiry and refresh or mark expired when needed');
-
-Artisan::command('google:check-token-health {--limit=100}', function (GoogleTokenService $tokens): int {
-    $connections = IntegrationConnection::query()
-        ->whereHas('integration', fn ($query) => $query->where('key', 'google'))
-        ->whereIn('status', ['active', 'expired'])
-        ->whereNotNull('account_id')
-        ->with(['integration', 'account', 'brand', 'owner'])
-        ->orderBy('id')
-        ->limit((int) $this->option('limit'))
-        ->get();
-
-    $processed = 0;
-
-    foreach ($connections as $connection) {
-        if ($tokens->isExpired($connection) || $tokens->willExpireSoon($connection)) {
-            $tokens->refreshIfPossible($connection);
-            $processed++;
-        }
-    }
-
-    $this->info("Checked {$connections->count()} Google connection(s); processed {$processed} token health update(s).");
-
-    return self::SUCCESS;
-})->purpose('Check Google token expiry and refresh or mark expired when needed');
-
-Artisan::command('ga4:sync {--account=} {--brand=} {--days=30}', function (GA4DataService $ga4): int {
-    $query = Ga4Property::query()
-        ->where('status', 'connected')
-        ->whereNotNull('integration_connection_id')
-        ->with(['account', 'brand', 'integrationConnection.integration'])
-        ->orderBy('id');
-
-    if ($this->option('account')) {
-        $account = (string) $this->option('account');
-        $query->whereHas('account', fn ($scope) => $scope
-            ->where('id', is_numeric($account) ? (int) $account : 0)
-            ->orWhere('slug', $account));
-    }
-
-    if ($this->option('brand')) {
-        $brand = (string) $this->option('brand');
-        $query->whereHas('brand', fn ($scope) => $scope
-            ->where('id', is_numeric($brand) ? (int) $brand : 0)
-            ->orWhere('slug', $brand));
-    }
-
-    $properties = $query->get();
-    $synced = 0;
-
-    foreach ($properties as $property) {
-        $ga4->sync($property, (int) $this->option('days'));
-        $synced++;
-    }
-
-    $this->info("Synced {$synced} GA4 propert".($synced === 1 ? 'y' : 'ies').'.');
-
-    return self::SUCCESS;
-})->purpose('Sync GA4 metrics from Google Analytics Data API');
-
-Artisan::command('search-console:sync {--account=} {--brand=} {--days=30}', function (SearchConsolePerformanceService $searchConsole): int {
-    $query = SearchConsoleSite::query()
-        ->where('status', 'connected')
-        ->whereNotNull('integration_connection_id')
-        ->with(['account', 'brand', 'integrationConnection.integration'])
-        ->orderBy('id');
-
-    if ($this->option('account')) {
-        $account = (string) $this->option('account');
-        $query->whereHas('account', fn ($scope) => $scope
-            ->where('id', is_numeric($account) ? (int) $account : 0)
-            ->orWhere('slug', $account));
-    }
-
-    if ($this->option('brand')) {
-        $brand = (string) $this->option('brand');
-        $query->whereHas('brand', fn ($scope) => $scope
-            ->where('id', is_numeric($brand) ? (int) $brand : 0)
-            ->orWhere('slug', $brand));
-    }
-
-    $sites = $query->get();
-    $synced = 0;
-
-    foreach ($sites as $site) {
-        $searchConsole->sync($site, (int) $this->option('days'));
-        $synced++;
-    }
-
-    $this->info("Synced {$synced} Search Console ".($synced === 1 ? 'site' : 'sites').'.');
-
-    return self::SUCCESS;
-})->purpose('Sync Search Console performance data');
-
-Schedule::command('linkedin:check-token-health')->hourly();
-Schedule::command('google:check-token-health')->hourly();
-Schedule::call(fn () => app(SchedulerMonitorService::class)->markHeartbeat())->everyMinute()->name('scheduler:heartbeat');
+Schedule::job(new SyncSearchConsoleIndexationJob())
+    ->dailyAt('03:40')
+    ->withoutOverlapping();

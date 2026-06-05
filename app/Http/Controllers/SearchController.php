@@ -2,159 +2,297 @@
 
 namespace App\Http\Controllers;
 
-use App\Contracts\CurrentAccountContract;
-use App\Contracts\CurrentBrandContract;
-use App\Models\Account;
-use App\Models\Brand;
-use App\Models\Campaign;
-use App\Models\Contact;
-use App\Models\ContentAsset;
+use App\Models\Brief;
+use App\Models\ClientSite;
+use App\Models\Content;
+use App\Models\Invoice;
 use App\Models\Organization;
-use App\Models\Topic;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class SearchController extends Controller
 {
-    public function __invoke(
-        Request $request,
-        CurrentAccountContract $currentAccount,
-        CurrentBrandContract $currentBrand,
-    ): View {
-        /** @var User $user */
-        $user = $request->user();
-        $account = $currentAccount->get($user) ?? abort(403);
-        $brand = $currentBrand->get($user);
-        $query = trim((string) $request->query('q', ''));
+    public function appIndex(Request $request): View
+    {
+        $q = trim((string) $request->query('q', ''));
+        $organizationId = (int) ($request->user()?->organization_id ?? 0);
+        $siteIds = $organizationId > 0
+            ? ClientSite::query()->forOrganization($organizationId)->pluck('id')->all()
+            : [];
 
-        $results = $query === ''
-            ? $this->emptyResults()
-            : [
-                'workspace' => $this->workspace($account, $brand, $query),
-                'content' => $this->content($account->id, $brand?->id, $query),
-                'campaigns' => $this->campaigns($account->id, $brand?->id, $query),
-                'contacts' => $this->contacts($account->id, $query),
-                'organizations' => $this->organizations($account->id, $query),
-                'topics' => $this->topics($account->id, $brand?->id, $query),
-            ];
+        $contents = collect();
+        $briefs = collect();
+        $drafts = collect();
+        $sites = collect();
+
+        if ($q !== '' && ! empty($siteIds)) {
+            $contents = Content::query()
+                ->with('clientSite')
+                ->whereIn('client_site_id', $siteIds)
+                ->where('title', 'like', '%' . $q . '%')
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+
+            $briefs = Brief::query()
+                ->with('clientSite')
+                ->whereIn('client_site_id', $siteIds)
+                ->where('title', 'like', '%' . $q . '%')
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+
+            $drafts = \App\Models\Draft::query()
+                ->with('clientSite')
+                ->whereIn('client_site_id', $siteIds)
+                ->where('title', 'like', '%' . $q . '%')
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+
+            $sites = ClientSite::query()
+                ->forOrganization($organizationId)
+                ->where(function ($query) use ($q): void {
+                    $query->where('name', 'like', '%' . $q . '%')
+                        ->orWhere('site_url', 'like', '%' . $q . '%')
+                        ->orWhere('base_url', 'like', '%' . $q . '%');
+                })
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+        }
 
         return view('app.search.index', [
-            'query' => $query,
-            'results' => $results,
-            'total' => collect($results)->sum(fn (Collection $items) => $items->count()),
+            'q' => $q,
+            'contents' => $contents,
+            'briefs' => $briefs,
+            'drafts' => $drafts,
+            'sites' => $sites,
         ]);
     }
 
-    /**
-     * @return array<string, Collection<int, mixed>>
-     */
-    private function emptyResults(): array
+    public function appSuggest(Request $request): JsonResponse
     {
-        return [
-            'workspace' => collect(),
-            'content' => collect(),
-            'campaigns' => collect(),
-            'contacts' => collect(),
-            'organizations' => collect(),
-            'topics' => collect(),
-        ];
-    }
-
-    /**
-     * @return Collection<int, Account|Brand>
-     */
-    private function workspace(Account $account, ?Brand $brand, string $query): Collection
-    {
-        return collect([$account, $brand])
-            ->filter()
-            ->filter(fn (Account|Brand $item) => str($item->name.' '.$item->slug)->lower()->contains(str($query)->lower()))
-            ->values();
-    }
-
-    /**
-     * @return Collection<int, ContentAsset>
-     */
-    private function content(int $accountId, ?int $brandId, string $query): Collection
-    {
-        return ContentAsset::query()
-            ->where('account_id', $accountId)
-            ->when($brandId !== null, fn (Builder $builder) => $builder->where('brand_id', $brandId))
-            ->where(fn (Builder $builder) => $this->like($builder, $query, ['title', 'slug', 'excerpt', 'body']))
-            ->latest('updated_at')
-            ->limit(8)
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, Campaign>
-     */
-    private function campaigns(int $accountId, ?int $brandId, string $query): Collection
-    {
-        return Campaign::query()
-            ->where('account_id', $accountId)
-            ->when($brandId !== null, fn (Builder $builder) => $builder->where('brand_id', $brandId))
-            ->where(fn (Builder $builder) => $this->like($builder, $query, ['name', 'slug', 'description', 'objective']))
-            ->latest('updated_at')
-            ->limit(8)
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, Contact>
-     */
-    private function contacts(int $accountId, string $query): Collection
-    {
-        return Contact::query()
-            ->where('account_id', $accountId)
-            ->where(fn (Builder $builder) => $this->like($builder, $query, ['first_name', 'last_name', 'display_name', 'email', 'notes']))
-            ->latest('updated_at')
-            ->limit(8)
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, Organization>
-     */
-    private function organizations(int $accountId, string $query): Collection
-    {
-        return Organization::query()
-            ->where('account_id', $accountId)
-            ->where(fn (Builder $builder) => $this->like($builder, $query, ['name', 'website', 'industry', 'description']))
-            ->latest('updated_at')
-            ->limit(8)
-            ->get();
-    }
-
-    /**
-     * @return Collection<int, Topic>
-     */
-    private function topics(int $accountId, ?int $brandId, string $query): Collection
-    {
-        return Topic::query()
-            ->where('account_id', $accountId)
-            ->when(
-                $brandId !== null,
-                fn (Builder $builder) => $builder->where(fn (Builder $scope) => $scope
-                    ->whereNull('brand_id')
-                    ->orWhere('brand_id', $brandId)),
-            )
-            ->where(fn (Builder $builder) => $this->like($builder, $query, ['name', 'slug', 'description']))
-            ->latest('updated_at')
-            ->limit(8)
-            ->get();
-    }
-
-    /**
-     * @param  array<int, string>  $columns
-     */
-    private function like(Builder $builder, string $query, array $columns): void
-    {
-        foreach ($columns as $index => $column) {
-            $method = $index === 0 ? 'where' : 'orWhere';
-            $builder->{$method}($column, 'like', '%'.$query.'%');
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['items' => []]);
         }
+
+        $organizationId = (int) ($request->user()?->organization_id ?? 0);
+        $siteIds = $organizationId > 0
+            ? ClientSite::query()->forOrganization($organizationId)->pluck('id')->all()
+            : [];
+
+        if (empty($siteIds)) {
+            return response()->json(['items' => []]);
+        }
+
+        $items = [];
+
+        $contents = Content::query()
+            ->with('clientSite')
+            ->whereIn('client_site_id', $siteIds)
+            ->where('title', 'like', '%' . $q . '%')
+            ->latest('updated_at')
+            ->limit(5)
+            ->get();
+        foreach ($contents as $content) {
+            $items[] = [
+                'label' => (string) $content->title,
+                'subtitle' => 'Content · ' . (string) ($content->clientSite?->name ?? 'Site'),
+                'type' => 'Content',
+                'url' => route('app.content.show', $content),
+            ];
+        }
+
+        $briefs = Brief::query()
+            ->whereIn('client_site_id', $siteIds)
+            ->where('title', 'like', '%' . $q . '%')
+            ->latest('updated_at')
+            ->limit(3)
+            ->get();
+        foreach ($briefs as $brief) {
+            $items[] = [
+                'label' => (string) $brief->title,
+                'subtitle' => 'Brief',
+                'type' => 'Brief',
+                'url' => route('app.briefs.show', $brief),
+            ];
+        }
+
+        $drafts = \App\Models\Draft::query()
+            ->whereIn('client_site_id', $siteIds)
+            ->where('title', 'like', '%' . $q . '%')
+            ->latest('updated_at')
+            ->limit(3)
+            ->get();
+        foreach ($drafts as $draft) {
+            $items[] = [
+                'label' => (string) $draft->title,
+                'subtitle' => 'Draft',
+                'type' => 'Draft',
+                'url' => route('app.drafts.show', $draft),
+            ];
+        }
+
+        $sites = ClientSite::query()
+            ->forOrganization($organizationId)
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('site_url', 'like', '%' . $q . '%');
+            })
+            ->latest('updated_at')
+            ->limit(3)
+            ->get();
+        foreach ($sites as $site) {
+            $items[] = [
+                'label' => (string) $site->name,
+                'subtitle' => 'Site · ' . (string) ($site->base_url ?: $site->site_url),
+                'type' => 'Site',
+                'url' => route('app.sites.show', $site),
+            ];
+        }
+
+        return response()->json(['items' => array_slice($items, 0, 12)]);
+    }
+
+    public function adminIndex(Request $request): View
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        $organizations = collect();
+        $users = collect();
+        $invoices = collect();
+        $sites = collect();
+
+        if ($q !== '') {
+            $organizations = Organization::query()
+                ->where(function ($query) use ($q): void {
+                    $query->where('name', 'like', '%' . $q . '%')
+                        ->orWhere('slug', 'like', '%' . $q . '%');
+                })
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+
+            $users = User::query()
+                ->where(function ($query) use ($q): void {
+                    $query->where('name', 'like', '%' . $q . '%')
+                        ->orWhere('email', 'like', '%' . $q . '%');
+                })
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+
+            $invoices = Invoice::query()
+                ->where(function ($query) use ($q): void {
+                    $query->where('number', 'like', '%' . $q . '%')
+                        ->orWhere('billing_company_name', 'like', '%' . $q . '%');
+                })
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+
+            $sites = ClientSite::query()
+                ->where(function ($query) use ($q): void {
+                    $query->where('name', 'like', '%' . $q . '%')
+                        ->orWhere('site_url', 'like', '%' . $q . '%')
+                        ->orWhere('base_url', 'like', '%' . $q . '%');
+                })
+                ->latest('updated_at')
+                ->limit(20)
+                ->get();
+        }
+
+        return view('admin.search.index', [
+            'q' => $q,
+            'organizations' => $organizations,
+            'users' => $users,
+            'invoices' => $invoices,
+            'sites' => $sites,
+        ]);
+    }
+
+    public function adminSuggest(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json(['items' => []]);
+        }
+
+        $items = [];
+
+        $organizations = Organization::query()
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('slug', 'like', '%' . $q . '%');
+            })
+            ->latest('updated_at')
+            ->limit(5)
+            ->get();
+        foreach ($organizations as $organization) {
+            $items[] = [
+                'label' => (string) $organization->name,
+                'subtitle' => 'Organization',
+                'type' => 'Organization',
+                'url' => route('admin.organizations.show', $organization),
+            ];
+        }
+
+        $users = User::query()
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('email', 'like', '%' . $q . '%');
+            })
+            ->latest('updated_at')
+            ->limit(4)
+            ->get();
+        foreach ($users as $user) {
+            $items[] = [
+                'label' => (string) $user->name,
+                'subtitle' => 'User · ' . (string) $user->email,
+                'type' => 'User',
+                'url' => route('admin.users', ['q' => $user->email]),
+            ];
+        }
+
+        $invoices = Invoice::query()
+            ->where(function ($query) use ($q): void {
+                $query->where('number', 'like', '%' . $q . '%')
+                    ->orWhere('billing_company_name', 'like', '%' . $q . '%');
+            })
+            ->latest('updated_at')
+            ->limit(4)
+            ->get();
+        foreach ($invoices as $invoice) {
+            $items[] = [
+                'label' => (string) $invoice->number,
+                'subtitle' => 'Invoice · ' . (string) ($invoice->billing_company_name ?: 'Unknown'),
+                'type' => 'Invoice',
+                'url' => route('admin.invoices.preview', $invoice),
+            ];
+        }
+
+        $sites = ClientSite::query()
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'like', '%' . $q . '%')
+                    ->orWhere('base_url', 'like', '%' . $q . '%');
+            })
+            ->latest('updated_at')
+            ->limit(3)
+            ->get();
+        foreach ($sites as $site) {
+            $items[] = [
+                'label' => (string) $site->name,
+                'subtitle' => 'Site · ' . (string) ($site->base_url ?: $site->site_url),
+                'type' => 'Site',
+                'url' => route('admin.sites', ['q' => $site->name]),
+            ];
+        }
+
+        return response()->json(['items' => array_slice($items, 0, 12)]);
     }
 }
+

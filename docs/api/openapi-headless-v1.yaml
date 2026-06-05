@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: Argusly Headless API
+  version: 1.0.0
+  description: |
+    Headless and hybrid API surface for Argusly workspaces.
+servers:
+  - url: https://api.publishlayer.com/api/v1
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+        code:
+          type: string
+    AsyncOperation:
+      type: object
+      properties:
+        id:
+          type: string
+        operation_type:
+          type: string
+        status:
+          type: string
+    Brief:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        source:
+          type: string
+        title:
+          type: string
+        language:
+          type: string
+        content_type:
+          type:
+            - string
+            - "null"
+        intent:
+          type:
+            - string
+            - "null"
+        primary_keyword:
+          type:
+            - string
+            - "null"
+        secondary_keywords:
+          type: array
+          items:
+            type: string
+        audience:
+          type:
+            - string
+            - "null"
+          description: Short taxonomy-style audience label or comma-separated audience keys.
+        audience_details:
+          type:
+            - string
+            - "null"
+          description: Longer generated or human-written audience context. Use this for persona descriptions that do not fit a short label.
+        target_audience:
+          type:
+            - string
+            - "null"
+        funnel_stage:
+          type:
+            - string
+            - "null"
+        search_intent:
+          type:
+            - string
+            - "null"
+        notes:
+          type:
+            - string
+            - "null"
+    BriefInput:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        language:
+          type: string
+          maxLength: 10
+        content_type:
+          type: string
+          maxLength: 60
+        output_type:
+          type: string
+          maxLength: 60
+        primary_keyword:
+          type: string
+          maxLength: 255
+        audience:
+          type: string
+          maxLength: 2000
+          description: Short audience label or taxonomy-style key list. Long values are normalized into stored details server-side.
+        audience_details:
+          type: string
+          maxLength: 5000
+          description: Long audience/persona description for generated or detailed briefs.
+        target_audience:
+          type: string
+          maxLength: 5000
+        notes:
+          type: string
+paths:
+  /me:
+    get:
+      summary: Resolve API identity
+      responses:
+        '200':
+          description: Workspace and key identity.
+  /usage:
+    get:
+      summary: Workspace API usage summary
+      responses:
+        '200':
+          description: Current period usage.
+  /destinations:
+    get:
+      summary: List content destinations
+      responses:
+        '200':
+          description: Destination list.
+    post:
+      summary: Create content destination
+      responses:
+        '201':
+          description: Destination created.
+  /api-keys:
+    get:
+      summary: List API keys
+      responses:
+        '200':
+          description: API keys list.
+    post:
+      summary: Create API key
+      responses:
+        '201':
+          description: API key created. Plain key is returned once.
+  /briefs:
+    get:
+      summary: List briefs
+      responses:
+        '200':
+          description: Brief list.
+    post:
+      summary: Create brief
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BriefInput'
+      responses:
+        '201':
+          description: Brief created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Brief'
+  /briefs/{id}/generate-draft:
+    post:
+      summary: Queue draft generation
+      responses:
+        '202':
+          description: Draft generation queued.
+  /drafts/{id}/regenerate:
+    post:
+      summary: Regenerate draft asynchronously
+      responses:
+        '202':
+          description: Regeneration queued.
+  /drafts/{id}/translate:
+    post:
+      summary: Translate draft asynchronously
+      responses:
+        '202':
+          description: Translation queued.
+  /drafts/{id}/export:
+    get:
+      summary: Export draft
+      responses:
+        '200':
+          description: Export payload in requested format.
+  /operations/{operation}:
+    get:
+      summary: Poll async operation status
+      responses:
+        '200':
+          description: Operation status and result references.
+  /seo-audits:
+    post:
+      summary: Start SEO audit asynchronously
+      responses:
+        '202':
+          description: SEO audit queued.
+  /analytics/events:
+    post:
+      summary: Ingest custom analytics events
+      responses:
+        '202':
+          description: Events accepted.
+  /webhooks:
+    get:
+      summary: List outgoing webhooks
+      responses:
+        '200':
+          description: Webhook list.
+    post:
+      summary: Create outgoing webhook
+      responses:
+        '201':
+          description: Webhook created.

@@ -5,19 +5,31 @@ use App\Http\Controllers\Analytics\AnalyticsEventController;
 use App\Http\Controllers\Analytics\AnalyticsScriptController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/argusly.js', AnalyticsScriptController::class)
+/*
+|--------------------------------------------------------------------------
+| Track Subdomain Routes (track.publishlayer.com)
+|--------------------------------------------------------------------------
+|
+| These routes handle the public analytics tracking system:
+| - Serving the pl.js tracking script
+| - Receiving analytics events from customer websites
+| - Providing configuration for tracking behavior
+|
+*/
+
+// Tracking script - publicly cacheable
+Route::get('/pl.js', AnalyticsScriptController::class)
     ->withoutMiddleware(['throttle:api'])
     ->name('analytics.script');
 
-Route::get('/pl.js', AnalyticsScriptController::class)
-    ->withoutMiddleware(['throttle:api'])
-    ->name('analytics.script.legacy');
-
-Route::prefix('api/v1')->group(function (): void {
+// API routes for analytics
+Route::prefix('api/v1')->group(function () {
+    // Config endpoint - public, rate limited
     Route::get('/config', [AnalyticsConfigController::class, 'show'])
         ->middleware(['throttle:60,1'])
         ->name('analytics.config');
 
+    // Event ingestion - public, rate limited per site
     Route::post('/events', [AnalyticsEventController::class, 'store'])
         ->middleware(['analytics.origin', 'throttle:analytics-events'])
         ->name('analytics.events');
@@ -25,4 +37,4 @@ Route::prefix('api/v1')->group(function (): void {
 
 Route::post('/api/tracking/events', [AnalyticsEventController::class, 'store'])
     ->middleware(['analytics.origin', 'throttle:analytics-events'])
-    ->name('analytics.events.tracking');
+    ->name('analytics.events.v2');

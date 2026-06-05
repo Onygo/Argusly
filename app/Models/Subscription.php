@@ -2,86 +2,132 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
-#[Fillable([
-    'account_id',
-    'plan_id',
-    'status',
-    'billing_interval',
-    'currency',
-    'amount',
-    'provider',
-    'provider_customer_id',
-    'provider_subscription_id',
-    'trial_ends_at',
-    'current_period_starts_at',
-    'current_period_ends_at',
-    'canceled_at',
-    'metadata',
-])]
 class Subscription extends Model
 {
-    use HasFactory;
+    use HasUuids;
 
-    /**
-     * @return BelongsTo<Account, $this>
-     */
-    public function account(): BelongsTo
+    protected $fillable = [
+        'organization_id',
+        'workspace_id',
+        'client_site_id',
+        'plan_id',
+        'pending_plan_id',
+        'interval',
+        'price_cents',
+        'currency',
+        'included_credits_per_interval',
+        'seat_limit',
+        'status',
+        'status_reason',
+        'current_period_start',
+        'current_period_end',
+        'next_payment_at',
+        'billing_cycle_anchor',
+        'grace_period_ends_at',
+        'provider',
+        'provider_customer_id',
+        'provider_mandate_id',
+        'mandate_last_checked_at',
+        'provider_subscription_id',
+        'provider_payment_id',
+        'canceled_at',
+        'suspended_at',
+        'meta',
+    ];
+
+    protected $casts = [
+        'price_cents' => 'integer',
+        'included_credits_per_interval' => 'integer',
+        'seat_limit' => 'integer',
+        'current_period_start' => 'datetime',
+        'current_period_end' => 'datetime',
+        'next_payment_at' => 'datetime',
+        'billing_cycle_anchor' => 'datetime',
+        'grace_period_ends_at' => 'datetime',
+        'mandate_last_checked_at' => 'datetime',
+        'canceled_at' => 'datetime',
+        'suspended_at' => 'datetime',
+        'meta' => 'array',
+    ];
+
+    public function clientSite()
     {
-        return $this->belongsTo(Account::class);
+        return $this->belongsTo(ClientSite::class);
     }
 
-    /**
-     * @return BelongsTo<Plan, $this>
-     */
-    public function plan(): BelongsTo
+    public function workspace()
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    public function plan()
     {
         return $this->belongsTo(Plan::class);
     }
 
-    /**
-     * @return HasMany<SubscriptionModule, $this>
-     */
-    public function modules(): HasMany
+    public function pendingPlan()
     {
-        return $this->hasMany(SubscriptionModule::class);
+        return $this->belongsTo(Plan::class, 'pending_plan_id');
     }
 
-    /**
-     * @param  Builder<Subscription>  $query
-     * @return Builder<Subscription>
-     */
-    public function scopeActive(Builder $query): Builder
+    public function invoices()
     {
-        return $query->whereIn('status', ['trialing', 'active', 'past_due']);
+        return $this->hasMany(Invoice::class);
     }
 
-    public function isActive(): bool
+    public function planChanges()
     {
-        return in_array($this->status, ['trialing', 'active', 'past_due'], true)
-            && ($this->canceled_at === null || $this->canceled_at->isFuture());
+        return $this->hasMany(SubscriptionPlanChange::class);
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
+    public function getIsActiveAttribute(): bool
     {
-        return [
-            'amount' => 'integer',
-            'trial_ends_at' => 'datetime',
-            'current_period_starts_at' => 'datetime',
-            'current_period_ends_at' => 'datetime',
-            'canceled_at' => 'datetime',
-            'metadata' => 'array',
-        ];
+        return in_array((string) $this->status, ['active', 'trialing'], true);
+    }
+
+    public function getIsPastDueAttribute(): bool
+    {
+        return (string) $this->status === 'past_due';
+    }
+
+    public function getDaysUntilRenewalAttribute(): ?int
+    {
+        if (! $this->next_payment_at) {
+            return null;
+        }
+
+        return now()->startOfDay()->diffInDays($this->next_payment_at->copy()->startOfDay(), false);
+    }
+
+    public function getCreditsNextRenewalAttribute(): int
+    {
+        return $this->monthlyCredits();
+    }
+
+    public function monthlyCredits(): int
+    {
+        $planCredits = null;
+
+        if ($this->relationLoaded('plan')) {
+            $planCredits = $this->plan?->monthlyCredits();
+        } elseif ($this->plan_id) {
+            $planCredits = $this->plan()
+                ->select(['id', 'included_credits', 'included_credits_per_interval'])
+                ->first()?->monthlyCredits();
+        }
+
+        if ($planCredits !== null) {
+            return max(0, (int) $planCredits);
+        }
+
+        return max(0, (int) ($this->included_credits_per_interval ?? 0));
     }
 }

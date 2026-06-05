@@ -1,9 +1,5 @@
-<x-errors.layout
-    code="500"
-    label="Internal signal noise"
-    title="Our orchestration engine missed a beat."
-    description="Something inside Argusly hit a sour note. The system has enough self-awareness to know that is not ideal, and not quite enough to fix itself before you noticed."
-    note="The signal exists, but the instruments briefly disagreed about reality."
-    primary-label="Back to safety"
-    secondary-label="Try signing in"
-/>
+@extends('errors.minimal')
+
+@section('code', '500')
+@section('title', 'Onze contentmotor heeft een theatrale hik')
+@section('message', 'Er ging intern iets stuk op een manier waar zelfs de logs even van moesten zitten. Probeer het straks opnieuw; wij geven de machine ondertussen een strenge maar liefdevolle blik.')
