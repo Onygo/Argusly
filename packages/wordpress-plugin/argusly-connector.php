@@ -20,7 +20,7 @@ if (! defined('ABSPATH')) {
 define('ARGUSLY_CONNECTOR_VERSION', '0.1.0-dev');
 define('ARGUSLY_CONNECTOR_OPTION_GROUP', 'argusly_connector');
 define('ARGUSLY_CONNECTOR_API_URL_OPTION', 'argusly_connector_api_url');
-define('ARGUSLY_CONNECTOR_API_KEY_OPTION', 'argusly_connector_api_key');
+define('ARGUSLY_CONNECTOR_TOKEN_OPTION', 'argusly_connector_token');
 
 final class Argusly_Connector
 {
@@ -51,14 +51,14 @@ final class Argusly_Connector
             'default' => 'https://api.argusly.com',
         ]);
 
-        register_setting(ARGUSLY_CONNECTOR_OPTION_GROUP, ARGUSLY_CONNECTOR_API_KEY_OPTION, [
+        register_setting(ARGUSLY_CONNECTOR_OPTION_GROUP, ARGUSLY_CONNECTOR_TOKEN_OPTION, [
             'type' => 'string',
-            'sanitize_callback' => [self::class, 'sanitizeApiKey'],
+            'sanitize_callback' => [self::class, 'sanitizeToken'],
             'default' => '',
         ]);
     }
 
-    public static function sanitizeApiKey(string $value): string
+    public static function sanitizeToken(string $value): string
     {
         return trim(sanitize_text_field($value));
     }
@@ -103,17 +103,17 @@ final class Argusly_Connector
                     </tr>
                     <tr>
                         <th scope="row">
-                            <label for="<?php echo esc_attr(ARGUSLY_CONNECTOR_API_KEY_OPTION); ?>">
-                                <?php esc_html_e('Argusly API key', 'argusly-connector'); ?>
+                            <label for="<?php echo esc_attr(ARGUSLY_CONNECTOR_TOKEN_OPTION); ?>">
+                                <?php esc_html_e('Argusly token', 'argusly-connector'); ?>
                             </label>
                         </th>
                         <td>
                             <input
-                                id="<?php echo esc_attr(ARGUSLY_CONNECTOR_API_KEY_OPTION); ?>"
-                                name="<?php echo esc_attr(ARGUSLY_CONNECTOR_API_KEY_OPTION); ?>"
+                                id="<?php echo esc_attr(ARGUSLY_CONNECTOR_TOKEN_OPTION); ?>"
+                                name="<?php echo esc_attr(ARGUSLY_CONNECTOR_TOKEN_OPTION); ?>"
                                 type="password"
                                 class="regular-text"
-                                value="<?php echo esc_attr((string) get_option(ARGUSLY_CONNECTOR_API_KEY_OPTION, '')); ?>"
+                                value="<?php echo esc_attr((string) get_option(ARGUSLY_CONNECTOR_TOKEN_OPTION, '')); ?>"
                                 autocomplete="new-password"
                             >
                         </td>
@@ -140,7 +140,7 @@ final class Argusly_Connector
 
         check_admin_referer('argusly_connector_health_check');
 
-        $response = self::apiRequest('connector/health', [
+        $response = self::apiRequest('/api/v1/connectors/heartbeat', [
             'site_url' => home_url(),
             'connector' => [
                 'name' => 'argusly-wordpress-connector',
@@ -172,6 +172,18 @@ final class Argusly_Connector
 
     public static function registerRestRoutes(): void
     {
+        register_rest_route('argusly/v1', '/health', [
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => [self::class, 'handleRemoteHealth'],
+            'permission_callback' => [self::class, 'authorizeWebhook'],
+        ]);
+
+        register_rest_route('argusly/v1', '/posts', [
+            'methods' => [WP_REST_Server::READABLE, WP_REST_Server::CREATABLE],
+            'callback' => [self::class, 'handlePostsPlaceholder'],
+            'permission_callback' => [self::class, 'authorizeWebhook'],
+        ]);
+
         register_rest_route('argusly/v1', '/webhooks/(?P<event>[a-z0-9-_]+)', [
             'methods' => WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'handleWebhook'],
@@ -187,10 +199,30 @@ final class Argusly_Connector
 
     public static function authorizeWebhook(WP_REST_Request $request): bool
     {
-        $configuredKey = (string) get_option(ARGUSLY_CONNECTOR_API_KEY_OPTION, '');
-        $providedKey = (string) $request->get_header('x-argusly-api-key');
+        $configuredToken = (string) get_option(ARGUSLY_CONNECTOR_TOKEN_OPTION, '');
+        $providedToken = self::bearerToken($request);
 
-        return $configuredKey !== '' && hash_equals($configuredKey, $providedKey);
+        return $configuredToken !== '' && hash_equals($configuredToken, $providedToken);
+    }
+
+    public static function handleRemoteHealth(WP_REST_Request $request): WP_REST_Response
+    {
+        // TODO(argusly): Review remote health payload once the platform callback contract is finalized.
+        return new WP_REST_Response([
+            'status' => 'ok',
+            'connector' => 'argusly-wordpress-connector',
+            'version' => ARGUSLY_CONNECTOR_VERSION,
+            'site_url' => home_url(),
+        ], 200);
+    }
+
+    public static function handlePostsPlaceholder(WP_REST_Request $request): WP_REST_Response
+    {
+        // TODO(argusly): Map Argusly post payloads to WordPress posts, taxonomies, media, and SEO metadata.
+        return new WP_REST_Response([
+            'status' => 'accepted',
+            'method' => $request->get_method(),
+        ], $request->get_method() === 'GET' ? 200 : 202);
     }
 
     public static function handleWebhook(WP_REST_Request $request): WP_REST_Response
@@ -217,18 +249,18 @@ final class Argusly_Connector
     private static function apiRequest(string $path, array $payload): array|WP_Error
     {
         $baseUrl = rtrim((string) get_option(ARGUSLY_CONNECTOR_API_URL_OPTION, 'https://api.argusly.com'), '/');
-        $apiKey = (string) get_option(ARGUSLY_CONNECTOR_API_KEY_OPTION, '');
+        $token = (string) get_option(ARGUSLY_CONNECTOR_TOKEN_OPTION, '');
 
-        if ($apiKey === '') {
-            return new WP_Error('argusly_missing_api_key', __('Set an Argusly API key before running connector actions.', 'argusly-connector'));
+        if ($token === '') {
+            return new WP_Error('argusly_missing_token', __('Set an Argusly token before running connector actions.', 'argusly-connector'));
         }
 
         $response = wp_remote_post($baseUrl . '/' . ltrim($path, '/'), [
             'timeout' => 15,
             'headers' => [
                 'Accept' => 'application/json',
+                'Authorization' => 'Bearer ' . $token,
                 'Content-Type' => 'application/json',
-                'X-Argusly-API-Key' => $apiKey,
             ],
             'body' => wp_json_encode($payload),
         ]);
@@ -254,6 +286,17 @@ final class Argusly_Connector
             'status' => $status,
             'body' => json_decode((string) wp_remote_retrieve_body($response), true),
         ];
+    }
+
+    private static function bearerToken(WP_REST_Request $request): string
+    {
+        $authorization = (string) $request->get_header('authorization');
+
+        if (preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches) === 1) {
+            return trim($matches[1]);
+        }
+
+        return '';
     }
 }
 

@@ -10,17 +10,16 @@ use Throwable;
 
 final class ContentSyncCommand extends Command
 {
-    protected $signature = 'argusly:connector:content:sync {content_id?}';
+    protected $signature = 'argusly:connector:content:sync {content_id} {--idempotency-key=}';
 
     protected $description = 'Placeholder command for syncing local content state with Argusly.';
 
     public function handle(ArguslyClient $client): int
     {
         try {
-            $response = $client->syncContent([
-                'content_id' => $this->argument('content_id'),
+            $response = $client->syncContent((string) $this->argument('content_id'), [
                 'status' => 'placeholder',
-            ]);
+            ], $this->option('idempotency-key') ? (string) $this->option('idempotency-key') : null);
         } catch (Throwable $exception) {
             $this->error('Argusly content sync failed: ' . $exception->getMessage());
 

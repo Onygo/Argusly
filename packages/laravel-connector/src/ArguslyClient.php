@@ -7,6 +7,7 @@ namespace Onygo\ArguslyConnector;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 final class ArguslyClient
@@ -23,7 +24,7 @@ final class ArguslyClient
      */
     public function health(array $metadata = []): Response
     {
-        return $this->request()->post('connector/health', [
+        return $this->request()->post('/api/v1/connectors/heartbeat', [
             'site' => $this->sitePayload(),
             'connector' => array_merge([
                 'name' => 'argusly-laravel-connector',
@@ -40,7 +41,18 @@ final class ArguslyClient
     public function pullContent(array $filters = []): Response
     {
         // TODO(argusly): Review final content pull endpoint and pagination contract.
-        return $this->request()->get('connector/content', $filters);
+        return $this->request()->get('/api/v1/connectors/content', $filters);
+    }
+
+    /**
+     * Placeholder for fetching a single content item.
+     *
+     * @param string|int $content
+     */
+    public function content(string|int $content): Response
+    {
+        // TODO(argusly): Review final content item response schema before release.
+        return $this->request()->get('/api/v1/connectors/content/' . rawurlencode((string) $content));
     }
 
     /**
@@ -48,28 +60,38 @@ final class ArguslyClient
      *
      * @param array<string, mixed> $payload
      */
-    public function syncContent(array $payload): Response
+    public function syncContent(string|int $content, array $payload, ?string $idempotencyKey = null): Response
     {
         // TODO(argusly): Review whether Laravel connector sync is push, pull, or hybrid before release.
-        return $this->request()->post('connector/content/sync', $payload);
+        return $this->request([
+            'X-Argusly-Idempotency-Key' => $idempotencyKey ?: (string) Str::uuid(),
+        ])->post('/api/v1/connectors/content/' . rawurlencode((string) $content) . '/sync-results', $payload);
     }
 
-    private function request(): PendingRequest
+    /**
+     * @param array<string, string> $extraHeaders
+     */
+    private function request(array $extraHeaders = []): PendingRequest
     {
         $baseUrl = rtrim((string) data_get($this->config, 'api.base_url', 'https://api.argusly.com'), '/');
-        $apiKey = (string) data_get($this->config, 'api.key', '');
+        $token = (string) data_get($this->config, 'api.token', '');
 
-        if ($apiKey === '') {
-            throw new InvalidArgumentException('Missing Argusly connector API key.');
+        if ($token === '') {
+            throw new InvalidArgumentException('Missing Argusly connector token.');
         }
+
+        $headers = array_filter([
+            'Authorization' => 'Bearer ' . $token,
+            'X-Argusly-API-Key' => data_get($this->config, 'api.send_api_key_alias', false) ? $token : null,
+            'X-Argusly-Site' => data_get($this->config, 'site.id'),
+            'X-Argusly-Destination-Id' => data_get($this->config, 'destination.id'),
+        ], static fn ($value): bool => $value !== null && $value !== '');
 
         return Http::baseUrl($baseUrl)
             ->timeout((int) data_get($this->config, 'api.timeout', 15))
             ->acceptJson()
             ->asJson()
-            ->withHeaders([
-                'X-Argusly-API-Key' => $apiKey,
-            ]);
+            ->withHeaders(array_merge($headers, $extraHeaders));
     }
 
     /**

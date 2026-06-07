@@ -4,31 +4,56 @@ Argusly first-party connector packages live in `packages/` and are developed sep
 
 ## Packages
 
-- `packages/wordpress-plugin`: WordPress plugin named **Argusly Connector**. It stores the Argusly API URL and API key, exposes a health-check action, and contains placeholders for content sync and webhook handling.
-- `packages/laravel-connector`: Composer package `onygo/argusly-laravel-connector`. It provides config, a service provider, an API client, a health-check command, and placeholder content sync commands for Laravel sites.
+- `packages/wordpress-plugin`: WordPress plugin named **Argusly Connector**.
+- `packages/laravel-connector`: Composer package `onygo/argusly-laravel-connector`.
 
-## Development Flow
+## Canonical Contract
 
-Connector work should stay inside each package directory. The platform application may document or test connector behavior, but package code should not depend on application classes, models, routes, or config files.
+Authorization uses `Authorization: Bearer <token>` as the canonical credential transport. `X-Argusly-API-Key` is accepted as an alias where connector clients cannot send bearer headers. During migration, legacy PublishLayer headers remain accepted as fallbacks.
 
-Develop against local path installs until the API contracts are stable. Keep package versions in development status and do not publish releases until the release checklist is approved.
+Canonical connector headers:
+
+- `X-Argusly-API-Key`
+- `X-Argusly-Site`
+- `X-Argusly-Destination-Id`
+- `X-Argusly-Idempotency-Key`
+- `X-Argusly-Timestamp`
+- `X-Argusly-Nonce`
+- `X-Argusly-Signature`
+- `X-Argusly-Event`
+- `X-Argusly-Event-Version`
+- `X-Argusly-Event-ID`
+
+When both Argusly and PublishLayer header values are present, Argusly values win.
+
+## Platform Endpoints
+
+- `POST /api/v1/connectors/heartbeat`
+- `GET /api/v1/connectors/content`
+- `GET /api/v1/connectors/content/{content}`
+- `POST /api/v1/connectors/content/{content}/sync-results`
+
+Legacy routes remain active during the compatibility window:
+
+- `POST /api/connector/heartbeat`
+- `POST /api/wp/heartbeat`
+- old installed PublishLayer connector package routes
 
 ## API Ownership
 
-The Argusly platform remains the source of truth for:
-
-- API keys
-- connector settings
-- site registration
-- content sync orchestration
-- health checks
-- webhook delivery
+The Argusly platform remains the source of truth for API keys, connector settings, site registration, content sync orchestration, health checks, and webhook delivery.
 
 Connectors should act as thin clients. They store only the configuration needed to authenticate with Argusly and execute local platform instructions.
 
+## Development Flow
+
+Connector work should stay inside each package directory. The platform application may document or test connector behavior, but package code should not depend on package internals.
+
+Develop against local path installs until the API contracts are stable. Keep package versions in development status and do not publish releases until the release checklist is approved.
+
 ## Planned Release Process
 
-1. Finalize health-check, site-registration, content-sync, and webhook API contracts.
+1. Stabilize the Argusly connector contract and compatibility aliases.
 2. Replace placeholder connector commands and endpoint handlers with contract-backed implementations.
 3. Add package-level tests and local installation QA for WordPress and Laravel.
 4. Tag internal release candidates.
@@ -36,6 +61,6 @@ Connectors should act as thin clients. They store only the configuration needed 
 
 ## Migration Note
 
-These packages replace the former PublishLayer WordPress plugin and Laravel connector. During migration, rename all package identifiers, namespaces, config keys, routes, environment variables, plugin labels, and user-facing copy to Argusly before reusing any old behavior.
+These packages replace the former PublishLayer WordPress plugin and Laravel connector. PublishLayer routes, headers, token prefixes, config keys, and database tables remain temporarily for compatibility only.
 
-Add `TODO(argusly)` markers where old PublishLayer-specific behavior requires API, product, or security review before it can be carried forward.
+New credentials should use Argusly prefixes. Existing `pl_site_` and `plk_ws_` credentials remain valid because authentication is hash-based.
