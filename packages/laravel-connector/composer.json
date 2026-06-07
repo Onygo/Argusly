@@ -1,0 +1,27 @@
+{
+    "name": "onygo/argusly-laravel-connector",
+    "description": "First-party Laravel connector for Argusly.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^11.0|^12.0",
+        "illuminate/contracts": "^11.0|^12.0",
+        "illuminate/http": "^11.0|^12.0",
+        "illuminate/support": "^11.0|^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Onygo\\ArguslyConnector\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Onygo\\ArguslyConnector\\ArguslyConnectorServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
