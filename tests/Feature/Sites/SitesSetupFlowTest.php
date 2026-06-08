@@ -162,7 +162,7 @@ it('stores hashed api keys and authenticates bearer requests', function () {
         'status' => 'connected',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
 
     $token = SiteToken::query()->create([
         'id' => (string) Str::uuid(),
@@ -226,7 +226,7 @@ it('updates site status to connected on wp heartbeat', function () {
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -239,7 +239,7 @@ it('updates site status to connected on wp heartbeat', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/wp/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'site_url' => 'https://hb.example.com',
         'wp_version' => '6.7.1',
         'plugin_version' => '1.2.0',
@@ -268,7 +268,7 @@ it('checks laravel connector activity endpoint using the site key payload', func
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -325,7 +325,7 @@ it('retries laravel connector activity with another active site key when first k
         'status' => 'pending',
     ]);
 
-    $oldPlain = 'pl_site_' . bin2hex(random_bytes(32));
+    $oldPlain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -338,7 +338,7 @@ it('retries laravel connector activity with another active site key when first k
         'last_used_at' => now()->subMinutes(30),
     ]);
 
-    $newPlain = 'pl_site_' . bin2hex(random_bytes(32));
+    $newPlain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -403,7 +403,7 @@ it('shows connector validation errors when laravel activity payload is rejected'
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -672,7 +672,7 @@ it('blocks brief creation when entitlement is disabled or quota exceeded', funct
         'refreshed_at' => now(),
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,

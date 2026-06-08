@@ -42,7 +42,7 @@ class ConnectorHeartbeatController extends Controller
             'plugin_version' => ['nullable', 'string', 'max:40'],
         ]);
 
-        // Validate site_url if provided (backwards compat with old /wp/heartbeat)
+        // Validate site_url if provided by connector clients.
         if (! empty($data['site_url'])) {
             $incoming = SiteUrl::normalizeBaseUrl((string) $data['site_url']);
             $incomingHost = SiteUrl::hostFromUrl($incoming);
@@ -260,12 +260,6 @@ class ConnectorHeartbeatController extends Controller
         // Explicit platform in payload takes precedence
         if (! empty($data['platform'])) {
             return $data['platform'];
-        }
-
-        // Infer from route name (old /wp/heartbeat route implies wp)
-        $routeName = $request->route()?->getName();
-        if ($routeName === 'api.wp.heartbeat') {
-            return 'wp';
         }
 
         // Fall back to site type

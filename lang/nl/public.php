@@ -5,7 +5,7 @@ return [
         'product' => 'Product',
         'use_cases' => 'Use cases',
         'resources' => 'Resources',
-        'early_access' => 'Early access',
+        'early_access' => 'Pilotprogramma',
         'overview' => 'Overzicht',
         'platform' => 'Platform',
         'agentic_marketing' => 'Agentic Marketing',
@@ -21,7 +21,7 @@ return [
     ],
     'footer' => [
         'tagline' => 'Content, governance, intelligence en publicatie in één platform voor B2B-teams die controle en bewijs nodig hebben.',
-        'early_access_note' => 'Momenteel beschikbaar via early access onboarding.',
+        'early_access_note' => 'Momenteel beschikbaar via onboarding voor het pilotprogramma.',
         'rights' => 'Alle rechten voorbehouden.',
         'product' => 'Product',
         'company' => 'Bedrijf',
@@ -79,8 +79,8 @@ return [
     ],
     'early_access' => [
         // Meta
-        'meta_title' => 'Early access | Argusly',
-        'meta_description' => 'Vraag early access aan voor Argusly of plan een demo.',
+        'meta_title' => 'Pilotprogramma | Argusly',
+        'meta_description' => 'Meld je aan voor het Argusly Pilotprogramma of plan een demo.',
 
         // Soft launch homepage
         'soft_launch_meta_title' => 'Argusly | Besloten lancering',
@@ -88,8 +88,8 @@ return [
         'soft_launch_badge' => 'Momenteel onboarden we een beperkt aantal early partners',
         'soft_launch_title' => 'Argusly voor gecontroleerde AI-contentoperaties.',
         'soft_launch_description' => 'Argusly geeft teams één systeem voor contentplanning, governance, SEO- en GEO-intelligence en publicatie naar gekoppelde sites.',
-        'soft_launch_limited_title' => 'Early access is bewust beperkt.',
-        'soft_launch_limited_description' => 'We activeren eerst productietoegang voor geselecteerde klanten om een stabiele uitrol en kwalitatieve onboarding te garanderen. Vraag toegang aan of plan een demo om je aan te melden.',
+        'soft_launch_limited_title' => 'Het Pilotprogramma is bewust beperkt.',
+        'soft_launch_limited_description' => 'We activeren eerst productietoegang voor geselecteerde klanten om een stabiele uitrol en kwalitatieve onboarding te garanderen. Meld je aan voor de pilot of plan een demo.',
 
         // Soft launch cards
         'card_what_title' => 'Wat Argusly doet',
@@ -100,15 +100,15 @@ return [
         'card_why_description' => 'AI-output schaalt pas echt wanneer merkcontext, governance, zoekintelligence en publicatiecontroles in één workflow samenkomen.',
 
         // CTAs
-        'request_early_access' => 'Early access aanvragen',
+        'request_early_access' => 'Aanmelden voor de pilot',
         'book_demo' => 'Demo plannen',
         'login' => 'Inloggen',
 
         // Form page
-        'badge' => 'Beperkte early access',
-        'title_early_access' => 'Vraag early access aan voor Argusly',
+        'badge' => 'Beperkt Pilotprogramma',
+        'title_early_access' => 'Meld je aan voor het Argusly Pilotprogramma',
         'title_demo' => 'Plan een Argusly demo',
-        'description_early_access' => 'Deel je stack, publicatieproces en use case. We beoordelen de fit voor de huidige onboardinggolf en koppelen daar de juiste productdemo aan.',
+        'description_early_access' => 'Deel je stack, publicatieproces en use case. We beoordelen de fit voor de huidige pilotgolf en koppelen daar de juiste productdemo aan.',
         'description_demo' => 'Vertel ons over je sites, workflows en groeidoelen. We stemmen de demo af op governance, intelligence en publicatie.',
 
         // Form sidebar
@@ -121,17 +121,23 @@ return [
         'field_full_name' => 'Volledige naam',
         'field_work_email' => 'Werk e-mail',
         'field_company' => 'Bedrijf',
+        'field_phone' => 'Telefoon',
+        'field_country' => 'Land',
+        'field_job_title' => 'Functie',
+        'field_company_size' => 'Bedrijfsgrootte',
+        'field_industry' => 'Branche',
         'field_website' => 'Website',
         'field_message' => 'Use case of bericht',
+        'field_marketing_consent' => 'Ik ga akkoord met relevante updates over het Pilotprogramma en productupdates van Argusly.',
 
         // Form buttons
-        'submit_early_access' => 'Early access aanvragen',
+        'submit_early_access' => 'Pilotaanvraag indienen',
         'submit_demo' => 'Demo aanvragen',
 
         // Invite acceptance
-        'invite_title' => 'Activeer early access',
-        'invite_approved_with_company' => 'Je Argusly early access aanvraag voor :company is goedgekeurd.',
-        'invite_approved' => 'Je Argusly early access aanvraag is goedgekeurd.',
+        'invite_title' => 'Activeer toegang tot het Pilotprogramma',
+        'invite_approved_with_company' => 'Je Argusly pilotaanvraag voor :company is goedgekeurd.',
+        'invite_approved' => 'Je Argusly pilotaanvraag is goedgekeurd.',
         'invite_expires' => 'Deze activatielink verloopt op :date.',
         'invite_full_name' => 'Volledige naam',
         'invite_password' => 'Wachtwoord',
@@ -147,7 +153,7 @@ return [
         'no_account' => 'Nog geen account?',
         'request_account' => 'Account aanvragen',
         'need_access' => 'Toegang nodig?',
-        'request_early_access' => 'Early access aanvragen',
+        'request_early_access' => 'Aanmelden voor de pilot',
         'back_to_site' => 'Terug naar publieke site',
     ],
     'cta' => [
@@ -816,9 +822,9 @@ return [
         ],
         'product.platform' => [
             'metaTitle' => 'Platform | Argusly',
-            'metaDescription' => 'Capabilities, governance en intelligence samengebracht in één centrale productpagina.',
-            'heading' => 'Het Argusly platform',
-            'intro' => 'Argusly bundelt contentoperaties, governance en intelligence in één centrale productlaag, zodat teams niet hoeven te schakelen tussen losse productverhalen of versnipperde workflows.',
+            'metaDescription' => 'Een governed operating layer voor contentteams die planning, intelligence, review en publicatie in één workflow nodig hebben.',
+            'heading' => 'De operating layer voor governed contentteams',
+            'intro' => 'Plan, bewaak, verbeter en publiceer vanuit één verbonden workspace voor teams die controle, zichtbaarheid en herhaalbare uitvoering nodig hebben.',
             'sections' => [
                 'capabilities' => [
                     'eyebrow' => 'Capabilities',

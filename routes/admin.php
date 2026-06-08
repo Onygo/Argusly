@@ -99,6 +99,7 @@ Route::middleware('admin.locale')->group(function () {
             Route::post('/users/{user}/access-overrides/{accessOverride}/extend', [AdminUserAccessOverrideController::class, 'extend'])->name('admin.users.access-overrides.extend');
             Route::post('/users/{user}/access-overrides/{accessOverride}/stop', [AdminUserAccessOverrideController::class, 'stop'])->name('admin.users.access-overrides.stop');
             Route::get('/early-access', [AdminEarlyAccessController::class, 'index'])->name('admin.early-access.index');
+            Route::post('/early-access/invite-pilot-user', [AdminEarlyAccessController::class, 'invitePilotUser'])->name('admin.early-access.invite-pilot-user');
             Route::get('/early-access/{signup}', [AdminEarlyAccessController::class, 'show'])->name('admin.early-access.show');
             Route::post('/early-access/{signup}/review', [AdminEarlyAccessController::class, 'markReviewed'])->name('admin.early-access.review');
             Route::post('/early-access/{signup}/approve', [AdminEarlyAccessController::class, 'approve'])->name('admin.early-access.approve');

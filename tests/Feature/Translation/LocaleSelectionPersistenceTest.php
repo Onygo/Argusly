@@ -9,9 +9,9 @@ it('persists public locale override in a cookie', function () {
 
     $response->assertMovedPermanently()
         ->assertRedirect('/nl')
-        ->assertCookie('pl_locale', 'nl');
+        ->assertCookie('argusly_locale', 'nl');
 
-    $this->withCookie('pl_locale', 'nl')
+    $this->withCookie('argusly_locale', 'nl')
         ->get('/nl')
         ->assertOk()
         ->assertSee('lang="nl"', false);

@@ -98,7 +98,7 @@ function makeQuotaApiContext(int $articlesLimit): array
         'output_type' => 'kb_article',
     ]);
 
-    $plainToken = 'pl_site_' . Str::random(48);
+    $plainToken = 'arg_site_' . Str::random(48);
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'client_site_id' => $site->id,

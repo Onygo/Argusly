@@ -41,7 +41,7 @@ function makeApiContractContext(): array
         type: CreditWalletService::TYPE_ALLOWANCE
     );
 
-    $plainToken = 'pl_site_' . Str::random(48);
+    $plainToken = 'arg_site_' . Str::random(48);
     SiteToken::query()->create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plainToken),

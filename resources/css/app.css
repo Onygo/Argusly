@@ -272,6 +272,11 @@
         background: #ffffff;
     }
 
+    .pl-public-hero-brand {
+        @apply border-b border-publicPrimary/10 text-white;
+        background: linear-gradient(135deg, #2f5bff 0%, #4b55ff 48%, #6b4df4 100%);
+    }
+
     .pl-public-warm {
         @apply border-y border-border/70;
         background: #f8fafc;
@@ -649,7 +654,7 @@
     }
 
     .pl-work-sidebar-brand {
-        @apply flex h-[4.5rem] items-center gap-3 border-b border-border px-5;
+        @apply flex h-[4.5rem] items-center gap-3 px-5;
     }
 
     .pl-work-sidebar-section {

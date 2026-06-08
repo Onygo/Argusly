@@ -11,7 +11,7 @@ The public request path must stay deterministic for guests, crawlers, queue-driv
 - Public site context is resolved from the incoming host and request scheme.
 - Public locale resolution may use:
   - `?lang=`
-  - `pl_locale` cookie
+  - `argusly_locale` cookie
   - `Accept-Language`
 - Public rendering must not depend on:
   - `auth()`

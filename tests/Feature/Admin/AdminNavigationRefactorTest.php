@@ -56,7 +56,7 @@ it('renders admin sidebar with the new section layout and item order', function 
     $response->assertOk()
         ->assertSeeInOrder(['Platform', 'Customers', 'Product', 'Finance'])
         ->assertSeeInOrder(['Dashboard', 'System Health', 'LLM Monitor', 'Queues', 'Webhooks', 'Sites'])
-        ->assertSeeInOrder(['Organizations', 'Users', 'Support'])
+        ->assertSeeInOrder(['Organizations', 'Users', 'Pilot Program', 'Support'])
         ->assertSeeInOrder(['Editorial Taxonomy', 'Default Brand Profiles', 'Content Policies', 'Feature Flags', 'Announcements'])
         ->assertSeeInOrder(['Billing', 'Invoices'])
         ->assertDontSee('Operations');

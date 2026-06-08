@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 it('removes content quality from platform admin navigation', function () {
-    [$admin] = makeContentIntelligenceContext(role: 'owner', isAdmin: true);
+    [$admin] = makeAppContentIntelligenceContext(role: 'owner', isAdmin: true);
 
     $this->actingAs($admin)
         ->get(route('admin.dashboard'))
@@ -22,7 +22,7 @@ it('removes content quality from platform admin navigation', function () {
 });
 
 it('adds content intelligence to the customer navigation', function () {
-    [$user] = makeContentIntelligenceContext(role: 'owner');
+    [$user] = makeAppContentIntelligenceContext(role: 'owner');
 
     $this->actingAs($user)
         ->get(route('app.dashboard'))
@@ -31,8 +31,8 @@ it('adds content intelligence to the customer navigation', function () {
 });
 
 it('scopes content intelligence audits to the selected workspace', function () {
-    [$user, $workspace, $site] = makeContentIntelligenceContext(role: 'owner');
-    [, $otherWorkspace, $otherSite] = makeContentIntelligenceContext(role: 'owner');
+    [$user, $workspace, $site] = makeAppContentIntelligenceContext(role: 'owner');
+    [, $otherWorkspace, $otherSite] = makeAppContentIntelligenceContext(role: 'owner');
 
     makeAuditContent($workspace, $site, 'From SEO to AI Visibility: A Practical Guide');
     makeAuditContent($workspace, $site, 'From SEO to AI Visibility: A Practical GEO Guide');
@@ -53,8 +53,8 @@ it('scopes content intelligence audits to the selected workspace', function () {
 });
 
 it('prevents users from viewing another customer workspace audit', function () {
-    [$user] = makeContentIntelligenceContext(role: 'owner');
-    [, $otherWorkspace] = makeContentIntelligenceContext(role: 'owner');
+    [$user] = makeAppContentIntelligenceContext(role: 'owner');
+    [, $otherWorkspace] = makeAppContentIntelligenceContext(role: 'owner');
 
     $this->actingAs($user)
         ->get(route('app.workspaces.content-quality.index', $otherWorkspace))
@@ -62,8 +62,8 @@ it('prevents users from viewing another customer workspace audit', function () {
 });
 
 it('lets a platform admin access a scoped customer content intelligence audit', function () {
-    [$admin] = makeContentIntelligenceContext(role: 'owner', isAdmin: true);
-    [$targetUser, $workspace, $site, $organization] = makeContentIntelligenceContext(role: 'owner');
+    [$admin] = makeAppContentIntelligenceContext(role: 'owner', isAdmin: true);
+    [$targetUser, $workspace, $site, $organization] = makeAppContentIntelligenceContext(role: 'owner');
 
     makeAuditContent($workspace, $site, 'Scoped Platform Admin Content');
 
@@ -83,7 +83,7 @@ it('lets a platform admin access a scoped customer content intelligence audit', 
 });
 
 it('does not serve the old global admin content quality audit', function () {
-    [$admin] = makeContentIntelligenceContext(role: 'owner', isAdmin: true);
+    [$admin] = makeAppContentIntelligenceContext(role: 'owner', isAdmin: true);
 
     $this->actingAs($admin)
         ->get(route('admin.content-quality.index'))
@@ -91,7 +91,7 @@ it('does not serve the old global admin content quality audit', function () {
 });
 
 it('redirects old admin route when workspace context is provided', function () {
-    [$admin, $workspace] = makeContentIntelligenceContext(role: 'owner', isAdmin: true);
+    [$admin, $workspace] = makeAppContentIntelligenceContext(role: 'owner', isAdmin: true);
 
     $this->actingAs($admin)
         ->get(route('admin.content-quality.index', ['workspace_id' => $workspace->id]))
@@ -99,7 +99,7 @@ it('redirects old admin route when workspace context is provided', function () {
 });
 
 it('prevents viewer roles from rerunning the audit', function () {
-    [$viewer, $workspace] = makeContentIntelligenceContext(role: 'viewer');
+    [$viewer, $workspace] = makeAppContentIntelligenceContext(role: 'viewer');
 
     $this->actingAs($viewer)
         ->get(route('app.workspaces.content-quality.index', $workspace))
@@ -115,7 +115,7 @@ it('prevents viewer roles from rerunning the audit', function () {
         ->assertForbidden();
 });
 
-function makeContentIntelligenceContext(string $role = 'owner', bool $isAdmin = false): array
+function makeAppContentIntelligenceContext(string $role = 'owner', bool $isAdmin = false): array
 {
     $organization = Organization::query()->create([
         'name' => 'Content Intelligence Org ' . Str::lower(Str::random(6)),

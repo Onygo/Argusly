@@ -96,7 +96,7 @@ it('repairs wp mapping by preferring the published remote post', function () {
         ],
     ]);
 
-    $plainToken = 'pl_site_repair_mapping_token';
+    $plainToken = 'arg_site_repair_mapping_token';
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'client_site_id' => $site->id,

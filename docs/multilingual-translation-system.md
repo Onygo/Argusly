@@ -9,7 +9,7 @@ Argusly now treats UI locale and content language as separate concerns:
 - UI locale: English and Dutch for the app and public frontend
 - Content language: normalized ISO-style short codes (`en`, `nl`, `de`, `fr`, `es`) for briefs, drafts, SEO, and publishing
 
-English remains the platform fallback locale. Dutch browser locales resolve to Dutch. Manual EN/NL locale choice persists via session and `pl_locale` cookie.
+English remains the platform fallback locale. Dutch browser locales resolve to Dutch. Manual EN/NL locale choice persists via session and `argusly_locale` cookie.
 
 ## Architecture Summary
 
@@ -181,7 +181,7 @@ When translating from a translation detail page, the system still dispatches fro
 Resolution order:
 
 1. explicit `?lang=` choice
-2. stored session or `pl_locale` cookie
+2. stored session or `argusly_locale` cookie
 3. authenticated user preference when available
 4. browser `Accept-Language`
 5. fallback to `en`

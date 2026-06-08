@@ -85,6 +85,9 @@
                         <form method="POST" action="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.store') }}" class="mt-4 grid gap-4 md:grid-cols-2">
                             @csrf
                             <input type="hidden" name="intent" value="{{ old('intent', $activeIntent) }}">
+                            <input type="hidden" name="utm_source" value="{{ old('utm_source', request('utm_source')) }}">
+                            <input type="hidden" name="utm_medium" value="{{ old('utm_medium', request('utm_medium')) }}">
+                            <input type="hidden" name="utm_campaign" value="{{ old('utm_campaign', request('utm_campaign')) }}">
                             <input type="text" name="company_size" value="{{ old('company_size') }}" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
 
                             <div>
@@ -96,8 +99,28 @@
                                 <input type="email" name="work_email" value="{{ old('work_email') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="190">
                             </div>
                             <div>
+                                <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_phone') }}</label>
+                                <input type="text" name="phone" value="{{ old('phone') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="60">
+                            </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_job_title') }}</label>
+                                <input type="text" name="job_title" value="{{ old('job_title') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="160">
+                            </div>
+                            <div>
                                 <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_company') }}</label>
                                 <input type="text" name="company" value="{{ old('company') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="190">
+                            </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_company_size') }}</label>
+                                <input type="text" name="company_size_visible" value="{{ old('company_size_visible') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="80">
+                            </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_industry') }}</label>
+                                <input type="text" name="industry" value="{{ old('industry') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="160">
+                            </div>
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_country') }}</label>
+                                <input type="text" name="country" value="{{ old('country') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="120">
                             </div>
                             <div>
                                 <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_website') }}</label>
@@ -107,6 +130,10 @@
                                 <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.early_access.field_message') }}</label>
                                 <textarea name="message" rows="6" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="5000">{{ old('message') }}</textarea>
                             </div>
+                            <label class="md:col-span-2 flex gap-3 text-sm text-textSecondary">
+                                <input type="checkbox" name="marketing_consent" value="1" @checked(old('marketing_consent')) class="mt-1 rounded border-border text-publicPrimary focus:ring-publicPrimary">
+                                <span>{{ __('public.early_access.field_marketing_consent') }}</span>
+                            </label>
                             <div class="md:col-span-2 flex flex-wrap gap-3">
                                 <button type="submit" class="pl-public-primary-button">
                                     {{ $isDemoIntent ? __('public.early_access.submit_demo') : __('public.early_access.submit_early_access') }}

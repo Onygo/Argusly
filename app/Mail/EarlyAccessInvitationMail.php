@@ -21,7 +21,7 @@ class EarlyAccessInvitationMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Argusly early access invite'
+            subject: 'Your Argusly Pilot Program invite'
         );
     }
 
@@ -33,10 +33,10 @@ class EarlyAccessInvitationMail extends Mailable
             view: 'emails.early-access-invitation',
             text: 'emails.early-access-invitation-text',
             with: [
-                'subjectLine' => 'Your Argusly early access invite',
-                'preheader' => 'Activate your Argusly early access account.',
-                'headline' => 'Activate your early access account',
-                'intro' => sprintf('Your Argusly early access request for %s has been approved.', (string) ($signup?->company_name ?: $signup?->full_name ?: 'your team')),
+                'subjectLine' => 'Your Argusly Pilot Program invite',
+                'preheader' => 'Activate your Argusly Pilot Program account.',
+                'headline' => 'Activate your Pilot Program account',
+                'intro' => sprintf('Your Argusly pilot application for %s has been approved.', (string) ($signup?->company_name ?: $signup?->full_name ?: 'your team')),
                 'body' => 'Use the activation link below to set your password and access your workspace.',
                 'cta_label' => 'Activate account',
                 'cta_url' => route('public.early-access.invites.show', $this->invite->token),

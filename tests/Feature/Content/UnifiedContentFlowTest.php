@@ -28,7 +28,7 @@ it('inbound brief creates content and brief version', function () {
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),

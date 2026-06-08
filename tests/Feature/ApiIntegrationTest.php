@@ -46,7 +46,7 @@ it('accepts brief creation via site token', function () {
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -103,7 +103,7 @@ it('accepts nested brief intent keys via site token without returning 422', func
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -157,7 +157,7 @@ it('normalizes legacy flat brief intent input before validation', function () {
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -208,7 +208,7 @@ it('provides default intent keys when none are submitted', function () {
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -259,7 +259,7 @@ it('provides landing page default intent keys based on output type', function ()
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -309,7 +309,7 @@ it('blocks brief draft generation via api when credits are insufficient', functi
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -384,7 +384,7 @@ it('blocks draft generate endpoint via api when credits are insufficient', funct
         'credit_cost' => 4,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -422,7 +422,7 @@ it('lists drafts via site token', function () {
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -504,7 +504,7 @@ it('returns generation options for wp plugin dropdowns', function () {
         'status' => Persona::STATUS_APPROVED,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -569,7 +569,7 @@ it('stores generation preferences from wp brief payload on content and draft', f
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -646,7 +646,7 @@ it('treats duplicate wp brief submissions as idempotent replay and avoids duplic
         'is_active' => true,
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -753,7 +753,7 @@ it('keeps a single wp publish target when draft ack is replayed', function () {
         'content_html' => '<p>ack</p>',
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),

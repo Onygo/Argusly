@@ -299,7 +299,7 @@ it('falls back to active webhook endpoint when draft refs are missing', function
 });
 
 it('falls back to direct wordpress api with site token when webhook is not configured', function () {
-    $plainToken = 'pl_site_testtoken123';
+    $plainToken = 'arg_site_testtoken123';
 
     Http::fake([
         'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
@@ -357,7 +357,7 @@ it('falls back to direct wordpress api with site token when webhook is not confi
 });
 
 it('updates an existing wordpress post using wp_post_id endpoint and does not create a second post', function () {
-    $plainToken = 'pl_site_testtoken_update_131';
+    $plainToken = 'arg_site_testtoken_update_131';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -418,7 +418,7 @@ it('updates an existing wordpress post using wp_post_id endpoint and does not cr
 });
 
 it('retries against the same wordpress post without creating duplicates on the normal update path', function () {
-    $plainToken = 'pl_site_testtoken_update_retry_safe';
+    $plainToken = 'arg_site_testtoken_update_retry_safe';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -485,7 +485,7 @@ it('retries against the same wordpress post without creating duplicates on the n
 });
 
 it('falls back to legacy posts endpoint when wp_post_id update endpoint is unavailable', function () {
-    $plainToken = 'pl_site_testtoken_update_legacy_fallback';
+    $plainToken = 'arg_site_testtoken_update_legacy_fallback';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -549,7 +549,7 @@ it('falls back to legacy posts endpoint when wp_post_id update endpoint is unava
 });
 
 it('recreates a missing wordpress post before direct api delivery when the stored wp_post_id is gone', function () {
-    $plainToken = 'pl_site_testtoken_missing_remote_direct';
+    $plainToken = 'arg_site_testtoken_missing_remote_direct';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -632,7 +632,7 @@ it('recreates a missing wordpress post before direct api delivery when the store
 });
 
 it('recreates a missing wordpress post before webhook delivery when the stored wp_post_id is gone', function () {
-    $plainToken = 'pl_site_testtoken_missing_remote_webhook';
+    $plainToken = 'arg_site_testtoken_missing_remote_webhook';
 
     $draft = makeDeliveryDraft([
         'wp_post_id' => '131',
@@ -697,7 +697,7 @@ it('recreates a missing wordpress post before webhook delivery when the stored w
 });
 
 it('marks delivery delivered after recreating a deleted wordpress post during the next publish job', function () {
-    $plainToken = 'pl_site_testtoken_missing_remote_job';
+    $plainToken = 'arg_site_testtoken_missing_remote_job';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -774,7 +774,7 @@ it('updates mapping when wordpress returns a different id and logs a warning', f
     Log::shouldReceive('info')->zeroOrMoreTimes();
     Log::shouldReceive('error')->zeroOrMoreTimes();
 
-    $plainToken = 'pl_site_testtoken_update_change';
+    $plainToken = 'arg_site_testtoken_update_change';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -1238,7 +1238,7 @@ it('tracks seo sync as failed when wordpress delivery fails', function () {
 });
 
 it('stores argusly metadata in wordpress post meta for direct api delivery', function () {
-    $plainToken = 'pl_site_testtoken_argusly_meta';
+    $plainToken = 'arg_site_testtoken_argusly_meta';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -1294,7 +1294,7 @@ it('stores argusly metadata in wordpress post meta for direct api delivery', fun
 });
 
 it('surfaces connector auth failures during direct api delivery', function () {
-    $plainToken = 'pl_site_testtoken_auth_failure';
+    $plainToken = 'arg_site_testtoken_auth_failure';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -1335,7 +1335,7 @@ it('surfaces connector auth failures during direct api delivery', function () {
 });
 
 it('surfaces malformed connector responses during direct api delivery', function () {
-    $plainToken = 'pl_site_testtoken_malformed_response';
+    $plainToken = 'arg_site_testtoken_malformed_response';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,

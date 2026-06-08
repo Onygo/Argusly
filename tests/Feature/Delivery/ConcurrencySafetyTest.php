@@ -246,7 +246,7 @@ it('preserves the publication mapping across a temporary retry failure', functio
     ]);
 
     disableConcurrencyDraftWebhook($draft);
-    attachConcurrencySiteToken($draft, 'pl_site_retry_safe');
+    attachConcurrencySiteToken($draft, 'arg_site_retry_safe');
 
     $draft->content()->update([
         'wp_post_id' => '131',
@@ -326,7 +326,7 @@ it('recreates safely after the remote wordpress post has been deleted', function
     ]);
 
     disableConcurrencyDraftWebhook($draft);
-    attachConcurrencySiteToken($draft, 'pl_site_missing_remote_safe');
+    attachConcurrencySiteToken($draft, 'arg_site_missing_remote_safe');
 
     $draft->content()->update([
         'wp_post_id' => '131',
@@ -394,7 +394,7 @@ it('updates the same remote post on repeated forced republishes without creating
     ]);
 
     disableConcurrencyDraftWebhook($draft);
-    attachConcurrencySiteToken($draft, 'pl_site_force_republish_safe');
+    attachConcurrencySiteToken($draft, 'arg_site_force_republish_safe');
 
     $draft->content()->update([
         'wp_post_id' => '131',
@@ -448,7 +448,7 @@ it('recovers an existing wordpress post by argusly meta when the local mapping i
     ]);
 
     disableConcurrencyDraftWebhook($draft);
-    attachConcurrencySiteToken($draft, 'pl_site_meta_recovery_safe');
+    attachConcurrencySiteToken($draft, 'arg_site_meta_recovery_safe');
 
     Http::fake([
         'https://wp.example/wp-json/argusly/v1/posts/lookup*' => Http::response([
@@ -509,7 +509,7 @@ it('skips the remote wordpress update when the payload hash is unchanged', funct
     ]);
 
     disableConcurrencyDraftWebhook($draft);
-    attachConcurrencySiteToken($draft, 'pl_site_skip_unchanged_safe');
+    attachConcurrencySiteToken($draft, 'arg_site_skip_unchanged_safe');
 
     $draft->content()->update([
         'wp_post_id' => '131',
@@ -559,7 +559,7 @@ it('updates the existing wordpress post when content changes and never appends t
     ]);
 
     disableConcurrencyDraftWebhook($draft);
-    attachConcurrencySiteToken($draft, 'pl_site_update_changed_safe');
+    attachConcurrencySiteToken($draft, 'arg_site_update_changed_safe');
 
     $draft->content()->update([
         'wp_post_id' => '131',
@@ -627,7 +627,7 @@ it('keeps dutch and english wordpress publications stable per locale on the same
     ]);
 
     disableConcurrencyDraftWebhook($dutchDraft);
-    attachConcurrencySiteToken($dutchDraft, 'pl_site_locale_safe');
+    attachConcurrencySiteToken($dutchDraft, 'arg_site_locale_safe');
 
     $englishContent = Content::create([
         'id' => (string) Str::uuid(),

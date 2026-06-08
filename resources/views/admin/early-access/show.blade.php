@@ -1,4 +1,4 @@
-@extends('layouts.admin', ['title' => 'Early Access Detail'])
+@extends('layouts.admin', ['title' => 'Pilot Application Detail'])
 
 @section('content')
     @php
@@ -23,7 +23,7 @@
             <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
                 {{ $signup->status?->label() ?? ucfirst($status) }}
             </span>
-            <a href="{{ route('admin.early-access.index') }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to early access</a>
+            <a href="{{ route('admin.early-access.index') }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to Pilot Program</a>
         </div>
     </div>
 
@@ -39,7 +39,7 @@
 
     <div class="grid gap-6 xl:grid-cols-3">
         <div class="space-y-6 xl:col-span-2">
-            <x-settings.section-card title="Applicant information" description="Original public submission details stored at intake.">
+            <x-settings.section-card title="Pilot Application" description="Original application details stored at intake.">
                 <dl class="grid gap-4 md:grid-cols-2">
                     <div>
                         <dt class="text-xs text-textSecondary">Full name</dt>
@@ -50,8 +50,28 @@
                         <dd class="mt-1 text-sm text-textPrimary">{{ $signup->email }}</dd>
                     </div>
                     <div>
+                        <dt class="text-xs text-textSecondary">Phone</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->phone ?: 'n/a' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Country</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->country ?: 'n/a' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Job title</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->job_title ?: 'n/a' }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-xs text-textSecondary">Company</dt>
                         <dd class="mt-1 text-sm text-textPrimary">{{ $signup->company_name ?: 'n/a' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Company size</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->company_size ?: 'n/a' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Industry</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->industry ?: 'n/a' }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs text-textSecondary">Website</dt>
@@ -64,6 +84,32 @@
                     <div>
                         <dt class="text-xs text-textSecondary">Submitted</dt>
                         <dd class="mt-1 text-sm text-textPrimary">{{ optional($signup->submitted_at ?? $signup->created_at)->format('Y-m-d H:i') }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Priority</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->priority ? ucfirst($signup->priority) : 'n/a' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Qualification</dt>
+                        @php($score = (int) ($signup->qualification_score ?? $qualification->score($signup)))
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $score }}/100 · {{ $qualification->label($score) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Assigned admin</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->assignedAdmin?->name ?: 'n/a' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textSecondary">Marketing consent</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">{{ $signup->marketing_consent ? 'Yes' : 'No' }}</dd>
+                    </div>
+                    <div class="md:col-span-2">
+                        <dt class="text-xs text-textSecondary">UTM</dt>
+                        <dd class="mt-1 text-sm text-textPrimary">
+                            {{ $signup->utm_source ?: 'n/a' }}
+                            @if ($signup->utm_medium || $signup->utm_campaign)
+                                · {{ $signup->utm_medium ?: 'n/a' }} · {{ $signup->utm_campaign ?: 'n/a' }}
+                            @endif
+                        </dd>
                     </div>
                     <div class="md:col-span-2">
                         <dt class="text-xs text-textSecondary">Use case</dt>

@@ -4,20 +4,22 @@
 @endphp
 
 {{-- Hero --}}
-<section class="pl-public-hero">
+<section class="pl-public-hero-brand">
     <div class="mx-auto grid max-w-6xl gap-7 px-4 py-16 sm:px-6 md:grid-cols-[1.1fr_0.9fr] md:items-center md:gap-10 md:py-20">
         <div class="max-w-xl">
-            <span class="pl-public-pill">{{ __('public.page.product_badges.platform') }}</span>
-            <h1 class="mt-4 text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <span class="inline-flex items-center rounded-full border border-white/16 bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                {{ __('public.page.product_badges.platform') }}
+            </span>
+            <h1 class="mt-4 text-balance text-4xl font-semibold tracking-tight text-white md:text-5xl">
                 {{ $heading }}
             </h1>
-            <p class="mt-4 max-w-lg text-pretty text-sm leading-7 text-textSecondary md:text-base">
+            <p class="mt-4 max-w-lg text-pretty text-sm leading-7 text-white/80 md:text-base">
                 {{ $intro }}
             </p>
 
             <div class="mt-8 flex flex-wrap gap-3">
                 @foreach ($platformHeroLinks as $link)
-                    <a href="{{ $link['href'] }}" class="inline-flex items-center gap-2 rounded-full border border-border bg-white px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">
+                    <a href="{{ $link['href'] }}" class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/15">
                         <span>{{ $link['label'] }}</span>
                         <x-public.icon name="arrow-down" size="xs" />
                     </a>
@@ -28,7 +30,7 @@
         <x-public.hero-visual
             variant="product-overview"
             schematic="product-overview"
-            desktop-wrapper-class="hidden pl-public-card p-6 md:block"
+            desktop-wrapper-class="hidden rounded-2xl border border-white/16 bg-white/10 p-6 shadow-sm md:block"
             desktop-inner-class=""
         />
     </div>

@@ -3,7 +3,7 @@
 @section('content')
     @if ($signup)
         <p style="margin:0 0 12px; font-size:14px; line-height:1.6; color:#374151;">
-            Request details:
+            Pilot application details:
             {{ $signup->full_name }}
             @if ($signup->company_name)
                 · {{ $signup->company_name }}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\EarlyAccessSignupStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEarlyAccessPilotCostRequest;
+use App\Http\Requests\Admin\StorePilotInvitationRequest;
 use App\Http\Requests\Admin\UpdateEarlyAccessInternalNotesRequest;
 use App\Models\AuditLog;
 use App\Models\EarlyAccessPilotCost;
@@ -13,6 +14,7 @@ use App\Models\LlmRequest;
 use App\Models\User;
 use App\Services\EarlyAccessInvitationService;
 use App\Services\EarlyAccessSignupService;
+use App\Services\PilotQualificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -34,7 +36,7 @@ class AdminEarlyAccessController extends Controller
         }
 
         $query = EarlyAccessSignup::query()
-            ->with(['activatedUser', 'workspace', 'latestInvite']);
+            ->with(['activatedUser', 'assignedAdmin', 'workspace', 'latestInvite']);
 
         if ($filters['q'] !== '') {
             $query->where(function ($builder) use ($filters): void {
@@ -78,6 +80,7 @@ class AdminEarlyAccessController extends Controller
             'statuses' => EarlyAccessSignupStatus::cases(),
             'metrics' => $metrics,
             'costMetrics' => $costMetrics,
+            'qualification' => app(PilotQualificationService::class),
         ]);
     }
 
@@ -85,6 +88,7 @@ class AdminEarlyAccessController extends Controller
     {
         $signup->load([
             'invites.inviter',
+            'assignedAdmin',
             'activatedUser.organization',
             'workspace.organization',
             'latestInvite',
@@ -119,7 +123,21 @@ class AdminEarlyAccessController extends Controller
             'duplicates' => $duplicates,
             'pilotCostSummary' => $pilotCostSummary,
             'pilotCostCategories' => EarlyAccessPilotCost::categoryOptions(),
+            'qualification' => app(PilotQualificationService::class),
         ]);
+    }
+
+    public function invitePilotUser(
+        StorePilotInvitationRequest $request,
+        EarlyAccessSignupService $signups,
+        EarlyAccessInvitationService $invites
+    ): RedirectResponse {
+        $signup = $signups->createManualPilotApplication($request->validated(), $request->user());
+
+        return $this->handleInviteAction(
+            fn () => $invites->send($signup, $request->user(), $request),
+            'Pilot invitation sent.'
+        );
     }
 
     public function markReviewed(
@@ -276,12 +294,18 @@ class AdminEarlyAccessController extends Controller
             $manualEur = ((int) ($manualCosts[$signup->id] ?? 0)) / 100;
             $llmRow = $signup->workspace_id ? $llmCosts->get((string) $signup->workspace_id) : null;
             $llmEur = (float) ($llmRow->llm_cost_eur ?? 0);
+            $qualification = app(PilotQualificationService::class);
+            $score = $signup->qualification_score ?? $qualification->score($signup);
 
             $signup->pilot_cost_summary = [
                 'manual_cost_eur' => $manualEur,
                 'llm_cost_eur' => $llmEur,
                 'credits_consumed' => (float) ($llmRow->credits_consumed ?? 0),
                 'total_cost_eur' => $manualEur + $llmEur,
+            ];
+            $signup->pilot_qualification = [
+                'score' => $score,
+                'label' => $qualification->label($score),
             ];
         });
     }

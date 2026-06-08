@@ -94,7 +94,7 @@ it('authenticates workspace api key and returns identity payload', function () {
 });
 
 it('rejects invalid workspace api key', function () {
-    $response = $this->withHeaders(apiHeaders('plk_ws_invalid'))->getJson('/api/v1/me');
+    $response = $this->withHeaders(apiHeaders('arg_ws_invalid'))->getJson('/api/v1/me');
 
     $response->assertUnauthorized();
 });

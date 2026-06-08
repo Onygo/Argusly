@@ -269,7 +269,7 @@ function makeSiteDetailWorkspaceSectionsContext(): array
         'client_site_id' => $site->id,
         'name' => 'Primary token',
         'token_hash' => hash('sha256', 'token-' . Str::random(16)),
-        'key_prefix' => 'pl_site_test',
+        'key_prefix' => 'arg_site_test',
         'abilities' => ['briefs:write', 'drafts:write', 'content:push'],
         'scopes' => ['briefs:write', 'drafts:write', 'content:push'],
         'revoked' => false,

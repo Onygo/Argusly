@@ -1,9 +1,10 @@
-@extends('layouts.admin', ['title' => 'Early Access'])
+@extends('layouts.admin', ['title' => 'Pilot Program'])
 
 @section('content')
     @php
         $metricCards = [
             'new' => ['label' => 'New', 'class' => 'text-amber-800 bg-amber-500/10 border-amber-300/80'],
+            'reviewed' => ['label' => 'Reviewed', 'class' => 'text-slate-800 bg-slate-500/10 border-slate-300/80'],
             'approved' => ['label' => 'Approved', 'class' => 'text-sky-800 bg-sky-500/10 border-sky-300/80'],
             'invited' => ['label' => 'Invited', 'class' => 'text-indigo-800 bg-indigo-500/10 border-indigo-300/80'],
             'activated' => ['label' => 'Activated', 'class' => 'text-emerald-800 bg-emerald-500/10 border-emerald-300/80'],
@@ -21,8 +22,8 @@
 
     <div class="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Early Access</h1>
-            <p class="mt-1 text-textSecondary">Review intake requests, approve candidates, and activate invited users.</p>
+            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Pilot Program</h1>
+            <p class="mt-1 text-textSecondary">Review pilot applications, qualify candidates, and activate invited users.</p>
         </div>
         <form method="GET" class="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-5">
             <input
@@ -53,7 +54,7 @@
         </form>
     </div>
 
-    <div class="mb-6 grid gap-3 md:grid-cols-4">
+    <div class="mb-6 grid gap-3 md:grid-cols-5">
         @foreach ($metricCards as $key => $card)
             <div class="rounded-lg border px-4 py-3 {{ $card['class'] }}">
                 <p class="text-xs font-medium uppercase tracking-wide">{{ $card['label'] }}</p>
@@ -62,7 +63,22 @@
         @endforeach
     </div>
 
-    <div class="mb-6 grid gap-3 md:grid-cols-3">
+    <x-settings.section-card title="Invite Pilot User" description="Create a pilot application manually and send the activation invite immediately.">
+        <form method="POST" action="{{ route('admin.early-access.invite-pilot-user') }}" class="grid gap-3 lg:grid-cols-12">
+            @csrf
+            <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="Full name" class="pl-input lg:col-span-2" required>
+            <input type="email" name="email" value="{{ old('email') }}" placeholder="Email" class="pl-input lg:col-span-2" required>
+            <input type="text" name="company_name" value="{{ old('company_name') }}" placeholder="Company" class="pl-input lg:col-span-2">
+            <input type="text" name="website" value="{{ old('website') }}" placeholder="Website" class="pl-input lg:col-span-2">
+            <input type="text" name="notes" value="{{ old('notes') }}" placeholder="Notes" class="pl-input lg:col-span-3">
+            <button class="pl-btn-secondary lg:col-span-1">
+                <i data-lucide="send" class="h-4 w-4"></i>
+                Invite
+            </button>
+        </form>
+    </x-settings.section-card>
+
+    <div class="mb-6 mt-6 grid gap-3 md:grid-cols-3">
         <div class="rounded-lg border border-border bg-surface px-4 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-textSecondary">AI cost</p>
             <p class="mt-2 text-2xl font-semibold text-textPrimary">€{{ number_format((float) ($costMetrics['llm_cost_eur'] ?? 0), 2) }}</p>
@@ -94,6 +110,7 @@
                         <th class="bg-surfaceSubtle font-medium">Email</th>
                         <th class="bg-surfaceSubtle font-medium">Company</th>
                         <th class="bg-surfaceSubtle font-medium">Status</th>
+                        <th class="bg-surfaceSubtle font-medium">Qualification</th>
                         <th class="bg-surfaceSubtle font-medium text-right">Pilot cost</th>
                         <th class="bg-surfaceSubtle font-medium">Submitted</th>
                         <th class="bg-surfaceSubtle font-medium text-right">Actions</th>
@@ -111,6 +128,13 @@
                             <td class="align-top">
                                 <span class="inline-flex rounded border px-2 py-0.5 text-xs font-medium {{ $badgeClasses[$status] ?? 'border-border bg-background text-textSecondary' }}">
                                     {{ $signup->status?->label() ?? ucfirst($status) }}
+                                </span>
+                            </td>
+                            <td class="align-top">
+                                @php($score = (int) data_get($signup->pilot_qualification, 'score', $signup->qualification_score ?? 0))
+                                @php($label = (string) data_get($signup->pilot_qualification, 'label', $qualification->label($score)))
+                                <span class="inline-flex rounded border border-border bg-background px-2 py-0.5 text-xs font-medium text-textPrimary">
+                                    {{ $score }}/100 · {{ $label }}
                                 </span>
                             </td>
                             <td class="align-top text-right text-textPrimary">
@@ -159,7 +183,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-8 text-center text-textSecondary">No early access signups found.</td>
+                            <td colspan="8" class="px-4 py-8 text-center text-textSecondary">No pilot applications found.</td>
                         </tr>
                     @endforelse
                 </tbody>

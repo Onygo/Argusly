@@ -84,7 +84,7 @@ it('queues featured image generation for a tenant-scoped draft', function () {
         'output_type' => 'kb_article',
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -178,7 +178,7 @@ it('falls back to content id when draft id no longer resolves', function () {
         'output_type' => 'kb_article',
     ]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),
@@ -273,7 +273,7 @@ it('releases stale image generation lock and requeues generation', function () {
         ->whereKey($stale->id)
         ->update(['updated_at' => Carbon::now()->subMinutes(30)]);
 
-    $plain = 'pl_site_' . Str::random(48);
+    $plain = 'arg_site_' . Str::random(48);
     SiteToken::create([
         'client_site_id' => $site->id,
         'token_hash' => hash('sha256', $plain),

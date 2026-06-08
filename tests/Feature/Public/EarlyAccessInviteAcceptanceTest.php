@@ -39,7 +39,7 @@ it('accepts an early access invite and provisions the account workspace and plan
 
     $this->get(route('public.early-access.invites.show', $plainToken))
         ->assertOk()
-        ->assertSee('Activate early access');
+        ->assertSee('Activate Pilot Program access');
 
     $this->post(route('public.early-access.invites.store', $plainToken), [
         'name' => 'Activation Candidate',

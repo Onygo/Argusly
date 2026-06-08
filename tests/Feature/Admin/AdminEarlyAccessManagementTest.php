@@ -116,6 +116,55 @@ it('sends and resends early access invites from the admin flow', function () {
     Mail::assertSent(EarlyAccessInvitationMail::class, 2);
 });
 
+it('lets admins create and invite a pilot application manually', function () {
+    Mail::fake();
+
+    $admin = makeEarlyAccessAdmin('admin');
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.invite-pilot-user'), [
+            'full_name' => 'Manual Pilot',
+            'email' => 'manual-pilot@example.com',
+            'company_name' => 'Manual Co',
+            'website' => 'https://manual.example',
+            'notes' => 'Invite directly from a sales conversation.',
+        ])
+        ->assertRedirect();
+
+    $signup = EarlyAccessSignup::query()->where('email', 'manual-pilot@example.com')->first();
+
+    expect($signup)->not->toBeNull()
+        ->and($signup->status)->toBe(EarlyAccessSignupStatus::INVITED)
+        ->and($signup->source)->toBe('admin_invite')
+        ->and($signup->priority)->toBe('high')
+        ->and($signup->assigned_admin_id)->toBe($admin->id)
+        ->and($signup->qualification_score)->toBeGreaterThan(0);
+
+    expect(EarlyAccessInvite::query()->where('early_access_signup_id', $signup->id)->exists())->toBeTrue();
+    Mail::assertSent(EarlyAccessInvitationMail::class);
+});
+
+it('shows pilot program qualification scores in the admin list', function () {
+    $admin = makeEarlyAccessAdmin('admin');
+
+    EarlyAccessSignup::query()->create([
+        'full_name' => 'Scored Candidate',
+        'email' => 'scored@example.com',
+        'company_name' => 'Scored Co',
+        'website' => 'https://scored.example',
+        'status' => EarlyAccessSignupStatus::NEW,
+        'qualification_score' => 82,
+        'submitted_at' => now(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.early-access.index'))
+        ->assertOk()
+        ->assertSee('Pilot Program')
+        ->assertSee('82/100')
+        ->assertSee('Hot');
+});
+
 it('does not allow invites for rejected signups', function () {
     Mail::fake();
 

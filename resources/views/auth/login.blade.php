@@ -117,7 +117,7 @@
                     @else
                         <p class="mt-9 text-center text-sm text-textMuted">
                             Need access?
-                            <a href="{{ route('public.early-access.show') }}" class="font-semibold text-textPrimary hover:underline">Request early access</a>
+                            <a href="{{ route('public.early-access.show') }}" class="font-semibold text-textPrimary hover:underline">Apply for the pilot</a>
                         </p>
                     @endif
 

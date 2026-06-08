@@ -13,11 +13,23 @@ class EarlyAccessSignup extends Model
     protected $fillable = [
         'full_name',
         'email',
+        'phone',
+        'country',
+        'job_title',
         'company_name',
+        'company_size',
+        'industry',
         'website',
         'use_case',
         'notes',
         'source',
+        'priority',
+        'qualification_score',
+        'assigned_admin_id',
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'marketing_consent',
         'status',
         'internal_notes',
         'submitted_at',
@@ -33,6 +45,8 @@ class EarlyAccessSignup extends Model
 
     protected $casts = [
         'status' => EarlyAccessSignupStatus::class,
+        'qualification_score' => 'integer',
+        'marketing_consent' => 'boolean',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',
@@ -54,6 +68,11 @@ class EarlyAccessSignup extends Model
     public function inviter()
     {
         return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    public function assignedAdmin()
+    {
+        return $this->belongsTo(User::class, 'assigned_admin_id');
     }
 
     public function activatedUser()

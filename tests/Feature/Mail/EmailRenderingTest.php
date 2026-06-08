@@ -76,7 +76,7 @@ it('renders early access invitation email in html and text with system footer', 
 
     $mail = new EarlyAccessInvitationMail($invite);
 
-    $mail->assertHasSubject('Your Argusly early access invite');
+    $mail->assertHasSubject('Your Argusly Pilot Program invite');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
     $mail->assertSeeInText('This is a system email from Argusly.');
     $mail->assertDontSeeInHtml('<img', escape: false);

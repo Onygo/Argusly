@@ -5,7 +5,7 @@ return [
         'product' => 'Product',
         'use_cases' => 'Use cases',
         'resources' => 'Resources',
-        'early_access' => 'Early access',
+        'early_access' => 'Pilot Program',
         'overview' => 'Overview',
         'platform' => 'Platform',
         'agentic_marketing' => 'Agentic Marketing',
@@ -21,7 +21,7 @@ return [
     ],
     'footer' => [
         'tagline' => 'Content, governance, intelligence, and publishing in one platform for B2B teams that need control and proof.',
-        'early_access_note' => 'Currently available through early access onboarding.',
+        'early_access_note' => 'Currently available through Pilot Program onboarding.',
         'rights' => 'All rights reserved.',
         'product' => 'Product',
         'company' => 'Company',
@@ -79,8 +79,8 @@ return [
     ],
     'early_access' => [
         // Meta
-        'meta_title' => 'Early access | Argusly',
-        'meta_description' => 'Request early access to Argusly or book a guided demo.',
+        'meta_title' => 'Pilot Program | Argusly',
+        'meta_description' => 'Apply for the Argusly Pilot Program or book a guided demo.',
 
         // Soft launch homepage
         'soft_launch_meta_title' => 'Argusly | Private rollout',
@@ -88,8 +88,8 @@ return [
         'soft_launch_badge' => 'Currently onboarding a limited number of early partners',
         'soft_launch_title' => 'Argusly for controlled AI content operations.',
         'soft_launch_description' => 'Argusly gives teams one system for planning content, enforcing governance, running SEO and GEO intelligence, and publishing to connected sites.',
-        'soft_launch_limited_title' => 'Early access is intentionally limited.',
-        'soft_launch_limited_description' => 'We are enabling production access for selected clients first to ensure a stable rollout and high quality onboarding. Request access or book a demo to join the queue.',
+        'soft_launch_limited_title' => 'The Pilot Program is intentionally limited.',
+        'soft_launch_limited_description' => 'We are enabling production access for selected clients first to ensure a stable rollout and high quality onboarding. Apply for the pilot or book a demo to join the queue.',
 
         // Soft launch cards
         'card_what_title' => 'What Argusly does',
@@ -100,15 +100,15 @@ return [
         'card_why_description' => 'AI output only scales when brand context, governance, search intelligence, and publishing controls live in one workflow.',
 
         // CTAs
-        'request_early_access' => 'Request early access',
+        'request_early_access' => 'Apply for the pilot',
         'book_demo' => 'Book a demo',
         'login' => 'Login',
 
         // Form page
-        'badge' => 'Limited early access',
-        'title_early_access' => 'Request early access to Argusly',
+        'badge' => 'Limited Pilot Program',
+        'title_early_access' => 'Apply for the Argusly Pilot Program',
         'title_demo' => 'Book an Argusly demo',
-        'description_early_access' => 'Share your stack, publishing setup, and use case. We review fit for the current onboarding wave and connect the right product walkthrough.',
+        'description_early_access' => 'Share your stack, publishing setup, and use case. We review fit for the current pilot wave and connect the right product walkthrough.',
         'description_demo' => 'Tell us about your sites, workflows, and growth goals. We will tailor the demo around governance, intelligence, and publishing.',
 
         // Form sidebar
@@ -121,17 +121,23 @@ return [
         'field_full_name' => 'Full name',
         'field_work_email' => 'Work email',
         'field_company' => 'Company',
+        'field_phone' => 'Phone',
+        'field_country' => 'Country',
+        'field_job_title' => 'Job title',
+        'field_company_size' => 'Company size',
+        'field_industry' => 'Industry',
         'field_website' => 'Website',
         'field_message' => 'Use case or message',
+        'field_marketing_consent' => 'I agree to receive relevant Pilot Program and product updates from Argusly.',
 
         // Form buttons
-        'submit_early_access' => 'Submit early access request',
+        'submit_early_access' => 'Submit pilot application',
         'submit_demo' => 'Book demo request',
 
         // Invite acceptance
-        'invite_title' => 'Activate early access',
-        'invite_approved_with_company' => 'Your Argusly early access request for :company is approved.',
-        'invite_approved' => 'Your Argusly early access request is approved.',
+        'invite_title' => 'Activate Pilot Program access',
+        'invite_approved_with_company' => 'Your Argusly pilot application for :company is approved.',
+        'invite_approved' => 'Your Argusly pilot application is approved.',
         'invite_expires' => 'This activation link expires on :date.',
         'invite_full_name' => 'Full name',
         'invite_password' => 'Password',
@@ -147,7 +153,7 @@ return [
         'no_account' => 'No account yet?',
         'request_account' => 'Request an account',
         'need_access' => 'Need access?',
-        'request_early_access' => 'Request early access',
+        'request_early_access' => 'Apply for the pilot',
         'back_to_site' => 'Back to public site',
     ],
     'cta' => [
@@ -816,9 +822,9 @@ return [
         ],
         'product.platform' => [
             'metaTitle' => 'Platform | Argusly',
-            'metaDescription' => 'Capabilities, governance, and intelligence brought together on one central product page.',
-            'heading' => 'The Argusly platform',
-            'intro' => 'Argusly combines content operations, governance, and intelligence into one central product layer so teams do not need to switch between fragmented product stories or disconnected workflows.',
+            'metaDescription' => 'A governed operating layer for content teams that need planning, intelligence, review, and publishing in one workflow.',
+            'heading' => 'The operating layer for governed content teams',
+            'intro' => 'Plan, govern, improve, and publish from one connected workspace built for teams that need control, visibility, and repeatable execution.',
             'sections' => [
                 'capabilities' => [
                     'eyebrow' => 'Capabilities',

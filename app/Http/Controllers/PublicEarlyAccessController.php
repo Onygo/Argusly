@@ -18,8 +18,8 @@ class PublicEarlyAccessController extends Controller
 
         return view('public.early-access', [
             'intent' => $intent,
-            'metaTitle' => 'Early access | Argusly',
-            'metaDescription' => 'Request early access to Argusly or book a guided demo.',
+            'metaTitle' => 'Pilot Program | Argusly',
+            'metaDescription' => 'Apply for the Argusly Pilot Program or book a guided demo.',
             'canonicalUrl' => LocalizedMarketingUrl::route('public.early-access.show', ['intent' => $intent], $locale),
             'hreflangUrls' => LocalizedMarketingUrl::hreflangsForRoute('public.early-access.show', ['intent' => $intent]),
         ]);
@@ -35,7 +35,7 @@ class PublicEarlyAccessController extends Controller
             ->to(LocalizedMarketingUrl::route('public.early-access.show', ['intent' => $intent], (string) app()->getLocale()))
             ->with('early_access_status', $intent === 'demo'
                 ? 'Thanks. We will contact you to schedule a demo.'
-                : 'Thanks. Your early access request is received.');
+                : 'Thanks. Your pilot application is received.');
     }
 
     private function normalizeIntent(mixed $value): string

@@ -12,7 +12,7 @@ class LanguageResolverService
     private const PLATFORM_UI_LOCALES = ['en', 'nl'];
     private const SESSION_KEY_PUBLIC = 'public_locale';
     private const SESSION_KEY_APP = 'app_locale';
-    private const COOKIE_KEY = 'pl_locale';
+    private const COOKIE_KEY = 'argusly_locale';
 
     public function resolveUiLocale(Request $request, string $context = 'public'): string
     {

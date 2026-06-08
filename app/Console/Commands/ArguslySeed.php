@@ -63,7 +63,7 @@ class ArguslySeed extends Command
             'is_active' => true,
         ]);
 
-        $plainToken = 'pl_site_' . Str::random(48);
+        $plainToken = 'arg_site_' . Str::random(48);
 
         $siteToken = SiteToken::create([
             'client_site_id' => $clientSite->id,

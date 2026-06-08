@@ -67,7 +67,7 @@ function makeContentAnswersApiContext(): array
         'status' => 'connected',
     ]);
 
-    $plainSiteToken = 'pl_site_' . Str::random(48);
+    $plainSiteToken = 'arg_site_' . Str::random(48);
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'client_site_id' => $site->id,

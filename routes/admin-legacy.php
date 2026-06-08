@@ -61,6 +61,7 @@ Route::middleware(['admin.locale', 'auth', 'admin.area', 'support.context:admin'
             Route::post('/users/{user}/disable', [AdminUsersController::class, 'disable']);
             Route::post('/users/{user}/activate', [AdminUsersController::class, 'activate']);
             Route::get('/early-access', [AdminEarlyAccessController::class, 'index']);
+            Route::post('/early-access/invite-pilot-user', [AdminEarlyAccessController::class, 'invitePilotUser']);
             Route::get('/early-access/{signup}', [AdminEarlyAccessController::class, 'show']);
             Route::post('/early-access/{signup}/review', [AdminEarlyAccessController::class, 'markReviewed']);
             Route::post('/early-access/{signup}/approve', [AdminEarlyAccessController::class, 'approve']);

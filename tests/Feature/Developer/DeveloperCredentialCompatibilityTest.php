@@ -20,7 +20,7 @@ uses(RefreshDatabase::class);
 it('shows site-linked legacy credentials in developer api view without exposing full secrets', function () {
     [$owner, $workspace, $site] = makeDeveloperCredentialContext('dev-compat-ui');
 
-    $plain = 'pl_site_' . Str::lower(Str::random(48));
+    $plain = 'arg_site_' . Str::lower(Str::random(48));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -72,7 +72,7 @@ it('shows legacy organization key and keeps legacy auth compatible', function ()
 it('imports legacy credentials with an idempotent backfill command', function () {
     [, $workspace, $site] = makeDeveloperCredentialContext('dev-compat-import');
 
-    $plain = 'pl_site_' . Str::lower(Str::random(48));
+    $plain = 'arg_site_' . Str::lower(Str::random(48));
     $token = SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -104,7 +104,7 @@ it('imports legacy credentials with an idempotent backfill command', function ()
 it('blocks revoking imported legacy credentials from developer ui', function () {
     [$owner, $workspace, $site] = makeDeveloperCredentialContext('dev-compat-revoke');
 
-    $plain = 'pl_site_' . Str::lower(Str::random(48));
+    $plain = 'arg_site_' . Str::lower(Str::random(48));
     $token = SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,

@@ -71,7 +71,7 @@ it('keeps key regeneration working through the guarded detail flow', function ()
     [$owner, , $site] = makeSitesActionSafetyContext();
 
     [$token, $plain] = app(SiteApiKeyService::class)->createForSite($site, app(SiteApiKeyService::class)->defaultScopes());
-    expect($plain)->toStartWith('pl_site_');
+    expect($plain)->toStartWith('arg_site_');
 
     $this->actingAs($owner)
         ->post(route('app.sites.regenerate-key', $site))

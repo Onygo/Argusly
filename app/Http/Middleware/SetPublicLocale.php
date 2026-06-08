@@ -31,14 +31,14 @@ class SetPublicLocale
             && is_string($queryLang)
             && $this->languageResolver->isPlatformUiLocale($queryLang)) {
             $locale = strtolower($queryLang);
-            Cookie::queue(cookie('pl_locale', $locale, 60 * 24 * 365));
+            Cookie::queue(cookie('argusly_locale', $locale, 60 * 24 * 365));
         }
 
         if (
             (is_string($routeLocale) && $this->languageResolver->isPlatformUiLocale($routeLocale))
             || (is_string($pathLocale) && $this->languageResolver->isPlatformUiLocale($pathLocale))
         ) {
-            Cookie::queue(cookie('pl_locale', $locale, 60 * 24 * 365));
+            Cookie::queue(cookie('argusly_locale', $locale, 60 * 24 * 365));
         }
 
         app()->setLocale($locale);

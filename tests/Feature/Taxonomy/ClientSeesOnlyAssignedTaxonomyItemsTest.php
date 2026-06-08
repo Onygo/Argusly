@@ -180,7 +180,7 @@ function makeTaxonomyApiClientContext(string $keyPrefix): array
         'is_admin' => false,
     ]);
 
-    $plainToken = 'pl_site_' . Str::random(48);
+    $plainToken = 'arg_site_' . Str::random(48);
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,

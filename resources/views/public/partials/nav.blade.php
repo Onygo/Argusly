@@ -112,9 +112,9 @@
             <a href="{{ route('login') }}" class="hidden items-center rounded-lg px-3 py-2 text-sm text-textSecondary transition-colors hover:bg-surfaceMuted md:inline-flex">
                 {{ __('public.nav.sign_in') }}
             </a>
-            <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="hidden items-center justify-center gap-2 rounded-full bg-textPrimary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black md:inline-flex">
+            <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="group hidden items-center justify-center gap-2 rounded-full bg-textPrimary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black md:inline-flex">
                 {{ $primaryCta['label'] }}
-                <x-public.icon name="arrow-right" size="xs" class="text-white" />
+                <x-public.icon name="arrow-right" size="xs" class="bg-white text-textPrimary transition-transform duration-200 ease-out group-hover:-rotate-45" />
             </a>
         </div>
     </div>
@@ -150,9 +150,9 @@
             @endforeach
             <div class="mt-2 flex flex-wrap gap-2 px-3 pb-1">
                 <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-full border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-surfaceMuted">{{ __('public.nav.sign_in') }}</a>
-                <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="inline-flex items-center justify-center gap-2 rounded-full bg-textPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black">
+                <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="group inline-flex items-center justify-center gap-2 rounded-full bg-textPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black">
                     {{ $primaryCta['label'] }}
-                    <x-public.icon name="arrow-right" size="xs" class="text-white" />
+                    <x-public.icon name="arrow-right" size="xs" class="bg-white text-textPrimary transition-transform duration-200 ease-out group-hover:-rotate-45" />
                 </a>
             </div>
         </nav>

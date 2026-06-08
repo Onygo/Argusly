@@ -51,7 +51,7 @@ class DemoClientBriefSeeder extends Seeder
             ->exists();
 
         if (! $hasActiveSiteToken) {
-            $plain = 'pl_site_demo_' . Str::lower(Str::random(48));
+            $plain = 'arg_site_demo_' . Str::lower(Str::random(48));
 
             SiteToken::query()->create([
                 'id' => (string) Str::uuid(),

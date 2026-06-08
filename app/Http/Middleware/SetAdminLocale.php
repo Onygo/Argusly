@@ -23,7 +23,7 @@ class SetAdminLocale
 
         if (is_string($queryLang) && $this->languageResolver->isPlatformUiLocale($queryLang)) {
             $locale = strtolower($queryLang);
-            Cookie::queue(cookie('pl_locale', $locale, 60 * 24 * 365));
+            Cookie::queue(cookie('argusly_locale', $locale, 60 * 24 * 365));
         }
 
         $request->session()->put('app_lang', $locale);

@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class ArguslyTrackingSiteResolver
 {
-    private const REQUEST_CACHE_KEY = 'pl_tracking_site_resolver';
+    private const REQUEST_CACHE_KEY = 'argusly_tracking_site_resolver';
 
     /**
      * Check if the given host is an internal verified domain.

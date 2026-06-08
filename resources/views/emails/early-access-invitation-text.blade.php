@@ -2,7 +2,7 @@
 
 @section('content')
 @if ($signup)
-Request details: {{ $signup->full_name }}@if ($signup->company_name) · {{ $signup->company_name }}@endif
+Pilot application details: {{ $signup->full_name }}@if ($signup->company_name) · {{ $signup->company_name }}@endif
 
 @endif
 @if ($invite?->expires_at)
