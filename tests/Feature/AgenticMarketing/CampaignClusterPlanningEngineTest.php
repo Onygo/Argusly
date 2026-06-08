@@ -68,7 +68,7 @@ function makeCampaignClusterScope(): array
         'organization_id' => $organization->id,
         'workspace_id' => $workspace->id,
         'brand_key' => 'primary',
-        'company_name' => 'PublishLayer',
+        'company_name' => 'Argusly',
         'company_description' => 'Agentic marketing and AI visibility platform.',
         'market_category' => 'Agentic marketing',
         'positioning' => 'Autonomous content planning for AI search.',

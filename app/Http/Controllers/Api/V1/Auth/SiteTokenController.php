@@ -52,7 +52,7 @@ class SiteTokenController extends Controller
             'status' => 'pending',
         ]);
 
-        $plain = 'pl_site_' . bin2hex(random_bytes(32));
+        $plain = 'arg_site_' . bin2hex(random_bytes(32));
         $token = SiteToken::create([
             'workspace_id' => $workspace->id,
             'client_site_id' => $clientSite->id,
@@ -89,7 +89,7 @@ class SiteTokenController extends Controller
     {
         $token = SiteToken::findOrFail($id);
 
-        $plain = 'pl_site_' . bin2hex(random_bytes(32));
+        $plain = 'arg_site_' . bin2hex(random_bytes(32));
         $token->token_hash = hash('sha256', $plain);
         $token->token_encrypted = Crypt::encryptString($plain);
         $token->key_prefix = substr($plain, 0, 14);

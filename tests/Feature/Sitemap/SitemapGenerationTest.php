@@ -125,8 +125,8 @@ it('renders canonical hreflang title meta description and article json ld for pu
         'title' => 'Useful English SEO Foundation',
         'slug' => 'useful-english-seo-foundation',
         'language' => 'en',
-        'seo_title' => 'Useful English SEO Foundation | PublishLayer',
-        'seo_meta_description' => 'A practical description that explains why this article helps PublishLayer users make better SEO decisions.',
+        'seo_title' => 'Useful English SEO Foundation | Argusly',
+        'seo_meta_description' => 'A practical description that explains why this article helps Argusly users make better SEO decisions.',
         'body' => '<p>This article gives a clear answer near the top for readers.</p><h2>Summary</h2><p>Use clean URLs and useful metadata.</p>',
         'is_source_locale' => true,
     ]);
@@ -136,8 +136,8 @@ it('renders canonical hreflang title meta description and article json ld for pu
         'slug' => 'nuttige-nederlandse-seo-basis',
         'language' => 'nl',
         'translation_source_content_id' => (string) $source->id,
-        'seo_title' => 'Nuttige Nederlandse SEO basis | PublishLayer',
-        'seo_meta_description' => 'Een praktische beschrijving voor Nederlandstalige PublishLayer gebruikers met duidelijke SEO context.',
+        'seo_title' => 'Nuttige Nederlandse SEO basis | Argusly',
+        'seo_meta_description' => 'Een praktische beschrijving voor Nederlandstalige Argusly gebruikers met duidelijke SEO context.',
         'body' => '<p>Dit artikel geeft bovenaan een duidelijk antwoord.</p><h2>Samenvatting</h2><p>Gebruik heldere URL’s en metadata.</p>',
     ]);
 
@@ -146,8 +146,8 @@ it('renders canonical hreflang title meta description and article json ld for pu
     $response->assertOk()
         ->assertSee('<link rel="canonical" href="' . e(LocalizedMarketingUrl::route('public.blog.show', ['slug' => 'useful-english-seo-foundation'], 'en')) . '"', false)
         ->assertSee('hreflang="nl"', false)
-        ->assertSee('Useful English SEO Foundation | PublishLayer', false)
-        ->assertSee('A practical description that explains why this article helps PublishLayer users make better SEO decisions.', false)
+        ->assertSee('Useful English SEO Foundation | Argusly', false)
+        ->assertSee('A practical description that explains why this article helps Argusly users make better SEO decisions.', false)
         ->assertSee('"@type":"Article"', false)
         ->assertSee('"@type":"BreadcrumbList"', false);
 });
@@ -172,7 +172,7 @@ it('adds featured images to the article image sitemap with alt-derived title', f
         'content_id' => (string) $article->id,
         'type' => 'featured',
         'image_url' => 'https://example.com/featured.jpg',
-        'alt_text' => 'Dashboard showing PublishLayer SEO metadata',
+        'alt_text' => 'Dashboard showing Argusly SEO metadata',
         'width' => 1200,
         'height' => 630,
         'status' => 'ready',
@@ -182,7 +182,7 @@ it('adds featured images to the article image sitemap with alt-derived title', f
     $this->get('/sitemaps/articles.xml')
         ->assertOk()
         ->assertSee('https://example.com/featured.jpg', false)
-        ->assertSee('Dashboard showing PublishLayer SEO metadata', false);
+        ->assertSee('Dashboard showing Argusly SEO metadata', false);
 });
 
 it('seo audit commands complete without crashing on an empty public dataset', function () {

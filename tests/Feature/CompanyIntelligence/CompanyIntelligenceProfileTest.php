@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 it('normalizes company intelligence into an ai readable payload with completeness scoring', function () {
     $normalized = app(CompanyIntelligenceNormalizer::class)->normalize([
         'brand_key' => 'primary',
-        'company_name' => 'PublishLayer',
+        'company_name' => 'Argusly',
         'company_description' => 'AI content operations platform.',
         'market_category' => 'Content intelligence',
         'positioning' => 'Governed agentic marketing for B2B teams.',
@@ -39,7 +39,7 @@ it('normalizes company intelligence into an ai readable payload with completenes
         'proof_points' => 'Audit logs and credit governance',
         'primary_topics' => 'agentic marketing',
         'authority_areas' => 'AEO',
-        'target_entities' => 'PublishLayer',
+        'target_entities' => 'Argusly',
         'strategic_keywords' => 'content opportunity engine',
         'query_intents' => 'best AI content planning platform',
         'direct_competitors' => 'MarketMuse',
@@ -47,12 +47,12 @@ it('normalizes company intelligence into an ai readable payload with completenes
         'aspirational_competitors' => 'HubSpot',
     ]);
 
-    expect($normalized->payload['business']['company_name'])->toBe('PublishLayer')
+    expect($normalized->payload['business']['company_name'])->toBe('Argusly')
         ->and($normalized->payload['business']['products_services'])->toBe(['AI visibility', 'Content automation'])
         ->and($normalized->payload['seo_aeo']['strategic_keywords'])->toBe(['content opportunity engine'])
         ->and($normalized->completenessScore)->toBeGreaterThan(90)
         ->and($normalized->payloadHash)->toHaveLength(64)
-        ->and($normalized->embeddingText)->toContain('business company_name: PublishLayer');
+        ->and($normalized->embeddingText)->toContain('business company_name: Argusly');
 });
 
 it('creates multi-brand company intelligence profiles from the app ui', function () {
@@ -63,7 +63,7 @@ it('creates multi-brand company intelligence profiles from the app ui', function
     $this->actingAs($owner)
         ->post(route('app.brand.company-intelligence.store'), [
             'brand_key' => 'primary',
-            'company_name' => 'PublishLayer',
+            'company_name' => 'Argusly',
             'company_description' => 'AI content operations platform.',
             'market_category' => 'Content intelligence',
             'products_services' => "AI visibility\nContent automation",

@@ -12,7 +12,7 @@ class WebsiteCrawlerService
 {
     private const CONNECT_TIMEOUT_SECONDS = 10;
     private const REQUEST_TIMEOUT_SECONDS = 30;
-    private const USER_AGENT = 'PublishLayerOnboardingScan/1.0 (+https://publishlayer.com)';
+    private const USER_AGENT = 'ArguslyOnboardingScan/1.0 (+https://argusly.com)';
 
     private const SYSTEM_PATH_PATTERNS = [
         '/wp-admin',

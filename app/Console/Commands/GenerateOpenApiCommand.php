@@ -10,9 +10,9 @@ class GenerateOpenApiCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'publishlayer:generate-openapi
+    protected $signature = 'argusly:generate-openapi
         {--format=yaml : Output format (yaml or json)}
-        {--output= : Output path (default: docs/openapi/publishlayer.yaml)}
+        {--output= : Output path (default: docs/openapi/argusly.yaml)}
         {--validate : Validate generated spec}
         {--stats : Show route statistics}';
 
@@ -69,7 +69,7 @@ class GenerateOpenApiCommand extends Command
         $format = $this->option('format');
         $output = $this->option('output');
 
-        $outputPath = $generator->write($spec, $output ?? config('publishlayer-docs.openapi.output'), $format);
+        $outputPath = $generator->write($spec, $output ?? config('argusly-docs.openapi.output'), $format);
 
         $this->newLine();
         $this->components->info("OpenAPI spec generated: {$outputPath}");

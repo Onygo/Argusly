@@ -92,7 +92,7 @@
                     </div>
                 </div>
                 <div id="site-type-instructions-laravel" class="hidden">
-                    Laravel setup: install <code>publishlayer/laravel-connector</code>, configure API key/base URL/workspace ID, then run Laravel connector activity check.
+                    Laravel setup: install <code>onygo/argusly-laravel-connector</code>, configure connector token/API URL/site ID, then run the Laravel connector activity check.
                 </div>
             </div>
             <div class="md:col-span-4">

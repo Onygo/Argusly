@@ -2,7 +2,7 @@
 
 return [
     'early_bird' => [
-        'inherit_plan_key' => env('PUBLISHLAYER_EARLY_BIRD_INHERIT_PLAN_KEY', ''),
+        'inherit_plan_key' => env('ARGUSLY_EARLY_BIRD_INHERIT_PLAN_KEY', ''),
         'features' => [
             'can_generate_briefs' => true,
             'can_generate_drafts' => true,

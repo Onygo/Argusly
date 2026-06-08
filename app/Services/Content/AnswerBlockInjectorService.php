@@ -68,7 +68,7 @@ class AnswerBlockInjectorService
 
     public function resolveMaxVisible(Content $content, ?int $override = null): int
     {
-        $value = $override ?? $content->answer_block_max_visible ?? config('publishlayer.answer_blocks.default_max_visible', 3);
+        $value = $override ?? $content->answer_block_max_visible ?? config('argusly.answer_blocks.default_max_visible', 3);
 
         return max(1, min(10, (int) $value));
     }

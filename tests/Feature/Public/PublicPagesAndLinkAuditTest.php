@@ -7,7 +7,7 @@ uses(RefreshDatabase::class);
 
 it('returns 200 for all public marketing pages', function () {
     // Ensure full marketing mode is enabled for this test
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
     $this->seed(\Database\Seeders\MarketingPageSeeder::class);
 
     $paths = [
@@ -41,7 +41,7 @@ it('returns 200 for all public marketing pages', function () {
 });
 
 it('redirects legacy product routes to platform anchors', function () {
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
 
     $this->get('/product/capabilities')->assertRedirect('/en/product/platform#capabilities');
     $this->get('/product/governance')->assertRedirect('/en/product/platform#governance');
@@ -49,7 +49,7 @@ it('redirects legacy product routes to platform anchors', function () {
 });
 
 it('does not emit crawlable contact tracking query links', function () {
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
     $this->seed(\Database\Seeders\MarketingPageSeeder::class);
 
     $this->get('/en')
@@ -61,7 +61,7 @@ it('does not emit crawlable contact tracking query links', function () {
 });
 
 it('canonicalizes old contact tracking query urls', function () {
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
     $this->seed(\Database\Seeders\MarketingPageSeeder::class);
 
     $this->get('/en/company/contact?topic=Contact&source=en/blog/example&cta=Contact')
@@ -82,11 +82,11 @@ it('passes the public link audit command without missing routes or broken links'
 it('renders legal terms in dutch by default and supports english switching', function () {
     $this->get('/nl/juridisch/voorwaarden')
         ->assertOk()
-        ->assertSee('Algemene Voorwaarden PublishLayer', false)
+        ->assertSee('Algemene Voorwaarden Argusly', false)
         ->assertSee('Artikel 1. Definities', false);
 
     $this->get('/en/legal/terms')
         ->assertOk()
-        ->assertSee('Terms and Conditions PublishLayer', false)
+        ->assertSee('Terms and Conditions Argusly', false)
         ->assertSee('Article 1. Definitions', false);
 });

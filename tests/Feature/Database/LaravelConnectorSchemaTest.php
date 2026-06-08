@@ -25,7 +25,7 @@ it('creates laravel connector destination sync schema', function () {
         'error_message',
     ]))->toBeTrue();
 
-    expect(Schema::hasColumns('publishlayer_articles', [
+    expect(Schema::hasColumns('argusly_articles', [
         'locale',
         'source_locale',
         'canonical_url',

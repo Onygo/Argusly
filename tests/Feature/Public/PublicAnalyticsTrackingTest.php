@@ -19,7 +19,7 @@ describe('Public Page Analytics Tracking', function () {
     });
 
     it('does not render tracking in testing environment by default', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => false]);
+        config(['argusly.analytics.allow_tracking_in_testing' => false]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([
@@ -34,7 +34,7 @@ describe('Public Page Analytics Tracking', function () {
     });
 
     it('renders GA4 tracking on public pages when enabled and environment allows', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([
@@ -50,7 +50,7 @@ describe('Public Page Analytics Tracking', function () {
     });
 
     it('renders GTM tracking on public pages when enabled', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([
@@ -67,7 +67,7 @@ describe('Public Page Analytics Tracking', function () {
     });
 
     it('renders custom script on public pages when enabled', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $customScript = '<script>window.customTracking = true;</script>';
 
@@ -84,7 +84,7 @@ describe('Public Page Analytics Tracking', function () {
     });
 
     it('does not render empty tracking when measurement ID is missing', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([

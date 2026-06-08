@@ -35,20 +35,20 @@ File::ensureDirectoryExists($scheduleLogPath);
 //
 // These steps are intentionally scheduled in order and kept synchronous so
 // downstream commands do not start before upstream work has had a chance to run.
-Schedule::command('publishlayer:processBriefs')
+Schedule::command('argusly:processBriefs')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/publishlayer-process-briefs.log');
+    ->appendOutputTo($scheduleLogPath . '/argusly-process-briefs.log');
 
-Schedule::command('publishlayer:generateDrafts')
+Schedule::command('argusly:generateDrafts')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/publishlayer-generate-drafts.log');
+    ->appendOutputTo($scheduleLogPath . '/argusly-generate-drafts.log');
 
-Schedule::command('publishlayer:deliverDrafts')
+Schedule::command('argusly:deliverDrafts')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/publishlayer-deliver-drafts.log');
+    ->appendOutputTo($scheduleLogPath . '/argusly-deliver-drafts.log');
 
 Schedule::command('drafts:dispatch-deliveries --limit=25')
     ->everyMinute()
@@ -111,7 +111,7 @@ Schedule::command('support:cleanup-snapshots --days=7')
     ->dailyAt('03:10')
     ->withoutOverlapping();
 
-Schedule::command('billing:diagnose-mollie-webhook-gaps --hours=6 --limit=300 --notify-email=dev@publishlayer.com --alert-cooldown-minutes=120 --fail-on-issues')
+Schedule::command('billing:diagnose-mollie-webhook-gaps --hours=6 --limit=300 --notify-email=dev@argusly.com --alert-cooldown-minutes=120 --fail-on-issues')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 

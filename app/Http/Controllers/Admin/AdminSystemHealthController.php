@@ -17,7 +17,7 @@ class AdminSystemHealthController extends Controller
     {
         $queueConnection = (string) config('queue.default', 'sync');
         $queueConfigured = (bool) config('queue.connections.' . $queueConnection);
-        $webhookQueue = trim((string) config('publishlayer.webhooks.queue', 'default'));
+        $webhookQueue = trim((string) config('argusly.webhooks.queue', 'default'));
         if ($webhookQueue === '') {
             $webhookQueue = 'default';
         }

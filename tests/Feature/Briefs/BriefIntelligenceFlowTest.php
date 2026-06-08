@@ -88,7 +88,7 @@ it('enhance action stores brief suggestions and completeness metadata', function
 
     CompanyProfile::query()->create([
         'workspace_id' => $workspace->id,
-        'company_name' => 'PublishLayer',
+        'company_name' => 'Argusly',
         'industry' => 'SaaS',
         'value_propositions' => "Governance\nAutomation",
         'target_audience' => 'B2B marketers',

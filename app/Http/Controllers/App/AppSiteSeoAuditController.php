@@ -37,7 +37,7 @@ class AppSiteSeoAuditController extends Controller
             ->get()
             ->map(function (SeoAudit $audit): SeoAudit {
                 $publishLayerPageIds = $audit->pages
-                    ->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)
+                    ->where('page_type', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)
                     ->pluck('id')
                     ->map(fn ($id): int => (int) $id)
                     ->all();
@@ -93,7 +93,7 @@ class AppSiteSeoAuditController extends Controller
         $scope = trim((string) $request->query('scope', ''));
         if ($scope === '') {
             $legacyScope = $request->string('page_scope')->toString();
-            $scope = $legacyScope === 'all' ? 'all' : ($legacyScope === 'publishlayer' ? 'publishlayer' : '');
+            $scope = $legacyScope === 'all' ? 'all' : ($legacyScope === 'argusly' ? 'argusly' : '');
         }
         $issueFilter = (string) $request->query('issue_filter', 'all');
         $issueType = trim((string) $request->query('issue_type', ''));
@@ -108,7 +108,7 @@ class AppSiteSeoAuditController extends Controller
                 ->orderByRaw("CASE severity WHEN 'error' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END")
                 ->orderBy('code'),
             'issues.page',
-            'fixSuggestions' => fn ($query) => $query->with(['applyLog', 'page.publishlayerArticle.drafts'])->orderByDesc('id'),
+            'fixSuggestions' => fn ($query) => $query->with(['applyLog', 'page.arguslyArticle.drafts'])->orderByDesc('id'),
         ]);
 
         $historyAudits = SeoAudit::query()
@@ -166,7 +166,7 @@ class AppSiteSeoAuditController extends Controller
         $issues = SeoAuditIssue::query()
             ->where('seo_audit_id', $audit->id)
             ->whereIn('id', $issueIds->all())
-            ->with(['page.publishlayerArticle'])
+            ->with(['page.arguslyArticle'])
             ->get();
 
         $supportedIssueIds = $issues
@@ -180,7 +180,7 @@ class AppSiteSeoAuditController extends Controller
         }
 
         foreach ($issues as $issue) {
-            $content = $issue->page?->publishlayerArticle;
+            $content = $issue->page?->arguslyArticle;
             if ($content) {
                 $this->authorize('update', $content);
             }
@@ -217,7 +217,7 @@ class AppSiteSeoAuditController extends Controller
         }
 
         $page = $suggestion->page;
-        $content = $page?->publishlayerArticle;
+        $content = $page?->arguslyArticle;
         if (! $page || ! $content) {
             return back()->withErrors(['ai_fix' => 'This suggestion can only be applied to Argusly content.']);
         }
@@ -250,7 +250,7 @@ class AppSiteSeoAuditController extends Controller
         }
 
         $page = $suggestion->page;
-        $content = $page?->publishlayerArticle;
+        $content = $page?->arguslyArticle;
         if (! $page || ! $content) {
             return back()->withErrors(['ai_fix' => 'This suggestion is not linked to editable Argusly content.']);
         }
@@ -275,7 +275,7 @@ class AppSiteSeoAuditController extends Controller
         ]);
 
         DeliverDraftJob::dispatch((string) $draft->id, forceDelivery: true)
-            ->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+            ->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
 
         return back()->with('status', 'Suggestion sync queued for WordPress.');
     }
@@ -296,7 +296,7 @@ class AppSiteSeoAuditController extends Controller
         }
 
         $page = $suggestion->page;
-        $content = $page?->publishlayerArticle;
+        $content = $page?->arguslyArticle;
         if (! $page || ! $content) {
             return back()->withErrors(['ai_fix' => 'This suggestion is informational only and is not linked to editable Argusly content.']);
         }

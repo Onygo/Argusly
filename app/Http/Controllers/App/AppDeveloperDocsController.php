@@ -78,16 +78,16 @@ class AppDeveloperDocsController extends Controller
     {
         Gate::authorize('manage-organization');
 
-        $openApiPath = config('publishlayer-docs.openapi.output', 'docs/openapi/publishlayer.yaml');
-        $postmanCollectionPath = config('publishlayer-docs.postman.output_dir', 'docs/postman/').'publishlayer-collection.json';
-        $postmanEnvironmentPath = config('publishlayer-docs.postman.output_dir', 'docs/postman/').'publishlayer-environment.json';
+        $openApiPath = config('argusly-docs.openapi.output', 'docs/openapi/argusly.yaml');
+        $postmanCollectionPath = config('argusly-docs.postman.output_dir', 'docs/postman/').'argusly-collection.json';
+        $postmanEnvironmentPath = config('argusly-docs.postman.output_dir', 'docs/postman/').'argusly-environment.json';
 
         return view('app.developer.docs.downloads', [
             'files' => [
                 [
                     'name' => 'OpenAPI Specification',
                     'description' => 'OpenAPI 3.1.0 specification for the Argusly API',
-                    'filename' => 'publishlayer-openapi.yaml',
+                    'filename' => 'argusly-openapi.yaml',
                     'exists' => File::exists(base_path($openApiPath)),
                     'route' => 'app.developer.docs.download.openapi',
                     'format' => 'YAML',
@@ -95,7 +95,7 @@ class AppDeveloperDocsController extends Controller
                 [
                     'name' => 'Postman Collection',
                     'description' => 'Import directly into Postman with all endpoints pre-configured',
-                    'filename' => 'publishlayer-collection.json',
+                    'filename' => 'argusly-collection.json',
                     'exists' => File::exists(base_path($postmanCollectionPath)),
                     'route' => 'app.developer.docs.download.postman-collection',
                     'format' => 'JSON',
@@ -103,7 +103,7 @@ class AppDeveloperDocsController extends Controller
                 [
                     'name' => 'Postman Environment',
                     'description' => 'Environment variables for the Postman collection',
-                    'filename' => 'publishlayer-environment.json',
+                    'filename' => 'argusly-environment.json',
                     'exists' => File::exists(base_path($postmanEnvironmentPath)),
                     'route' => 'app.developer.docs.download.postman-environment',
                     'format' => 'JSON',
@@ -120,13 +120,13 @@ class AppDeveloperDocsController extends Controller
     {
         Gate::authorize('manage-organization');
 
-        $path = base_path(config('publishlayer-docs.openapi.output', 'docs/openapi/publishlayer.yaml'));
+        $path = base_path(config('argusly-docs.openapi.output', 'docs/openapi/argusly.yaml'));
 
         if (! File::exists($path)) {
-            abort(404, 'OpenAPI specification not found. Run php artisan publishlayer:generate-openapi first.');
+            abort(404, 'OpenAPI specification not found. Run php artisan argusly:generate-openapi first.');
         }
 
-        return response()->download($path, 'publishlayer-openapi.yaml', [
+        return response()->download($path, 'argusly-openapi.yaml', [
             'Content-Type' => 'application/x-yaml',
         ]);
     }
@@ -138,13 +138,13 @@ class AppDeveloperDocsController extends Controller
     {
         Gate::authorize('manage-organization');
 
-        $path = base_path(config('publishlayer-docs.postman.output_dir', 'docs/postman/').'publishlayer-collection.json');
+        $path = base_path(config('argusly-docs.postman.output_dir', 'docs/postman/').'argusly-collection.json');
 
         if (! File::exists($path)) {
-            abort(404, 'Postman collection not found. Run php artisan publishlayer:generate-postman first.');
+            abort(404, 'Postman collection not found. Run php artisan argusly:generate-postman first.');
         }
 
-        return response()->download($path, 'publishlayer-collection.json', [
+        return response()->download($path, 'argusly-collection.json', [
             'Content-Type' => 'application/json',
         ]);
     }
@@ -156,13 +156,13 @@ class AppDeveloperDocsController extends Controller
     {
         Gate::authorize('manage-organization');
 
-        $path = base_path(config('publishlayer-docs.postman.output_dir', 'docs/postman/').'publishlayer-environment.json');
+        $path = base_path(config('argusly-docs.postman.output_dir', 'docs/postman/').'argusly-environment.json');
 
         if (! File::exists($path)) {
-            abort(404, 'Postman environment not found. Run php artisan publishlayer:generate-postman first.');
+            abort(404, 'Postman environment not found. Run php artisan argusly:generate-postman first.');
         }
 
-        return response()->download($path, 'publishlayer-environment.json', [
+        return response()->download($path, 'argusly-environment.json', [
             'Content-Type' => 'application/json',
         ]);
     }

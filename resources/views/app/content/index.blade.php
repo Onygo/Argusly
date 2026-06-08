@@ -953,7 +953,7 @@
 
             deleteCancel?.addEventListener('click', () => deleteDialog?.close());
 
-            const storageKey = 'publishlayer.content.index.expanded.v1';
+            const storageKey = 'argusly.content.index.expanded.v1';
             const interactiveSelector = 'a, button, input, select, textarea, label, summary, [data-no-row-toggle]';
 
             const readExpandedKeys = () => {

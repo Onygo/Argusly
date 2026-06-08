@@ -205,6 +205,6 @@ class DraftLinkSuggestionsController extends Controller
             'delivery_last_error' => null,
         ]);
 
-        DeliverDraftJob::dispatch((string) $draft->id)->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+        DeliverDraftJob::dispatch((string) $draft->id)->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
     }
 }

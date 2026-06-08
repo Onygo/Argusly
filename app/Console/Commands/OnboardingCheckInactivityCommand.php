@@ -28,7 +28,7 @@ class OnboardingCheckInactivityCommand extends Command
                         continue;
                     }
 
-                    if ((bool) config('publishlayer.onboarding.require_email_verification', false) && ! $state->verified_at) {
+                    if ((bool) config('argusly.onboarding.require_email_verification', false) && ! $state->verified_at) {
                         if (! $state->wasEmailSent('verify_reminder_1') && $state->registered_at && $state->registered_at->lte($now->copy()->subDay())) {
                             SendOnboardingEmailJob::dispatch((int) $state->user_id, 'verify_reminder_1');
                             $queued++;
@@ -62,7 +62,7 @@ class OnboardingCheckInactivityCommand extends Command
                         }
                     }
 
-                    if ((bool) config('publishlayer.onboarding.trial_ending_enabled', false) && ! $state->wasEmailSent('trial_ending')) {
+                    if ((bool) config('argusly.onboarding.trial_ending_enabled', false) && ! $state->wasEmailSent('trial_ending')) {
                         $trialEndsAt = $states->activeTrialEndsAt($state);
                         if ($trialEndsAt && $trialEndsAt->isFuture() && $trialEndsAt->lte($now->copy()->addDays(3))) {
                             SendOnboardingEmailJob::dispatch((int) $state->user_id, 'trial_ending');

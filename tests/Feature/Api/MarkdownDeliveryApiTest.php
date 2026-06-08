@@ -31,9 +31,9 @@ it('delivers markdown through a site token within the site scope', function () {
         ->assertJsonPath('content_id', (string) $content->id)
         ->assertJsonPath('locale', 'en')
         ->assertJsonPath('status', 'published')
-        ->assertJsonPath('canonical_url', 'https://markdown-api.example.com/blog/publishlayer-guide')
-        ->assertJsonPath('rendered_markdown', "# PublishLayer guide\n\nEnglish body")
-        ->assertJsonPath('rendered_html', '<h1>PublishLayer guide</h1><p>English body</p>');
+        ->assertJsonPath('canonical_url', 'https://markdown-api.example.com/blog/argusly-guide')
+        ->assertJsonPath('rendered_markdown', "# Argusly guide\n\nEnglish body")
+        ->assertJsonPath('rendered_html', '<h1>Argusly guide</h1><p>English body</p>');
 });
 
 it('prevents cross site access for site tokens', function () {
@@ -85,8 +85,8 @@ it('returns locale specific artifacts when requested', function () {
     app(MarkdownArtifactService::class)->storeArtifact($content, [
         'markdown_locale' => 'nl',
         'content_version_id' => $content->current_version_id,
-        'rendered_markdown' => "# PublishLayer gids\n\nNederlandse inhoud",
-        'rendered_html' => '<h1>PublishLayer gids</h1><p>Nederlandse inhoud</p>',
+        'rendered_markdown' => "# Argusly gids\n\nNederlandse inhoud",
+        'rendered_html' => '<h1>Argusly gids</h1><p>Nederlandse inhoud</p>',
         'markdown_status' => ContentRenderArtifact::STATUS_READY,
         'markdown_source' => ContentRenderArtifact::SOURCE_MANUAL,
         'markdown_generated_at' => now(),
@@ -96,7 +96,7 @@ it('returns locale specific artifacts when requested', function () {
         ->getJson('/api/sites/' . $site->id . '/content/' . $content->id . '/markdown?locale=nl')
         ->assertOk()
         ->assertJsonPath('locale', 'nl')
-        ->assertJsonPath('rendered_markdown', "# PublishLayer gids\n\nNederlandse inhoud");
+        ->assertJsonPath('rendered_markdown', "# Argusly gids\n\nNederlandse inhoud");
 });
 
 it('returns a paginated markdown index with fixed visibility rules', function () {
@@ -152,7 +152,7 @@ it('returns a paginated markdown index with fixed visibility rules', function ()
     $this->withHeaders($headers)
         ->getJson('/api/sites/' . $site->id . '/markdown-index?per_page=10')
         ->assertOk()
-        ->assertJsonPath('items.0.slug', 'publishlayer-guide')
+        ->assertJsonPath('items.0.slug', 'argusly-guide')
         ->assertJsonPath('items.0.locale', 'en')
         ->assertJsonPath('meta.per_page', 10)
         ->assertJsonCount(1, 'items');
@@ -207,16 +207,16 @@ function makeMarkdownDeliveryContext(
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
         'client_site_id' => $site->id,
-        'title' => 'PublishLayer guide',
+        'title' => 'Argusly guide',
         'language' => 'en',
         'type' => 'article',
         'status' => $contentStatus,
         'source' => 'api',
         'publish_status' => $publishStatus,
-        'published_url' => 'https://' . $host . '/blog/publishlayer-guide',
-        'publish_url_key' => 'publishlayer-guide',
-        'canonical_url_key' => 'publishlayer-guide',
-        'external_key' => 'publishlayer-guide',
+        'published_url' => 'https://' . $host . '/blog/argusly-guide',
+        'publish_url_key' => 'argusly-guide',
+        'canonical_url_key' => 'argusly-guide',
+        'external_key' => 'argusly-guide',
     ]);
 
     $version = \App\Models\ContentVersion::query()->create([
@@ -239,14 +239,14 @@ function makeMarkdownDeliveryContext(
     $content->update([
         'current_version_id' => $version->id,
         'current_revision_id' => $revision->id,
-        'seo_canonical' => 'https://' . $host . '/blog/publishlayer-guide',
+        'seo_canonical' => 'https://' . $host . '/blog/argusly-guide',
     ]);
 
     app(MarkdownArtifactService::class)->storeArtifact($content->fresh(['workspace', 'renderArtifacts']), [
         'markdown_locale' => 'en',
         'content_version_id' => $version->id,
-        'rendered_markdown' => "# PublishLayer guide\n\nEnglish body",
-        'rendered_html' => '<h1>PublishLayer guide</h1><p>English body</p>',
+        'rendered_markdown' => "# Argusly guide\n\nEnglish body",
+        'rendered_html' => '<h1>Argusly guide</h1><p>English body</p>',
         'markdown_status' => ContentRenderArtifact::STATUS_READY,
         'markdown_source' => ContentRenderArtifact::SOURCE_MANUAL,
         'markdown_generated_at' => now(),
@@ -264,7 +264,7 @@ function makeMarkdownDeliveryContext(
         $content->fresh(['workspace', 'seo', 'publications', 'renderArtifacts']),
         [
             'Authorization' => 'Bearer ' . $plainSiteToken,
-            'X-PublishLayer-Site' => $host,
+            'X-Argusly-Site' => $host,
         ],
         [
             'Authorization' => 'Bearer ' . $created['plain_text_key'],

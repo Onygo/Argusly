@@ -10,9 +10,9 @@ it('extracts and normalizes high-performing entities from realistic answers', fu
     $extractor = app(LlmAuthorityEntityExtractor::class);
     $query = new LlmTrackingQuery([
         'query_text' => 'best AI content tools for SEO',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer'],
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['Semrush'],
     ]);
 
@@ -36,17 +36,17 @@ it('prevents generic false positives and ignores the tracked brand', function ()
     $extractor = app(LlmAuthorityEntityExtractor::class);
     $query = new LlmTrackingQuery([
         'query_text' => 'tools to improve AI search visibility',
-        'target_brand' => 'PublishLayer',
-        'brand_terms' => ['PublishLayer'],
+        'target_brand' => 'Argusly',
+        'brand_terms' => ['Argusly'],
     ]);
 
     $entities = $extractor->extract(
-        'PublishLayer appears in this Answer with Best Content Tools and AI Search Visibility as generic headings.',
+        'Argusly appears in this Answer with Best Content Tools and AI Search Visibility as generic headings.',
         $query,
     );
 
     expect(collect($entities)->pluck('normalized_name')->all())
-        ->not->toContain('publishlayer')
+        ->not->toContain('argusly')
         ->not->toContain('best content tools')
         ->not->toContain('ai search visibility');
 });

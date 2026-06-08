@@ -231,7 +231,7 @@ class DeliverDraftToWordPress
                 'schema_type' => $payloadSeo['schema_type'],
             ], static fn ($value) => is_bool($value) || trim((string) $value) !== '')
         );
-        $payloadMeta = $this->withPublishLayerMeta($payloadMeta, $draft, $payloadSeo);
+        $payloadMeta = $this->withArguslyMeta($payloadMeta, $draft, $payloadSeo);
         $remoteDraftId = $this->resolveRemoteDraftId($draft, $clientRefs);
         $correlationId = $this->currentCorrelationId ?? (string) Str::uuid();
         $slug = $this->resolvePayloadSlug($draft, $payloadMeta);
@@ -245,10 +245,10 @@ class DeliverDraftToWordPress
             'id' => $remoteDraftId,
             'correlation_id' => $correlationId,
             'pl_draft_id' => $draft->id,
-            'publishlayer_draft_id' => (string) $draft->id,
-            'publishlayer_content_id' => (string) ($draft->content_id ?? ''),
-            'publishlayer_publication_id' => (string) ($this->currentPublication?->id ?? ''),
-            'publishlayer_origin' => 'publishlayer',
+            'argusly_draft_id' => (string) $draft->id,
+            'argusly_content_id' => (string) ($draft->content_id ?? ''),
+            'argusly_publication_id' => (string) ($this->currentPublication?->id ?? ''),
+            'argusly_origin' => 'argusly',
             'post_type' => $wpPostType->value,
             'language' => $draft->language->value,
             'is_translation' => $draft->isTranslation(),
@@ -295,8 +295,8 @@ class DeliverDraftToWordPress
             'policy' => $this->resolveConnectorPolicyPayload($draft),
         ];
         if ($exportedAnswerBlocks !== [] || $faqSchema !== null) {
-            $payload['meta']['publishlayer'] = array_replace_recursive(
-                is_array($payload['meta']['publishlayer'] ?? null) ? $payload['meta']['publishlayer'] : [],
+            $payload['meta']['argusly'] = array_replace_recursive(
+                is_array($payload['meta']['argusly'] ?? null) ? $payload['meta']['argusly'] : [],
                 array_filter([
                     'answer_blocks' => $exportedAnswerBlocks !== [] ? $exportedAnswerBlocks : null,
                     'faq_schema' => $faqSchema,
@@ -304,7 +304,7 @@ class DeliverDraftToWordPress
             );
         }
         $payload = $this->applySeoSyncPayload($draft, $payload, $payloadSeo);
-        $payload = $this->applyPublishLayerRemoteMeta($payload, $draft);
+        $payload = $this->applyArguslyRemoteMeta($payload, $draft);
         [$clientRefs, $payload, $resolvedRemote] = $this->alignPayloadWithResolvedRemotePost($draft, $clientRefs, $payload);
         [$clientRefs, $payload] = $this->normalizePayloadForRemoteWordPressState($draft, $clientRefs, $payload);
         $remoteDraftId = $this->resolveRemoteDraftId($draft, $clientRefs);
@@ -505,7 +505,7 @@ class DeliverDraftToWordPress
             }
         }
 
-        $lookupWpPostId = $this->findWpPostByPublishLayerId($content, $draft);
+        $lookupWpPostId = $this->findWpPostByArguslyId($content, $draft);
         if ($lookupWpPostId === '') {
             $lookupWpPostId = $this->lookupWpPostIdByExternalKey($content, $draft);
         }
@@ -628,9 +628,12 @@ class DeliverDraftToWordPress
                 ])
                 ->withHeaders([
                     'Content-Type' => 'application/json',
-                    'X-PublishLayer-Timestamp' => $ts,
-                    'X-PublishLayer-Signature' => $sig,
-                    'X-PublishLayer-Correlation-Id' => $correlationId,
+                    'X-Argusly-Timestamp' => $ts,
+                    'X-Argusly-Signature' => $sig,
+                    'X-Argusly-Correlation-Id' => $correlationId,
+                    'X-Argusly-Timestamp' => $ts,
+                    'X-Argusly-Signature' => $sig,
+                    'X-Argusly-Correlation-Id' => $correlationId,
                 ])
                 ->send('POST', $url, ['body' => $body]);
 
@@ -1401,7 +1404,7 @@ class DeliverDraftToWordPress
     {
         $url = trim((string) ($clientRefs['draft_webhook_url'] ?? $draft->clientSite?->draft_webhook_url ?? ''));
         $secret = trim((string) ($clientRefs['draft_webhook_secret'] ?? $draft->clientSite?->draft_webhook_secret ?? ''));
-        $defaultSecret = trim((string) config('publishlayer.webhooks.secret', ''));
+        $defaultSecret = trim((string) config('argusly.webhooks.secret', ''));
 
         if ($url !== '' && $secret === '' && $defaultSecret !== '') {
             $secret = $defaultSecret;
@@ -1872,7 +1875,7 @@ class DeliverDraftToWordPress
             try {
                 $post = $connector->findPostByMeta([
                     'external_key' => $candidateKey,
-                    'publishlayer_draft_id' => (string) ($draft?->id ?? ''),
+                    'argusly_draft_id' => (string) ($draft?->id ?? ''),
                     'pl_draft_id' => (string) ($draft?->id ?? ''),
                     'content_id' => (string) $content->id,
                     'pl_content_id' => (string) $content->id,
@@ -1889,7 +1892,7 @@ class DeliverDraftToWordPress
         return '';
     }
 
-    private function findWpPostByPublishLayerId(Content $content, ?Draft $draft): string
+    private function findWpPostByArguslyId(Content $content, ?Draft $draft): string
     {
         $draftId = trim((string) ($draft?->id ?? ''));
         if ($draftId === '') {
@@ -1903,12 +1906,12 @@ class DeliverDraftToWordPress
 
         try {
             $post = $connector->findPostByMeta([
-                'publishlayer_draft_id' => $draftId,
+                'argusly_draft_id' => $draftId,
                 'pl_draft_id' => $draftId,
                 'draft_id' => $draftId,
                 'content_id' => (string) $content->id,
                 'pl_content_id' => (string) $content->id,
-                'meta_key' => 'publishlayer_draft_id',
+                'meta_key' => 'argusly_draft_id',
                 'meta_value' => $draftId,
             ]);
         } catch (WordPressConnectorException) {
@@ -1935,33 +1938,33 @@ class DeliverDraftToWordPress
      * @param array<string,mixed> $resolvedSeo
      * @return array<string,mixed>
      */
-    private function withPublishLayerMeta(mixed $payloadMeta, Draft $draft, array $resolvedSeo = []): array
+    private function withArguslyMeta(mixed $payloadMeta, Draft $draft, array $resolvedSeo = []): array
     {
         $meta = is_array($payloadMeta) ? $payloadMeta : [];
         $seo = $resolvedSeo !== [] ? $resolvedSeo : SeoMetadata::resolveForDraftContext($draft, $meta);
         $contentMeta = $this->publishLayerContentMeta($draft);
 
-        $meta['publishlayer_draft_id'] = (string) $draft->id;
-        $meta['publishlayer_content_id'] = (string) ($draft->content_id ?? '');
-        $meta['publishlayer_brief_id'] = (string) ($draft->brief_id ?? '');
-        $meta['publishlayer_publication_id'] = (string) ($this->currentPublication?->id ?? '');
-        $meta['publishlayer_origin'] = 'publishlayer';
-        $meta['publishlayer_language'] = $draft->language->value;
-        $meta['publishlayer_locale'] = $draft->language->value;
-        $meta['publishlayer_destination_id'] = $this->publicationDestinationIdForDraft($draft);
-        $meta['publishlayer_is_translation'] = $draft->isTranslation();
-        $meta['publishlayer_source_draft_id'] = $draft->source_draft_id ? (string) $draft->source_draft_id : null;
-        $meta['_publishlayer_content_id'] = (string) ($draft->content_id ?? '');
-        $meta['_publishlayer_locale'] = $draft->language->value;
-        $meta['_publishlayer_destination_id'] = $this->publicationDestinationIdForDraft($draft);
+        $meta['argusly_draft_id'] = (string) $draft->id;
+        $meta['argusly_content_id'] = (string) ($draft->content_id ?? '');
+        $meta['argusly_brief_id'] = (string) ($draft->brief_id ?? '');
+        $meta['argusly_publication_id'] = (string) ($this->currentPublication?->id ?? '');
+        $meta['argusly_origin'] = 'argusly';
+        $meta['argusly_language'] = $draft->language->value;
+        $meta['argusly_locale'] = $draft->language->value;
+        $meta['argusly_destination_id'] = $this->publicationDestinationIdForDraft($draft);
+        $meta['argusly_is_translation'] = $draft->isTranslation();
+        $meta['argusly_source_draft_id'] = $draft->source_draft_id ? (string) $draft->source_draft_id : null;
+        $meta['_argusly_content_id'] = (string) ($draft->content_id ?? '');
+        $meta['_argusly_locale'] = $draft->language->value;
+        $meta['_argusly_destination_id'] = $this->publicationDestinationIdForDraft($draft);
         $meta = array_merge($meta, $contentMeta);
 
-        $nested = is_array($meta['publishlayer'] ?? null) ? $meta['publishlayer'] : [];
+        $nested = is_array($meta['argusly'] ?? null) ? $meta['argusly'] : [];
         $nested['draft_id'] = (string) $draft->id;
         $nested['content_id'] = (string) ($draft->content_id ?? '');
         $nested['brief_id'] = (string) ($draft->brief_id ?? '');
         $nested['publication_id'] = (string) ($this->currentPublication?->id ?? '');
-        $nested['origin'] = 'publishlayer';
+        $nested['origin'] = 'argusly';
         $nested['language'] = $draft->language->value;
         $nested['locale'] = $draft->language->value;
         $nested['destination_id'] = $this->publicationDestinationIdForDraft($draft);
@@ -1983,7 +1986,7 @@ class DeliverDraftToWordPress
             'twitter_title' => $seo['seo_twitter_title'] ?? null,
             'twitter_description' => $seo['seo_twitter_description'] ?? null,
         ], fn ($value) => $this->hasSeoValue($value));
-        $meta['publishlayer'] = $nested;
+        $meta['argusly'] = $nested;
 
         return $meta;
     }
@@ -1994,20 +1997,20 @@ class DeliverDraftToWordPress
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function applyPublishLayerRemoteMeta(array $payload, Draft $draft): array
+    private function applyArguslyRemoteMeta(array $payload, Draft $draft): array
     {
         $publishLayerMeta = array_merge([
-            'publishlayer_content_id' => (string) ($draft->content_id ?? ''),
-            'publishlayer_publication_id' => (string) ($this->currentPublication?->id ?? ''),
-            'publishlayer_origin' => 'publishlayer',
-            'publishlayer_language' => $draft->language->value,
-            'publishlayer_locale' => $draft->language->value,
-            'publishlayer_destination_id' => $this->publicationDestinationIdForDraft($draft),
-            'publishlayer_is_translation' => $draft->isTranslation() ? '1' : '0',
-            'publishlayer_source_draft_id' => $draft->source_draft_id ? (string) $draft->source_draft_id : '',
-            '_publishlayer_content_id' => (string) ($draft->content_id ?? ''),
-            '_publishlayer_locale' => $draft->language->value,
-            '_publishlayer_destination_id' => $this->publicationDestinationIdForDraft($draft),
+            'argusly_content_id' => (string) ($draft->content_id ?? ''),
+            'argusly_publication_id' => (string) ($this->currentPublication?->id ?? ''),
+            'argusly_origin' => 'argusly',
+            'argusly_language' => $draft->language->value,
+            'argusly_locale' => $draft->language->value,
+            'argusly_destination_id' => $this->publicationDestinationIdForDraft($draft),
+            'argusly_is_translation' => $draft->isTranslation() ? '1' : '0',
+            'argusly_source_draft_id' => $draft->source_draft_id ? (string) $draft->source_draft_id : '',
+            '_argusly_content_id' => (string) ($draft->content_id ?? ''),
+            '_argusly_locale' => $draft->language->value,
+            '_argusly_destination_id' => $this->publicationDestinationIdForDraft($draft),
         ], $this->publishLayerContentMeta($draft));
 
         $payload['meta_input'] = array_replace(
@@ -2030,18 +2033,18 @@ class DeliverDraftToWordPress
         $content = $draft->content;
 
         return [
-            'publishlayer_external_key' => $this->publishLayerMetaString($content?->external_key),
-            'publishlayer_origin_type' => $this->publishLayerMetaString($content?->origin_type?->value ?? $content?->origin_type),
-            'publishlayer_source' => $this->publishLayerMetaString($content?->source?->value ?? $content?->source),
-            'publishlayer_generation_mode' => $this->publishLayerMetaString($content?->generation_mode),
-            'publishlayer_automation_id' => $this->publishLayerMetaString($content?->automation_id),
-            'publishlayer_automation_run_id' => $this->publishLayerMetaString($content?->automation_run_id),
-            'publishlayer_family_id' => $this->publishLayerMetaString($content?->family_id),
-            'publishlayer_translation_source_content_id' => $this->publishLayerMetaString($content?->translation_source_content_id),
-            'publishlayer_translation_source_locale' => $this->publishLayerMetaString($content?->translation_source_locale),
-            'publishlayer_is_source_locale' => (bool) ($content?->is_source_locale ?? false) ? '1' : '0',
-            'publishlayer_publish_url_key' => $this->publishLayerMetaString($content?->publish_url_key),
-            'publishlayer_canonical_url_key' => $this->publishLayerMetaString($content?->canonical_url_key),
+            'argusly_external_key' => $this->publishLayerMetaString($content?->external_key),
+            'argusly_origin_type' => $this->publishLayerMetaString($content?->origin_type?->value ?? $content?->origin_type),
+            'argusly_source' => $this->publishLayerMetaString($content?->source?->value ?? $content?->source),
+            'argusly_generation_mode' => $this->publishLayerMetaString($content?->generation_mode),
+            'argusly_automation_id' => $this->publishLayerMetaString($content?->automation_id),
+            'argusly_automation_run_id' => $this->publishLayerMetaString($content?->automation_run_id),
+            'argusly_family_id' => $this->publishLayerMetaString($content?->family_id),
+            'argusly_translation_source_content_id' => $this->publishLayerMetaString($content?->translation_source_content_id),
+            'argusly_translation_source_locale' => $this->publishLayerMetaString($content?->translation_source_locale),
+            'argusly_is_source_locale' => (bool) ($content?->is_source_locale ?? false) ? '1' : '0',
+            'argusly_publish_url_key' => $this->publishLayerMetaString($content?->publish_url_key),
+            'argusly_canonical_url_key' => $this->publishLayerMetaString($content?->canonical_url_key),
         ];
     }
 
@@ -2422,13 +2425,13 @@ class DeliverDraftToWordPress
     private function stableRemoteLookupCriteria(Draft $draft): array
     {
         $criteria = [
-            'publishlayer_content_id' => (string) ($draft->content_id ?? ''),
-            'publishlayer_locale' => $this->publicationLocaleValue($draft),
-            'publishlayer_destination_id' => $this->publicationDestinationIdForDraft($draft),
+            'argusly_content_id' => (string) ($draft->content_id ?? ''),
+            'argusly_locale' => $this->publicationLocaleValue($draft),
+            'argusly_destination_id' => $this->publicationDestinationIdForDraft($draft),
         ];
 
         if ($this->currentPublication) {
-            $criteria['publishlayer_publication_id'] = (string) $this->currentPublication->id;
+            $criteria['argusly_publication_id'] = (string) $this->currentPublication->id;
         }
 
         if ($draft->content?->external_key) {
@@ -2458,11 +2461,11 @@ class DeliverDraftToWordPress
      */
     private function logSyncAttempt(Draft $draft, array $context, string $level = 'info'): void
     {
-        if (! (bool) config('publishlayer.wp_connector.sync_debug', false)) {
+        if (! (bool) config('argusly.wp_connector.sync_debug', false)) {
             return;
         }
 
-        $siteFilter = trim((string) config('publishlayer.wp_connector.sync_debug_site_id', ''));
+        $siteFilter = trim((string) config('argusly.wp_connector.sync_debug_site_id', ''));
         $siteId = (string) ($draft->client_site_id ?? '');
         if ($siteFilter !== '' && $siteFilter !== $siteId) {
             return;

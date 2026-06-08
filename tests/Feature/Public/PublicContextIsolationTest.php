@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 it('renders the public landing page the same way for guests and impersonated admin sessions', function () {
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
 
     $organization = Organization::query()->create([
         'name' => 'Public Boundary Org',
@@ -44,7 +44,7 @@ it('renders the public landing page the same way for guests and impersonated adm
 });
 
 it('ignores session based public locale state and resolves guest locale from request inputs only', function () {
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
 
     $this->withHeader('Accept-Language', 'en-US,en;q=0.9')
         ->withSession(['public_locale' => 'nl', 'public_lang' => 'nl'])
@@ -55,7 +55,7 @@ it('ignores session based public locale state and resolves guest locale from req
 
 it('keeps llms output scoped to the current request host instead of shared session or cache state', function () {
     config([
-        'publishlayer.launch.soft_launch_mode' => false,
+        'argusly.launch.soft_launch_mode' => false,
         'llms.base_url' => null,
         'llms.cache_ttl' => 60,
     ]);

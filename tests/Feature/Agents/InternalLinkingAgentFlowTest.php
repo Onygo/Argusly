@@ -205,7 +205,7 @@ it('applies an internal link suggestion to content by creating a new refresh rev
         'parent_version_id' => null,
         'body' => '<p>This content references editorial workflow checklist when planning the next revision.</p>',
         'meta' => [],
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => $owner->id,
     ]);
     $sourceContent->update([

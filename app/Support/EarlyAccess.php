@@ -65,7 +65,7 @@ final class EarlyAccess
      */
     public static function enabled(): bool
     {
-        return (bool) config('publishlayer.launch.soft_launch_mode', false);
+        return (bool) config('argusly.launch.soft_launch_mode', false);
     }
 
     /**
@@ -91,7 +91,7 @@ final class EarlyAccess
      */
     public static function pricingEnabled(): bool
     {
-        return (bool) config('publishlayer.launch.public_pricing_enabled', true);
+        return (bool) config('argusly.launch.public_pricing_enabled', true);
     }
 
     /**

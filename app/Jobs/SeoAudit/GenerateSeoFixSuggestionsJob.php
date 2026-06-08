@@ -60,7 +60,7 @@ class GenerateSeoFixSuggestionsJob implements ShouldQueue
         $issues = SeoAuditIssue::query()
             ->where('seo_audit_id', $audit->id)
             ->whereIn('id', $selectedIssueIds)
-            ->with(['page.publishlayerArticle.seo'])
+            ->with(['page.arguslyArticle.seo'])
             ->get();
 
         foreach ($issues as $issue) {
@@ -69,7 +69,7 @@ class GenerateSeoFixSuggestionsJob implements ShouldQueue
                 continue;
             }
 
-            $content = $page->publishlayerArticle;
+            $content = $page->arguslyArticle;
             if ($content && ! $content instanceof Content) {
                 $content = null;
             }

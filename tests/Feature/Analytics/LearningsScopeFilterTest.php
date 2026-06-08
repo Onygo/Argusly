@@ -40,7 +40,7 @@ it('filters learnings data by scope', function () {
         'canonical_url_hash' => hash('sha256', 'https://example.com/article-1'),
         'url_key' => 'example.com/article-1',
         'content_id' => $content->id,
-        'page_type' => 'publishlayer_content',
+        'page_type' => 'argusly_content',
         'event_hash' => hash('sha256', 'mapped-event'),
         'event_time' => $now,
         'received_at' => $now,

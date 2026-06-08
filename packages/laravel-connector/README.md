@@ -35,10 +35,9 @@ ARGUSLY_CONNECTOR_SITE_ID=
 ARGUSLY_CONNECTOR_DESTINATION_ID=
 ARGUSLY_CONNECTOR_SITE_NAME="${APP_NAME}"
 ARGUSLY_CONNECTOR_SITE_URL="${APP_URL}"
-ARGUSLY_CONNECTOR_SEND_API_KEY_ALIAS=false
 ```
 
-The required token is issued by the Argusly platform. The connector sends it as `Authorization: Bearer <token>`. `X-Argusly-API-Key` is only sent when `ARGUSLY_CONNECTOR_SEND_API_KEY_ALIAS=true` for compatibility with environments that cannot forward bearer headers.
+The required token is issued by the Argusly platform. The connector sends it as `Authorization: Bearer <token>`.
 
 API URL examples:
 
@@ -88,10 +87,6 @@ php artisan argusly:connector:health
 php artisan argusly:connector:content:pull --limit=5
 php artisan argusly:connector:content:sync example-content-id
 ```
-
-## Compatibility
-
-The package is Argusly-native and uses bearer auth by default. The optional `X-Argusly-API-Key` alias is available only for compatibility during the platform migration window.
 
 ## TODO
 

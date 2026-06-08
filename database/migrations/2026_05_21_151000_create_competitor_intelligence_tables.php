@@ -75,7 +75,7 @@ return new class extends Migration
             $table->string('topic', 191);
             $table->string('topic_hash', 64);
             $table->unsignedInteger('competitor_content_count')->default(0);
-            $table->unsignedInteger('publishlayer_content_count')->default(0);
+            $table->unsignedInteger('argusly_content_count')->default(0);
             $table->decimal('overlap_score', 5, 2)->default(0);
             $table->decimal('opportunity_score', 5, 2)->default(0);
             $table->string('coverage_status', 40)->default('missing');
@@ -111,7 +111,7 @@ return new class extends Migration
             $table->text('attackable_angle')->nullable();
             $table->text('reason')->nullable();
             $table->json('competitor_evidence')->nullable();
-            $table->json('publishlayer_coverage')->nullable();
+            $table->json('argusly_coverage')->nullable();
             $table->json('normalized_payload')->nullable();
             $table->string('dedupe_hash', 64);
             $table->timestamp('last_seen_at')->nullable();

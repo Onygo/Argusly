@@ -194,11 +194,11 @@ class RegisterController extends Controller
 
     private function registrationBlockedResponse(): ?RedirectResponse
     {
-        if ((bool) config('publishlayer.launch.public_registration_enabled', true)) {
+        if ((bool) config('argusly.launch.public_registration_enabled', true)) {
             return null;
         }
 
-        $mode = strtolower(trim((string) config('publishlayer.launch.registration_block_mode', 'redirect')));
+        $mode = strtolower(trim((string) config('argusly.launch.registration_block_mode', 'redirect')));
 
         if (in_array($mode, ['403', 'forbidden'], true)) {
             abort(403);

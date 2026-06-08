@@ -4,7 +4,7 @@ namespace App\Services\Seo;
 
 use App\Services\Seo\Providers\AioSeoProvider;
 use App\Services\Seo\Providers\NoneProvider;
-use App\Services\Seo\Providers\PublishLayerProvider;
+use App\Services\Seo\Providers\ArguslyProvider;
 use App\Services\Seo\Providers\RankMathProvider;
 use App\Services\Seo\Providers\SEOProviderInterface;
 use App\Services\Seo\Providers\YoastProvider;
@@ -20,7 +20,7 @@ class SeoProviderRegistry
             new YoastProvider(),
             new RankMathProvider(),
             new AioSeoProvider(),
-            new PublishLayerProvider(),
+            new ArguslyProvider(),
             new NoneProvider(),
         ];
 

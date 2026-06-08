@@ -26,7 +26,7 @@ it('creates answer blocks for normal content', function () {
         [
             'question' => 'What is answer engine optimization?',
             'answer' => 'Answer engine optimization structures content so AI systems can extract direct answers.',
-            'entities' => ['PublishLayer', 'AI systems'],
+            'entities' => ['Argusly', 'AI systems'],
             'platforms' => ['Google', 'ChatGPT'],
         ],
         [
@@ -319,7 +319,7 @@ it('shows generated blocks on the content detail page relation', function () {
 function makeStructuredAnswersContext(
     string $locale = 'en',
     ?string $sourceLocale = 'en',
-    string $body = '<p>Structured answers body content for PublishLayer workflows.</p>',
+    string $body = '<p>Structured answers body content for Argusly workflows.</p>',
     ?string $translationSourceContentId = null,
     string $userEmailPrefix = 'structured-answers'
 ): array {

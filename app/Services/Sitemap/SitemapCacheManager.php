@@ -102,6 +102,6 @@ class SitemapCacheManager
 
     private function prefix(string $scope): string
     {
-        return trim((string) config('sitemap.cache_prefix', 'publishlayer:sitemap'), ':') . ':' . $scope;
+        return trim((string) config('sitemap.cache_prefix', 'argusly:sitemap'), ':') . ':' . $scope;
     }
 }

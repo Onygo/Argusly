@@ -122,7 +122,7 @@ class ApiWebhookPublisher
                 payload: $envelopeData,
                 eventId: $eventId,
                 eventVersion: $eventVersion,
-            )->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+            )->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
         }
     }
 

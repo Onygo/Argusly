@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class DeliverDraftsCommand extends Command
 {
-    protected $signature = 'publishlayer:deliverDrafts {--limit=25}';
+    protected $signature = 'argusly:deliverDrafts {--limit=25}';
     protected $description = 'Deliver ready drafts to WordPress via webhook';
 
     public function handle(DeliverDraftToWordPress $delivery): int

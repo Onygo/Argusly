@@ -233,10 +233,10 @@ class PluginArchiveUploadService
     public function storeArchive(UploadedFile $file, array $releaseData): array
     {
         $version = trim((string) ($releaseData['version'] ?? ''));
-        $disk = (string) config('publishlayer.plugin_updates.disk', 'local');
+        $disk = (string) config('argusly.plugin_updates.disk', 'local');
 
         $filename = sprintf(
-            'publishlayer-wordpress-plugin-%s-%s.zip',
+            'argusly-wordpress-plugin-%s-%s.zip',
             preg_replace('/[^0-9A-Za-z.\-_]/', '-', $version) ?: 'release',
             now()->format('YmdHis')
         );

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\ArticleController;
 use App\Http\Controllers\Api\V1\BriefController;
 use App\Http\Controllers\Api\V1\BriefTestDraftController;
 use App\Http\Controllers\Api\V1\CampaignController;
+use App\Http\Controllers\Api\V1\ConnectorContentController;
 use App\Http\Controllers\Api\V1\ContentAnswerController;
 use App\Http\Controllers\Api\V1\ContentDeletionController;
 use App\Http\Controllers\Api\V1\CreditsController;
@@ -143,6 +144,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/analytics/events', [AnalyticsIngestController::class, 'store'])
             ->middleware('integration.scope:analytics:write');
         Route::post('/events', [EventController::class, 'store']);
+
+        Route::get('/connectors/content', [ConnectorContentController::class, 'index'])
+            ->name('api.v1.connectors.content.index');
+        Route::get('/connectors/content/{content}', [ConnectorContentController::class, 'show'])
+            ->name('api.v1.connectors.content.show');
+        Route::post('/connectors/content/{content}/sync-results', [ConnectorContentController::class, 'syncResults'])
+            ->name('api.v1.connectors.content.sync-results');
     });
 
     Route::prefix('plugin')->middleware(['throttle:30,1'])->group(function () {
@@ -159,15 +167,11 @@ Route::prefix('v1')->group(function () {
     });
 });
 
-// Unified connector heartbeat endpoint (platform-agnostic)
-Route::post('/connector/heartbeat', ConnectorHeartbeatController::class)
-    ->middleware(['site.token', 'throttle:20,1'])
-    ->name('api.connector.heartbeat');
-
-// Legacy WP heartbeat route (alias for backwards compatibility)
-Route::post('/wp/heartbeat', ConnectorHeartbeatController::class)
-    ->middleware(['site.token', 'throttle:20,1'])
-    ->name('api.wp.heartbeat');
+Route::prefix('v1')->group(function () {
+    Route::post('/connectors/heartbeat', ConnectorHeartbeatController::class)
+        ->middleware(['site.token', 'throttle:20,1'])
+        ->name('api.v1.connectors.heartbeat');
+});
 
 Route::middleware(['integration.token', 'throttle:integration-api', 'client.domain', 'integration.log'])->group(function () {
     Route::get('/sites/{site}/content/{content}/markdown', [SiteMarkdownController::class, 'markdown'])

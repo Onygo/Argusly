@@ -123,7 +123,7 @@ class ApplyInternalLinkSuggestion
                 'meta' => array_merge($meta, [
                     'label' => 'Internal link refresh - ' . now()->format('Y-m-d H:i'),
                 ]),
-                'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+                'source' => ContentVersion::SOURCE_ARGUSLY,
                 'created_by' => $user->id,
             ]);
 

@@ -14,12 +14,12 @@ use Illuminate\Support\Str;
 
 class SeoAuditRunDashboardPresenter
 {
-    public const SCOPE_PUBLISHLAYER = 'publishlayer';
+    public const SCOPE_ARGUSLY = 'argusly';
     public const SCOPE_OTHER = 'other';
     public const SCOPE_ALL = 'all';
 
     public const ISSUE_FILTER_ALL = 'all';
-    public const ISSUE_FILTER_PUBLISHLAYER = 'publishlayer';
+    public const ISSUE_FILTER_ARGUSLY = 'argusly';
     public const ISSUE_FILTER_OTHER = 'other';
     public const ISSUE_FILTER_ACTIONABLE = 'actionable';
     public const ISSUE_FILTER_NOT_ACTIONABLE = 'not_actionable';
@@ -45,10 +45,10 @@ class SeoAuditRunDashboardPresenter
         ?Collection $historyAudits = null
     ): array {
         $audit->loadMissing([
-            'pages.publishlayerArticle',
-            'issues.page.publishlayerArticle',
+            'pages.arguslyArticle',
+            'issues.page.arguslyArticle',
             'fixSuggestions.applyLog',
-            'fixSuggestions.page.publishlayerArticle.drafts',
+            'fixSuggestions.page.arguslyArticle.drafts',
             'site',
         ]);
 
@@ -107,8 +107,8 @@ class SeoAuditRunDashboardPresenter
                 'total' => array_sum($scopeIssueCounts),
             ],
             'pages_analysed_total' => (int) $pages->count(),
-            'publishlayer_pages_count' => (int) $pages->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->count(),
-            'other_pages_count' => (int) $pages->where('page_type', '!=', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->count(),
+            'argusly_pages_count' => (int) $pages->where('page_type', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->count(),
+            'other_pages_count' => (int) $pages->where('page_type', '!=', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->count(),
             'scope_pages_count' => (int) $visiblePages->count(),
         ];
 
@@ -141,13 +141,13 @@ class SeoAuditRunDashboardPresenter
             'summary' => $summary,
             'diagnostics' => $diagnostics,
             'scope_tabs' => [
-                self::SCOPE_PUBLISHLAYER => [
+                self::SCOPE_ARGUSLY => [
                     'label' => 'Argusly Content',
-                    'count' => (int) $pages->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->count(),
+                    'count' => (int) $pages->where('page_type', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->count(),
                 ],
                 self::SCOPE_OTHER => [
                     'label' => 'Other Website Pages',
-                    'count' => (int) $pages->where('page_type', '!=', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->count(),
+                    'count' => (int) $pages->where('page_type', '!=', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->count(),
                 ],
                 self::SCOPE_ALL => [
                     'label' => 'All',
@@ -188,16 +188,16 @@ class SeoAuditRunDashboardPresenter
     {
         $scope = strtolower(trim($scope));
 
-        if (in_array($scope, [self::SCOPE_PUBLISHLAYER, self::SCOPE_OTHER, self::SCOPE_ALL], true)) {
-            if ($scope === self::SCOPE_PUBLISHLAYER && $pages->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->isEmpty()) {
+        if (in_array($scope, [self::SCOPE_ARGUSLY, self::SCOPE_OTHER, self::SCOPE_ALL], true)) {
+            if ($scope === self::SCOPE_ARGUSLY && $pages->where('page_type', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->isEmpty()) {
                 return self::SCOPE_ALL;
             }
 
             return $scope;
         }
 
-        return $pages->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->isNotEmpty()
-            ? self::SCOPE_PUBLISHLAYER
+        return $pages->where('page_type', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->isNotEmpty()
+            ? self::SCOPE_ARGUSLY
             : self::SCOPE_ALL;
     }
 
@@ -207,7 +207,7 @@ class SeoAuditRunDashboardPresenter
 
         return in_array($value, [
             self::ISSUE_FILTER_ALL,
-            self::ISSUE_FILTER_PUBLISHLAYER,
+            self::ISSUE_FILTER_ARGUSLY,
             self::ISSUE_FILTER_OTHER,
             self::ISSUE_FILTER_ACTIONABLE,
             self::ISSUE_FILTER_NOT_ACTIONABLE,
@@ -230,11 +230,11 @@ class SeoAuditRunDashboardPresenter
     private function filterPagesByScope(Collection $pages, string $scope): Collection
     {
         return match ($scope) {
-            self::SCOPE_PUBLISHLAYER => $pages
-                ->where('page_type', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)
+            self::SCOPE_ARGUSLY => $pages
+                ->where('page_type', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)
                 ->values(),
             self::SCOPE_OTHER => $pages
-                ->where('page_type', '!=', SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)
+                ->where('page_type', '!=', SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)
                 ->values(),
             default => $pages->values(),
         };
@@ -316,8 +316,8 @@ class SeoAuditRunDashboardPresenter
     private function applyIssueFilter(Collection $issues, string $issueFilter): Collection
     {
         return match ($issueFilter) {
-            self::ISSUE_FILTER_PUBLISHLAYER => $issues->filter(fn (SeoAuditIssue $issue): bool => $issue->page?->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->values(),
-            self::ISSUE_FILTER_OTHER => $issues->filter(fn (SeoAuditIssue $issue): bool => $issue->page?->page_type !== SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE)->values(),
+            self::ISSUE_FILTER_ARGUSLY => $issues->filter(fn (SeoAuditIssue $issue): bool => $issue->page?->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->values(),
+            self::ISSUE_FILTER_OTHER => $issues->filter(fn (SeoAuditIssue $issue): bool => $issue->page?->page_type !== SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE)->values(),
             self::ISSUE_FILTER_ACTIONABLE => $issues->filter(fn (SeoAuditIssue $issue): bool => $this->isIssueActionable($issue))->values(),
             self::ISSUE_FILTER_NOT_ACTIONABLE => $issues->filter(fn (SeoAuditIssue $issue): bool => ! $this->isIssueActionable($issue))->values(),
             default => $issues->values(),
@@ -361,7 +361,7 @@ class SeoAuditRunDashboardPresenter
                                 return [
                                     'id' => (int) $issue->id,
                                     'page_url' => (string) ($page?->url ?? 'Unknown page'),
-                                    'scope_label' => $page?->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
+                                    'scope_label' => $page?->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE
                                         ? 'Argusly'
                                         : 'Other page',
                                     'is_actionable' => $this->isIssueActionable($issue),
@@ -426,7 +426,7 @@ class SeoAuditRunDashboardPresenter
                         'warning' => 'Medium',
                         default => 'Low',
                     },
-                    'scope' => $page?->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
+                    'scope' => $page?->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE
                         ? 'Argusly content'
                         : 'Other site page',
                     'scope_note' => $actionable
@@ -498,9 +498,9 @@ class SeoAuditRunDashboardPresenter
             ->values()
             ->map(function (SeoAuditFixSuggestion $suggestion) use ($site): array {
                 $page = $suggestion->page;
-                $content = $page?->publishlayerArticle;
+                $content = $page?->arguslyArticle;
                 $payload = is_array($suggestion->suggestion) ? $suggestion->suggestion : [];
-                $isActionable = $page?->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
+                $isActionable = $page?->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE
                     && $content !== null;
                 $wpSync = $this->resolveWordPressSyncStatus((string) $suggestion->issue_code, $site, $isActionable);
                 $suggestionState = $this->aiFixService->ensureSuggestionState($suggestion, $content);
@@ -689,11 +689,11 @@ class SeoAuditRunDashboardPresenter
                 return [
                     'id' => (int) $page->id,
                     'url' => (string) $page->url,
-                    'scope' => $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
+                    'scope' => $page->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE
                         ? 'Argusly content'
                         : 'Other site page',
-                    'is_publishlayer' => $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-                    'is_actionable_page' => $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE && $page->publishlayerArticle !== null,
+                    'is_argusly' => $page->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE,
+                    'is_actionable_page' => $page->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE && $page->arguslyArticle !== null,
                     'seo_score' => $score,
                     'seo_level' => $level,
                     'title_status' => $this->resolveTitleStatus($page, $issueCodes),
@@ -708,8 +708,8 @@ class SeoAuditRunDashboardPresenter
             ->all();
 
         usort($rows, static function (array $a, array $b): int {
-            if ($a['is_publishlayer'] !== $b['is_publishlayer']) {
-                return $a['is_publishlayer'] ? -1 : 1;
+            if ($a['is_argusly'] !== $b['is_argusly']) {
+                return $a['is_argusly'] ? -1 : 1;
             }
 
             if ($a['seo_score'] !== $b['seo_score']) {
@@ -816,8 +816,8 @@ class SeoAuditRunDashboardPresenter
         $page = $issue->page;
 
         return $page !== null
-            && $page->page_type === SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE
-            && $page->publishlayerArticle !== null
+            && $page->page_type === SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE
+            && $page->arguslyArticle !== null
             && $this->aiFixService->isSupportedIssueCode((string) $issue->code);
     }
 

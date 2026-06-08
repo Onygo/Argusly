@@ -25,10 +25,10 @@ it('allows owner to view and create site llm tracking queries', function () {
     $this->actingAs($user)
         ->post(route('app.sites.llm-tracking.store', $site), [
             'name' => 'Brand query',
-            'query_text' => 'What are the best alternatives to PublishLayer?',
-            'brand_terms' => 'PublishLayer',
+            'query_text' => 'What are the best alternatives to Argusly?',
+            'brand_terms' => 'Argusly',
             'competitor_terms' => 'AcmeSEO',
-            'target_urls' => 'https://publishlayer.com/features',
+            'target_urls' => 'https://argusly.com/features',
             'locale' => 'en',
             'frequency' => 'daily',
             'is_active' => '1',
@@ -52,9 +52,9 @@ it('renders product-facing llm tracking insights on index and query detail pages
         'client_site_id' => $site->id,
         'name' => 'Visibility benchmark',
         'query_text' => 'Best B2B content workflow platform',
-        'brand_terms' => ['PublishLayer'],
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['AcmeSEO'],
-        'target_urls' => ['https://publishlayer.com/features'],
+        'target_urls' => ['https://argusly.com/features'],
         'locale' => 'en',
         'frequency' => 'weekly',
         'is_active' => true,
@@ -66,26 +66,26 @@ it('renders product-facing llm tracking insights on index and query detail pages
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
         'status' => 'succeeded',
-        'answer_text' => 'PublishLayer and AcmeSEO are compared with citations.',
+        'answer_text' => 'Argusly and AcmeSEO are compared with citations.',
         'brand_hits' => [
-            ['term' => 'PublishLayer', 'count' => 2, 'bucket' => 'first', 'first_sentence_index' => 0, 'context_snippets' => ['PublishLayer and AcmeSEO are compared with citations.']],
+            ['term' => 'Argusly', 'count' => 2, 'bucket' => 'first', 'first_sentence_index' => 0, 'context_snippets' => ['Argusly and AcmeSEO are compared with citations.']],
         ],
         'competitor_hits' => [
-            ['term' => 'AcmeSEO', 'count' => 1, 'bucket' => 'middle', 'first_sentence_index' => 1, 'context_snippets' => ['PublishLayer and AcmeSEO are compared with citations.']],
+            ['term' => 'AcmeSEO', 'count' => 1, 'bucket' => 'middle', 'first_sentence_index' => 1, 'context_snippets' => ['Argusly and AcmeSEO are compared with citations.']],
         ],
         'entity_presence' => [
-            ['term' => 'PublishLayer', 'type' => 'brand', 'present' => true, 'count' => 2, 'position_score' => 1.0, 'snippet_context' => ['PublishLayer and AcmeSEO are compared with citations.']],
-            ['term' => 'AcmeSEO', 'type' => 'competitor', 'present' => true, 'count' => 1, 'position_score' => 0.5, 'snippet_context' => ['PublishLayer and AcmeSEO are compared with citations.']],
+            ['term' => 'Argusly', 'type' => 'brand', 'present' => true, 'count' => 2, 'position_score' => 1.0, 'snippet_context' => ['Argusly and AcmeSEO are compared with citations.']],
+            ['term' => 'AcmeSEO', 'type' => 'competitor', 'present' => true, 'count' => 1, 'position_score' => 0.5, 'snippet_context' => ['Argusly and AcmeSEO are compared with citations.']],
         ],
         'url_hits' => [
-            ['target_url' => 'https://publishlayer.com/features', 'count' => 1, 'bucket' => 'middle'],
+            ['target_url' => 'https://argusly.com/features', 'count' => 1, 'bucket' => 'middle'],
         ],
         'citation_ranking' => [
             'brand' => ['bucket' => 'first', 'first_index' => 24, 'last_index' => 80, 'normalized_position' => 0.12],
             'url' => ['bucket' => 'middle', 'first_index' => 190, 'last_index' => 220, 'normalized_position' => 0.52],
         ],
         'sources' => [
-            ['url' => 'https://publishlayer.com/features', 'domain' => 'publishlayer.com', 'type' => 'website', 'position' => 210],
+            ['url' => 'https://argusly.com/features', 'domain' => 'argusly.com', 'type' => 'website', 'position' => 210],
             ['url' => 'https://example-news.com/analysis', 'domain' => 'example-news.com', 'type' => 'news', 'position' => 320],
         ],
         'share_of_voice_snapshot' => [
@@ -94,7 +94,7 @@ it('renders product-facing llm tracking insights on index and query detail pages
             'share_brand' => 0.6667,
             'share_by_term' => [
                 'brand' => [
-                    ['term' => 'PublishLayer', 'count' => 2, 'share' => 0.6667],
+                    ['term' => 'Argusly', 'count' => 2, 'share' => 0.6667],
                 ],
                 'competitors' => [
                     ['term' => 'AcmeSEO', 'count' => 1, 'share' => 0.3333],
@@ -152,7 +152,7 @@ it('renders product-facing llm tracking insights on index and query detail pages
         ->assertSee('Missing Visibility Opportunities')
         ->assertSee('Top Competitors By Frequency')
         ->assertSee('Trend Over Time')
-        ->assertSee('PublishLayer present')
+        ->assertSee('Argusly present')
         ->assertSee('Weekly');
 
     $this->actingAs($user)
@@ -174,10 +174,10 @@ it('shows clear empty states when llm tracking query has no runs', function () {
         'workspace_id' => $workspace->id,
         'client_site_id' => $site->id,
         'name' => 'No Run Query',
-        'query_text' => 'Who talks about PublishLayer?',
-        'brand_terms' => ['PublishLayer'],
+        'query_text' => 'Who talks about Argusly?',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => [],
-        'target_urls' => ['https://publishlayer.com'],
+        'target_urls' => ['https://argusly.com'],
         'locale' => 'en',
         'is_active' => true,
     ]);
@@ -189,14 +189,14 @@ it('shows clear empty states when llm tracking query has no runs', function () {
         ->assertSeeText('No run history yet.');
 });
 
-it('seeds the default PublishLayer tracking queries for a publishlayer site', function () {
+it('seeds the default Argusly tracking queries for a argusly site', function () {
     [$user, , $site] = createLlmTrackingUiContext();
 
     $site->update([
-        'name' => 'PublishLayer',
-        'site_url' => 'https://publishlayer.com',
-        'base_url' => 'https://publishlayer.com',
-        'allowed_domains' => ['publishlayer.com'],
+        'name' => 'Argusly',
+        'site_url' => 'https://argusly.com',
+        'base_url' => 'https://argusly.com',
+        'allowed_domains' => ['argusly.com'],
     ]);
 
     $this->actingAs($user)
@@ -204,7 +204,7 @@ it('seeds the default PublishLayer tracking queries for a publishlayer site', fu
         ->assertOk()
         ->assertSee('SEO Visibility - Content & Platform')
         ->assertSee('AI Visibility - GEO & LLM Discovery')
-        ->assertSee('Brand Presence - PublishLayer');
+        ->assertSee('Brand Presence - Argusly');
 
     expect(LlmTrackingQuery::query()->where('client_site_id', $site->id)->count())->toBe(3);
 });

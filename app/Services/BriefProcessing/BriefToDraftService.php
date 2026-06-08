@@ -151,7 +151,7 @@ class BriefToDraftService
             $requiredCredits = (int) data_get($brief->client_refs, 'required_credits', 0);
             if ($requiredCredits <= 0) {
                 // Fallback to config default if not set in client_refs
-                $requiredCredits = max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4));
+                $requiredCredits = max(1, (int) config('argusly.ai.drafts.credit_cost', 4));
             }
             $draft->credit_cost = $requiredCredits;
 

@@ -94,7 +94,7 @@ it('queues featured image generation for a tenant-scoped draft', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/images/generate', [
         'draft_id' => (string) $draft->id,
     ]);
@@ -188,7 +188,7 @@ it('falls back to content id when draft id no longer resolves', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/images/generate', [
         'draft_id' => (string) Str::uuid(),
         'content_id' => (string) $content->id,
@@ -283,7 +283,7 @@ it('releases stale image generation lock and requeues generation', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/images/generate', [
         'draft_id' => (string) $draft->id,
     ]);

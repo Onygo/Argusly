@@ -311,10 +311,10 @@
                 <h2 class="text-sm font-semibold text-textPrimary">Laravel connector setup</h2>
                 <p class="mt-2 text-xs text-textSecondary">Configure your Laravel app to send briefs/drafts through the official Argusly connector.</p>
                 <div class="mt-3 rounded border border-border bg-background p-3 text-xs text-textSecondary">
-                    <div><code>composer require publishlayer/laravel-connector</code></div>
-                    <div class="mt-2"><code>PL_CONNECTOR_BASE_URL={{ config('publishlayer_connector.api.base_url', config('publishlayer_connector.base_url', 'https://api.publishlayer.com')) }}</code></div>
-                    <div><code>PL_CONNECTOR_API_KEY=&lt;generated_site_key&gt;</code></div>
-                    <div><code>PL_CONNECTOR_WORKSPACE_ID={{ $workspace?->id }}</code></div>
+                    <div><code>composer require onygo/argusly-laravel-connector</code></div>
+                    <div class="mt-2"><code>ARGUSLY_CONNECTOR_API_URL={{ config('argusly_connector.api.base_url', config('argusly_connector.api.base_url', 'https://api.argusly.com')) }}</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_API_KEY=&lt;generated_site_key&gt;</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_WORKSPACE_ID={{ $workspace?->id }}</code></div>
                 </div>
                 @include('app.sites.partials.setup-instructions', ['siteType' => $siteType])
             </div>

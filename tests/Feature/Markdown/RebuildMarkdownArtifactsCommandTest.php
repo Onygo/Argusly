@@ -8,7 +8,7 @@ uses(RefreshDatabase::class);
 it('rebuilds markdown artifacts synchronously through the artisan command', function () {
     [, , $content] = makeMarkdownCommandContentForRebuild();
 
-    $this->artisan('publishlayer:markdown:rebuild', [
+    $this->artisan('argusly:markdown:rebuild', [
         '--sync' => true,
         '--content' => $content->id,
     ])->assertExitCode(0);

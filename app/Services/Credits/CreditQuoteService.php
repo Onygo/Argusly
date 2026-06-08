@@ -32,7 +32,7 @@ class CreditQuoteService
             $cost = $this->resolveActionCost('content.featured_image');
 
             // TODO: remove config fallback when every action quote is resolved from live action rules.
-            return $cost > 0 ? $cost : max(1, (int) config('publishlayer.ai.images.credit_cost', 6));
+            return $cost > 0 ? $cost : max(1, (int) config('argusly.ai.images.credit_cost', 6));
         }
 
         if ($action === 'draft_generate') {

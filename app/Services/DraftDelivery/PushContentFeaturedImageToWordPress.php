@@ -55,7 +55,7 @@ class PushContentFeaturedImageToWordPress
         $url = trim((string) ($clientRefs['draft_webhook_url'] ?? $content->clientSite->draft_webhook_url ?? ''));
         $secret = trim((string) ($clientRefs['draft_webhook_secret'] ?? $content->clientSite->draft_webhook_secret ?? ''));
         if ($url !== '' && $secret === '') {
-            $secret = trim((string) config('publishlayer.webhooks.secret', ''));
+            $secret = trim((string) config('argusly.webhooks.secret', ''));
         }
         $baseUrl = rtrim((string) ($content->clientSite->base_url ?: $content->clientSite->site_url), '/');
 
@@ -72,7 +72,7 @@ class PushContentFeaturedImageToWordPress
                 $url = trim((string) ($clientRefs['draft_webhook_url'] ?? $content->clientSite->draft_webhook_url ?? ''));
                 $secret = trim((string) ($clientRefs['draft_webhook_secret'] ?? $content->clientSite->draft_webhook_secret ?? ''));
                 if ($url !== '' && $secret === '') {
-                    $secret = trim((string) config('publishlayer.webhooks.secret', ''));
+                    $secret = trim((string) config('argusly.webhooks.secret', ''));
                 }
 
                 $this->logWpPostIdState($content, 'set', [
@@ -161,7 +161,7 @@ class PushContentFeaturedImageToWordPress
         try {
             $headers = [
                 'Content-Type' => 'application/json',
-                'X-PL-Request-Id' => $requestId,
+                'X-Argusly-Request-Id' => $requestId,
             ];
 
             if ($useBearer) {
@@ -176,8 +176,10 @@ class PushContentFeaturedImageToWordPress
                         'error' => 'WordPress connector is not configured for this content/site.',
                     ];
                 }
-                $headers['X-PublishLayer-Timestamp'] = $ts;
-                $headers['X-PublishLayer-Signature'] = $signature;
+                $headers['X-Argusly-Timestamp'] = $ts;
+                $headers['X-Argusly-Signature'] = $signature;
+                $headers['X-Argusly-Timestamp'] = $ts;
+                $headers['X-Argusly-Signature'] = $signature;
             }
 
             $response = Http::timeout(30)
@@ -199,9 +201,11 @@ class PushContentFeaturedImageToWordPress
                         ])
                         ->withHeaders([
                             'Content-Type' => 'application/json',
-                            'X-PublishLayer-Timestamp' => $ts,
-                            'X-PublishLayer-Signature' => $signature,
-                            'X-PL-Request-Id' => $requestId,
+                            'X-Argusly-Timestamp' => $ts,
+                            'X-Argusly-Signature' => $signature,
+                            'X-Argusly-Request-Id' => $requestId,
+                            'X-Argusly-Timestamp' => $ts,
+                            'X-Argusly-Signature' => $signature,
                         ])
                         ->send('POST', $url, ['body' => $body]);
                 }
@@ -334,18 +338,18 @@ class PushContentFeaturedImageToWordPress
             return $trimmed;
         }
 
-        if (str_contains($trimmed, '/wp-json/publishlayer/v1/webhook/draft')) {
+        if (str_contains($trimmed, '/wp-json/argusly/v1/webhook/draft')) {
             return str_replace(
-                '/wp-json/publishlayer/v1/webhook/draft',
-                '/wp-json/publishlayer/v1/posts/' . rawurlencode($wpPostId) . '/featured-image',
+                '/wp-json/argusly/v1/webhook/draft',
+                '/wp-json/argusly/v1/posts/' . rawurlencode($wpPostId) . '/featured-image',
                 $trimmed
             );
         }
 
-        if (str_contains($trimmed, 'rest_route=/publishlayer/v1/webhook/draft')) {
+        if (str_contains($trimmed, 'rest_route=/argusly/v1/webhook/draft')) {
             return preg_replace(
-                '/rest_route=\\/publishlayer\\/v1\\/webhook\\/draft/i',
-                'rest_route=/publishlayer/v1/posts/' . rawurlencode($wpPostId) . '/featured-image',
+                '/rest_route=\\/argusly\\/v1\\/webhook\\/draft/i',
+                'rest_route=/argusly/v1/posts/' . rawurlencode($wpPostId) . '/featured-image',
                 $trimmed
             ) ?: $trimmed;
         }
@@ -358,7 +362,7 @@ class PushContentFeaturedImageToWordPress
             return $trimmed;
         }
 
-        return $scheme . '://' . $host . $port . '/wp-json/publishlayer/v1/posts/' . rawurlencode($wpPostId) . '/featured-image';
+        return $scheme . '://' . $host . $port . '/wp-json/argusly/v1/posts/' . rawurlencode($wpPostId) . '/featured-image';
     }
 
     /**
@@ -422,11 +426,11 @@ class PushContentFeaturedImageToWordPress
      */
     private function logImagePush(Content $content, array $context, string $level = 'info'): void
     {
-        if (! (bool) config('publishlayer.wp_connector.sync_debug', false)) {
+        if (! (bool) config('argusly.wp_connector.sync_debug', false)) {
             return;
         }
 
-        $siteFilter = trim((string) config('publishlayer.wp_connector.sync_debug_site_id', ''));
+        $siteFilter = trim((string) config('argusly.wp_connector.sync_debug_site_id', ''));
         $siteId = (string) ($content->client_site_id ?? '');
         if ($siteFilter !== '' && $siteFilter !== $siteId) {
             return;
@@ -452,7 +456,7 @@ class PushContentFeaturedImageToWordPress
 
     private function buildImageBase64Fallback(\App\Models\ContentImage $featured, Content $content): ?string
     {
-        if (! (bool) config('publishlayer.wp_connector.featured_image_b64_fallback', true)) {
+        if (! (bool) config('argusly.wp_connector.featured_image_b64_fallback', true)) {
             return null;
         }
 
@@ -461,12 +465,12 @@ class PushContentFeaturedImageToWordPress
             return null;
         }
 
-        $disk = Storage::disk((string) config('publishlayer.images.disk', config('publishlayer.ai.images.storage_disk', 'public')));
+        $disk = Storage::disk((string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public')));
         if (! $disk->exists($path)) {
             return null;
         }
 
-        $maxBytes = max(1, (int) config('publishlayer.wp_connector.featured_image_b64_max_bytes', 8 * 1024 * 1024));
+        $maxBytes = max(1, (int) config('argusly.wp_connector.featured_image_b64_max_bytes', 8 * 1024 * 1024));
         $size = (int) $disk->size($path);
         if ($size > $maxBytes) {
             return null;

@@ -18,7 +18,7 @@
         @if (!$specExists)
             <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
                 <p class="text-sm font-medium text-amber-900">OpenAPI specification not generated yet</p>
-                <p class="mt-1 text-sm text-amber-800">Run <code class="rounded bg-amber-100 px-1 py-0.5">php artisan publishlayer:generate-openapi</code> to generate the API documentation.</p>
+                <p class="mt-1 text-sm text-amber-800">Run <code class="rounded bg-amber-100 px-1 py-0.5">php artisan argusly:generate-openapi</code> to generate the API documentation.</p>
             </div>
         @else
             <div class="flex gap-6">
@@ -96,7 +96,7 @@
                                 <ol class="mt-3 space-y-2 text-sm text-textSecondary">
                                     <li>1. Create an API key in the <a href="{{ route('app.developer.api') }}" class="text-primary underline">Developer portal</a></li>
                                     <li>2. Include the key in requests: <code class="rounded bg-surfaceSubtle px-1 py-0.5">Authorization: Bearer YOUR_API_KEY</code></li>
-                                    <li>3. Make requests to <code class="rounded bg-surfaceSubtle px-1 py-0.5">{{ $servers[0]['url'] ?? 'https://api.publishlayer.com/api/v1' }}</code></li>
+                                    <li>3. Make requests to <code class="rounded bg-surfaceSubtle px-1 py-0.5">{{ $servers[0]['url'] ?? 'https://api.argusly.com/api/v1' }}</code></li>
                                 </ol>
                             </div>
 

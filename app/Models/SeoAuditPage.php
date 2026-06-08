@@ -22,7 +22,7 @@ class SeoAuditPage extends Model
         'internal_links_count',
         'broken_links_count',
         'page_type',
-        'publishlayer_article_id',
+        'argusly_content_id',
     ];
 
     protected $casts = [
@@ -32,7 +32,7 @@ class SeoAuditPage extends Model
         'broken_links_count' => 'integer',
     ];
 
-    public const PAGE_TYPE_PUBLISHLAYER_ARTICLE = 'publishlayer_article';
+    public const PAGE_TYPE_ARGUSLY_ARTICLE = 'argusly_article';
     public const PAGE_TYPE_SITE_PAGE = 'site_page';
     public const PAGE_TYPE_SYSTEM_PAGE = 'system_page';
 
@@ -46,9 +46,9 @@ class SeoAuditPage extends Model
         return $this->hasMany(SeoAuditIssue::class);
     }
 
-    public function publishlayerArticle()
+    public function arguslyArticle()
     {
-        return $this->belongsTo(Content::class, 'publishlayer_article_id');
+        return $this->belongsTo(Content::class, 'argusly_content_id');
     }
 
     public function fixSuggestions()

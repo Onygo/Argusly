@@ -47,13 +47,13 @@ it('normalizes dutch generated content titles and seo fields to sentence case', 
         'title' => 'Agentic Marketing: De Nieuwe AI-Gestuurde Aanpak voor het Plannen, Uitvoeren en Optimaliseren van Campagnes',
         'seo_title' => 'Agentic Marketing voor B2B-Teams: De Nieuwe Aanpak',
         'seo_h1' => 'De Nieuwe AI-Gestuurde Aanpak voor Content',
-        'seo_meta_description' => 'Ontdek Hoe PublishLayer AI en B2B-Workflows Koppelt voor Betere Content.',
+        'seo_meta_description' => 'Ontdek Hoe Argusly AI en B2B-Workflows Koppelt voor Betere Content.',
     ]);
 
     expect($payload['title'])->toBe('Agentic marketing: de nieuwe AI-gestuurde aanpak voor het plannen, uitvoeren en optimaliseren van campagnes')
         ->and($payload['seo_title'])->toBe('Agentic marketing voor B2B-teams: de nieuwe aanpak')
         ->and($payload['seo_h1'])->toBe('De nieuwe AI-gestuurde aanpak voor content')
-        ->and($payload['seo_meta_description'])->toBe('Ontdek hoe PublishLayer AI en B2B-workflows koppelt voor betere content.');
+        ->and($payload['seo_meta_description'])->toBe('Ontdek hoe Argusly AI en B2B-workflows koppelt voor betere content.');
 });
 
 it('keeps english generated content title casing unchanged', function () {

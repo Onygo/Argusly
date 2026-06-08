@@ -180,7 +180,7 @@ it('stores hashed api keys and authenticates bearer requests', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'auth.example.com',
+        'X-Argusly-Site' => 'auth.example.com',
     ])->getJson('/api/v1/drafts');
 
     $response->assertOk();
@@ -281,7 +281,7 @@ it('checks laravel connector activity endpoint using the site key payload', func
     ]);
 
     Http::fake([
-        'https://laravel.argusly.local/publishlayer/connector/activity' => Http::response([
+        'https://laravel.argusly.local/argusly/connector/activity' => Http::response([
             'last_webhook_received_at' => now()->subMinutes(5)->toIso8601String(),
             'last_processed_at' => now()->subMinutes(4)->toIso8601String(),
             'last_heartbeat_at' => now()->subMinute()->toIso8601String(),
@@ -298,7 +298,7 @@ it('checks laravel connector activity endpoint using the site key payload', func
 
     Http::assertSent(function ($request) use ($plain): bool {
         return $request->method() === 'POST'
-            && $request->url() === 'https://laravel.argusly.local/publishlayer/connector/activity'
+            && $request->url() === 'https://laravel.argusly.local/argusly/connector/activity'
             && $request['site_key'] === $plain
             && $request['site_token'] === $plain
             && is_string($request['site_id'] ?? null)
@@ -352,7 +352,7 @@ it('retries laravel connector activity with another active site key when first k
     ]);
 
     Http::fake([
-        'https://laravel.argusly.local/publishlayer/connector/activity' => function ($request) use ($newPlain) {
+        'https://laravel.argusly.local/argusly/connector/activity' => function ($request) use ($newPlain) {
             if (($request['site_key'] ?? null) === $newPlain) {
                 return Http::response([
                     'message' => 'The given data was invalid.',
@@ -416,7 +416,7 @@ it('shows connector validation errors when laravel activity payload is rejected'
     ]);
 
     Http::fake([
-        'https://laravel.argusly.local/publishlayer/connector/activity' => Http::response([
+        'https://laravel.argusly.local/argusly/connector/activity' => Http::response([
             'message' => 'The given data was invalid.',
             'errors' => [
                 'site_key' => ['The selected site_key is invalid.'],
@@ -523,20 +523,20 @@ it('downloads the latest wordpress plugin from app dashboard route', function ()
     [$user] = makeManagerWithWorkspace();
 
     Storage::fake('local');
-    Storage::disk('local')->put('plugin-releases/publishlayer-wordpress-1.2.3.zip', 'zip-content');
+    Storage::disk('local')->put('plugin-releases/argusly-wordpress-1.2.3.zip', 'zip-content');
 
     PluginRelease::query()->create([
         'version' => '1.0.0',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-1.0.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-1.0.0.zip',
         'min_wp_version' => null,
         'tested_wp_version' => null,
         'is_security_release' => false,
     ]);
-    Storage::disk('local')->put('plugin-releases/publishlayer-wordpress-1.0.0.zip', 'old-zip-content');
+    Storage::disk('local')->put('plugin-releases/argusly-wordpress-1.0.0.zip', 'old-zip-content');
 
     PluginRelease::query()->create([
         'version' => '1.2.3',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-1.2.3.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-1.2.3.zip',
         'min_wp_version' => null,
         'tested_wp_version' => null,
         'is_security_release' => false,
@@ -545,7 +545,7 @@ it('downloads the latest wordpress plugin from app dashboard route', function ()
     $this->actingAs($user)
         ->get(route('app.sites.wordpress-plugin.download'))
         ->assertOk()
-        ->assertDownload('publishlayer-wordpress-plugin-1.2.3.zip');
+        ->assertDownload('argusly-wordpress-plugin-1.2.3.zip');
 });
 
 it('shows an error when wordpress plugin download is requested without a release', function () {
@@ -705,7 +705,7 @@ it('blocks brief creation when entitlement is disabled or quota exceeded', funct
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'quota.example.com',
+        'X-Argusly-Site' => 'quota.example.com',
     ])->postJson('/api/v1/briefs', $payload);
 
     $response->assertStatus(422);
@@ -731,7 +731,7 @@ it('blocks brief creation when entitlement is disabled or quota exceeded', funct
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'quota.example.com',
+        'X-Argusly-Site' => 'quota.example.com',
     ])->postJson('/api/v1/briefs', array_replace_recursive($payload, [
         'client' => ['wp_brief_id' => 'quota-2'],
     ]));

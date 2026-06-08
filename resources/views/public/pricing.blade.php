@@ -11,7 +11,7 @@
         'ogType' => 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -30,8 +30,8 @@
     $roi = (array) ($pageContent['roi'] ?? []);
     $faqItems = collect((array) ($pageContent['faq'] ?? []));
     $finalCta = (array) ($pageContent['final_cta'] ?? []);
-    $canSelfRegister = (bool) config('publishlayer.launch.public_registration_enabled', true)
-        && ! (bool) config('publishlayer.launch.soft_launch_mode', false);
+    $canSelfRegister = (bool) config('argusly.launch.public_registration_enabled', true)
+        && ! (bool) config('argusly.launch.soft_launch_mode', false);
     $registerHref = $canSelfRegister
         ? route('register', ['plan' => 'creator'])
         : \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access'], $locale);
@@ -50,7 +50,7 @@
 @endphp
 
 <main class="bg-background" data-page="pricing">
-    <section class="border-b border-border/70 bg-[#f3f0e8]">
+    <section class="border-b border-border/70 bg-[#ffffff]">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
             <div class="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-end">
                 <div class="max-w-3xl">
@@ -58,16 +58,16 @@
                         {{ $hero['eyebrow'] ?? 'Premium content operations' }}
                     </span>
                     <h1 class="mt-5 text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-6xl">
-                        {{ $hero['headline'] ?? 'Scale content operations beyond AI writing' }}
+                        {{ $hero['headline'] ?? __('public.landing.pricing_title') }}
                     </h1>
                     <p class="mt-5 max-w-2xl text-lg leading-8 text-textPrimary">
-                        {{ $hero['subheadline'] ?? 'Plan, generate, optimize, localize and publish content from one platform.' }}
+                        {{ $hero['subheadline'] ?? __('public.landing.pricing_subline') }}
                     </p>
                     <p class="mt-4 max-w-2xl text-base leading-7 text-textSecondary">
-                        {{ $hero['supporting_text'] ?? 'More than AI writing. Argusly manages the full content lifecycle.' }}
+                        {{ $hero['supporting_text'] ?? __('public.landing.pricing_text_1') }}
                     </p>
                     <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <a href="#plans" class="inline-flex items-center justify-center rounded-xl bg-publicPrimary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">
+                        <a href="#plans" class="pl-public-primary-button">
                             {{ $hero['primary_cta_label'] ?? 'Choose a plan' }}
                         </a>
                         <a href="{{ $contactHref }}" class="pl-public-secondary-button">
@@ -114,7 +114,7 @@
                     @endphp
                     <article
                         data-pricing-card
-                        class="relative flex h-full min-h-[620px] flex-col rounded-[28px] border p-8 sm:p-9 {{ $isPopular ? 'border-publicPrimary bg-[#fbfaf6]' : 'border-border/80 bg-[#fcfbf8]' }}"
+                        class="relative flex h-full min-h-[620px] flex-col rounded-[28px] border p-8 sm:p-9 {{ $isPopular ? 'border-publicPrimary bg-[#f8fafc]' : 'border-border/80 bg-[#f8fafc]' }}"
                     >
                         @if($isPopular)
                             <div class="absolute right-6 top-6">
@@ -234,7 +234,7 @@
             </div>
 
             <div class="mt-10 overflow-hidden rounded-[28px] border border-border/80 bg-white">
-                <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] border-b border-border/70 bg-[#fcfbf8] px-6 py-4 text-sm font-semibold text-textPrimary">
+                <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] border-b border-border/70 bg-[#f8fafc] px-6 py-4 text-sm font-semibold text-textPrimary">
                     <div>Capabilities</div>
                     <div class="text-center">{{ $comparison['left_label'] ?? 'Argusly' }}</div>
                     <div class="text-center">{{ $comparison['right_label'] ?? 'Traditional AI writers' }}</div>
@@ -243,7 +243,7 @@
                     <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] items-center border-b border-border/60 px-6 py-4 text-sm last:border-b-0">
                         <div class="text-textPrimary">{{ $row['label'] ?? '' }}</div>
                         <div class="flex justify-center">
-                            <x-public.icon name="{{ !empty($row['publishlayer']) ? 'check' : 'minus' }}" size="xs" class="{{ !empty($row['publishlayer']) ? 'text-publicPrimary' : 'text-textMuted' }}" />
+                            <x-public.icon name="{{ !empty($row['argusly']) ? 'check' : 'minus' }}" size="xs" class="{{ !empty($row['argusly']) ? 'text-publicPrimary' : 'text-textMuted' }}" />
                         </div>
                         <div class="flex justify-center">
                             <x-public.icon name="{{ !empty($row['alternative']) ? 'check' : 'minus' }}" size="xs" class="{{ !empty($row['alternative']) ? 'text-textPrimary' : 'text-textMuted' }}" />
@@ -267,7 +267,7 @@
                     {{ $credits['note'] ?? 'A standard SEO article typically uses 10 to 14 credits depending on content depth, research and optimization workflows.' }}
                 </p>
             </div>
-            <div class="rounded-[28px] border border-border/80 bg-[#fcfbf8] p-7">
+            <div class="rounded-[28px] border border-border/80 bg-[#f8fafc] p-7">
                 <ul class="space-y-4 text-sm text-textSecondary">
                     @foreach((array) ($credits['points'] ?? []) as $point)
                         <li class="flex items-start gap-3">
@@ -323,7 +323,7 @@
 
     <section class="bg-white">
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-2 md:py-20">
-            <div class="rounded-[28px] border border-border/80 bg-[#fcfbf8] p-7 sm:p-8">
+            <div class="rounded-[28px] border border-border/80 bg-[#f8fafc] p-7 sm:p-8">
                 <h2 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ $teamWorkflow['title'] ?? 'Built for teams, workflows and scale' }}</h2>
                 <p class="mt-4 text-base leading-7 text-textSecondary">{{ $teamWorkflow['subtitle'] ?? '' }}</p>
                 <ul class="mt-6 space-y-4 text-sm text-textSecondary">

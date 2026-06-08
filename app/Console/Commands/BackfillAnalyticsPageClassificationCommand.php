@@ -94,7 +94,7 @@ class BackfillAnalyticsPageClassificationCommand extends Command
                 }
 
                 $pageType = (is_string($contentId) && $contentId !== '') || $articleId !== ''
-                    ? 'publishlayer_content'
+                    ? 'argusly_content'
                     : 'other_page';
                 $existingUrlKey = $row->url_key !== null ? (string) $row->url_key : null;
                 $existingContentId = $row->content_id !== null ? (string) $row->content_id : null;

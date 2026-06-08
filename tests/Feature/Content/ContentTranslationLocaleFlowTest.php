@@ -471,7 +471,7 @@ it('blocks translation when published content has no usable draft or renderable 
         ->assertSessionHasErrors(['translation']);
 
     expect(session('errors')->first('translation'))
-        ->toBe('No usable translation source is available. PublishLayer could not find a current delivered/published content version with body content to translate.');
+        ->toBe('No usable translation source is available. Argusly could not find a current delivered/published content version with body content to translate.');
 
     Bus::assertNotDispatched(TranslateDraftJob::class);
 });

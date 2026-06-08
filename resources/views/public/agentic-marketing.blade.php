@@ -35,7 +35,7 @@
         'ogType' => 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -285,7 +285,7 @@
 
     <section class="bg-white">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <div class="rounded-2xl bg-publicPrimary p-8 text-white md:p-10">
+            <div class="pl-public-cta-panel pl-public-cta-panel--split p-8 md:p-10">
                 <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
                     <div>
                         <p class="text-sm font-semibold uppercase tracking-[0.14em] text-white/60">{{ $copy['cta']['eyebrow'] }}</p>
@@ -293,8 +293,8 @@
                         <p class="mt-4 max-w-2xl text-sm leading-7 text-white/76">{{ $copy['cta']['text'] }}</p>
                     </div>
                     <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                        <a href="{{ $contactCta }}" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">{{ $copy['cta']['primary'] }}</a>
-                        <a href="{{ $primaryCta }}" class="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15">{{ $copy['cta']['secondary'] }}</a>
+                        <a href="{{ $contactCta }}" class="pl-public-cta-primary">{{ $copy['cta']['primary'] }}</a>
+                        <a href="{{ $primaryCta }}" class="pl-public-cta-secondary">{{ $copy['cta']['secondary'] }}</a>
                     </div>
                 </div>
             </div>

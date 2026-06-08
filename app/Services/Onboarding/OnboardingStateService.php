@@ -260,6 +260,6 @@ class OnboardingStateService
 
     private function isEmailVerificationRequired(): bool
     {
-        return (bool) config('publishlayer.onboarding.require_email_verification', false);
+        return (bool) config('argusly.onboarding.require_email_verification', false);
     }
 }

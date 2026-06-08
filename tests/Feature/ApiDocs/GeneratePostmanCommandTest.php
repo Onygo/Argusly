@@ -4,15 +4,15 @@ use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
     // Generate OpenAPI spec first (dependency)
-    $this->artisan('publishlayer:generate-openapi');
+    $this->artisan('argusly:generate-openapi');
 });
 
 afterEach(function () {
     // Clean up generated files
     $files = [
-        base_path('docs/openapi/publishlayer.yaml'),
-        base_path('docs/postman/publishlayer-collection.json'),
-        base_path('docs/postman/publishlayer-environment.json'),
+        base_path('docs/openapi/argusly.yaml'),
+        base_path('docs/postman/argusly-collection.json'),
+        base_path('docs/postman/argusly-environment.json'),
     ];
 
     foreach ($files as $file) {
@@ -23,28 +23,28 @@ afterEach(function () {
 });
 
 test('generate-postman command runs successfully', function () {
-    $this->artisan('publishlayer:generate-postman')
+    $this->artisan('argusly:generate-postman')
         ->assertSuccessful();
 });
 
 test('generate-postman command creates collection file', function () {
-    $this->artisan('publishlayer:generate-postman')
+    $this->artisan('argusly:generate-postman')
         ->assertSuccessful();
 
-    expect(File::exists(base_path('docs/postman/publishlayer-collection.json')))->toBeTrue();
+    expect(File::exists(base_path('docs/postman/argusly-collection.json')))->toBeTrue();
 });
 
 test('generate-postman command creates environment file', function () {
-    $this->artisan('publishlayer:generate-postman')
+    $this->artisan('argusly:generate-postman')
         ->assertSuccessful();
 
-    expect(File::exists(base_path('docs/postman/publishlayer-environment.json')))->toBeTrue();
+    expect(File::exists(base_path('docs/postman/argusly-environment.json')))->toBeTrue();
 });
 
 test('generated collection is valid json', function () {
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
-    $content = File::get(base_path('docs/postman/publishlayer-collection.json'));
+    $content = File::get(base_path('docs/postman/argusly-collection.json'));
     $collection = json_decode($content, true);
 
     expect($collection)->not->toBeNull();
@@ -52,9 +52,9 @@ test('generated collection is valid json', function () {
 });
 
 test('generated collection has correct schema version', function () {
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
-    $content = File::get(base_path('docs/postman/publishlayer-collection.json'));
+    $content = File::get(base_path('docs/postman/argusly-collection.json'));
     $collection = json_decode($content, true);
 
     expect($collection['info']['schema'])
@@ -62,9 +62,9 @@ test('generated collection has correct schema version', function () {
 });
 
 test('generated collection has bearer auth configured', function () {
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
-    $content = File::get(base_path('docs/postman/publishlayer-collection.json'));
+    $content = File::get(base_path('docs/postman/argusly-collection.json'));
     $collection = json_decode($content, true);
 
     expect($collection['auth']['type'])->toBe('bearer');
@@ -72,9 +72,9 @@ test('generated collection has bearer auth configured', function () {
 });
 
 test('generated environment contains expected variables', function () {
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
-    $content = File::get(base_path('docs/postman/publishlayer-environment.json'));
+    $content = File::get(base_path('docs/postman/argusly-environment.json'));
     $environment = json_decode($content, true);
 
     expect($environment)->not->toBeNull();
@@ -88,17 +88,17 @@ test('generated environment contains expected variables', function () {
 
 test('generate-postman fails gracefully when openapi spec missing', function () {
     // Delete the OpenAPI spec
-    File::delete(base_path('docs/openapi/publishlayer.yaml'));
+    File::delete(base_path('docs/openapi/argusly.yaml'));
 
-    $this->artisan('publishlayer:generate-postman')
+    $this->artisan('argusly:generate-postman')
         ->assertFailed()
         ->expectsOutputToContain('not found');
 });
 
 test('collection items are grouped by tag', function () {
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
-    $content = File::get(base_path('docs/postman/publishlayer-collection.json'));
+    $content = File::get(base_path('docs/postman/argusly-collection.json'));
     $collection = json_decode($content, true);
 
     // Items should be folders (arrays with 'name' and 'item' keys)

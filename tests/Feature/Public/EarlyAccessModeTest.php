@@ -18,21 +18,21 @@ uses(RefreshDatabase::class);
 
 describe('EarlyAccess support class', function () {
     it('returns enabled state based on config', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
         expect(EarlyAccess::enabled())->toBeFalse();
 
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
         expect(EarlyAccess::enabled())->toBeTrue();
     });
 
     it('shows full marketing nav when not in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
         expect(EarlyAccess::showFullMarketingNav())->toBeTrue();
         expect(EarlyAccess::showEarlyAccessCTA())->toBeFalse();
     });
 
     it('shows early access CTA when in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
         expect(EarlyAccess::showFullMarketingNav())->toBeFalse();
         expect(EarlyAccess::showEarlyAccessCTA())->toBeTrue();
     });
@@ -40,7 +40,7 @@ describe('EarlyAccess support class', function () {
     it('allows legal pages in all modes', function () {
         $legalPages = ['legal.index', 'legal.privacy', 'legal.terms', 'legal.security', 'legal.cookies', 'legal.subprocessors'];
 
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         foreach ($legalPages as $page) {
             expect(EarlyAccess::allowPublicMarketingPage($page))->toBeTrue("Legal page {$page} should be accessible in early access mode");
@@ -51,7 +51,7 @@ describe('EarlyAccess support class', function () {
     it('blocks marketing pages in early access mode', function () {
         $blockedPages = ['product.capabilities', 'product.governance', 'product.intelligence', 'company.roadmap', 'blog', 'pricing'];
 
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         foreach ($blockedPages as $page) {
             expect(EarlyAccess::allowPublicMarketingPage($page))->toBeFalse("Marketing page {$page} should be blocked in early access mode");
@@ -61,7 +61,7 @@ describe('EarlyAccess support class', function () {
     it('allows all pages in full marketing mode', function () {
         $allPages = ['product.capabilities', 'product.governance', 'product.intelligence', 'company.roadmap', 'blog', 'pricing', 'landing', 'company.about'];
 
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         foreach ($allPages as $page) {
             expect(EarlyAccess::allowPublicMarketingPage($page))->toBeTrue("Page {$page} should be accessible in full marketing mode");
@@ -72,7 +72,7 @@ describe('EarlyAccess support class', function () {
         $alwaysAllowed = ['landing', 'product.overview', 'company.about', 'company.contact', 'early-access', 'login'];
 
         foreach ([true, false] as $earlyAccessEnabled) {
-            config(['publishlayer.launch.soft_launch_mode' => $earlyAccessEnabled]);
+            config(['argusly.launch.soft_launch_mode' => $earlyAccessEnabled]);
 
             foreach ($alwaysAllowed as $page) {
                 expect(EarlyAccess::allowPublicMarketingPage($page))->toBeTrue("Page {$page} should be accessible in both modes");
@@ -89,7 +89,7 @@ describe('EarlyAccess support class', function () {
 
 describe('MarketingNavigation in early access mode', function () {
     beforeEach(function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
     });
 
     it('returns minimal header items', function () {
@@ -151,7 +151,7 @@ describe('MarketingNavigation in early access mode', function () {
 
 describe('MarketingNavigation in full marketing mode', function () {
     beforeEach(function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
     });
 
     it('returns full header items', function () {
@@ -194,7 +194,7 @@ describe('MarketingNavigation in full marketing mode', function () {
 
 describe('header navigation visibility', function () {
     it('shows full navigation in full marketing mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get(route('landing'));
 
@@ -205,7 +205,7 @@ describe('header navigation visibility', function () {
     });
 
     it('shows minimal navigation in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get(route('landing'));
 
@@ -220,7 +220,7 @@ describe('header navigation visibility', function () {
 
     it('shows sign in link in both modes', function () {
         foreach ([true, false] as $earlyAccessEnabled) {
-            config(['publishlayer.launch.soft_launch_mode' => $earlyAccessEnabled]);
+            config(['argusly.launch.soft_launch_mode' => $earlyAccessEnabled]);
 
             $response = $this->get(route('landing'));
 
@@ -231,7 +231,7 @@ describe('header navigation visibility', function () {
     });
 
     it('shows early access CTA in early access mode header', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get(route('landing'));
 
@@ -243,7 +243,7 @@ describe('header navigation visibility', function () {
 
 describe('footer navigation visibility', function () {
     it('shows full product navigation in footer in full marketing mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get(route('landing'));
 
@@ -253,7 +253,7 @@ describe('footer navigation visibility', function () {
     });
 
     it('shows minimal product navigation in footer in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get(route('landing'));
 
@@ -268,7 +268,7 @@ describe('footer navigation visibility', function () {
 
     it('shows legal links in footer in both modes', function () {
         foreach ([true, false] as $earlyAccessEnabled) {
-            config(['publishlayer.launch.soft_launch_mode' => $earlyAccessEnabled]);
+            config(['argusly.launch.soft_launch_mode' => $earlyAccessEnabled]);
 
             $response = $this->get(route('landing'));
 
@@ -285,7 +285,7 @@ describe('footer navigation visibility', function () {
 
 describe('homepage CTA behavior', function () {
     it('shows early access CTA on homepage in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get(route('landing'));
 
@@ -295,7 +295,7 @@ describe('homepage CTA behavior', function () {
     });
 
     it('shows pricing CTA on homepage in full marketing mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get(route('landing'));
 
@@ -307,7 +307,7 @@ describe('homepage CTA behavior', function () {
 
 describe('route visibility in early access mode', function () {
     beforeEach(function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
     });
 
     it('redirects blocked marketing pages to early access page', function () {
@@ -361,7 +361,7 @@ describe('route visibility in early access mode', function () {
 
 describe('route visibility in full marketing mode', function () {
     beforeEach(function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
     });
 
     it('allows all marketing pages', function () {
@@ -394,7 +394,7 @@ describe('route visibility in full marketing mode', function () {
 
 describe('sign in accessibility', function () {
     it('keeps sign in accessible in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get('/login');
 
@@ -402,7 +402,7 @@ describe('sign in accessibility', function () {
     });
 
     it('keeps sign in accessible in full marketing mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get('/login');
 
@@ -412,7 +412,7 @@ describe('sign in accessibility', function () {
 
 describe('early access page', function () {
     it('is accessible in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get(route('public.early-access.show'));
 
@@ -420,7 +420,7 @@ describe('early access page', function () {
     });
 
     it('is accessible in full marketing mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get(route('public.early-access.show'));
 
@@ -430,7 +430,7 @@ describe('early access page', function () {
 
 describe('early access locale switching', function () {
     beforeEach(function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
     });
 
     it('shows English early access content by default', function () {

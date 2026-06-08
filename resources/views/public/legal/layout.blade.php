@@ -11,7 +11,7 @@
         'ogType' => $ogType ?? 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>

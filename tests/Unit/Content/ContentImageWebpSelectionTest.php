@@ -84,7 +84,7 @@ it('falls back to image_url when storage path is missing for ui and wordpress ur
 it('builds an absolute wordpress upload url from connector public url when storage url is relative', function () {
     Storage::fake('public');
     Storage::disk('public')->put('content-images/wp-medium.jpg', 'image');
-    config()->set('publishlayer.webhooks.connector_public_url', 'https://connector.publishlayer.test');
+    config()->set('argusly.webhooks.connector_public_url', 'https://connector.argusly.test');
 
     $image = new ContentImage([
         'medium_path' => 'content-images/wp-medium.jpg',
@@ -92,11 +92,11 @@ it('builds an absolute wordpress upload url from connector public url when stora
     ]);
 
     expect($image->getWordPressUploadUrl(new ClientSite(['capabilities' => []])))
-        ->toBe('https://connector.publishlayer.test/storage/content-images/wp-medium.jpg');
+        ->toBe('https://connector.argusly.test/storage/content-images/wp-medium.jpg');
 });
 
 it('rewrites localhost wordpress upload url to connector public url', function () {
-    config()->set('publishlayer.webhooks.connector_public_url', 'https://connector.publishlayer.test');
+    config()->set('argusly.webhooks.connector_public_url', 'https://connector.argusly.test');
 
     $image = new ContentImage([
         'image_path' => 'content-images/missing.png',
@@ -104,5 +104,5 @@ it('rewrites localhost wordpress upload url to connector public url', function (
     ]);
 
     expect($image->getWordPressUploadUrl(new ClientSite(['capabilities' => []])))
-        ->toBe('https://connector.publishlayer.test/storage/content-images/missing.png');
+        ->toBe('https://connector.argusly.test/storage/content-images/missing.png');
 });

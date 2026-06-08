@@ -5,7 +5,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config(['publishlayer.launch.soft_launch_mode' => false]);
+    config(['argusly.launch.soft_launch_mode' => false]);
     $this->seed(\Database\Seeders\MarketingPageSeeder::class);
 });
 
@@ -15,8 +15,8 @@ function marketingTopicPages(): array
         [
             'path' => '/nl/ai-zoekmachines',
             'title' => 'Win AI-zoekmachines met Answer Engine Optimization (AEO)',
-            'meta_title' => 'Answer Engine Optimization (AEO) voor AI-zoekmachines | PublishLayer',
-            'meta_description' => 'Ontdek wat Answer Engine Optimization (AEO) is, hoe het verschilt van SEO en hoe PublishLayer AI-zichtbaarheid verbetert met AEO-score en gestructureerde antwoordblokken.',
+            'meta_title' => 'Answer Engine Optimization (AEO) voor AI-zoekmachines | Argusly',
+            'meta_description' => 'Ontdek wat Answer Engine Optimization (AEO) is, hoe het verschilt van SEO en hoe Argusly AI-zichtbaarheid verbetert met AEO-score en gestructureerde antwoordblokken.',
             'canonical' => url('/nl/ai-zoekmachines'),
             'alternate_en' => url('/en/ai-search'),
             'alternate_nl' => url('/nl/ai-zoekmachines'),
@@ -78,8 +78,8 @@ function marketingTopicPages(): array
         [
             'path' => '/en/ai-search',
             'title' => 'Win AI Search with Answer Engine Optimization (AEO)',
-            'meta_title' => 'Answer Engine Optimization (AEO) for AI search | PublishLayer',
-            'meta_description' => 'Learn what Answer Engine Optimization (AEO) is, how it differs from SEO, and how PublishLayer helps teams improve AI visibility with AEO Score and Structured Answer Blocks.',
+            'meta_title' => 'Answer Engine Optimization (AEO) for AI search | Argusly',
+            'meta_description' => 'Learn what Answer Engine Optimization (AEO) is, how it differs from SEO, and how Argusly helps teams improve AI visibility with AEO Score and Structured Answer Blocks.',
             'canonical' => url('/en/ai-search'),
             'alternate_en' => url('/en/ai-search'),
             'alternate_nl' => url('/nl/ai-zoekmachines'),

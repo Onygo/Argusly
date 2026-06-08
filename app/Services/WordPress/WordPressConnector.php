@@ -51,8 +51,8 @@ class WordPressConnector
 
         $encodedId = rawurlencode($id);
         $endpoints = [
-            $this->baseUrl . '/wp-json/publishlayer/v1/posts/' . $encodedId,
-            $this->baseUrl . '/?rest_route=/publishlayer/v1/posts/' . $encodedId,
+            $this->baseUrl . '/wp-json/argusly/v1/posts/' . $encodedId,
+            $this->baseUrl . '/?rest_route=/argusly/v1/posts/' . $encodedId,
             $this->baseUrl . '/wp-json/wp/v2/posts/' . $encodedId . '?context=edit',
             $this->baseUrl . '/wp-json/wp/v2/posts/' . $encodedId,
         ];
@@ -461,8 +461,8 @@ class WordPressConnector
     private function createEndpoints(): array
     {
         return [
-            $this->baseUrl . '/wp-json/publishlayer/v1/posts',
-            $this->baseUrl . '/?rest_route=/publishlayer/v1/posts',
+            $this->baseUrl . '/wp-json/argusly/v1/posts',
+            $this->baseUrl . '/?rest_route=/argusly/v1/posts',
         ];
     }
 
@@ -474,8 +474,8 @@ class WordPressConnector
         $encodedId = rawurlencode($id);
 
         return [
-            $this->baseUrl . '/wp-json/publishlayer/v1/posts/' . $encodedId,
-            $this->baseUrl . '/?rest_route=/publishlayer/v1/posts/' . $encodedId,
+            $this->baseUrl . '/wp-json/argusly/v1/posts/' . $encodedId,
+            $this->baseUrl . '/?rest_route=/argusly/v1/posts/' . $encodedId,
             ...$this->createEndpoints(),
         ];
     }
@@ -486,8 +486,8 @@ class WordPressConnector
     private function lookupEndpoints(): array
     {
         return [
-            $this->baseUrl . '/wp-json/publishlayer/v1/posts/lookup',
-            $this->baseUrl . '/?rest_route=/publishlayer/v1/posts/lookup',
+            $this->baseUrl . '/wp-json/argusly/v1/posts/lookup',
+            $this->baseUrl . '/?rest_route=/argusly/v1/posts/lookup',
             ...$this->createEndpoints(),
         ];
     }

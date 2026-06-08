@@ -353,7 +353,7 @@ it('stops the remaining lifecycle when the automation is paused during a run', f
 });
 
 it('skips automation runs cleanly when the site balance is below the minimum credit requirement', function () {
-    config()->set('publishlayer.ai.drafts.credit_cost', 4);
+    config()->set('argusly.ai.drafts.credit_cost', 4);
     config()->set('translation.default_credit_cost', 6);
 
     [$user, $automation] = makeContentAutomationOrchestratorContext([
@@ -385,7 +385,7 @@ it('skips automation runs cleanly when the site balance is below the minimum cre
 });
 
 it('estimates automation credits for chain size four with en and nl correctly', function () {
-    config()->set('publishlayer.ai.drafts.credit_cost', 4);
+    config()->set('argusly.ai.drafts.credit_cost', 4);
     config()->set('translation.default_credit_cost', 6);
 
     [, $automation] = makeContentAutomationOrchestratorContext([

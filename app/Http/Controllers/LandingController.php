@@ -22,7 +22,7 @@ class LandingController extends Controller
     {
         $locale = (string) app()->getLocale();
 
-        if ((bool) config('publishlayer.launch.soft_launch_mode', false)) {
+        if ((bool) config('argusly.launch.soft_launch_mode', false)) {
             return view('public.soft-launch', [
                 'metaTitle' => 'Argusly | Private rollout',
                 'metaDescription' => 'Argusly is onboarding a limited number of early partners.',
@@ -46,7 +46,7 @@ class LandingController extends Controller
     {
         $locale = (string) app()->getLocale();
 
-        if ((bool) config('publishlayer.launch.soft_launch_mode', false) || ! (bool) config('publishlayer.launch.public_pricing_enabled', true)) {
+        if ((bool) config('argusly.launch.soft_launch_mode', false) || ! (bool) config('argusly.launch.public_pricing_enabled', true)) {
             return redirect()->to(LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access'], $locale));
         }
 

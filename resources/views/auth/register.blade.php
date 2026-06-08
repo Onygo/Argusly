@@ -2,13 +2,8 @@
 
 @section('content')
     <div class="flex flex-col items-center gap-3">
-        <a href="{{ route('landing') }}" class="inline-flex items-center gap-2 rounded-md px-2 py-1 hover:bg-surfaceMuted">
-            <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                <i data-lucide="layers" class="h-5 w-5"></i>
-            </span>
-            <span class="leading-tight">
-                <span class="block text-lg font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
-            </span>
+        <a href="{{ route('landing') }}" class="rounded-md px-2 py-1 hover:bg-surfaceMuted">
+            <x-brand-logo size="lg" text-class="text-lg font-bold tracking-tight text-textPrimary" />
         </a>
         <p class="text-sm text-textSecondary">Vraag een account aan</p>
     </div>

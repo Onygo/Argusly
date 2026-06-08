@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\ApiKey;
 use App\Models\Workspace;
 use App\Services\Integrations\IntegrationCredentialResolver;
+use App\Support\Connectors\ConnectorHeaders;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -19,10 +20,15 @@ class IntegrationTokenMiddleware
     {
         $auth = (string) $request->header('Authorization');
         if (! str_starts_with($auth, 'Bearer ')) {
-            return response()->json([
-                'message' => 'Missing bearer token',
-                'code' => 'AUTH_MISSING_TOKEN',
-            ], 401);
+            $headerToken = ConnectorHeaders::apiKey($request);
+            if ($headerToken === '') {
+                return response()->json([
+                    'message' => 'Missing bearer token',
+                    'code' => 'AUTH_MISSING_TOKEN',
+                ], 401);
+            }
+
+            $auth = 'Bearer '.$headerToken;
         }
 
         $token = trim(substr($auth, 7));
@@ -49,7 +55,7 @@ class IntegrationTokenMiddleware
                 ], 401);
             }
 
-            $destinationId = trim((string) $request->header('X-PublishLayer-Destination-Id', ''));
+            $destinationId = ConnectorHeaders::destinationId($request);
             $destination = $destinationId !== ''
                 ? $workspace->contentDestinations()->where('id', $destinationId)->first()
                 : null;
@@ -88,7 +94,7 @@ class IntegrationTokenMiddleware
 
         $destination = $apiKey->contentDestination;
         if (! $destination) {
-            $destinationId = trim((string) $request->header('X-PublishLayer-Destination-Id', ''));
+            $destinationId = ConnectorHeaders::destinationId($request);
             if ($destinationId !== '') {
                 $destination = $workspace->contentDestinations()->where('id', $destinationId)->first();
             }

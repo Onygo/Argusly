@@ -2,6 +2,7 @@
 
 namespace App\Support\Webhooks;
 
+use App\Support\Connectors\ConnectorHeaders;
 use Illuminate\Support\Str;
 
 /**
@@ -18,7 +19,7 @@ use Illuminate\Support\Str;
  *     "workspace_id": "ws_01HXY...",
  *     "data": { ... payload ... },
  *     "links": {
- *         "self": "https://app.publishlayer.com/api/v1/articles/..."
+ *         "self": "https://app.argusly.com/api/v1/articles/..."
  *     }
  * }
  * ```
@@ -199,16 +200,16 @@ class WebhookEnvelope
     {
         $headers = [
             'Content-Type' => 'application/json',
-            'X-PublishLayer-Event' => $this->event,
-            'X-PublishLayer-Event-Version' => $this->eventVersion,
-            'X-PublishLayer-Event-ID' => $this->eventId,
-            'X-PublishLayer-Signature' => 'sha256=' . $signature,
-            'X-PublishLayer-Delivery-Attempt' => (string) $attempt,
-            'X-PublishLayer-Timestamp' => $this->sentAt,
+            ConnectorHeaders::EVENT => $this->event,
+            ConnectorHeaders::EVENT_VERSION => $this->eventVersion,
+            ConnectorHeaders::EVENT_ID => $this->eventId,
+            ConnectorHeaders::SIGNATURE => 'sha256=' . $signature,
+            ConnectorHeaders::DELIVERY_ATTEMPT => (string) $attempt,
+            ConnectorHeaders::TIMESTAMP => $this->sentAt,
         ];
 
         if ($this->isDeprecated()) {
-            $headers['X-PublishLayer-Deprecation'] = 'true';
+            $headers[ConnectorHeaders::DEPRECATION] = 'true';
             $headers['Sunset'] = 'Sun, 01 Jun 2026 00:00:00 GMT';
         }
 
@@ -266,9 +267,9 @@ class WebhookEnvelope
     {
         return [
             'Content-Type' => 'application/json',
-            'X-PublishLayer-Event' => $this->event,
-            'X-PublishLayer-Signature' => 'sha256=' . $signature,
-            'X-PublishLayer-Delivery-Attempt' => (string) $attempt,
+            ConnectorHeaders::EVENT => $this->event,
+            ConnectorHeaders::SIGNATURE => 'sha256=' . $signature,
+            ConnectorHeaders::DELIVERY_ATTEMPT => (string) $attempt,
         ];
     }
 }

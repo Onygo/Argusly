@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 it('maps create responses into a normalized wordpress post', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'wp_post_id' => '42',
             'url' => 'https://wp.example/?p=42',
             'status' => 'publish',
@@ -28,7 +28,7 @@ it('maps create responses into a normalized wordpress post', function () {
 
 it('maps update responses into a normalized wordpress post', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/42' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/42' => Http::response([
             'data' => [
                 'id' => '42',
                 'url' => 'https://wp.example/?p=42',
@@ -66,7 +66,7 @@ it('treats 404 post lookups as a missing remote post', function () {
 
 it('throws an unauthorized exception for auth failures', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'message' => 'Invalid token',
         ], 401),
     ]);
@@ -79,7 +79,7 @@ it('throws an unauthorized exception for auth failures', function () {
 
 it('throws a malformed response exception when the remote success payload has no post id', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'url' => 'https://wp.example/?p=42',
         ], 200),
@@ -91,9 +91,9 @@ it('throws a malformed response exception when the remote success payload has no
         ->toThrow(MalformedResponseException::class, 'post identifier');
 });
 
-it('finds a wordpress post by publishlayer metadata through lookup responses', function () {
+it('finds a wordpress post by argusly metadata through lookup responses', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/lookup*' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/lookup*' => Http::response([
             'items' => [[
                 'post_id' => '77',
                 'link' => 'https://wp.example/?p=77',
@@ -105,7 +105,7 @@ it('finds a wordpress post by publishlayer metadata through lookup responses', f
     $post = app(WordPressConnector::class)
         ->forSite('https://wp.example', 'token')
         ->findPostByMeta([
-            'meta_key' => 'publishlayer_draft_id',
+            'meta_key' => 'argusly_draft_id',
             'meta_value' => 'draft-123',
         ]);
 
@@ -116,7 +116,7 @@ it('finds a wordpress post by publishlayer metadata through lookup responses', f
 
 it('handles exists false response from connector for post lookup', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/999' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/999' => Http::response([
             'exists' => false,
             'post_id' => null,
             'wp_post_id' => null,
@@ -136,7 +136,7 @@ it('handles exists false response from connector for post lookup', function () {
 
 it('handles exists false response from connector lookup endpoint', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/lookup*' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/lookup*' => Http::response([
             'exists' => false,
             'error' => 'Post not found.',
         ], 200),
@@ -145,7 +145,7 @@ it('handles exists false response from connector lookup endpoint', function () {
     $post = app(WordPressConnector::class)
         ->forSite('https://wp.example', 'token')
         ->findPostByMeta([
-            'publishlayer_content_id' => 'content-123',
+            'argusly_content_id' => 'content-123',
         ]);
 
     expect($post)->toBeNull();
@@ -153,7 +153,7 @@ it('handles exists false response from connector lookup endpoint', function () {
 
 it('handles normalized response shape from connector get endpoint', function () {
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/42' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/42' => Http::response([
             'exists' => true,
             'post_id' => '42',
             'wp_post_id' => '42',
@@ -163,7 +163,7 @@ it('handles normalized response shape from connector get endpoint', function () 
             'post_type' => 'post',
             'modified_gmt' => '2026-03-17 12:00:00',
             'external_key' => 'ext-key-123',
-            'publishlayer_content_id' => 'content-456',
+            'argusly_content_id' => 'content-456',
         ], 200),
     ]);
 

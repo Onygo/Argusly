@@ -24,7 +24,7 @@ it('returns structured answers and aeo score for workspace api clients', functio
         ->assertOk()
         ->assertJsonPath('aeo_score', $expectedScore)
         ->assertJsonPath('answers.0.question', 'What is AEO?')
-        ->assertJsonPath('answers.0.entities.0', 'PublishLayer');
+        ->assertJsonPath('answers.0.entities.0', 'Argusly');
 });
 
 it('returns site scoped answer payloads through markdown delivery routes', function () {
@@ -122,7 +122,7 @@ function makeContentAnswersApiContext(): array
         'content_id' => $content->id,
         'question' => 'What is AEO?',
         'answer' => 'AEO is the practice of structuring pages for direct AI answers.',
-        'entities' => ['PublishLayer', 'ChatGPT'],
+        'entities' => ['Argusly', 'ChatGPT'],
         'order' => 0,
     ]);
 
@@ -138,7 +138,7 @@ function makeContentAnswersApiContext(): array
         $content->fresh(['answerBlocks']),
         [
             'Authorization' => 'Bearer ' . $plainSiteToken,
-            'X-PublishLayer-Site' => 'answers-api.example.com',
+            'X-Argusly-Site' => 'answers-api.example.com',
         ],
         [
             'Authorization' => 'Bearer ' . $created['plain_text_key'],

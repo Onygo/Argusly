@@ -5,8 +5,8 @@ use App\Services\QueryIntent\QueryIntentIntelligenceService;
 
 it('classifies comparison decision intent for marketers', function () {
     $result = app(QueryIntentIntelligenceService::class)->classify(new QueryIntentInput(
-        title: 'Best PublishLayer alternatives for AI SEO teams',
-        query: 'publishlayer vs competitor pricing',
+        title: 'Best Argusly alternatives for AI SEO teams',
+        query: 'argusly vs competitor pricing',
         text: 'Compare AI SEO platforms, pricing, demo readiness, content workflows, and campaign planning for marketing teams.',
         sourceType: 'test',
     ));

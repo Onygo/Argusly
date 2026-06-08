@@ -11,7 +11,7 @@
         'ogType' => $ogType ?? 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? request()->url()])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? request()->url()])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -23,8 +23,8 @@
 @include('public.partials.analytics-body')
 @include('public.partials.nav')
 @php
-    $softLaunchMode = (bool) config('publishlayer.launch.soft_launch_mode', false);
-    $pricingEnabled = (bool) config('publishlayer.launch.public_pricing_enabled', true);
+    $softLaunchMode = (bool) config('argusly.launch.soft_launch_mode', false);
+    $pricingEnabled = (bool) config('argusly.launch.public_pricing_enabled', true);
     $showPricingCta = ! $softLaunchMode && $pricingEnabled;
     $recaptchaConfigured = app(\App\Services\Security\RecaptchaService::class)->isConfigured();
     $primaryCtaHref = $showPricingCta

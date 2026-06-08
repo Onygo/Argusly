@@ -72,6 +72,6 @@ class ApiKeyService
 
     private function generatePlainTextKey(): string
     {
-        return 'plk_ws_'.Str::random(56);
+        return 'arg_ws_'.Str::random(56);
     }
 }

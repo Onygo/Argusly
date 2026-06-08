@@ -68,8 +68,8 @@ it('creates featured fallback and renders ready og image when no featured exists
 
     Storage::fake('public');
     config([
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.openai.api_key' => 'test-key',
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.openai.api_key' => 'test-key',
     ]);
 
     [$user, $content, $site] = createOgContext();

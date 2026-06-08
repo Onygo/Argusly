@@ -231,7 +231,7 @@ describe('Laravel Publication E2E', function () {
             'type' => 'laravel',
             'config' => array_merge($ctx['destination']->config ?? [], [
                 'laravel_connector_enabled' => true,
-                'laravel_connector_sync_url' => 'https://e2e-test.example.com/publishlayer/sync',
+                'laravel_connector_sync_url' => 'https://e2e-test.example.com/argusly/sync',
                 'laravel_connector_api_key' => 'test-api-key',
                 'laravel_connector_site_id' => 'test-site-id',
                 'billing_client_site_id' => (string) $ctx['site']->id,

@@ -18,7 +18,7 @@
         'robotsFollow' => $robotsFollow ?? true,
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['post' => $post, 'canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['post' => $post, 'canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -27,8 +27,8 @@
 @include('public.partials.analytics-body')
 @include('public.partials.nav')
 @php
-    $showPricingCta = ! (bool) config('publishlayer.launch.soft_launch_mode', false)
-        && (bool) config('publishlayer.launch.public_pricing_enabled', true);
+    $showPricingCta = ! (bool) config('argusly.launch.soft_launch_mode', false)
+        && (bool) config('argusly.launch.public_pricing_enabled', true);
     $secondaryCtaHref = $showPricingCta
         ? \App\Support\LocalizedMarketingUrl::route('pricing')
         : \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access']);
@@ -45,7 +45,7 @@
             @if(count($localeSwitchUrls ?? []) > 1)
                 <div class="mt-5 inline-flex items-center gap-1 rounded-full border border-border bg-white p-1 text-xs">
                     @foreach(($localeSwitchUrls ?? []) as $switchLocale => $switchUrl)
-                        <a href="{{ $switchUrl }}" class="rounded-full px-3 py-1.5 font-medium {{ app()->getLocale() === $switchLocale ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f7f4ed] hover:text-textPrimary' }}">{{ strtoupper($switchLocale) }}</a>
+                        <a href="{{ $switchUrl }}" class="rounded-full px-3 py-1.5 font-medium {{ app()->getLocale() === $switchLocale ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}">{{ strtoupper($switchLocale) }}</a>
                     @endforeach
                 </div>
             @endif
@@ -84,7 +84,7 @@
                 </div>
 
                 <div class="mt-10 border-t border-border pt-5">
-                    <p class="inline-flex items-center gap-2 rounded-full border border-publicPrimary/15 bg-[#fcfbf8] px-3 py-1 text-xs text-textSecondary">
+                    <p class="inline-flex items-center gap-2 rounded-full border border-publicPrimary/15 bg-[#f8fafc] px-3 py-1 text-xs text-textSecondary">
                         <x-public.icon name="sparkles" size="xs" />
                         {{ __('public.blog.generated_badge') }}
                     </p>

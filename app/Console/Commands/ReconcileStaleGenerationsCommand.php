@@ -23,11 +23,11 @@ class ReconcileStaleGenerationsCommand extends Command
 
         $imageTimeoutMinutes = $minutesOverride !== null
             ? max(1, (int) $minutesOverride)
-            : max(1, (int) config('publishlayer.ai.images.generation_lock_timeout_minutes', 5));
+            : max(1, (int) config('argusly.ai.images.generation_lock_timeout_minutes', 5));
 
         $draftTimeoutMinutes = $minutesOverride !== null
             ? max(1, (int) $minutesOverride)
-            : max(1, (int) config('publishlayer.ai.drafts.generation_lock_timeout_minutes', 15));
+            : max(1, (int) config('argusly.ai.drafts.generation_lock_timeout_minutes', 15));
 
         $staleImageCutoff = now()->subMinutes($imageTimeoutMinutes);
         $staleDraftCutoff = now()->subMinutes($draftTimeoutMinutes);

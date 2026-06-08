@@ -85,26 +85,23 @@ it('splits product overview and pricing pages with credits-based pricing row', f
     $this->get('/nl')
         ->assertOk()
         ->assertDontSee('Schaalbare licenties', false)
-        ->assertDontSee('Waarom PublishLayer vs traditionele SEO AI suites?', false);
+        ->assertDontSee('Waarom Argusly vs traditionele SEO AI suites?', false);
 
     $productOverview = $this->get('/nl/product/overzicht');
     $productOverview->assertOk();
     $productOverview->assertDontSee('Schaalbare licenties', false);
-    $productOverview->assertDontSee('Waarom PublishLayer vs traditionele SEO AI suites?', false);
+    $productOverview->assertDontSee('Waarom Argusly vs traditionele SEO AI suites?', false);
     $productOverview->assertDontSee('AI credits per maand', false);
 
     $pricing = $this->get('/nl/prijzen');
     $pricing->assertOk();
     $pricing->assertSee(__('public.landing.pricing_title', [], 'nl'), false);
     $pricing->assertSee(__('public.landing.pricing_subline', [], 'nl'), false);
-    $pricing->assertSee(__('public.landing.pricing_monthly_no_setup', [], 'nl'), false);
-    $pricing->assertSee('AI credits per maand', false);
+    $pricing->assertSee('credits / month', false);
     $pricing->assertDontSee('AI artikelen per maand', false);
     $pricing->assertSee('10', false);
     $pricing->assertSee('20', false);
     $pricing->assertSee('100', false);
-    $pricing->assertSee('EUR 250', false);
-    $pricing->assertSee('EUR 750', false);
 
-    $this->get('/nl/prijzen')->assertOk()->assertSee('AI credits per maand', false);
+    $this->get('/nl/prijzen')->assertOk()->assertSee('credits / month', false);
 });

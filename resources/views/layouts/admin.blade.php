@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="pl-admin-shell min-h-screen bg-background antialiased text-textPrimary">
+<body class="pl-admin-shell pl-work-shell min-h-screen bg-background antialiased text-textPrimary">
 @php
     $pageWidth = in_array(($pageWidth ?? 'wide'), ['wide', 'constrained'], true) ? ($pageWidth ?? 'wide') : 'wide';
     $pageShellClass = $pageWidth === 'constrained'
@@ -16,18 +16,16 @@
         : 'pl-page pl-page--wide';
 @endphp
 <div class="flex min-h-screen w-full">
-    <aside id="adminSidebar" data-collapsed="false" class="hidden lg:flex sticky top-0 h-screen w-64 flex-col border-r border-border bg-surface transition-all duration-300">
-        <div class="flex h-14 items-center gap-2 border-b border-border px-4">
-            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                <i data-lucide="shield" class="h-4 w-4"></i>
-            </div>
+    <aside id="adminSidebar" data-collapsed="false" class="pl-work-sidebar hidden lg:flex sticky top-0 h-screen w-64 flex-col transition-all duration-300">
+        <div class="pl-work-sidebar-brand">
+            <x-brand-logo :show-text="false" />
             <div data-sidebar-label class="leading-tight">
                 <span class="block text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }} Admin</span>
             </div>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 py-3">
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">Platform</p>
                 <div class="space-y-1">
                     <a href="{{ route('admin.dashboard') }}" data-sidebar-item data-sidebar-title="Dashboard" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.dashboard') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -75,7 +73,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">Customers</p>
                 <div class="space-y-1">
                     <a href="{{ route('admin.organizations') }}" data-sidebar-item data-sidebar-title="Organizations" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.organizations.*') || request()->routeIs('admin.organizations') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -103,7 +101,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">Product</p>
                 <div class="space-y-1">
                     <a href="{{ route('admin.editorial-taxonomy.index') }}" data-sidebar-item data-sidebar-title="Editorial taxonomy" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.editorial-taxonomy.*') || request()->routeIs('admin.editorial-taxonomy.index') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -139,7 +137,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">Finance</p>
                 <div class="space-y-1">
                     <a href="{{ route('admin.billing.index') }}" data-sidebar-item data-sidebar-title="Billing" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.billing.index') || request()->routeIs('admin.organizations.billing*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -161,7 +159,7 @@
             </div>
 
             @can('admin-area-superadmin')
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">Settings</p>
                 <div class="space-y-1">
                     <a href="{{ route('admin.analytics.index') }}" data-sidebar-item data-sidebar-title="Analytics" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.analytics*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -187,28 +185,28 @@
     </aside>
 
     <div class="flex flex-1 flex-col min-w-0">
-        <header class="sticky top-0 z-30 border-b border-border bg-surface">
-            <div class="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 md:px-6">
+        <header class="pl-work-header">
+            <div class="pl-work-topbar">
                 <div class="flex min-w-0 flex-1 items-center gap-3">
                     <button id="adminMobileMenuBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-textSecondary hover:bg-surfaceMuted lg:hidden">
                         <i data-lucide="menu" class="h-4 w-4"></i>
                     </button>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-xs text-textFaint">Platform Admin</p>
-                        <h1 class="truncate text-sm font-semibold text-textPrimary">{{ $title ?? 'Admin' }}</h1>
+                    <div class="flex min-w-0 items-center gap-2">
+                        <span class="pl-work-chip">Admin</span>
+                        <span class="pl-work-chip-muted hidden sm:inline-flex">{{ $title ?? 'Platform' }}</span>
                     </div>
                 </div>
                 <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:flex-1">
                     @php($adminNotificationBell = $adminNotificationBell ?? ['unread_count' => 0, 'recent' => collect()])
                     @php($adminNotificationBellUnreadCount = (int) ($adminNotificationBell['unread_count'] ?? 0))
-                    <div class="relative hidden md:block">
+                    <div class="relative hidden min-w-[22rem] flex-1 md:block">
                         <form method="GET" action="{{ route('admin.search') }}" class="relative">
                             <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textFaint"></i>
                             <input
                                 type="text"
                                 name="q"
                                 value="{{ (string) request()->query('q', '') }}"
-                                class="pl-search w-72"
+                                class="pl-search w-full"
                                 placeholder="Search organizations, users, invoices"
                                 aria-label="Search"
                                 autocomplete="off"
@@ -241,12 +239,10 @@
                             </a>
                         </div>
                     </div>
-                    <button id="adminUserMenuBtn" type="button" class="inline-flex h-9 max-w-[9rem] items-center gap-2 rounded-md border border-border bg-surface px-2.5 text-sm hover:bg-surfaceMuted" aria-label="Admin user menu">
-                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-surfaceMuted text-xs font-medium text-textPrimary">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</span>
-                        <span class="hidden max-w-28 truncate text-textSecondary md:inline">{{ auth()->user()->name ?? 'Admin' }}</span>
-                        <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                    <button id="adminUserMenuBtn" type="button" class="pl-work-avatar" aria-label="Admin user menu">
+                        {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}
                     </button>
-                    <div id="adminUserMenu" class="hidden absolute right-4 top-12 z-50 w-56 rounded-md border border-border bg-surface md:right-6">
+                    <div id="adminUserMenu" class="hidden absolute right-4 top-16 z-50 w-56 rounded-md border border-border bg-surface md:right-6">
                         <div class="p-1">
                             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary">
                                 <i data-lucide="user" class="h-4 w-4"></i> Profile
@@ -269,9 +265,7 @@
             <div class="fixed inset-y-0 left-0 w-72 bg-surface border-r border-border z-50">
                 <div class="flex h-14 items-center justify-between border-b border-border px-4">
                     <div class="flex items-center gap-2">
-                        <div class="flex h-7 w-7 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                            <i data-lucide="shield" class="h-4 w-4"></i>
-                        </div>
+                        <x-brand-logo :show-text="false" />
                         <div class="leading-tight">
                             <span class="block text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }} Admin</span>
                         </div>

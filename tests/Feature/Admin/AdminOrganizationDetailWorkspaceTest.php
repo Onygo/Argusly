@@ -52,7 +52,7 @@ it('keeps legal profile update working', function () {
 
     $this->actingAs($superadmin)
         ->post(route('admin.organizations.legal-profile.update', $organization), [
-            'legal_name' => 'PublishLayer Legal B.V.',
+            'legal_name' => 'Argusly Legal B.V.',
             'billing_email' => 'billing@example.com',
             'vat_id' => 'NL123456789B01',
             'billing_address_line1' => 'Damrak 1',
@@ -66,7 +66,7 @@ it('keeps legal profile update working', function () {
 
     $organization->refresh();
 
-    expect((string) $organization->legal_name)->toBe('PublishLayer Legal B.V.')
+    expect((string) $organization->legal_name)->toBe('Argusly Legal B.V.')
         ->and((string) $organization->billing_email)->toBe('billing@example.com')
         ->and((string) $organization->vat_id)->toBe('NL123456789B01')
         ->and((string) data_get($organization->billing_address, 'line1'))->toBe('Damrak 1')

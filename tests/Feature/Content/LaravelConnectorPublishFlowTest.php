@@ -149,7 +149,7 @@ function createLaravelConnectorDestinationForSite(ClientSite $site): ContentDest
             'laravel_connector' => [
                 'base_url' => 'https://publish-now.example.com',
                 'site_id' => 'publish-now-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -176,7 +176,7 @@ it('queues the generic publish job when publishing now for a laravel destination
             'laravel_connector' => [
                 'base_url' => 'https://publish-now.example.com',
                 'site_id' => 'publish-now-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -414,7 +414,7 @@ it('queues the generic publish job when manually re-publishing laravel destinati
             'laravel_connector' => [
                 'base_url' => 'https://publish-now.example.com',
                 'site_id' => 'publish-now-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -772,7 +772,7 @@ it('queues remote delete when unpublishing laravel connector content', function 
             'laravel_connector' => [
                 'base_url' => 'https://publish-now.example.com',
                 'site_id' => 'publish-now-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -813,7 +813,7 @@ it('publishes scheduled laravel destination content when the schedule time is al
     config(['queue.default' => 'sync']);
 
     Http::fake([
-        'https://publish-now.example.com/publishlayer/sync' => Http::response([
+        'https://publish-now.example.com/argusly/sync' => Http::response([
             'ok' => true,
             'url' => 'https://publish-now.example.com/knowledge/immediate-publish-content',
         ], 200),
@@ -878,7 +878,7 @@ it('publishes past-due laravel destination content on scheduler run', function (
     config(['queue.default' => 'sync']);
 
     Http::fake([
-        'https://publish-now.example.com/publishlayer/sync' => Http::response(['ok' => true], 200),
+        'https://publish-now.example.com/argusly/sync' => Http::response(['ok' => true], 200),
     ]);
 
     $this->artisan('content:dispatch-scheduled-publishes --limit=10 --stale-after-minutes=15')
@@ -925,7 +925,7 @@ it('recovers stale laravel publications that were stuck on delivering', function
     config(['queue.default' => 'sync']);
 
     Http::fake([
-        'https://publish-now.example.com/publishlayer/sync' => Http::response(['ok' => true], 200),
+        'https://publish-now.example.com/argusly/sync' => Http::response(['ok' => true], 200),
     ]);
 
     $this->artisan('content:dispatch-scheduled-publishes --limit=10 --stale-after-minutes=15')
@@ -956,7 +956,7 @@ it('queues bulk laravel connector sync for selected content', function () {
             'laravel_connector' => [
                 'base_url' => 'https://publish-now.example.com',
                 'site_id' => 'publish-now-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -1041,7 +1041,7 @@ it('verifies laravel routes through the generic verify action', function () {
             'laravel_connector' => [
                 'base_url' => 'https://publish-now.example.com',
                 'site_id' => 'publish-now-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
                 'enabled' => true,
                 'mode' => 'hosted_views',

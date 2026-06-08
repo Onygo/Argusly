@@ -279,9 +279,9 @@ class VerifyRemoteDeliveryService
 
         // Build lookup criteria
         $criteria = [
-            'publishlayer_content_id' => (string) $content->id,
-            'publishlayer_locale' => strtolower(trim((string) ($content->language ?? ''))),
-            'publishlayer_destination_id' => trim((string) ($content->content_destination_id ?? $content->client_site_id ?? '')),
+            'argusly_content_id' => (string) $content->id,
+            'argusly_locale' => strtolower(trim((string) ($content->language ?? ''))),
+            'argusly_destination_id' => trim((string) ($content->content_destination_id ?? $content->client_site_id ?? '')),
         ];
 
         if ($content->external_key) {
@@ -291,7 +291,7 @@ class VerifyRemoteDeliveryService
         // Get the latest draft ID
         $latestDraft = $content->drafts()->latest('created_at')->first();
         if ($latestDraft) {
-            $criteria['publishlayer_draft_id'] = (string) $latestDraft->id;
+            $criteria['argusly_draft_id'] = (string) $latestDraft->id;
         }
 
         try {

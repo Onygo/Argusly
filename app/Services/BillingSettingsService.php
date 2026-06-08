@@ -74,7 +74,7 @@ class BillingSettingsService
             'kvk_number' => '',
             'email' => '',
             'website' => '',
-            'logo_path' => 'images/publishlayer-logo.jpg',
+            'logo_path' => 'images/argusly-logo.svg',
         ]);
     }
 

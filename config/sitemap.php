@@ -11,7 +11,7 @@ return [
     'chunk_size' => (int) env('SITEMAP_CHUNK_SIZE', 500),
     'cache_store' => env('SITEMAP_CACHE_STORE'),
     'cache_ttl' => (int) env('SITEMAP_CACHE_TTL', 3600),
-    'cache_prefix' => env('SITEMAP_CACHE_PREFIX', 'publishlayer:sitemap'),
+    'cache_prefix' => env('SITEMAP_CACHE_PREFIX', 'argusly:sitemap'),
 
     /*
     |--------------------------------------------------------------------------

@@ -21,7 +21,7 @@
             <input type="text" name="vat_number" value="{{ old('vat_number', $issuer['vat_number'] ?? '') }}" placeholder="VAT number" class="rounded border border-border px-3 py-2 text-sm">
             <input type="text" name="email" value="{{ old('email', $issuer['email'] ?? '') }}" placeholder="Email" class="rounded border border-border px-3 py-2 text-sm">
             <input type="text" name="website" value="{{ old('website', $issuer['website'] ?? '') }}" placeholder="Website" class="rounded border border-border px-3 py-2 text-sm">
-            <input type="text" name="logo_path" value="{{ old('logo_path', $issuer['logo_path'] ?? 'images/publishlayer-logo.jpg') }}" placeholder="Logo path (public/)" class="rounded border border-border px-3 py-2 text-sm md:col-span-2">
+            <input type="text" name="logo_path" value="{{ old('logo_path', $issuer['logo_path'] ?? 'images/argusly-logo.svg') }}" placeholder="Logo path (public/)" class="rounded border border-border px-3 py-2 text-sm md:col-span-2">
             <div class="md:col-span-3">
                 <button class="inline-flex items-center rounded border border-border px-3 py-1.5 text-xs">Save issuer profile</button>
             </div>

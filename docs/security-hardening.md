@@ -2,12 +2,12 @@
 
 ## Toegevoegd
 
-- Nieuw centraal security-configcontract in [config/security.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/config/security.php) met toggles, suspicious traffic detection, rate limits en response-messages.
-- Globale middleware [app/Http/Middleware/BlockSuspiciousTraffic.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/app/Http/Middleware/BlockSuspiciousTraffic.php) die verdachte user agents, gevoelige paden, query/path patronen en extreem lange querystrings detecteert.
-- Middleware [app/Http/Middleware/ProtectHeavyEndpoints.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/app/Http/Middleware/ProtectHeavyEndpoints.php) voor search, audits, reports, AI-generatie, exports en andere kostbare acties.
+- Nieuw centraal security-configcontract in [config/security.php](/Users/ricardohagens/Sites/_project_argusly/argusly/config/security.php) met toggles, suspicious traffic detection, rate limits en response-messages.
+- Globale middleware [app/Http/Middleware/BlockSuspiciousTraffic.php](/Users/ricardohagens/Sites/_project_argusly/argusly/app/Http/Middleware/BlockSuspiciousTraffic.php) die verdachte user agents, gevoelige paden, query/path patronen en extreem lange querystrings detecteert.
+- Middleware [app/Http/Middleware/ProtectHeavyEndpoints.php](/Users/ricardohagens/Sites/_project_argusly/argusly/app/Http/Middleware/ProtectHeavyEndpoints.php) voor search, audits, reports, AI-generatie, exports en andere kostbare acties.
 - Centrale `RateLimiter::for(...)` definities voor `web`, `api`, `login`, `password-reset`, `contact`, `heavy` en compatibele aliases voor bestaande route-definities.
-- Compacte 403/429 responses via [app/Support/SecurityResponse.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/app/Support/SecurityResponse.php), inclusief nette JSON responses voor API requests.
-- Aparte `security` log channel in [config/logging.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/config/logging.php) zodat suspicious traffic compact en release-safe gelogd wordt.
+- Compacte 403/429 responses via [app/Support/SecurityResponse.php](/Users/ricardohagens/Sites/_project_argusly/argusly/app/Support/SecurityResponse.php), inclusief nette JSON responses voor API requests.
+- Aparte `security` log channel in [config/logging.php](/Users/ricardohagens/Sites/_project_argusly/argusly/config/logging.php) zodat suspicious traffic compact en release-safe gelogd wordt.
 
 ## Relevante env vars
 
@@ -72,10 +72,10 @@ Gebruik lokaal ruimere limieten en liever log-only gedrag:
 
 Concreet extra beschermd in routes:
 
-- [routes/marketing.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/routes/marketing.php): contact, early-access en public invite submissions.
-- [routes/app.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/routes/app.php): search, onboarding scan, connector tests, SEO audit runs, AI generation en report-achtige acties.
-- [routes/admin.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/routes/admin.php): admin login, search, queue retries en LLM/test-connection acties.
-- [routes/api.php](/Users/ricardohagens/Sites/_project_publishlayer/publishlayer/routes/api.php): globale API limiter, publieke Mollie webhook limiter, integratie-API limiter en extra heavy protection op generation/audit/export endpoints.
+- [routes/marketing.php](/Users/ricardohagens/Sites/_project_argusly/argusly/routes/marketing.php): contact, early-access en public invite submissions.
+- [routes/app.php](/Users/ricardohagens/Sites/_project_argusly/argusly/routes/app.php): search, onboarding scan, connector tests, SEO audit runs, AI generation en report-achtige acties.
+- [routes/admin.php](/Users/ricardohagens/Sites/_project_argusly/argusly/routes/admin.php): admin login, search, queue retries en LLM/test-connection acties.
+- [routes/api.php](/Users/ricardohagens/Sites/_project_argusly/argusly/routes/api.php): globale API limiter, publieke Mollie webhook limiter, integratie-API limiter en extra heavy protection op generation/audit/export endpoints.
 
 ## Opmerkingen
 

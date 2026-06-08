@@ -82,8 +82,8 @@ function makeSeoAuditAiFixContext(): array
         'word_count' => 240,
         'internal_links_count' => 1,
         'broken_links_count' => 0,
-        'page_type' => SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-        'publishlayer_article_id' => $content->id,
+        'page_type' => SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE,
+        'argusly_content_id' => $content->id,
     ]);
 
     $issue = SeoAuditIssue::query()->create([
@@ -120,7 +120,7 @@ function seedSeoAiFixCredits(ClientSite $site, Workspace $workspace, Organizatio
 
 function configureSeoAiFixLlm(): void
 {
-    config()->set('publishlayer.ai.seo_fix.credit_cost', 3);
+    config()->set('argusly.ai.seo_fix.credit_cost', 3);
     config()->set('llm.default_provider', 'openai');
     config()->set('llm.providers.openai.api_key', 'test-key');
     config()->set('llm.providers.openai.base_url', 'https://api.openai.com');
@@ -139,12 +139,12 @@ it('stores AI suggestion records and captures credits', function () {
             'id' => 'resp_ai_fix_1',
             'model' => 'gpt-4o-mini',
             'output_text' => json_encode([
-                'title' => 'PublishLayer SEO Fix for Better Organic Reach',
-                'meta_description' => 'Learn how PublishLayer improves your organic traffic with practical tips and measurable SEO fixes.',
-                'h1' => 'PublishLayer SEO Fix Guide',
+                'title' => 'Argusly SEO Fix for Better Organic Reach',
+                'meta_description' => 'Learn how Argusly improves your organic traffic with practical tips and measurable SEO fixes.',
+                'h1' => 'Argusly SEO Fix Guide',
                 'canonical' => 'https://seo-audit.example.com/pl-article',
                 'internal_links' => [
-                    ['url' => 'https://seo-audit.example.com/about', 'anchor' => 'About PublishLayer', 'reason' => 'Context link'],
+                    ['url' => 'https://seo-audit.example.com/about', 'anchor' => 'About Argusly', 'reason' => 'Context link'],
                 ],
                 'notes' => ['Keep language aligned with the article tone.'],
             ], JSON_UNESCAPED_SLASHES),
@@ -267,7 +267,7 @@ it('applies generated suggestions to a new draft revision without publishing', f
         'issue_code' => 'meta_description_missing',
         'status' => SeoAuditFixSuggestion::STATUS_GENERATED,
         'suggestion' => [
-            'recommended_title' => 'Updated SEO Title for PublishLayer Article',
+            'recommended_title' => 'Updated SEO Title for Argusly Article',
             'recommended_meta_description' => 'A concise meta description that improves click-through and reflects the article intent.',
             'recommended_robots_index' => false,
             'recommended_robots_follow' => true,
@@ -283,15 +283,15 @@ it('applies generated suggestions to a new draft revision without publishing', f
 
     $seo = ContentSeo::query()->where('content_id', $ctx['content']->id)->first();
     expect($seo)->not->toBeNull();
-    expect((string) $seo->meta_title)->toBe('Updated SEO Title for PublishLayer Article');
+    expect((string) $seo->meta_title)->toBe('Updated SEO Title for Argusly Article');
     expect((string) $seo->meta_description)->toBe('A concise meta description that improves click-through and reflects the article intent.');
     expect($seo->robots_index)->toBeFalse();
     expect($seo->robots_follow)->toBeTrue();
     expect((string) $seo->schema_type)->toBe('Article');
 
     $draft->refresh();
-    expect((string) $draft->title)->toBe('Updated SEO Title for PublishLayer Article');
-    expect((string) $draft->seo_title)->toBe('Updated SEO Title for PublishLayer Article');
+    expect((string) $draft->title)->toBe('Updated SEO Title for Argusly Article');
+    expect((string) $draft->seo_title)->toBe('Updated SEO Title for Argusly Article');
     expect((string) $draft->seo_meta_description)->toBe('A concise meta description that improves click-through and reflects the article intent.');
     expect($draft->robots_index)->toBeFalse();
     expect($draft->robots_follow)->toBeTrue();
@@ -324,7 +324,7 @@ it('applies generated suggestions to a new draft revision without publishing', f
     expect(data_get($applyLog->changed_fields, 'content'))->toContain('seo_title', 'seo_meta_description', 'robots_index', 'robots_follow', 'schema_type');
     expect(data_get($applyLog->changed_fields, 'draft'))->toContain('seo_title', 'seo_meta_description', 'robots_index', 'robots_follow', 'schema_type');
     expect(data_get($applyLog->old_values, 'content.seo_title'))->toBeNull();
-    expect(data_get($applyLog->new_values, 'content.seo_title'))->toBe('Updated SEO Title for PublishLayer Article');
+    expect(data_get($applyLog->new_values, 'content.seo_title'))->toBe('Updated SEO Title for Argusly Article');
 });
 
 it('auto-creates a draft from current content before applying a suggestion when no draft exists', function () {

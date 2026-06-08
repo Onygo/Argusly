@@ -12,8 +12,8 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config()->set('publishlayer_connector.public_blog.use_connector', false);
-    config()->set('publishlayer_connector.public_blog.fallback_to_local', true);
+    config()->set('argusly_connector.public_blog.use_connector', false);
+    config()->set('argusly_connector.public_blog.fallback_to_local', true);
 
     $organization = Organization::query()->create([
         'name' => 'Marketing Locale Org',
@@ -32,7 +32,7 @@ beforeEach(function () {
     config()->set('marketing.blog_source.id', (string) $this->workspace->id);
 });
 
-function makeLegacyEnglishRoutedDutchBlog(Workspace $workspace, string $slug = 'publishlayer-laravel-seo-architectuur'): Content
+function makeLegacyEnglishRoutedDutchBlog(Workspace $workspace, string $slug = 'argusly-laravel-seo-architectuur'): Content
 {
     $content = Content::query()->create([
         'id' => (string) Str::uuid(),
@@ -82,7 +82,7 @@ it('does not write changes during dry run', function () {
 });
 
 it('normalizes a legacy english route with dutch content into a dutch source variant and redirect', function () {
-    $slug = 'publishlayer-laravel-seo-architectuur';
+    $slug = 'argusly-laravel-seo-architectuur';
     $content = makeLegacyEnglishRoutedDutchBlog($this->workspace, $slug);
     $enUrl = '/en/blog/' . $slug;
     $nlUrl = '/nl/blog/' . $slug;

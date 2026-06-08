@@ -53,7 +53,7 @@ class ImageAttribution
             return '';
         }
 
-        return '<aside class="publishlayer-image-attribution" data-publishlayer-image-attribution="featured">'
+        return '<aside class="argusly-image-attribution" data-argusly-image-attribution="featured">'
             .'Photo by <a href="'.e($photographerUrl).'" rel="noopener" target="_blank">'.e($photographerName).'</a>'
             .' on <a href="'.e($providerUrl).'" rel="noopener" target="_blank">'.e($providerName).'</a>.'
             .'</aside>';
@@ -68,7 +68,7 @@ class ImageAttribution
         $separator = str_contains($url, '?') ? '&' : '?';
 
         return $url.$separator.http_build_query([
-            'utm_source' => 'publishlayer',
+            'utm_source' => 'argusly',
             'utm_medium' => 'referral',
         ]);
     }

@@ -94,7 +94,7 @@ it('repushes missing featured images and stores wp metadata', function () {
     ]);
 
     Http::fake([
-        'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image' => Http::response([
+        'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image' => Http::response([
             'ok' => true,
             'attachment_id' => '123',
             'featured_image_id' => '123',

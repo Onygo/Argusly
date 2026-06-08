@@ -29,7 +29,7 @@ class OGImageRenderer
         $canvasHeight = (int) $template['canvas']['height'];
         $safePadding = (int) $template['canvas']['padding'];
 
-        $disk = (string) config('publishlayer.images.disk', config('publishlayer.ai.images.storage_disk', 'public'));
+        $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
         $bgPath = (string) $bgImage->image_path;
         $bgBinary = Storage::disk($disk)->get($bgPath);
         $source = @imagecreatefromstring($bgBinary);

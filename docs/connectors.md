@@ -9,11 +9,10 @@ Argusly first-party connector packages live in `packages/` and are developed sep
 
 ## Canonical Contract
 
-Authorization uses `Authorization: Bearer <token>` as the canonical credential transport. `X-Argusly-API-Key` is accepted as an alias where connector clients cannot send bearer headers. During migration, legacy PublishLayer headers remain accepted as fallbacks.
+Authorization uses `Authorization: Bearer <token>` as the connector credential transport.
 
 Canonical connector headers:
 
-- `X-Argusly-API-Key`
 - `X-Argusly-Site`
 - `X-Argusly-Destination-Id`
 - `X-Argusly-Idempotency-Key`
@@ -24,20 +23,12 @@ Canonical connector headers:
 - `X-Argusly-Event-Version`
 - `X-Argusly-Event-ID`
 
-When both Argusly and PublishLayer header values are present, Argusly values win.
-
 ## Platform Endpoints
 
 - `POST /api/v1/connectors/heartbeat`
 - `GET /api/v1/connectors/content`
 - `GET /api/v1/connectors/content/{content}`
 - `POST /api/v1/connectors/content/{content}/sync-results`
-
-Legacy routes remain active during the compatibility window:
-
-- `POST /api/connector/heartbeat`
-- `POST /api/wp/heartbeat`
-- old installed PublishLayer connector package routes
 
 ## API Ownership
 
@@ -53,7 +44,7 @@ Develop against local path installs until the API contracts are stable. Keep pac
 
 ## Planned Release Process
 
-1. Stabilize the Argusly connector contract and compatibility aliases.
+1. Stabilize the Argusly connector contract.
 2. Replace placeholder connector commands and endpoint handlers with contract-backed implementations.
 3. Add package-level tests and local installation QA for WordPress and Laravel.
 4. Tag internal release candidates.
@@ -61,6 +52,4 @@ Develop against local path installs until the API contracts are stable. Keep pac
 
 ## Migration Note
 
-These packages replace the former PublishLayer WordPress plugin and Laravel connector. PublishLayer routes, headers, token prefixes, config keys, and database tables remain temporarily for compatibility only.
-
-New credentials should use Argusly prefixes. Existing `pl_site_` and `plk_ws_` credentials remain valid because authentication is hash-based.
+These packages replace the former connector packages and use Argusly naming throughout.

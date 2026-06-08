@@ -1066,7 +1066,7 @@ return [
                 [
                     'title' => 'Argusly monitoringscript',
                     'points' => [
-                        'De publieke site laadt het eigen pl.js monitoringscript van Argusly vanaf het tracking-subdomein van Argusly.',
+                        'De publieke site laadt het eigen argusly.js monitoringscript van Argusly vanaf het tracking-subdomein van Argusly.',
                         'Het script registreert pageviews en engagementsignalen zoals scrolldiepte, read-through en leestijd voor rapportage over blog- en contentperformance.',
                         'Het script gebruikt een sessiegebonden identifier in sessionStorage in plaats van een langlevende marketingcookie.',
                         'Het trackingscript respecteert Do Not Track wanneer dit in de browser is ingeschakeld.',

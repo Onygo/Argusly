@@ -133,8 +133,8 @@ class SupportSnapshotService
             'diagnostics' => $diagnostics,
             'recent_failed_jobs' => $recentFailedJobs,
             'config_flags' => [
-                'publishlayer_wp_require_timestamp_nonce' => (bool) config('publishlayer.wp_connector.require_timestamp_nonce', false),
-                'publishlayer_wp_timestamp_ttl_seconds' => (int) config('publishlayer.wp_connector.timestamp_ttl_seconds', 0),
+                'argusly_wp_require_timestamp_nonce' => (bool) config('argusly.wp_connector.require_timestamp_nonce', false),
+                'argusly_wp_timestamp_ttl_seconds' => (int) config('argusly.wp_connector.timestamp_ttl_seconds', 0),
                 'queue_default' => (string) config('queue.default', 'sync'),
             ],
         ];

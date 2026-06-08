@@ -90,9 +90,9 @@ class CompetitorOpportunityScorer
                 'formats' => $signal->formats,
                 'intent_mix' => $signal->intent_mix,
             ],
-            'publishlayer_coverage' => [
+            'argusly_coverage' => [
                 'status' => $signal->coverage_status,
-                'content_count' => $signal->publishlayer_content_count,
+                'content_count' => $signal->argusly_content_count,
                 'overlap_score' => $signal->overlap_score,
             ],
             'normalized_payload' => [

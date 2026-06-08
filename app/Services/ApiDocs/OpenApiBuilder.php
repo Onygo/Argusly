@@ -24,7 +24,7 @@ class OpenApiBuilder
         $this->requestExtractor = $requestExtractor;
         $this->resourceExtractor = $resourceExtractor;
         $this->routeExtractor = $routeExtractor;
-        $this->config = config('publishlayer-docs', []);
+        $this->config = config('argusly-docs', []);
     }
 
     /**
@@ -67,7 +67,7 @@ class OpenApiBuilder
     protected function buildServers(): void
     {
         $this->spec['servers'] = $this->config['openapi']['servers'] ?? [
-            ['url' => 'https://api.publishlayer.com/api/v1'],
+            ['url' => 'https://api.argusly.com/api/v1'],
         ];
     }
 
@@ -575,7 +575,7 @@ class OpenApiBuilder
             ],
             'CreateWebhook' => [
                 'name' => 'Draft notifications',
-                'target_url' => 'https://example.com/webhooks/publishlayer',
+                'target_url' => 'https://example.com/webhooks/argusly',
                 'secret' => 'your-webhook-signing-secret-min-16-chars',
                 'events' => ['draft.generation.completed', 'draft.generation.failed'],
                 'is_active' => true,

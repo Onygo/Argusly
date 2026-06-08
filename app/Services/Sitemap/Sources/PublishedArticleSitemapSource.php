@@ -36,7 +36,7 @@ class PublishedArticleSitemapSource implements SitemapSource
             return collect($locales)
                 ->flatMap(function (string $locale): array {
                     return collect($this->blog->latestPosts(
-                        (int) config('publishlayer_connector.public_blog.max_posts', config('publishlayer.public_blog.max_posts', 300)),
+                        (int) config('argusly_connector.public_blog.max_posts', config('argusly.public_blog.max_posts', 300)),
                         $locale
                     ))
                         ->map(fn (array $post): array => $this->mapPost($post, $locale))

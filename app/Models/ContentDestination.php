@@ -191,9 +191,9 @@ class ContentDestination extends Model
 
     public function laravelConnectorSyncPath(): string
     {
-        $path = trim((string) data_get($this->laravelConnectorSettings(), 'sync_endpoint', '/publishlayer/sync'));
+        $path = trim((string) data_get($this->laravelConnectorSettings(), 'sync_endpoint', '/argusly/sync'));
         if ($path === '') {
-            return '/publishlayer/sync';
+            return '/argusly/sync';
         }
 
         return '/'.ltrim($path, '/');
@@ -214,7 +214,7 @@ class ContentDestination extends Model
             return substr($syncPath, 0, -4).'health';
         }
 
-        return '/api/publishlayer/health';
+        return '/api/argusly/health';
     }
 
     public function laravelConnectorHealthUrl(): ?string

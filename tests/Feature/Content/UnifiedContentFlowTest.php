@@ -43,7 +43,7 @@ it('inbound brief creates content and brief version', function () {
 
     $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/briefs', [
         'client' => [
             'type' => 'wordpress',

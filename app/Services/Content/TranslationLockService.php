@@ -20,7 +20,7 @@ class TranslationLockService
 
     public function staleTimeoutMinutes(): int
     {
-        return max(5, (int) config('publishlayer.translations.stale_lock_timeout_minutes', 10));
+        return max(5, (int) config('argusly.translations.stale_lock_timeout_minutes', 10));
     }
 
     public function staleTimeoutSeconds(): int

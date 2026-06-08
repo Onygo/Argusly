@@ -74,7 +74,7 @@ it('creates and updates laravel connector destinations through the api', functio
         'config' => [
             'laravel_connector' => [
                 'base_url' => 'https://client.example.com',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'site_id' => 'client-site-1',
                 'api_key' => 'shared-secret-123456',
                 'enabled' => true,
@@ -86,8 +86,8 @@ it('creates and updates laravel connector destinations through the api', functio
     $createResponse->assertCreated()
         ->assertJsonPath('data.type', 'laravel')
         ->assertJsonPath('data.config.laravel_connector.base_url', 'https://client.example.com')
-        ->assertJsonPath('data.config.laravel_connector.sync_url', 'https://client.example.com/publishlayer/sync')
-        ->assertJsonPath('data.config.laravel_connector.health_url', 'https://client.example.com/publishlayer/health')
+        ->assertJsonPath('data.config.laravel_connector.sync_url', 'https://client.example.com/argusly/sync')
+        ->assertJsonPath('data.config.laravel_connector.health_url', 'https://client.example.com/argusly/health')
         ->assertJsonPath('data.config.laravel_connector.has_api_key', true);
 
     $destinationId = (string) $createResponse->json('data.id');
@@ -108,7 +108,7 @@ it('creates and updates laravel connector destinations through the api', functio
         'config' => [
             'laravel_connector' => [
                 'base_url' => 'https://kb.client.example.com',
-                'sync_endpoint' => '/publishlayer/custom-sync',
+                'sync_endpoint' => '/argusly/custom-sync',
                 'site_id' => 'client-site-1',
                 'enabled' => false,
                 'mode' => 'headless',
@@ -119,8 +119,8 @@ it('creates and updates laravel connector destinations through the api', functio
     $updateResponse->assertOk()
         ->assertJsonPath('data.name', 'Client Laravel Site Updated')
         ->assertJsonPath('data.config.laravel_connector.base_url', 'https://kb.client.example.com')
-        ->assertJsonPath('data.config.laravel_connector.sync_url', 'https://kb.client.example.com/publishlayer/custom-sync')
-        ->assertJsonPath('data.config.laravel_connector.health_url', 'https://kb.client.example.com/api/publishlayer/health')
+        ->assertJsonPath('data.config.laravel_connector.sync_url', 'https://kb.client.example.com/argusly/custom-sync')
+        ->assertJsonPath('data.config.laravel_connector.health_url', 'https://kb.client.example.com/api/argusly/health')
         ->assertJsonPath('data.config.laravel_connector.enabled', false)
         ->assertJsonPath('data.config.laravel_connector.mode', 'headless')
         ->assertJsonPath('data.config.laravel_connector.has_api_key', true);
@@ -143,7 +143,7 @@ it('does not allow one workspace api key to update another workspaces destinatio
             'laravel_connector' => [
                 'base_url' => 'https://other.example.com',
                 'site_id' => 'other-site',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
             ],
         ],
     ]);

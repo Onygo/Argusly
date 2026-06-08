@@ -195,7 +195,7 @@ it('falls back to http when https fails for local domains', function () {
 it('disables tls verification only for local development crawler fetches and crawls html pages', function () {
     [, $site] = makeSeoAuditContext(10);
 
-    config()->set('publishlayer.http_insecure_local', true);
+    config()->set('argusly.http_insecure_local', true);
     config()->set('app.env', 'local');
 
     $site->update([
@@ -346,7 +346,7 @@ it('records server errors and skips content detectors for failed pages', functio
     expect($h1MissingCount)->toBe(0);
 });
 
-it('classifies publishlayer articles, site pages, and system pages', function () {
+it('classifies argusly articles, site pages, and system pages', function () {
     [, $site] = makeSeoAuditContext(20);
 
     $publishLayerUrl = 'https://seo-audit.example.com/pl-article';
@@ -355,7 +355,7 @@ it('classifies publishlayer articles, site pages, and system pages', function ()
     $content = Content::query()->create([
         'workspace_id' => $site->workspace_id,
         'client_site_id' => $site->id,
-        'title' => 'PublishLayer Article',
+        'title' => 'Argusly Article',
         'type' => 'article',
         'status' => 'published',
         'source' => 'api',
@@ -384,8 +384,8 @@ it('classifies publishlayer articles, site pages, and system pages', function ()
         ->where('url', 'https://seo-audit.example.com/pl-article')
         ->first();
     expect($plPage)->not->toBeNull();
-    expect($plPage->page_type)->toBe('publishlayer_article');
-    expect((string) $plPage->publishlayer_article_id)->toBe((string) $content->id);
+    expect($plPage->page_type)->toBe('argusly_article');
+    expect((string) $plPage->argusly_content_id)->toBe((string) $content->id);
 
     $sitePage = SeoAuditPage::query()
         ->where('seo_audit_id', $audit->id)
@@ -409,13 +409,13 @@ it('classifies publishlayer articles, site pages, and system pages', function ()
     expect($systemIssuesCount)->toBe(0);
 });
 
-it('classifies publishlayer article when only published_url is available on content', function () {
+it('classifies argusly article when only published_url is available on content', function () {
     [, $site] = makeSeoAuditContext(10);
 
     $content = Content::query()->create([
         'workspace_id' => $site->workspace_id,
         'client_site_id' => $site->id,
-        'title' => 'PublishLayer Article (Published URL only)',
+        'title' => 'Argusly Article (Published URL only)',
         'type' => 'article',
         'status' => 'published',
         'source' => 'api',
@@ -442,6 +442,6 @@ it('classifies publishlayer article when only published_url is available on cont
         ->where('url', 'https://seo-audit.example.com/pl-article')
         ->first();
     expect($plPage)->not->toBeNull();
-    expect($plPage->page_type)->toBe('publishlayer_article');
-    expect((string) $plPage->publishlayer_article_id)->toBe((string) $content->id);
+    expect($plPage->page_type)->toBe('argusly_article');
+    expect((string) $plPage->argusly_content_id)->toBe((string) $content->id);
 });

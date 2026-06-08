@@ -14,7 +14,7 @@ class PostmanGenerator
 
     public function __construct()
     {
-        $this->config = config('publishlayer-docs', []);
+        $this->config = config('argusly-docs', []);
     }
 
     /**
@@ -129,10 +129,10 @@ class PostmanGenerator
         $servers = $this->spec['servers'] ?? [];
 
         if (! empty($servers)) {
-            return $servers[0]['url'] ?? 'https://api.publishlayer.com/api/v1';
+            return $servers[0]['url'] ?? 'https://api.argusly.com/api/v1';
         }
 
-        return 'https://api.publishlayer.com/api/v1';
+        return 'https://api.argusly.com/api/v1';
     }
 
     /**

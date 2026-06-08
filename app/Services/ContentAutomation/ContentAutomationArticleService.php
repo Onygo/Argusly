@@ -491,8 +491,8 @@ class ContentAutomationArticleService
         if ($item instanceof ContentAutomationRunItem) {
             $item->forceFill([
                 'prompt_hash' => hash('sha256', $prompt),
-                'provider' => trim((string) data_get($meta, 'provider', config('publishlayer.ai.provider', ''))),
-                'model' => trim((string) data_get($meta, 'model', config('publishlayer.ai.model', ''))),
+                'provider' => trim((string) data_get($meta, 'provider', config('argusly.ai.provider', ''))),
+                'model' => trim((string) data_get($meta, 'model', config('argusly.ai.model', ''))),
             ])->save();
         }
 
@@ -513,7 +513,7 @@ class ContentAutomationArticleService
             'content_html' => null,
             'meta' => $meta,
             'links' => null,
-            'credit_cost' => max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4)),
+            'credit_cost' => max(1, (int) config('argusly.ai.drafts.credit_cost', 4)),
             'delivery_status' => 'pending',
         ]);
     }

@@ -434,11 +434,11 @@ it('validates objective fields and tenant scoped workspace and site references',
 });
 
 it('stores objective goals longer than the default varchar length', function () {
-    $goal = 'Increase PublishLayer visibility in AI driven search and answer engines by consistently publishing authoritative, entity rich content around Agentic Marketing, AI visibility, Answer Engine Optimization, content automation, and AI workflows. Build topical authority and generate qualified demo and signup intent.';
+    $goal = 'Increase Argusly visibility in AI driven search and answer engines by consistently publishing authoritative, entity rich content around Agentic Marketing, AI visibility, Answer Engine Optimization, content automation, and AI workflows. Build topical authority and generate qualified demo and signup intent.';
 
     $this->actingAs($this->user)
         ->post(route('app.agentic-marketing.objectives.store'), [
-            'name' => 'PublishLayer AI Visibility Growth',
+            'name' => 'Argusly AI Visibility Growth',
             'goal' => $goal,
             'kpi_type' => 'ai_visibility',
             'locale' => 'en',
@@ -450,7 +450,7 @@ it('stores objective goals longer than the default varchar length', function () 
         ->assertRedirect();
 
     expect(AgenticMarketingObjective::query()
-        ->where('name', 'PublishLayer AI Visibility Growth')
+        ->where('name', 'Argusly AI Visibility Growth')
         ->value('goal'))->toBe($goal);
 });
 

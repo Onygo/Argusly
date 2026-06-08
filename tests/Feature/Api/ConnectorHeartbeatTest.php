@@ -2,6 +2,9 @@
 
 use App\Models\BrandVoice;
 use App\Models\ClientSite;
+use App\Models\Content;
+use App\Models\ContentDestination;
+use App\Models\ContentDestinationSyncAttempt;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\SiteToken;
@@ -27,7 +30,7 @@ it('updates site fields on heartbeat', function () {
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -40,7 +43,7 @@ it('updates site fields on heartbeat', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/connector/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'platform' => 'laravel',
         'connector_version' => '0.1.0',
         'framework_version' => '11.35.0',
@@ -52,14 +55,17 @@ it('updates site fields on heartbeat', function () {
     $response->assertOk()
         ->assertJsonStructure([
             'ok',
-            'site_id',
-            'server_time',
-            'next_recommended_heartbeat_seconds',
+            'data' => [
+                'site_id',
+            ],
+            'meta',
+            'errors',
         ])
         ->assertJson([
             'ok' => true,
-            'site_id' => $site->id,
-            'next_recommended_heartbeat_seconds' => 300,
+            'data' => [
+                'site_id' => $site->id,
+            ],
         ]);
 
     $site->refresh();
@@ -72,6 +78,161 @@ it('updates site fields on heartbeat', function () {
     expect(data_get($site->capabilities, 'agentic.create_content'))->toBeTrue();
     expect(data_get($site->capabilities, 'agentic.publish_content'))->toBeTrue();
     expect(data_get($site->capabilities, 'agentic.autonomous_allowed'))->toBeFalse();
+});
+
+it('accepts heartbeat on canonical Argusly connector endpoint', function () {
+    $workspace = makeHeartbeatWorkspace();
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'laravel',
+        'name' => 'Canonical Argusly Site',
+        'site_url' => 'https://canonical.example.com',
+        'base_url' => 'https://canonical.example.com',
+        'allowed_domains' => ['canonical.example.com'],
+        'is_active' => true,
+        'status' => 'pending',
+    ]);
+
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
+    SiteToken::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'token_hash' => hash('sha256', $plain),
+        'key_prefix' => substr($plain, 0, 14),
+        'scopes' => ['heartbeat:write'],
+        'abilities' => ['heartbeat:write'],
+        'revoked' => false,
+    ]);
+
+    $this->withHeaders([
+        'Authorization' => 'Bearer ' . $plain,
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'platform' => 'laravel',
+        'connector_version' => '0.1.0-argusly',
+    ])->assertOk()
+        ->assertJsonStructure(['ok', 'data', 'meta', 'errors'])
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('data.site_id', $site->id)
+        ->assertJsonPath('meta.next_recommended_heartbeat_seconds', 300)
+        ->assertJsonPath('errors', []);
+
+    $site->refresh();
+    expect($site->connector_platform)->toBe('laravel')
+        ->and($site->connector_version)->toBe('0.1.0-argusly')
+        ->and((string) $site->status)->toBe('connected');
+});
+
+it('accepts heartbeat token through X-Argusly-API-Key', function () {
+    $workspace = makeHeartbeatWorkspace();
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'Argusly API Key Site',
+        'site_url' => 'https://api-key.example.com',
+        'base_url' => 'https://api-key.example.com',
+        'allowed_domains' => ['api-key.example.com'],
+        'is_active' => true,
+        'status' => 'pending',
+    ]);
+
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
+    SiteToken::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'token_hash' => hash('sha256', $plain),
+        'key_prefix' => substr($plain, 0, 14),
+        'scopes' => ['heartbeat:write'],
+        'abilities' => ['heartbeat:write'],
+        'revoked' => false,
+    ]);
+
+    $this->withHeaders([
+        'X-Argusly-API-Key' => $plain,
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'platform' => 'wp',
+        'connector_version' => '0.1.0',
+    ])->assertOk();
+
+    $site->refresh();
+    expect((string) $site->status)->toBe('connected')
+        ->and($site->connector_platform)->toBe('wp');
+});
+
+it('accepts arg_site token prefixes on canonical heartbeat endpoint', function () {
+    $workspace = makeHeartbeatWorkspace();
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'laravel',
+        'name' => 'Argusly Prefix Site',
+        'site_url' => 'https://argusly-prefix.example.com',
+        'base_url' => 'https://argusly-prefix.example.com',
+        'allowed_domains' => ['argusly-prefix.example.com'],
+        'is_active' => true,
+        'status' => 'pending',
+    ]);
+
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
+    SiteToken::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'token_hash' => hash('sha256', $plain),
+        'key_prefix' => substr($plain, 0, 14),
+        'scopes' => ['heartbeat:write'],
+        'abilities' => ['heartbeat:write'],
+        'revoked' => false,
+    ]);
+
+    $this->withHeaders([
+        'Authorization' => 'Bearer ' . $plain,
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'platform' => 'laravel',
+    ])->assertOk();
+
+    $site->refresh();
+    expect((string) $site->status)->toBe('connected');
+});
+
+it('accepts the canonical X-Argusly-Site claim', function () {
+    $workspace = makeHeartbeatWorkspace();
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'laravel',
+        'name' => 'Preferred Header Site',
+        'site_url' => 'https://preferred.example.com',
+        'base_url' => 'https://preferred.example.com',
+        'allowed_domains' => ['preferred.example.com'],
+        'is_active' => true,
+        'status' => 'pending',
+    ]);
+
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
+    SiteToken::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'token_hash' => hash('sha256', $plain),
+        'key_prefix' => substr($plain, 0, 14),
+        'scopes' => ['heartbeat:write'],
+        'abilities' => ['heartbeat:write'],
+        'revoked' => false,
+    ]);
+
+    $this->withHeaders([
+        'Authorization' => 'Bearer ' . $plain,
+        'X-Argusly-Site' => 'https://preferred.example.com',
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'platform' => 'laravel',
+    ])->assertOk();
+
+    $site->refresh();
+    expect((string) $site->status)->toBe('connected');
 });
 
 it('stores explicit autonomous capability only when connector reports it', function () {
@@ -88,7 +249,7 @@ it('stores explicit autonomous capability only when connector reports it', funct
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -100,7 +261,7 @@ it('stores explicit autonomous capability only when connector reports it', funct
     ]);
 
     $this->withHeaders(['Authorization' => 'Bearer ' . $plain])
-        ->postJson('/api/connector/heartbeat', [
+        ->postJson('/api/v1/connectors/heartbeat', [
             'platform' => 'wp',
             'connector_version' => '0.1.21-agentic',
             'capabilities' => [
@@ -111,8 +272,8 @@ it('stores explicit autonomous capability only when connector reports it', funct
             ],
         ])
         ->assertOk()
-        ->assertJsonPath('capabilities.agentic.autonomous_allowed', true)
-        ->assertJsonPath('capabilities.agentic.rollback_last_update', true);
+        ->assertJsonPath('data.capabilities.agentic.autonomous_allowed', true)
+        ->assertJsonPath('data.capabilities.agentic.rollback_last_update', true);
 
     $site->refresh();
     expect(data_get($site->capabilities, 'agentic.autonomous_allowed'))->toBeTrue()
@@ -133,7 +294,7 @@ it('stores connector_meta with php_version and framework_version', function () {
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -146,7 +307,7 @@ it('stores connector_meta with php_version and framework_version', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/connector/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'platform' => 'laravel',
         'connector_version' => '0.2.0',
         'framework_version' => '11.40.0',
@@ -170,11 +331,97 @@ it('stores connector_meta with php_version and framework_version', function () {
 it('rejects heartbeat with invalid token', function () {
     $response = $this->withHeaders([
         'Authorization' => 'Bearer invalid_token_here',
-    ])->postJson('/api/connector/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'platform' => 'laravel',
     ]);
 
-    $response->assertUnauthorized();
+    $response->assertUnauthorized()
+        ->assertJsonStructure(['ok', 'data', 'meta', 'errors'])
+        ->assertJsonPath('ok', false)
+        ->assertJsonPath('data', null)
+        ->assertJsonPath('errors.0.message', 'Invalid token');
+});
+
+it('returns content index with valid bearer site token', function () {
+    [$workspace, $site, $plain] = makeConnectorContentContext(['content:read']);
+    $content = makeConnectorContent($workspace, $site, [
+        'title' => 'Canonical Connector Content',
+        'publish_url_key' => 'canonical-connector-content',
+    ]);
+
+    $response = $this->withHeaders([
+        'Authorization' => 'Bearer ' . $plain,
+        'X-Argusly-Site' => 'https://connector-content.example.com',
+    ])->getJson('/api/v1/connectors/content?limit=10');
+
+    $response->assertOk()
+        ->assertJsonStructure(['ok', 'data', 'meta', 'errors'])
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('meta.count', 1)
+        ->assertJsonPath('errors', [])
+        ->assertJsonPath('data.0.id', (string) $content->id)
+        ->assertJsonPath('data.0.slug', 'canonical-connector-content');
+});
+
+it('returns content detail with valid bearer site token', function () {
+    [$workspace, $site, $plain] = makeConnectorContentContext(['content:read']);
+    $content = makeConnectorContent($workspace, $site, [
+        'title' => 'Detail Connector Content',
+        'external_key' => 'detail-external-key',
+    ]);
+
+    $response = $this->withHeaders([
+        'Authorization' => 'Bearer ' . $plain,
+        'X-Argusly-Site' => 'https://connector-content.example.com',
+    ])->getJson('/api/v1/connectors/content/detail-external-key');
+
+    $response->assertOk()
+        ->assertJsonStructure(['ok', 'data', 'meta', 'errors'])
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('data.id', (string) $content->id)
+        ->assertJsonPath('data.title', 'Detail Connector Content')
+        ->assertJsonPath('data.rendered_markdown', "# Detail Connector Content\n\n- Locale: en\n- Published: " . now()->toDateString())
+        ->assertJsonPath('errors', []);
+});
+
+it('acknowledges connector content sync results', function () {
+    [$workspace, $site, $plain] = makeConnectorContentContext(['content:read', 'content:write']);
+    $content = makeConnectorContent($workspace, $site, [
+        'title' => 'Sync Result Content',
+    ]);
+    $destination = ContentDestination::query()->create([
+        'workspace_id' => $workspace->id,
+        'name' => 'Laravel Connector Destination',
+        'type' => 'laravel',
+        'status' => 'active',
+        'environment' => 'production',
+    ]);
+
+    $response = $this->withHeaders([
+        'Authorization' => 'Bearer ' . $plain,
+        'X-Argusly-Site' => 'https://connector-content.example.com',
+        'X-Argusly-Destination-Id' => $destination->id,
+        'X-Argusly-Idempotency-Key' => 'ack-test-key-1',
+    ])->postJson('/api/v1/connectors/content/' . $content->id . '/sync-results', [
+        'status' => 'synced',
+        'remote_id' => 'remote-123',
+        'remote_url' => 'https://connector-content.example.com/posts/sync-result-content',
+    ]);
+
+    $response->assertAccepted()
+        ->assertJsonStructure(['ok', 'data', 'meta', 'errors'])
+        ->assertJsonPath('ok', true)
+        ->assertJsonPath('data.content_id', (string) $content->id)
+        ->assertJsonPath('data.status', 'synced')
+        ->assertJsonPath('errors', []);
+
+    $attempt = ContentDestinationSyncAttempt::query()->firstOrFail();
+    expect((string) $attempt->workspace_id)->toBe((string) $workspace->id)
+        ->and((string) $attempt->content_destination_id)->toBe((string) $destination->id)
+        ->and((string) $attempt->content_id)->toBe((string) $content->id)
+        ->and($attempt->sync_type)->toBe('connector_result')
+        ->and($attempt->status)->toBe('synced')
+        ->and($attempt->idempotency_key)->toBe('ack-test-key-1');
 });
 
 it('rejects heartbeat without heartbeat:write scope', function () {
@@ -191,7 +438,7 @@ it('rejects heartbeat without heartbeat:write scope', function () {
         'status' => 'connected',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -204,28 +451,28 @@ it('rejects heartbeat without heartbeat:write scope', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/connector/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'platform' => 'wp',
     ]);
 
     $response->assertForbidden();
 });
 
-it('accepts heartbeat on legacy /wp/heartbeat route', function () {
+it('accepts wordpress heartbeat payloads on the canonical endpoint', function () {
     $workspace = makeHeartbeatWorkspace();
 
     $site = ClientSite::query()->create([
         'workspace_id' => $workspace->id,
         'type' => 'wordpress',
-        'name' => 'Legacy WP Site',
-        'site_url' => 'https://legacy.example.com',
-        'base_url' => 'https://legacy.example.com',
-        'allowed_domains' => ['legacy.example.com'],
+        'name' => 'Argusly WP Site',
+        'site_url' => 'https://argusly-wp.example.com',
+        'base_url' => 'https://argusly-wp.example.com',
+        'allowed_domains' => ['argusly-wp.example.com'],
         'is_active' => true,
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -238,8 +485,8 @@ it('accepts heartbeat on legacy /wp/heartbeat route', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/wp/heartbeat', [
-        'site_url' => 'https://legacy.example.com',
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'site_url' => 'https://argusly-wp.example.com',
         'wp_version' => '6.7.1',
         'plugin_version' => '1.3.0',
         'capabilities' => ['briefs' => true],
@@ -254,7 +501,7 @@ it('accepts heartbeat on legacy /wp/heartbeat route', function () {
     expect((string) $site->plugin_version)->toBe('1.3.0');
 });
 
-it('defaults platform to wp on legacy /wp/heartbeat route', function () {
+it('infers wp platform from wordpress site type on the canonical endpoint', function () {
     $workspace = makeHeartbeatWorkspace();
 
     $site = ClientSite::query()->create([
@@ -268,7 +515,7 @@ it('defaults platform to wp on legacy /wp/heartbeat route', function () {
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -282,7 +529,7 @@ it('defaults platform to wp on legacy /wp/heartbeat route', function () {
     // No platform field provided
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/wp/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'site_url' => 'https://defaultplat.example.com',
     ]);
 
@@ -306,7 +553,7 @@ it('infers platform from site type when not provided', function () {
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -317,10 +564,10 @@ it('infers platform from site type when not provided', function () {
         'revoked' => false,
     ]);
 
-    // No platform field provided, use /connector/heartbeat route
+    // No platform field provided, infer it from the site type.
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/connector/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'connector_version' => '0.1.0',
     ]);
 
@@ -344,7 +591,7 @@ it('rejects heartbeat with mismatched site_url', function () {
         'status' => 'connected',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -358,13 +605,13 @@ it('rejects heartbeat with mismatched site_url', function () {
     // Middleware rejects mismatched site_url with 403 before reaching controller
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/connector/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'site_url' => 'https://wrong.example.com',
         'platform' => 'wp',
     ]);
 
     $response->assertForbidden()
-        ->assertJson(['error' => 'Token site scope mismatch']);
+        ->assertJsonPath('errors.0.message', 'Token site scope mismatch');
 });
 
 it('computes heartbeat_status attribute correctly', function () {
@@ -418,7 +665,7 @@ it('detects yoast provider and stores seo capability flags from heartbeat plugin
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -431,11 +678,11 @@ it('detects yoast provider and stores seo capability flags from heartbeat plugin
 
     $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/wp/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'site_url' => 'https://yoast.example.com',
         'plugins' => [
             'wordpress-seo/wp-seo.php',
-            'publishlayer/publishlayer.php',
+            'argusly/argusly.php',
         ],
         'platform' => 'wp',
     ])->assertOk();
@@ -463,7 +710,7 @@ it('detects rankmath provider and stores seo capability flags from heartbeat plu
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -476,7 +723,7 @@ it('detects rankmath provider and stores seo capability flags from heartbeat plu
 
     $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/wp/heartbeat', [
+    ])->postJson('/api/v1/connectors/heartbeat', [
         'site_url' => 'https://rankmath.example.com',
         'active_plugins' => [
             'seo-by-rank-math/rank-math.php',
@@ -493,21 +740,21 @@ it('detects rankmath provider and stores seo capability flags from heartbeat plu
     expect((string) data_get($site->capabilities, 'seo.provider'))->toBe('rankmath');
 });
 
-it('detects publishlayer provider from heartbeat payload when no third-party seo plugin is active', function () {
+it('detects argusly provider from heartbeat payload when no third-party seo plugin is active', function () {
     $workspace = makeHeartbeatWorkspace();
 
     $site = ClientSite::query()->create([
         'workspace_id' => $workspace->id,
         'type' => 'wordpress',
-        'name' => 'PublishLayer SEO Site',
-        'site_url' => 'https://pl-seo.example.com',
-        'base_url' => 'https://pl-seo.example.com',
-        'allowed_domains' => ['pl-seo.example.com'],
+        'name' => 'Argusly SEO Site',
+        'site_url' => 'https://argusly-seo.example.com',
+        'base_url' => 'https://argusly-seo.example.com',
+        'allowed_domains' => ['argusly-seo.example.com'],
         'is_active' => true,
         'status' => 'pending',
     ]);
 
-    $plain = 'pl_site_' . bin2hex(random_bytes(32));
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
     SiteToken::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
@@ -520,27 +767,81 @@ it('detects publishlayer provider from heartbeat payload when no third-party seo
 
     $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-    ])->postJson('/api/wp/heartbeat', [
-        'site_url' => 'https://pl-seo.example.com',
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'site_url' => 'https://argusly-seo.example.com',
         'plugins' => [
-            'publishlayer/publishlayer.php',
+            'argusly/argusly.php',
         ],
         'capabilities' => [
             'seo' => [
-                'provider' => 'publishlayer',
+                'provider' => 'argusly',
             ],
         ],
         'platform' => 'wp',
     ])->assertOk();
 
     $site->refresh();
-    expect((string) $site->seo_provider)->toBe('publishlayer');
+    expect((string) $site->seo_provider)->toBe('argusly');
     expect((bool) $site->supports_meta_title)->toBeTrue();
     expect((bool) $site->supports_meta_description)->toBeTrue();
     expect((bool) $site->supports_canonical)->toBeTrue();
     expect((bool) $site->supports_og_tags)->toBeTrue();
-    expect((string) data_get($site->capabilities, 'seo.provider'))->toBe('publishlayer');
+    expect((string) data_get($site->capabilities, 'seo.provider'))->toBe('argusly');
 });
+
+/**
+ * @param array<int, string> $scopes
+ * @return array{0: Workspace, 1: ClientSite, 2: string}
+ */
+function makeConnectorContentContext(array $scopes): array
+{
+    $workspace = makeHeartbeatWorkspace();
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'laravel',
+        'name' => 'Connector Content Site',
+        'site_url' => 'https://connector-content.example.com',
+        'base_url' => 'https://connector-content.example.com',
+        'allowed_domains' => ['connector-content.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
+    SiteToken::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'token_hash' => hash('sha256', $plain),
+        'key_prefix' => substr($plain, 0, 14),
+        'scopes' => $scopes,
+        'abilities' => $scopes,
+        'revoked' => false,
+    ]);
+
+    return [$workspace, $site, $plain];
+}
+
+/**
+ * @param array<string, mixed> $overrides
+ */
+function makeConnectorContent(Workspace $workspace, ClientSite $site, array $overrides = []): Content
+{
+    return Content::query()->create(array_merge([
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'title' => 'Connector Content',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'approved',
+        'source' => 'api',
+        'publish_status' => 'published',
+        'published_url' => 'https://connector-content.example.com/posts/connector-content',
+        'publish_url_key' => 'connector-content',
+        'canonical_url_key' => 'connector-content',
+    ], $overrides));
+}
 
 function makeHeartbeatWorkspace(): Workspace
 {

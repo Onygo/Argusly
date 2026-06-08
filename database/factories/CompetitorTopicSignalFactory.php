@@ -26,7 +26,7 @@ class CompetitorTopicSignalFactory extends Factory
             'topic' => $topic,
             'topic_hash' => hash('sha256', $topic),
             'competitor_content_count' => 2,
-            'publishlayer_content_count' => 0,
+            'argusly_content_count' => 0,
             'overlap_score' => 0,
             'opportunity_score' => 92,
             'coverage_status' => 'missing',

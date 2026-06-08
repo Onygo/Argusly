@@ -142,7 +142,7 @@
                     <p class="mt-2 text-sm text-amber-700">
                         Add the following meta tag to your site's <code class="rounded bg-amber-200/50 px-1">&lt;head&gt;</code> section:
                     </p>
-                    <pre class="mt-3 overflow-x-auto rounded border border-amber-300 bg-white px-3 py-2 font-mono text-xs text-textPrimary" id="verification-meta">&lt;meta name="publishlayer-site-verification" content="{{ $analyticsSite->verification_token }}"&gt;</pre>
+                    <pre class="mt-3 overflow-x-auto rounded border border-amber-300 bg-white px-3 py-2 font-mono text-xs text-textPrimary" id="verification-meta">&lt;meta name="argusly-site-verification" content="{{ $analyticsSite->verification_token }}"&gt;</pre>
                     <button type="button" class="mt-2 rounded border border-amber-300 px-3 py-1 text-xs text-amber-800" onclick="navigator.clipboard.writeText(document.getElementById('verification-meta').innerText)">
                         Copy meta tag
                     </button>
@@ -160,7 +160,7 @@
                         <summary class="cursor-pointer text-sm text-textSecondary hover:text-textPrimary">View tracking snippet</summary>
                         <div class="mt-3">
                             <p class="text-xs text-textSecondary">
-                                Script host: <span class="font-mono text-xs">{{ $trackingBaseUrl }}/pl.js?v={{ $scriptVersion }}</span>
+                                Script host: <span class="font-mono text-xs">{{ $trackingBaseUrl }}/argusly.js?v={{ $scriptVersion }}</span>
                             </p>
                             <pre id="pl-tracking-snippet" class="mt-2 overflow-x-auto rounded border border-border bg-background px-3 py-2 font-mono text-xs text-textPrimary"><code>{{ $trackingSnippet }}</code></pre>
                         </div>
@@ -170,7 +170,7 @@
                         Add this script to your website to track Argusly article performance.
                     </p>
                     <p class="mt-1 text-xs text-textSecondary">
-                        Script host: <span class="font-mono text-xs">{{ $trackingBaseUrl }}/pl.js?v={{ $scriptVersion }}</span>
+                        Script host: <span class="font-mono text-xs">{{ $trackingBaseUrl }}/argusly.js?v={{ $scriptVersion }}</span>
                     </p>
 
                     <div class="mt-4">
@@ -212,7 +212,7 @@
                 <form method="GET" class="mt-3">
                     <select name="scope" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
                         <option value="all" {{ $scope === 'all' ? 'selected' : '' }}>All pages</option>
-                        <option value="publishlayer_content" {{ $scope === 'publishlayer_content' ? 'selected' : '' }}>Argusly content</option>
+                        <option value="argusly_content" {{ $scope === 'argusly_content' ? 'selected' : '' }}>Argusly content</option>
                         <option value="other_page" {{ $scope === 'other_page' ? 'selected' : '' }}>Other site pages</option>
                     </select>
                 </form>

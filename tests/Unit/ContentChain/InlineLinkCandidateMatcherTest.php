@@ -129,7 +129,7 @@ function matcherContent(
         'content_id' => $content->id,
         'type' => ContentVersion::TYPE_DRAFT,
         'body' => $html,
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
     ]);
 
     $revision = ContentRevision::query()->create([

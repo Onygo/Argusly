@@ -42,7 +42,7 @@ class AnalyticsSiteFactory extends Factory
         ]);
     }
 
-    public function internallyVerified(string $domain = 'publishlayer.com'): static
+    public function internallyVerified(string $domain = 'argusly.com'): static
     {
         return $this->state(fn (array $attributes) => [
             'verified_at' => now(),

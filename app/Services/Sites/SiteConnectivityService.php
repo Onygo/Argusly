@@ -17,13 +17,13 @@ class SiteConnectivityService
 
         $base = rtrim((string) ($site->base_url ?: $site->site_url), '/');
         $candidates = array_values(array_unique(array_merge([
-            $base . '/wp-json/publishlayer/v1/ping',
-            $base . '/wp-json/publishlayer/v1/health',
-            $base . '/wp-json/publishlayer/v1/heartbeat',
-            $base . '/?rest_route=/publishlayer/v1/ping',
-            $base . '/?rest_route=/publishlayer/v1/health',
-            $base . '/?rest_route=/publishlayer/v1/heartbeat',
-        ], $this->discoverPublishLayerRoutes($base))));
+            $base . '/wp-json/argusly/v1/ping',
+            $base . '/wp-json/argusly/v1/health',
+            $base . '/wp-json/argusly/v1/heartbeat',
+            $base . '/?rest_route=/argusly/v1/ping',
+            $base . '/?rest_route=/argusly/v1/health',
+            $base . '/?rest_route=/argusly/v1/heartbeat',
+        ], $this->discoverArguslyRoutes($base))));
 
         try {
             $lastStatus = null;
@@ -229,8 +229,8 @@ class SiteConnectivityService
         }
 
         $candidates = [
-            $base . '/publishlayer/connector/activity',
-            $base . '/publishlayer/activity',
+            $base . '/argusly/connector/activity',
+            $base . '/argusly/activity',
         ];
 
         $lastError = null;
@@ -489,7 +489,7 @@ class SiteConnectivityService
 
     private function shouldAllowInsecureTls(string $url): bool
     {
-        if (! (bool) config('publishlayer.wp_connector.allow_insecure_local_tls', false)) {
+        if (! (bool) config('argusly.wp_connector.allow_insecure_local_tls', false)) {
             return false;
         }
 
@@ -513,7 +513,7 @@ class SiteConnectivityService
      *
      * @return list<string>
      */
-    private function discoverPublishLayerRoutes(string $base): array
+    private function discoverArguslyRoutes(string $base): array
     {
         $indexCandidates = [
             $base . '/wp-json',
@@ -547,7 +547,7 @@ class SiteConnectivityService
                     }
 
                     $normalized = strtolower($routePath);
-                    if (! str_contains($normalized, 'publishlayer')) {
+                    if (! str_contains($normalized, 'argusly')) {
                         continue;
                     }
 
@@ -567,7 +567,7 @@ class SiteConnectivityService
 
     private function hasRecentInboundActivity(ClientSite $site): bool
     {
-        $windowMinutes = (int) config('publishlayer.wp_connector.recent_activity_window_minutes', 15);
+        $windowMinutes = (int) config('argusly.wp_connector.recent_activity_window_minutes', 15);
         if ($windowMinutes <= 0) {
             $windowMinutes = 15;
         }

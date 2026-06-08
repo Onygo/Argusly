@@ -6,16 +6,16 @@ uses(RefreshDatabase::class);
 
 describe('llms.txt content', function () {
     it('returns valid text response', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $this->get('/llms.txt')
             ->assertOk()
             ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
-            ->assertSee('# PublishLayer');
+            ->assertSee('# Argusly');
     });
 
     it('includes important public pages', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get('/llms.txt');
         $content = $response->getContent();
@@ -37,7 +37,7 @@ describe('llms.txt content', function () {
     });
 
     it('does not include removed product-updates page', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get('/llms.txt');
         $content = $response->getContent();
@@ -48,7 +48,7 @@ describe('llms.txt content', function () {
     });
 
     it('does not include auth or admin pages', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get('/llms.txt');
         $content = $response->getContent();
@@ -62,7 +62,7 @@ describe('llms.txt content', function () {
     });
 
     it('respects early access mode by hiding full marketing pages', function () {
-        config(['publishlayer.launch.soft_launch_mode' => true]);
+        config(['argusly.launch.soft_launch_mode' => true]);
 
         $response = $this->get('/llms.txt');
         $content = $response->getContent();
@@ -84,7 +84,7 @@ describe('llms.txt content', function () {
     });
 
     it('shows full marketing pages when not in early access mode', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get('/llms.txt');
         $content = $response->getContent();
@@ -97,14 +97,14 @@ describe('llms.txt content', function () {
     });
 
     it('returns consistent content for llms-full.txt variant', function () {
-        config(['publishlayer.launch.soft_launch_mode' => false]);
+        config(['argusly.launch.soft_launch_mode' => false]);
 
         $response = $this->get('/llms-full.txt');
 
         $response
             ->assertOk()
             ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
-            ->assertSee('# PublishLayer')
+            ->assertSee('# Argusly')
             ->assertSee('## Important pages');
     });
 });

@@ -72,7 +72,7 @@ function makeAgentOrchestrationScope(): array
         'organization_id' => $organization->id,
         'workspace_id' => $workspace->id,
         'brand_key' => 'primary',
-        'company_name' => 'PublishLayer',
+        'company_name' => 'Argusly',
         'company_description' => 'Agentic marketing platform.',
         'market_category' => 'Agentic marketing',
         'positioning' => 'AI content operations for visibility.',

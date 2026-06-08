@@ -186,7 +186,7 @@ class CreditWarningService
         $translationLocales = $this->localeResolver->shouldTranslate($automation)
             ? $this->localeResolver->targetLocales($automation)
             : [];
-        $sourceGenerationCreditsPerItem = max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4));
+        $sourceGenerationCreditsPerItem = max(1, (int) config('argusly.ai.drafts.credit_cost', 4));
         $translationCreditsPerLocale = max(1, (int) config('translation.default_credit_cost', 6));
         $sourceGenerationCredits = $chainSize * $sourceGenerationCreditsPerItem;
         $translationCredits = $chainSize * count($translationLocales) * $translationCreditsPerLocale;

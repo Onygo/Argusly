@@ -26,7 +26,7 @@ function makeContentImprovementContext(): array
         'slug' => 'improvement-workflow-org-' . Str::lower(Str::random(6)),
         'status' => 'active',
         'approved_at' => now(),
-        'billing_company_name' => 'PublishLayer BV',
+        'billing_company_name' => 'Argusly BV',
         'billing_address_line1' => 'Straat 1',
         'billing_country_code' => 'NL',
     ]);
@@ -126,7 +126,7 @@ function makeContentImprovementContext(): array
         'content_id' => (string) $content->id,
         'type' => ContentVersion::TYPE_REVISION,
         'body' => '<p>Original body copy about content operations.</p>',
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => (int) $user->id,
     ]);
 

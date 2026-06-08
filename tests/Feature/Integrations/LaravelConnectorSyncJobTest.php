@@ -57,7 +57,7 @@ function makeLaravelSyncContext(): array
             'laravel_connector' => [
                 'base_url' => 'https://client-sync.example.com',
                 'site_id' => 'sync-site-1',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('sync-secret-123456'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -127,7 +127,7 @@ it('syncs laravel knowledge articles successfully and stores attempt diagnostics
     $ctx = makeLaravelSyncContext();
 
     Http::fake([
-        'https://client-sync.example.com/publishlayer/sync' => Http::response([
+        'https://client-sync.example.com/argusly/sync' => Http::response([
             'ok' => true,
             'message' => 'Synced',
             'url' => 'https://client-sync.example.com/knowledge/sync-job-article',
@@ -141,9 +141,9 @@ it('syncs laravel knowledge articles successfully and stores attempt diagnostics
     );
 
     Http::assertSent(function ($request) use ($ctx) {
-        return $request->url() === 'https://client-sync.example.com/publishlayer/sync'
-            && $request->hasHeader('X-PublishLayer-Key', 'sync-secret-123456')
-            && $request->hasHeader('X-PublishLayer-Site', 'sync-site-1')
+        return $request->url() === 'https://client-sync.example.com/argusly/sync'
+            && $request->hasHeader('X-Argusly-API-Key', 'sync-secret-123456')
+            && $request->hasHeader('X-Argusly-Site', 'sync-site-1')
             && data_get($request->data(), 'article.id') === (string) $ctx['content']->id;
     });
 
@@ -173,7 +173,7 @@ it('marks retryable laravel sync attempts as failed and keeps retry metadata', f
     $ctx = makeLaravelSyncContext();
 
     Http::fake([
-        'https://client-sync.example.com/publishlayer/sync' => Http::response([
+        'https://client-sync.example.com/argusly/sync' => Http::response([
             'ok' => false,
             'message' => 'Connector unavailable',
         ], 500),
@@ -212,7 +212,7 @@ it('fails permanent laravel sync errors without scheduling another retry', funct
     $ctx = makeLaravelSyncContext();
 
     Http::fake([
-        'https://client-sync.example.com/publishlayer/sync' => Http::response([
+        'https://client-sync.example.com/argusly/sync' => Http::response([
             'ok' => false,
             'message' => 'The given data was invalid.',
             'errors' => [
@@ -247,7 +247,7 @@ it('marks remote delete operations as deleted after successful delivery', functi
     $ctx = makeLaravelSyncContext();
 
     Http::fake([
-        'https://client-sync.example.com/publishlayer/sync' => Http::response([
+        'https://client-sync.example.com/argusly/sync' => Http::response([
             'ok' => true,
             'message' => 'Deleted',
         ], 200),

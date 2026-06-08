@@ -22,9 +22,9 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Cache::flush();
 
-    config()->set('publishlayer.launch.soft_launch_mode', false);
-    config()->set('publishlayer_connector.public_blog.use_connector', false);
-    config()->set('publishlayer_connector.public_blog.fallback_to_local', true);
+    config()->set('argusly.launch.soft_launch_mode', false);
+    config()->set('argusly_connector.public_blog.use_connector', false);
+    config()->set('argusly_connector.public_blog.fallback_to_local', true);
     config()->set('marketing.blog_source.mode', 'workspace');
 
     [$this->workspace, $this->site] = makePublicBlogCacheContext();
@@ -107,7 +107,7 @@ function makeBlogContent(Workspace $workspace, ?ClientSite $site = null, array $
                 ? ($attributes['published_at'] ?? now()->subHour())->toIso8601String()
                 : (string) ($attributes['published_at'] ?? now()->subHour()->toIso8601String()),
         ], (array) ($attributes['version_meta'] ?? [])),
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
     ]);
 
     $content->forceFill([

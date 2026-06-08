@@ -10,8 +10,8 @@ class ContactSubmissionMailer
 {
     public function send(ContactSubmission $submission): bool
     {
-        $recipient = (string) config('publishlayer.contact.recipient_email', config('mail.from.address'));
-        $preferredMailer = (string) config('publishlayer.contact.mailer', 'mailgun');
+        $recipient = (string) config('argusly.contact.recipient_email', config('mail.from.address'));
+        $preferredMailer = (string) config('argusly.contact.mailer', 'mailgun');
         $fallbackMailer = (string) config('mail.default', 'log');
         $mailers = array_values(array_unique(array_filter([$preferredMailer, $fallbackMailer])));
         $errors = [];

@@ -259,7 +259,7 @@ class MarketingBlogTranslationService
             'parent_version_id' => $content->current_version_id,
             'body' => $body,
             'meta' => $meta,
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         $content->forceFill([

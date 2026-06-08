@@ -45,7 +45,7 @@ class DownloadPluginController extends Controller
             return response()->json(['error' => 'Domain not allowed'], 403);
         }
 
-        $disk = (string) config('publishlayer.plugin_updates.disk', 'local');
+        $disk = (string) config('argusly.plugin_updates.disk', 'local');
         $path = (string) $release->zip_storage_path;
 
         if (! Storage::disk($disk)->exists($path)) {
@@ -62,7 +62,7 @@ class DownloadPluginController extends Controller
                 fpassthru($stream);
                 fclose($stream);
             },
-            'publishlayer-connector-' . $release->version . '.zip',
+            'argusly-connector-' . $release->version . '.zip',
             ['Content-Type' => 'application/zip']
         );
     }

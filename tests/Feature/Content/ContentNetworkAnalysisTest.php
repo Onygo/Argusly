@@ -312,8 +312,8 @@ function makeSeoAuditWithPages(Workspace $workspace, ClientSite $site, array $ro
             'word_count' => $wordCount,
             'internal_links_count' => $internalLinks,
             'broken_links_count' => 0,
-            'page_type' => SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-            'publishlayer_article_id' => $contentId,
+            'page_type' => SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE,
+            'argusly_content_id' => $contentId,
         ]);
     }
 

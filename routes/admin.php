@@ -6,7 +6,7 @@
 |--------------------------------------------------------------------------
 |
 | These routes are loaded on admin.argusly.local (dev) or
-| admin.publishlayer.com (production). They serve the admin panel.
+| admin.argusly.com (production). They serve the admin panel.
 |
 | Routes are served WITHOUT the /admin prefix since we're on a subdomain.
 |

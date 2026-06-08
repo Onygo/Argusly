@@ -16,7 +16,7 @@ describe('Public pricing page content', function () {
         $response->assertOk()
             ->assertSee('Scale content operations beyond AI writing', false)
             ->assertSee('Plan, generate, optimize, localize and publish content from one platform.', false)
-            ->assertSee('More than AI writing. PublishLayer manages the full content lifecycle.', false)
+            ->assertSee('More than AI writing. Argusly manages the full content lifecycle.', false)
             ->assertSee('Creator', false)
             ->assertSee('Growth', false)
             ->assertSee('Scale', false)

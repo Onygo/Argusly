@@ -58,7 +58,7 @@ class AnalyticsIngestController extends Controller
             ]
         );
 
-        $salt = (string) config('analytics.privacy.salt', config('app.key', 'publishlayer'));
+        $salt = (string) config('analytics.privacy.salt', config('app.key', 'argusly'));
 
         $rows = [];
         foreach ($validated['events'] as $event) {
@@ -107,7 +107,7 @@ class AnalyticsIngestController extends Controller
                 'host' => $host,
                 'article_id' => $articleIdentifier !== '' ? $articleIdentifier : null,
                 'content_id' => null,
-                'page_type' => 'publishlayer_content',
+                'page_type' => 'argusly_content',
                 'content_type' => null,
                 'meta' => is_array($event['meta'] ?? null) ? $event['meta'] : null,
                 'event_time' => $eventTime,

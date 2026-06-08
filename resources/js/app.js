@@ -1603,7 +1603,7 @@ const initContentSiteTabs = () => {
         return;
     }
 
-    const storageKey = 'publishlayer.content.lastSiteId.v1';
+    const storageKey = 'argusly.content.lastSiteId.v1';
     const siteTabs = Array.from(siteTabsContainer.querySelectorAll('[data-site-tab]'));
 
     if (siteTabs.length === 0) {

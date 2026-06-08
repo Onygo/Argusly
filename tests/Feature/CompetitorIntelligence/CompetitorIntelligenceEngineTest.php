@@ -31,10 +31,10 @@ function makeCompetitorIntelligenceScope(): array
     $site = ClientSite::query()->create([
         'workspace_id' => $workspace->id,
         'type' => 'wordpress',
-        'name' => 'PublishLayer Demo',
-        'site_url' => 'https://publishlayer.example.com',
-        'base_url' => 'https://publishlayer.example.com',
-        'allowed_domains' => ['publishlayer.example.com'],
+        'name' => 'Argusly Demo',
+        'site_url' => 'https://argusly.example.com',
+        'base_url' => 'https://argusly.example.com',
+        'allowed_domains' => ['argusly.example.com'],
         'is_active' => true,
         'status' => 'connected',
     ]);
@@ -55,14 +55,14 @@ it('imports competitor content into normalized intelligence signals', function (
     [, , , $competitor] = makeCompetitorIntelligenceScope();
 
     $item = app(CompetitorContentImportPipeline::class)->import($competitor, [
-        'url' => 'rivallayer.example.com/publishlayer-alternatives',
-        'title' => 'Best PublishLayer Alternatives for Agentic Marketing',
+        'url' => 'rivallayer.example.com/argusly-alternatives',
+        'title' => 'Best Argusly Alternatives for Agentic Marketing',
         'meta_description' => 'Compare platforms, pricing, features, and AI visibility workflows.',
-        'content_excerpt' => 'This comparison page covers PublishLayer alternatives, pricing, demos, answer blocks, and competitor content gap workflows.',
+        'content_excerpt' => 'This comparison page covers Argusly alternatives, pricing, demos, answer blocks, and competitor content gap workflows.',
     ]);
 
     expect($item)->toBeInstanceOf(CompetitorContentItem::class)
-        ->and($item->url)->toBe('https://rivallayer.example.com/publishlayer-alternatives')
+        ->and($item->url)->toBe('https://rivallayer.example.com/argusly-alternatives')
         ->and($item->query_intent)->toBe('comparison')
         ->and($item->funnel_stage)->toBe('bofu')
         ->and($item->is_comparison_page)->toBeTrue()
@@ -75,10 +75,10 @@ it('analyzes competitor topics and creates scored opportunity outputs', function
 
     $pipeline = app(CompetitorContentImportPipeline::class);
     $pipeline->import($competitor, [
-        'url' => 'https://rivallayer.example.com/publishlayer-alternatives',
-        'title' => 'PublishLayer Alternatives and Pricing Comparison',
+        'url' => 'https://rivallayer.example.com/argusly-alternatives',
+        'title' => 'Argusly Alternatives and Pricing Comparison',
         'meta_description' => 'Compare agentic marketing platforms for AI visibility and content operations.',
-        'content_excerpt' => 'A comparison page for PublishLayer alternatives, pricing, BOFU demos, AI visibility, and competitor opportunity workflows.',
+        'content_excerpt' => 'A comparison page for Argusly alternatives, pricing, BOFU demos, AI visibility, and competitor opportunity workflows.',
     ]);
     $pipeline->import($competitor, [
         'url' => 'https://rivallayer.example.com/ai-visibility-implementation-guide',

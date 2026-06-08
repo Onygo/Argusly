@@ -23,7 +23,7 @@ it('declares rankmath seo capabilities and syncable field keys', function () {
         ]);
 });
 
-it('maps publishlayer seo fields to rankmath wordpress meta keys', function () {
+it('maps argusly seo fields to rankmath wordpress meta keys', function () {
     $provider = new RankMathProvider();
 
     $mapped = $provider->mapToWordPressMeta([

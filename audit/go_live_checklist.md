@@ -1,4 +1,4 @@
-# PublishLayer Go-Live Checklist
+# Argusly Go-Live Checklist
 
 **Date**: 2026-03-13
 **Target Launch**: TBD
@@ -48,7 +48,7 @@
   - [ ] `GEMINI_API_KEY`
   - [ ] `MAILGUN_SECRET`
   - [ ] `MOLLIE_KEY`
-  - [ ] `PUBLISHLAYER_ADMIN_KEY`
+  - [ ] `ARGUSLY_ADMIN_KEY`
 - [ ] Verify database credentials
 - [ ] Verify Redis/cache configuration
 - [ ] Verify queue connection settings
@@ -80,7 +80,7 @@
 
 - [ ] Run connector test suite
   ```bash
-  cd publishlayer-laravel-connector && composer test
+  cd argusly-laravel-connector && composer test
   ```
 - [ ] Test webhook signature verification
 - [ ] Test knowledge base sync
@@ -195,7 +195,7 @@
 2. **Rollback steps**:
    ```bash
    # Stop queue workers
-   supervisorctl stop publishlayer-worker:*
+   supervisorctl stop argusly-worker:*
 
    # Rollback migrations (if needed)
    php artisan migrate:rollback --step=9
@@ -204,7 +204,7 @@
    # (deployment-specific commands)
 
    # Restart queue workers
-   supervisorctl start publishlayer-worker:*
+   supervisorctl start argusly-worker:*
    ```
 
 3. **Communication**:

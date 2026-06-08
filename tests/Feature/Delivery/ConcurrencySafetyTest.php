@@ -260,7 +260,7 @@ it('preserves the publication mapping across a temporary retry failure', functio
     Http::fake(function ($request) use (&$postAttempts) {
         $url = (string) $request->url();
 
-        if ($request->method() === 'GET' && $url === 'https://wp.example/wp-json/publishlayer/v1/posts/131') {
+        if ($request->method() === 'GET' && $url === 'https://wp.example/wp-json/argusly/v1/posts/131') {
             return Http::response([
                 'ok' => true,
                 'wp_post_id' => '131',
@@ -268,7 +268,7 @@ it('preserves the publication mapping across a temporary retry failure', functio
             ], 200);
         }
 
-        if ($request->method() === 'POST' && $url === 'https://wp.example/wp-json/publishlayer/v1/posts/131') {
+        if ($request->method() === 'POST' && $url === 'https://wp.example/wp-json/argusly/v1/posts/131') {
             $postAttempts++;
 
             if ($postAttempts === 1) {
@@ -313,7 +313,7 @@ it('preserves the publication mapping across a temporary retry failure', functio
 
     Http::assertNotSent(function ($request) {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 });
 
@@ -336,10 +336,10 @@ it('recreates safely after the remote wordpress post has been deleted', function
     $publication = seedConcurrencyPublication($draft, '131', 'https://wp.example/?p=131');
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response([
             'code' => 'rest_post_invalid_id',
         ], 404),
-        'https://wp.example/?rest_route=/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/?rest_route=/argusly/v1/posts/131' => Http::response([
             'code' => 'rest_post_invalid_id',
         ], 404),
         'https://wp.example/wp-json/wp/v2/posts/131?context=edit' => Http::response([
@@ -348,7 +348,7 @@ it('recreates safely after the remote wordpress post has been deleted', function
         'https://wp.example/wp-json/wp/v2/posts/131' => Http::response([
             'code' => 'rest_post_invalid_id',
         ], 404),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'wp_post_id' => '245',
             'post_id' => '245',
@@ -370,11 +370,11 @@ it('recreates safely after the remote wordpress post has been deleted', function
 
     Http::assertNotSent(function ($request) {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertSent(function ($request) use ($draft) {
-        if ($request->method() !== 'POST' || (string) $request->url() !== 'https://wp.example/wp-json/publishlayer/v1/posts') {
+        if ($request->method() !== 'POST' || (string) $request->url() !== 'https://wp.example/wp-json/argusly/v1/posts') {
             return false;
         }
 
@@ -404,14 +404,14 @@ it('updates the same remote post on repeated forced republishes without creating
     $publication = seedConcurrencyPublication($draft, '131', 'https://wp.example/?p=131');
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response([
             'ok' => true,
             'wp_post_id' => '131',
             'post_id' => '131',
             'status' => 'publish',
             'url' => 'https://wp.example/?p=131',
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'wp_post_id' => '999',
             'post_id' => '999',
@@ -432,16 +432,16 @@ it('updates the same remote post on repeated forced republishes without creating
 
     Http::assertSent(function ($request) {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertNotSent(function ($request) {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 });
 
-it('recovers an existing wordpress post by publishlayer meta when the local mapping is missing', function () {
+it('recovers an existing wordpress post by argusly meta when the local mapping is missing', function () {
     $draft = makeConcurrencyDeliveryDraft([
         'draft_webhook_url' => null,
         'draft_webhook_secret' => null,
@@ -451,7 +451,7 @@ it('recovers an existing wordpress post by publishlayer meta when the local mapp
     attachConcurrencySiteToken($draft, 'pl_site_meta_recovery_safe');
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/lookup*' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/lookup*' => Http::response([
             'items' => [[
                 'post_id' => '515',
                 'wp_post_id' => '515',
@@ -459,14 +459,14 @@ it('recovers an existing wordpress post by publishlayer meta when the local mapp
                 'status' => 'publish',
             ]],
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts/515' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/515' => Http::response([
             'ok' => true,
             'post_id' => '515',
             'wp_post_id' => '515',
             'status' => 'publish',
             'url' => 'https://wp.example/?p=515',
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '999',
             'wp_post_id' => '999',
@@ -488,15 +488,15 @@ it('recovers an existing wordpress post by publishlayer meta when the local mapp
 
     Http::assertSent(function ($request): bool {
         return $request->method() === 'GET'
-            && str_contains((string) $request->url(), '/wp-json/publishlayer/v1/posts/lookup');
+            && str_contains((string) $request->url(), '/wp-json/argusly/v1/posts/lookup');
     });
     Http::assertSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/515';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/515';
     });
     Http::assertNotSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 });
 
@@ -519,7 +519,7 @@ it('skips the remote wordpress update when the payload hash is unchanged', funct
     seedConcurrencyPublication($draft, '131', 'https://wp.example/?p=131');
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response([
             'ok' => true,
             'post_id' => '131',
             'wp_post_id' => '131',
@@ -541,11 +541,11 @@ it('skips the remote wordpress update when the payload hash is unchanged', funct
     Http::assertSentCount(5);
     Http::assertSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
     Http::assertNotSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts'
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts'
             && str_contains((string) $request->body(), 'Concurrency test content');
     });
 });
@@ -573,7 +573,7 @@ it('updates the existing wordpress post when content changes and never appends t
     Http::fake(function ($request) use (&$sentBodies) {
         $url = (string) $request->url();
 
-        if ($request->method() === 'GET' && $url === 'https://wp.example/wp-json/publishlayer/v1/posts/131') {
+        if ($request->method() === 'GET' && $url === 'https://wp.example/wp-json/argusly/v1/posts/131') {
             return Http::response([
                 'ok' => true,
                 'post_id' => '131',
@@ -583,7 +583,7 @@ it('updates the existing wordpress post when content changes and never appends t
             ], 200);
         }
 
-        if ($request->method() === 'POST' && $url === 'https://wp.example/wp-json/publishlayer/v1/posts/131') {
+        if ($request->method() === 'POST' && $url === 'https://wp.example/wp-json/argusly/v1/posts/131') {
             $sentBodies[] = json_decode((string) $request->body(), true);
 
             return Http::response([
@@ -612,7 +612,7 @@ it('updates the existing wordpress post when content changes and never appends t
 
     Http::assertNotSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 });
 
@@ -684,10 +684,10 @@ it('keeps dutch and english wordpress publications stable per locale on the same
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/lookup*' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/lookup*' => Http::response([
             'exists' => false,
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::sequence()
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::sequence()
             ->push([
                 'ok' => true,
                 'post_id' => '201',
@@ -702,14 +702,14 @@ it('keeps dutch and english wordpress publications stable per locale on the same
                 'status' => 'publish',
                 'url' => 'https://wp.example/en/article',
             ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts/202' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/202' => Http::response([
             'ok' => true,
             'post_id' => '202',
             'wp_post_id' => '202',
             'status' => 'publish',
             'url' => 'https://wp.example/en/article',
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts/201' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/201' => Http::response([
             'ok' => true,
             'post_id' => '201',
             'wp_post_id' => '201',
@@ -737,7 +737,7 @@ it('keeps dutch and english wordpress publications stable per locale on the same
 
     Http::assertNotSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/201'
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/201'
             && str_contains((string) $request->body(), 'English body updated.');
     });
 });

@@ -32,7 +32,7 @@ class CompetitorContentOpportunity extends Model
         'attackable_angle',
         'reason',
         'competitor_evidence',
-        'publishlayer_coverage',
+        'argusly_coverage',
         'normalized_payload',
         'dedupe_hash',
         'last_seen_at',
@@ -45,7 +45,7 @@ class CompetitorContentOpportunity extends Model
         'impact_score' => 'float',
         'effort_score' => 'float',
         'competitor_evidence' => 'array',
-        'publishlayer_coverage' => 'array',
+        'argusly_coverage' => 'array',
         'normalized_payload' => 'array',
         'last_seen_at' => 'datetime',
     ];

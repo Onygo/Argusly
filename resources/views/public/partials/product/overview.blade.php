@@ -40,7 +40,7 @@
                 @php
                     $isMiddle = $index === 1;
                     $cardClasses = $isMiddle
-                        ? 'rounded-2xl border-2 border-publicPrimary/20 bg-[#f7f4ed] p-6 md:p-7'
+                        ? 'rounded-2xl border-2 border-publicPrimary/20 bg-[#f8fafc] p-6 md:p-7'
                         : 'pl-public-card-soft p-6 md:p-7';
                 @endphp
                 <article class="{{ $cardClasses }} flex flex-col">
@@ -98,11 +98,11 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
             <div>
-                <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-[#f7f4ed] px-3 py-1 text-xs font-medium text-publicPrimary">Agentic Marketing</span>
+                <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-[#f8fafc] px-3 py-1 text-xs font-medium text-publicPrimary">Agentic Marketing</span>
                 <h2 class="mt-4 text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ __('public.page.overview.agentic_title') }}</h2>
                 <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ __('public.page.overview.agentic_text') }}</p>
                 <div class="mt-7">
-                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f7f4ed]">
+                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
                         {{ __('public.page.overview.agentic_cta') }}
                         <x-public.icon name="arrow-right" size="xs" />
                     </a>
@@ -124,20 +124,20 @@
 {{-- CTA --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-        <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-textPrimary md:text-3xl">
+        <div class="pl-public-cta-panel">
+            <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
                 {{ __('public.page.overview.cta_title') }}
             </h2>
-            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-textSecondary md:text-base">
+            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">
                 {{ __('public.page.overview.cta_text') }}
             </p>
 
             @php($ctaPoints = __('public.page.overview.cta_points'))
             @if(is_array($ctaPoints) && count($ctaPoints) > 0)
-                <div class="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-textSecondary">
+                <div class="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-white/76">
                     @foreach($ctaPoints as $point)
                         <span class="flex items-center gap-2">
-                            <span class="h-1 w-1 rounded-full bg-publicPrimary/40"></span>
+                            <span class="h-1 w-1 rounded-full bg-white/55"></span>
                             {{ $point }}
                         </span>
                     @endforeach
@@ -145,10 +145,10 @@
             @endif
 
             <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <a href="{{ $primaryCtaHref }}" class="pl-public-primary-button">
+                <a href="{{ $primaryCtaHref }}" class="pl-public-cta-primary">
                     {{ $primaryCtaLabel }}
                 </a>
-                <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-secondary-button">
+                <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-cta-secondary">
                     {{ $ctaSecondary ?? __('public.cta.secondary') }}
                 </a>
             </div>

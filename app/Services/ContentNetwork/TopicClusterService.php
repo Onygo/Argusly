@@ -137,9 +137,9 @@ class TopicClusterService
         if ($latestAudit) {
             $seoPagesByContent = SeoAuditPage::query()
                 ->where('seo_audit_id', $latestAudit->id)
-                ->whereIn('publishlayer_article_id', $contentIds)
-                ->get(['publishlayer_article_id', 'word_count', 'internal_links_count'])
-                ->keyBy('publishlayer_article_id');
+                ->whereIn('argusly_content_id', $contentIds)
+                ->get(['argusly_content_id', 'word_count', 'internal_links_count'])
+                ->keyBy('argusly_content_id');
         }
 
         $signals = [];

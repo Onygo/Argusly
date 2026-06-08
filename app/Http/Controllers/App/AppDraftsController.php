@@ -346,7 +346,7 @@ class AppDraftsController extends Controller
 
         // Force delivery for explicit user-initiated republish (bypass checksum skip)
         DeliverDraftJob::dispatch((string) $draft->id, forceDelivery: true)
-            ->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+            ->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
 
         return back()->with('status', 'Draft queued for WordPress republish.');
     }

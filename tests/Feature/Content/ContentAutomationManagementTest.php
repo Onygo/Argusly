@@ -144,7 +144,7 @@ it('prevents manual run when the automation is paused and resume schedules a fut
 });
 
 it('blocks manual run before dispatch when estimated credits are too low', function () {
-    config()->set('publishlayer.ai.drafts.credit_cost', 4);
+    config()->set('argusly.ai.drafts.credit_cost', 4);
     config()->set('translation.default_credit_cost', 6);
 
     [$owner, $workspace, $site] = makeContentAutomationManagementContext();

@@ -71,7 +71,8 @@ class IntegrationCredentialResolver
 
     private function resolveWorkspaceForOrganization(Organization $organization, Request $request): ?Workspace
     {
-        $hint = trim((string) ($request->header('X-PublishLayer-Workspace-Id')
+        $hint = trim((string) ($request->header('X-Argusly-Workspace-Id')
+            ?: $request->header('X-Argusly-Workspace-Id')
             ?: $request->query('workspace_id', '')));
 
         if ($hint !== '') {
@@ -101,4 +102,3 @@ class IntegrationCredentialResolver
         return substr($token, 0, 14);
     }
 }
-

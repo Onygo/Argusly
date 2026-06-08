@@ -38,7 +38,7 @@ class PublicPageController extends Controller
         $payload['subject'] = $subject;
         $payload['source'] = (string) $request->query('source', '');
         $payload['cta'] = (string) $request->query('cta', '');
-        $payload['scheduleCallUrl'] = (string) config('publishlayer.contact.schedule_call_url', '');
+        $payload['scheduleCallUrl'] = (string) config('argusly.contact.schedule_call_url', '');
         $payload['canonicalUrl'] = $marketingRoute !== '' ? LocalizedMarketingUrl::route($marketingRoute, [], $locale) : request()->url();
         $payload['hreflangUrls'] = $marketingRoute !== '' ? LocalizedMarketingUrl::hreflangsForRoute($marketingRoute) : [];
 

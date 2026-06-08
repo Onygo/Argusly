@@ -20,7 +20,7 @@ class CompetitorTopicSignal extends Model
         'topic',
         'topic_hash',
         'competitor_content_count',
-        'publishlayer_content_count',
+        'argusly_content_count',
         'overlap_score',
         'opportunity_score',
         'coverage_status',
@@ -34,7 +34,7 @@ class CompetitorTopicSignal extends Model
     protected $casts = [
         'organization_id' => 'integer',
         'competitor_content_count' => 'integer',
-        'publishlayer_content_count' => 'integer',
+        'argusly_content_count' => 'integer',
         'overlap_score' => 'float',
         'opportunity_score' => 'float',
         'intent_mix' => 'array',

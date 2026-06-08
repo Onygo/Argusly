@@ -11,7 +11,7 @@
         'ogType' => 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -53,10 +53,10 @@
                     <div class="pl-public-card p-6">
                         <p class="text-sm font-semibold text-textPrimary">{{ __('public.early_access.choose_request_type') }}</p>
                         <div class="mt-4 flex flex-col gap-2">
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access']) }}" class="inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors {{ $isDemoIntent ? 'border border-border bg-white text-textSecondary hover:bg-[#f7f4ed]' : 'bg-publicPrimary text-white' }}">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access']) }}" class="inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors {{ $isDemoIntent ? 'border border-border bg-white text-textSecondary hover:bg-[#f8fafc]' : 'bg-publicPrimary text-white' }}">
                                 {{ __('public.early_access.request_early_access') }}
                             </a>
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'demo']) }}" class="inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors {{ $isDemoIntent ? 'bg-publicPrimary text-white' : 'border border-border bg-white text-textSecondary hover:bg-[#f7f4ed]' }}">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'demo']) }}" class="inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors {{ $isDemoIntent ? 'bg-publicPrimary text-white' : 'border border-border bg-white text-textSecondary hover:bg-[#f8fafc]' }}">
                                 {{ __('public.early_access.book_demo') }}
                             </a>
                         </div>

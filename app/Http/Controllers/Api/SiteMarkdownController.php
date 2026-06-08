@@ -11,6 +11,7 @@ use App\Models\Content;
 use App\Models\ContentRenderArtifact;
 use App\Services\Api\ApiScopes;
 use App\Services\Markdown\MarkdownEligibilityService;
+use App\Support\Connectors\ConnectorHeaders;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -178,7 +179,7 @@ class SiteMarkdownController extends Controller
 
     private function requestHostMatchesSite(Request $request, ClientSite $site): bool
     {
-        $claimed = trim((string) $request->header('X-PublishLayer-Site', ''));
+        $claimed = ConnectorHeaders::site($request);
         if ($claimed === '') {
             return false;
         }
@@ -244,7 +245,7 @@ class SiteMarkdownController extends Controller
             $response->setLastModified($lastModified);
         }
 
-        $response->headers->set('Vary', 'Authorization, X-PublishLayer-Site');
+        $response->headers->set('Vary', 'Authorization, X-Argusly-Site, X-Argusly-Site');
 
         if ($response->isNotModified($request)) {
             return $response;

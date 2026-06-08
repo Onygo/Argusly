@@ -4,9 +4,8 @@
 
 @if ($normalizedType === \App\Models\ClientSite::TYPE_LARAVEL)
     <ol class="mt-3 list-decimal space-y-1 pl-5 text-xs text-textSecondary">
-        <li>Install connector package: <code>composer require publishlayer/laravel-connector</code>.</li>
-        <li>Configure <code>PL_CONNECTOR_BASE_URL</code>, <code>PL_CONNECTOR_API_KEY</code> (this key), and <code>PL_CONNECTOR_WORKSPACE_ID</code>.</li>
-        <li>Legacy aliases still supported: <code>PUBLISHLAYER_BASE_URL</code>, <code>PUBLISHLAYER_API_KEY</code>, <code>PUBLISHLAYER_WORKSPACE_ID</code>.</li>
+        <li>Install connector package: <code>composer require onygo/argusly-laravel-connector</code>.</li>
+        <li>Configure <code>ARGUSLY_CONNECTOR_API_URL</code>, <code>ARGUSLY_CONNECTOR_TOKEN</code> (this token), and <code>ARGUSLY_CONNECTOR_SITE_ID</code>.</li>
         <li>Use the connector client/facade to create briefs and drafts from your Laravel app.</li>
         <li>Call "Check Laravel connector activity" here after first API calls.</li>
     </ol>

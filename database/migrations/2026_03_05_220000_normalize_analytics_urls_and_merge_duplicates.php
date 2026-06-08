@@ -152,7 +152,7 @@ return new class extends Migration
                         }
 
                         $pageType = ($contentId !== null && $contentId !== '') || $articleId !== ''
-                            ? 'publishlayer_content'
+                            ? 'argusly_content'
                             : 'other_page';
                     }
 
@@ -185,9 +185,9 @@ return new class extends Migration
 
                         if (
                             ($existingPageType === null || $existingPageType === 'other_page')
-                            && $pageType === 'publishlayer_content'
+                            && $pageType === 'argusly_content'
                         ) {
-                            $updates['page_type'] = 'publishlayer_content';
+                            $updates['page_type'] = 'argusly_content';
                         }
 
                         if ($existingArticleId === null && $articleId !== '') {

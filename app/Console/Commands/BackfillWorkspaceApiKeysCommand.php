@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class BackfillWorkspaceApiKeysCommand extends Command
 {
-    protected $signature = 'publishlayer:backfill-workspace-api-keys
+    protected $signature = 'argusly:backfill-workspace-api-keys
         {--workspace= : Optional workspace UUID}
         {--dry-run : Preview changes only}';
 

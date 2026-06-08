@@ -4,6 +4,7 @@ namespace App\Jobs\Integrations;
 
 use App\Models\ApiWebhook;
 use App\Models\ApiWebhookDelivery;
+use App\Support\Connectors\ConnectorHeaders;
 use App\Support\Webhooks\WebhookEventRegistry;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,10 +20,10 @@ use Throwable;
  * ## Phase 2 Refactor
  *
  * This job now supports:
- * - Event versioning headers (X-PublishLayer-Event-Version)
- * - Event ID headers (X-PublishLayer-Event-ID)
- * - Timestamp headers (X-PublishLayer-Timestamp)
- * - Deprecation headers (X-PublishLayer-Deprecation, Sunset)
+ * - Event versioning headers (X-Argusly-Event-Version)
+ * - Event ID headers (X-Argusly-Event-ID)
+ * - Timestamp headers (X-Argusly-Timestamp)
+ * - Deprecation headers (X-Argusly-Deprecation, Sunset)
  *
  * The payload now uses the full envelope format when provided by
  * the publisher, falling back to legacy format for backwards compatibility.
@@ -158,28 +159,29 @@ class DeliverApiWebhookJob implements ShouldQueue
     {
         $headers = [
             'Content-Type' => 'application/json',
-            'X-PublishLayer-Event' => $this->eventType,
-            'X-PublishLayer-Signature' => 'sha256='.$signature,
-            'X-PublishLayer-Delivery-Attempt' => (string) $this->attempts(),
+            ConnectorHeaders::EVENT => $this->eventType,
+            ConnectorHeaders::SIGNATURE => 'sha256='.$signature,
+            ConnectorHeaders::DELIVERY_ATTEMPT => (string) $this->attempts(),
         ];
 
         // Add version header if available
         if ($this->eventVersion !== null) {
-            $headers['X-PublishLayer-Event-Version'] = $this->eventVersion;
+            $headers[ConnectorHeaders::EVENT_VERSION] = $this->eventVersion;
         }
 
         // Add event ID header if available
         $eventId = $this->eventId ?? $this->payload['event_id'] ?? null;
         if ($eventId !== null) {
-            $headers['X-PublishLayer-Event-ID'] = $eventId;
+            $headers[ConnectorHeaders::EVENT_ID] = $eventId;
         }
 
         // Add timestamp header
-        $headers['X-PublishLayer-Timestamp'] = now()->format('Y-m-d\TH:i:s.u\Z');
+        $timestamp = now()->format('Y-m-d\TH:i:s.u\Z');
+        $headers[ConnectorHeaders::TIMESTAMP] = $timestamp;
 
         // Add deprecation headers for deprecated events
         if (WebhookEventRegistry::isDeprecated($this->eventType)) {
-            $headers['X-PublishLayer-Deprecation'] = 'true';
+            $headers[ConnectorHeaders::DEPRECATION] = 'true';
             $headers['Sunset'] = 'Sun, 01 Jun 2026 00:00:00 GMT';
         }
 

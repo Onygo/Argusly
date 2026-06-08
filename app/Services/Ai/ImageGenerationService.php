@@ -168,7 +168,7 @@ class ImageGenerationService
     {
         $provider = 'openai';
 
-        $cfg = (array) config('publishlayer.ai.images.openai', []);
+        $cfg = (array) config('argusly.ai.images.openai', []);
         $apiKey = trim((string) ($cfg['api_key'] ?? ''));
         if ($apiKey === '') {
             throw new RuntimeException('OPENAI_API_KEY is not configured for image generation.');
@@ -264,7 +264,7 @@ class ImageGenerationService
     private function requestGeminiImageBinary(string $prompt, ?Content $content, array $route): array
     {
         $provider = 'gemini';
-        $cfg = (array) config('publishlayer.ai.images.gemini', []);
+        $cfg = (array) config('argusly.ai.images.gemini', []);
         $providerCfg = (array) config('llm.providers.gemini', []);
         $apiKey = trim((string) (($cfg['api_key'] ?? '') ?: ($providerCfg['api_key'] ?? '')));
         if ($apiKey === '') {
@@ -513,7 +513,7 @@ class ImageGenerationService
             return (int) $action->credits_cost;
         }
 
-        return max(1, (int) config('publishlayer.ai.images.credit_cost', 6));
+        return max(1, (int) config('argusly.ai.images.credit_cost', 6));
     }
 
     public function processFeaturedImage(ContentImage $image, CreditWalletService $wallets): ContentImage
@@ -691,7 +691,7 @@ class ImageGenerationService
         );
 
         return [
-            'provider' => (string) ($route['provider'] ?: config('publishlayer.ai.images.provider', 'openai')),
+            'provider' => (string) ($route['provider'] ?: config('argusly.ai.images.provider', 'openai')),
             'model' => (string) ($route['model'] ?: ''),
         ];
     }
@@ -835,19 +835,19 @@ class ImageGenerationService
 
     private function assertImagesEnabled(): void
     {
-        if (! (bool) config('publishlayer.images.enabled', true)) {
+        if (! (bool) config('argusly.images.enabled', true)) {
             throw new RuntimeException('Image generation is disabled by configuration.');
         }
     }
 
     private function resolveImageStorageDisk(): string
     {
-        return (string) config('publishlayer.images.disk', config('publishlayer.ai.images.storage_disk', 'public'));
+        return (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
     }
 
     private function canEncodeWebp(): bool
     {
-        if (! (bool) config('publishlayer.ai.images.webp.enabled', true)) {
+        if (! (bool) config('argusly.ai.images.webp.enabled', true)) {
             return false;
         }
 

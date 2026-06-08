@@ -82,7 +82,7 @@ class SeoAuditAiFixService
 
     public function creditCostPerSuggestion(): int
     {
-        return max(1, (int) config('publishlayer.ai.seo_fix.credit_cost', 2));
+        return max(1, (int) config('argusly.ai.seo_fix.credit_cost', 2));
     }
 
     public function estimateCreditsForIssueCount(int $count): int
@@ -349,7 +349,7 @@ class SeoAuditAiFixService
             return $currentState;
         }
 
-        $content ??= $suggestion->page?->publishlayerArticle;
+        $content ??= $suggestion->page?->arguslyArticle;
         if (! $content) {
             if ($currentState !== SeoAuditSuggestionState::APPLIED_LOCAL) {
                 $suggestion->forceFill([
@@ -616,12 +616,12 @@ class SeoAuditAiFixService
                 'description' => (string) ($issue->description ?? ''),
                 'recommendation' => (string) ($issue->recommendation ?? ''),
             ],
-            'publishlayer_article_id' => $content?->id,
-            'publishlayer_article_title' => (string) ($content?->title ?? ''),
-            'publishlayer_article_meta_title' => (string) ($contentSeo['seo_title'] ?? ''),
-            'publishlayer_article_meta_description' => (string) ($contentSeo['seo_meta_description'] ?? ''),
-            'publishlayer_article_h1' => (string) ($contentSeo['seo_h1'] ?? ''),
-            'publishlayer_article_canonical' => (string) ($contentSeo['seo_canonical'] ?? ''),
+            'argusly_content_id' => $content?->id,
+            'argusly_article_title' => (string) ($content?->title ?? ''),
+            'argusly_article_meta_title' => (string) ($contentSeo['seo_title'] ?? ''),
+            'argusly_article_meta_description' => (string) ($contentSeo['seo_meta_description'] ?? ''),
+            'argusly_article_h1' => (string) ($contentSeo['seo_h1'] ?? ''),
+            'argusly_article_canonical' => (string) ($contentSeo['seo_canonical'] ?? ''),
         ];
     }
 

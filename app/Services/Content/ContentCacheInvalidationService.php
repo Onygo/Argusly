@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 
 class ContentCacheInvalidationService
 {
-    private const PUBLIC_BLOG_VERSION_PREFIX = 'publishlayer:public_blog';
+    private const PUBLIC_BLOG_VERSION_PREFIX = 'argusly:public_blog';
 
     public function __construct(
         private readonly MarketingBlogSourceScope $blogScope,

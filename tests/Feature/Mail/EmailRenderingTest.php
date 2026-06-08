@@ -25,8 +25,8 @@ it('renders onboarding email in html and text with system footer', function () {
     $mail = new OnboardingEmail($state, 'verify_email');
 
     $mail->assertHasSubject('Confirm your email address');
-    $mail->assertSeeInHtml('This is a system email from PublishLayer.');
-    $mail->assertSeeInText('This is a system email from PublishLayer.');
+    $mail->assertSeeInHtml('This is a system email from Argusly.');
+    $mail->assertSeeInText('This is a system email from Argusly.');
     $mail->assertDontSeeInHtml('<img', escape: false);
 });
 
@@ -47,9 +47,9 @@ it('renders contact submission email in html and text with system footer', funct
 
     $mail = new ContactSubmissionReceived($submission);
 
-    $mail->assertHasSubject('PublishLayer contact: Enterprise pricing');
-    $mail->assertSeeInHtml('This is a system email from PublishLayer.');
-    $mail->assertSeeInText('This is a system email from PublishLayer.');
+    $mail->assertHasSubject('Argusly contact: Enterprise pricing');
+    $mail->assertSeeInHtml('This is a system email from Argusly.');
+    $mail->assertSeeInText('This is a system email from Argusly.');
     $mail->assertDontSeeInHtml('<img', escape: false);
 });
 
@@ -76,9 +76,9 @@ it('renders early access invitation email in html and text with system footer', 
 
     $mail = new EarlyAccessInvitationMail($invite);
 
-    $mail->assertHasSubject('Your PublishLayer early access invite');
-    $mail->assertSeeInHtml('This is a system email from PublishLayer.');
-    $mail->assertSeeInText('This is a system email from PublishLayer.');
+    $mail->assertHasSubject('Your Argusly early access invite');
+    $mail->assertSeeInHtml('This is a system email from Argusly.');
+    $mail->assertSeeInText('This is a system email from Argusly.');
     $mail->assertDontSeeInHtml('<img', escape: false);
 });
 
@@ -97,8 +97,8 @@ it('renders organization approval notification with html and text views', functi
     $html = view((string) $message->view['html'], $message->data())->render();
     $text = view((string) $message->view['text'], $message->data())->render();
 
-    expect($html)->toContain('This is a system email from PublishLayer.')
-        ->and($text)->toContain('This is a system email from PublishLayer.')
+    expect($html)->toContain('This is a system email from Argusly.')
+        ->and($text)->toContain('This is a system email from Argusly.')
         ->and($html)->not->toContain('<img');
 });
 
@@ -117,8 +117,8 @@ it('renders user approval notification with html and text views', function () {
     $html = view((string) $message->view['html'], $message->data())->render();
     $text = view((string) $message->view['text'], $message->data())->render();
 
-    expect($html)->toContain('This is a system email from PublishLayer.')
-        ->and($text)->toContain('This is a system email from PublishLayer.')
+    expect($html)->toContain('This is a system email from Argusly.')
+        ->and($text)->toContain('This is a system email from Argusly.')
         ->and($html)->not->toContain('<img');
 });
 

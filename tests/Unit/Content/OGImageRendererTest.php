@@ -17,7 +17,7 @@ it('renders og image file with expected 1200x630 resolution', function () {
     }
 
     Storage::fake('public');
-    config(['publishlayer.ai.images.storage_disk' => 'public']);
+    config(['argusly.ai.images.storage_disk' => 'public']);
 
     $organization = Organization::query()->create([
         'name' => 'OG Org',
@@ -40,7 +40,7 @@ it('renders og image file with expected 1200x630 resolution', function () {
     $content = Content::query()->create([
         'id' => (string) Str::uuid(),
         'workspace_id' => (string) $workspace->id,
-        'title' => 'PublishLayer OG Rendering Test Title',
+        'title' => 'Argusly OG Rendering Test Title',
         'primary_keyword' => 'ai content governance',
         'type' => 'article',
         'status' => 'draft',
@@ -77,7 +77,7 @@ it('renders long titles without breaking og canvas dimensions', function () {
     }
 
     Storage::fake('public');
-    config(['publishlayer.ai.images.storage_disk' => 'public']);
+    config(['argusly.ai.images.storage_disk' => 'public']);
 
     $organization = Organization::query()->create([
         'name' => 'OG Org Long',

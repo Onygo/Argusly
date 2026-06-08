@@ -122,7 +122,7 @@ class RunSeoAuditJob implements ShouldQueue
                     'internal_links_count' => (int) ($page['internal_links_count'] ?? 0),
                     'broken_links_count' => (int) ($page['broken_links_count'] ?? 0),
                     'page_type' => (string) ($page['page_type'] ?? 'site_page'),
-                    'publishlayer_article_id' => ($page['publishlayer_article_id'] ?? null) ?: null,
+                    'argusly_content_id' => ($page['argusly_content_id'] ?? null) ?: null,
                 ]);
 
                 $pageMap[(string) $pageRow->url] = $pageRow->id;

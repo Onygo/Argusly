@@ -18,7 +18,7 @@ it('verifies an enabled analytics site when the verification meta tag matches', 
 
     Http::fake([
         'https://analytics-verify.example.com/' => Http::response(
-            '<html><head><meta name="publishlayer-site-verification" content="' . $analyticsSite->verification_token . '"></head></html>',
+            '<html><head><meta name="argusly-site-verification" content="' . $analyticsSite->verification_token . '"></head></html>',
             200
         ),
     ]);
@@ -93,7 +93,7 @@ it('fails safely instead of throwing when insecure local verification is enabled
     [$user, $site] = createAnalyticsVerificationContext();
 
     config()->set('app.env', 'production');
-    config()->set('publishlayer.http_insecure_local', true);
+    config()->set('argusly.http_insecure_local', true);
 
     $site->update([
         'site_url' => 'https://argusly.local',

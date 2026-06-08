@@ -169,7 +169,7 @@ it('sends unsplash attribution with delivered article payload', function () {
         $payload = json_decode((string) $request->body(), true);
         return data_get($payload, 'content_html') === '<p>Article body.</p>'
             && data_get($payload, 'featured_image_attribution') === 'Photo by Jane Creator on Unsplash'
-            && str_contains((string) data_get($payload, 'image_attribution.photographer_url'), 'utm_source=publishlayer');
+            && str_contains((string) data_get($payload, 'image_attribution.photographer_url'), 'utm_source=argusly');
     });
 });
 
@@ -221,7 +221,7 @@ it('sends correlation id in headers and payload', function () {
 
     Http::assertSent(function ($request) {
         $payload = json_decode((string) $request->body(), true);
-        $header = (string) $request->header('X-PublishLayer-Correlation-Id')[0];
+        $header = (string) $request->header('X-Argusly-Correlation-Id')[0];
         $payloadCorrelation = (string) ($payload['correlation_id'] ?? '');
 
         return $header !== '' && $header === $payloadCorrelation;
@@ -260,7 +260,7 @@ it('includes answer blocks and faq schema in wordpress publish payloads', functi
         return str_contains((string) ($payload['content_html'] ?? ''), 'data-answer-block="true"')
             && data_get($payload, 'answer_blocks.0.question') === 'What is pricing?'
             && data_get($payload, 'faq_schema.@type') === 'FAQPage'
-            && data_get($payload, 'meta.publishlayer.faq_schema.@type') === 'FAQPage';
+            && data_get($payload, 'meta.argusly.faq_schema.@type') === 'FAQPage';
     });
 });
 
@@ -302,7 +302,7 @@ it('falls back to direct wordpress api with site token when webhook is not confi
     $plainToken = 'pl_site_testtoken123';
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '321',
             'wp_post_id' => '321',
@@ -340,7 +340,7 @@ it('falls back to direct wordpress api with site token when webhook is not confi
 
     Http::assertSent(function ($request) use ($plainToken) {
         $auth = (string) (($request->header('Authorization')[0] ?? ''));
-        return str_starts_with((string) $request->url(), 'https://wp.example/wp-json/publishlayer/v1/posts')
+        return str_starts_with((string) $request->url(), 'https://wp.example/wp-json/argusly/v1/posts')
             && $auth === 'Bearer ' . $plainToken;
     });
 
@@ -388,14 +388,14 @@ it('updates an existing wordpress post using wp_post_id endpoint and does not cr
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response([
             'ok' => true,
             'post_id' => '131',
             'wp_post_id' => '131',
             'status' => 'publish',
             'url' => 'https://wp.example/?p=131',
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '132',
             'wp_post_id' => '132',
@@ -406,11 +406,11 @@ it('updates an existing wordpress post using wp_post_id endpoint and does not cr
     expect($result['ok'])->toBeTrue();
 
     Http::assertSent(function ($request) {
-        return (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+        return (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertNotSent(function ($request) {
-        return (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+        return (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 
     expect((string) $draft->fresh()->content?->wp_post_id)->toBe('131');
@@ -449,14 +449,14 @@ it('retries against the same wordpress post without creating duplicates on the n
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response([
             'ok' => true,
             'post_id' => '131',
             'wp_post_id' => '131',
             'status' => 'publish',
             'url' => 'https://wp.example/?p=131',
         ], 200),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '999',
             'wp_post_id' => '999',
@@ -471,14 +471,14 @@ it('retries against the same wordpress post without creating duplicates on the n
     Http::assertSentCount(6);
     Http::assertSent(function ($request): bool {
         return $request->method() === 'GET'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
     Http::assertSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
     Http::assertNotSent(function ($request): bool {
-        return (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+        return (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 
     expect((string) $draft->fresh()->content?->wp_post_id)->toBe('131');
@@ -516,15 +516,15 @@ it('falls back to legacy posts endpoint when wp_post_id update endpoint is unava
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response([
             'code' => 'rest_no_route',
             'message' => 'No route was found matching the URL and request method.',
         ], 404),
-        'https://wp.example/?rest_route=/publishlayer/v1/posts/131' => Http::response([
+        'https://wp.example/?rest_route=/argusly/v1/posts/131' => Http::response([
             'code' => 'rest_no_route',
             'message' => 'No route was found matching the URL and request method.',
         ], 404),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '131',
             'wp_post_id' => '131',
@@ -537,11 +537,11 @@ it('falls back to legacy posts endpoint when wp_post_id update endpoint is unava
     expect($result['ok'])->toBeTrue();
 
     Http::assertSent(function ($request): bool {
-        return (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+        return (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertSent(function ($request): bool {
-        return (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts';
+        return (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts';
     });
 
     expect((string) $draft->fresh()->content?->wp_post_id)->toBe('131');
@@ -584,11 +584,11 @@ it('recreates a missing wordpress post before direct api delivery when the store
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
-        'https://wp.example/?rest_route=/publishlayer/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
+        'https://wp.example/?rest_route=/argusly/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/wp-json/wp/v2/posts/131?context=edit' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/wp-json/wp/v2/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '245',
             'wp_post_id' => '245',
@@ -601,16 +601,16 @@ it('recreates a missing wordpress post before direct api delivery when the store
 
     Http::assertSent(function ($request): bool {
         return $request->method() === 'GET'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertNotSent(function ($request): bool {
         return $request->method() === 'POST'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertSent(function ($request) use ($draft): bool {
-        if ($request->method() !== 'POST' || (string) $request->url() !== 'https://wp.example/wp-json/publishlayer/v1/posts') {
+        if ($request->method() !== 'POST' || (string) $request->url() !== 'https://wp.example/wp-json/argusly/v1/posts') {
             return false;
         }
 
@@ -659,8 +659,8 @@ it('recreates a missing wordpress post before webhook delivery when the stored w
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
-        'https://wp.example/?rest_route=/publishlayer/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
+        'https://wp.example/?rest_route=/argusly/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/wp-json/wp/v2/posts/131?context=edit' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/wp-json/wp/v2/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/webhook' => Http::response([
@@ -676,7 +676,7 @@ it('recreates a missing wordpress post before webhook delivery when the stored w
 
     Http::assertSent(function ($request): bool {
         return $request->method() === 'GET'
-            && (string) $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131';
+            && (string) $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131';
     });
 
     Http::assertSent(function ($request) use ($draft): bool {
@@ -732,11 +732,11 @@ it('marks delivery delivered after recreating a deleted wordpress post during th
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
-        'https://wp.example/?rest_route=/publishlayer/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
+        'https://wp.example/wp-json/argusly/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
+        'https://wp.example/?rest_route=/argusly/v1/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/wp-json/wp/v2/posts/131?context=edit' => Http::response(['code' => 'rest_post_invalid_id'], 404),
         'https://wp.example/wp-json/wp/v2/posts/131' => Http::response(['code' => 'rest_post_invalid_id'], 404),
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '247',
             'wp_post_id' => '247',
@@ -805,7 +805,7 @@ it('updates mapping when wordpress returns a different id and logs a warning', f
     ]);
 
     Http::fake(function (\Illuminate\Http\Client\Request $request) {
-        if ($request->method() === 'GET' && $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131') {
+        if ($request->method() === 'GET' && $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131') {
             return Http::response([
                 'ok' => true,
                 'post_id' => '131',
@@ -815,7 +815,7 @@ it('updates mapping when wordpress returns a different id and logs a warning', f
             ], 200);
         }
 
-        if ($request->method() === 'POST' && $request->url() === 'https://wp.example/wp-json/publishlayer/v1/posts/131') {
+        if ($request->method() === 'POST' && $request->url() === 'https://wp.example/wp-json/argusly/v1/posts/131') {
             return Http::response([
                 'ok' => true,
                 'post_id' => '132',
@@ -934,9 +934,9 @@ it('falls back to legacy content_seo values when typed seo columns are empty', f
             && data_get($payload, 'robots_index') === false
             && data_get($payload, 'robots_follow') === false
             && data_get($payload, 'schema_type') === 'HowTo'
-            && data_get($payload, 'meta.publishlayer.seo.robots_index') === false
-            && data_get($payload, 'meta.publishlayer.seo.robots_follow') === false
-            && data_get($payload, 'meta.publishlayer.seo.schema_type') === 'HowTo';
+            && data_get($payload, 'meta.argusly.seo.robots_index') === false
+            && data_get($payload, 'meta.argusly.seo.robots_follow') === false
+            && data_get($payload, 'meta.argusly.seo.schema_type') === 'HowTo';
     });
 });
 
@@ -965,9 +965,9 @@ it('includes robots and schema fields in wordpress payload without provider-spec
         return data_get($payload, 'robots_index') === false
             && data_get($payload, 'robots_follow') === true
             && data_get($payload, 'schema_type') === 'Article'
-            && data_get($payload, 'meta.publishlayer.seo.robots_index') === false
-            && data_get($payload, 'meta.publishlayer.seo.robots_follow') === true
-            && data_get($payload, 'meta.publishlayer.seo.schema_type') === 'Article'
+            && data_get($payload, 'meta.argusly.seo.robots_index') === false
+            && data_get($payload, 'meta.argusly.seo.robots_follow') === true
+            && data_get($payload, 'meta.argusly.seo.schema_type') === 'Article'
             && ! array_key_exists('robots_index', $metaInput)
             && ! array_key_exists('robots_follow', $metaInput)
             && ! array_key_exists('schema_type', $metaInput);
@@ -1078,14 +1078,14 @@ it('sends aioseo mapped wp meta fields when site reports aioseo provider', funct
     expect((array) ($target->seo_synced_fields ?? []))->toContain('_aioseo_title', '_aioseo_focus_keyphrase');
 });
 
-it('sends publishlayer mapped wp meta fields when site reports publishlayer provider', function () {
+it('sends argusly mapped wp meta fields when site reports argusly provider', function () {
     Http::fake([
         'https://wp.example/*' => Http::response(['ok' => true, 'wp_post_id' => '783'], 200),
     ]);
 
     $draft = makeDeliveryDraft(
         siteOverrides: [
-            'seo_provider' => 'publishlayer',
+            'seo_provider' => 'argusly',
             'supports_meta_title' => true,
             'supports_meta_description' => true,
             'supports_canonical' => true,
@@ -1106,7 +1106,7 @@ it('sends publishlayer mapped wp meta fields when site reports publishlayer prov
         $syncableFields = (array) data_get($payload, 'seo_sync.syncable_fields');
 
         return data_get($payload, 'seo_sync.mode') === 'sync'
-            && data_get($payload, 'seo_sync.provider') === 'publishlayer'
+            && data_get($payload, 'seo_sync.provider') === 'argusly'
             && ($metaInput['_pl_seo_title'] ?? null) === 'Delivery SEO Title'
             && ($metaInput['_pl_seo_meta_description'] ?? null) === 'Delivery SEO description'
             && ($metaInput['_pl_seo_focus_keyword'] ?? null) === 'delivery focus keyword'
@@ -1125,7 +1125,7 @@ it('sends publishlayer mapped wp meta fields when site reports publishlayer prov
     expect($target)->not->toBeNull();
     expect((string) $target->seo_sync_status)->toBe('synced');
     expect((string) $target->seo_sync_mode)->toBe('sync');
-    expect((string) data_get($target->meta, 'seo_sync.provider'))->toBe('publishlayer');
+    expect((string) data_get($target->meta, 'seo_sync.provider'))->toBe('argusly');
     expect((array) ($target->seo_synced_fields ?? []))->toContain('_pl_seo_title', '_pl_seo_meta_description');
 });
 
@@ -1189,7 +1189,7 @@ it('skips wordpress seo meta sync when no supported provider is detected', funct
 
         return data_get($payload, 'seo_sync.mode') === 'advisory'
             && data_get($payload, 'seo_sync.provider') === 'none'
-            && data_get($metaInput, 'publishlayer_origin') === 'publishlayer'
+            && data_get($metaInput, 'argusly_origin') === 'argusly'
             && is_array(data_get($payload, 'seo_recommendations'));
     });
 
@@ -1237,8 +1237,8 @@ it('tracks seo sync as failed when wordpress delivery fails', function () {
     expect((string) data_get($target->meta, 'seo_sync.error'))->not->toBe('');
 });
 
-it('stores publishlayer metadata in wordpress post meta for direct api delivery', function () {
-    $plainToken = 'pl_site_testtoken_publishlayer_meta';
+it('stores argusly metadata in wordpress post meta for direct api delivery', function () {
+    $plainToken = 'pl_site_testtoken_argusly_meta';
 
     $draft = makeDeliveryDraft([
         'draft_webhook_url' => null,
@@ -1266,7 +1266,7 @@ it('stores publishlayer metadata in wordpress post meta for direct api delivery'
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'wp_post_id' => '991',
             'url' => 'https://wp.example/?p=991',
@@ -1284,12 +1284,12 @@ it('stores publishlayer metadata in wordpress post meta for direct api delivery'
     Http::assertSent(function ($request) use ($draft, $publication): bool {
         $payload = json_decode((string) $request->body(), true);
 
-        return data_get($payload, 'meta_input.publishlayer_content_id') === (string) $draft->content_id
-            && data_get($payload, 'meta_input.publishlayer_publication_id') === (string) $publication->id
-            && data_get($payload, 'meta_input.publishlayer_origin') === 'publishlayer'
-            && data_get($payload, 'wp_post_meta.publishlayer_content_id') === (string) $draft->content_id
-            && data_get($payload, 'wp_post_meta.publishlayer_publication_id') === (string) $publication->id
-            && data_get($payload, 'wp_post_meta.publishlayer_origin') === 'publishlayer';
+        return data_get($payload, 'meta_input.argusly_content_id') === (string) $draft->content_id
+            && data_get($payload, 'meta_input.argusly_publication_id') === (string) $publication->id
+            && data_get($payload, 'meta_input.argusly_origin') === 'argusly'
+            && data_get($payload, 'wp_post_meta.argusly_content_id') === (string) $draft->content_id
+            && data_get($payload, 'wp_post_meta.argusly_publication_id') === (string) $publication->id
+            && data_get($payload, 'wp_post_meta.argusly_origin') === 'argusly';
     });
 });
 
@@ -1322,7 +1322,7 @@ it('surfaces connector auth failures during direct api delivery', function () {
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'message' => 'Invalid token',
         ], 401),
     ]);
@@ -1363,7 +1363,7 @@ it('surfaces malformed connector responses during direct api delivery', function
     ]);
 
     Http::fake([
-        'https://wp.example/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://wp.example/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'url' => 'https://wp.example/?p=123',
         ], 200),

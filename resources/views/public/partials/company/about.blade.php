@@ -127,18 +127,18 @@
 {{-- CTA --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-        <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-textPrimary md:text-3xl">
+        <div class="pl-public-cta-panel">
+            <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
                 {{ __('public.about.cta_title') }}
             </h2>
-            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-textSecondary md:text-base">
+            <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">
                 {{ __('public.about.cta_text') }}
             </p>
             <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <a href="{{ $ctaHref }}" class="pl-public-primary-button">
+                <a href="{{ $ctaHref }}" class="pl-public-cta-primary">
                     {{ $ctaLabel }}
                 </a>
-                <a href="{{ LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-secondary-button">
+                <a href="{{ LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-cta-secondary">
                     {{ __('public.cta.secondary') }}
                 </a>
             </div>

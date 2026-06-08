@@ -39,7 +39,7 @@ it('maps schema mode to mistral json_schema response format', function () {
         messages: [new LlmMessage('user', 'Return JSON')],
         model: 'mistral-large-latest',
     ), [
-        'name' => 'publishlayer_response',
+        'name' => 'argusly_response',
         'schema' => [
             'type' => 'object',
             'properties' => [
@@ -55,7 +55,7 @@ it('maps schema mode to mistral json_schema response format', function () {
         $data = $request->data();
 
         return ($data['response_format']['type'] ?? '') === 'json_schema'
-            && ($data['response_format']['json_schema']['name'] ?? '') === 'publishlayer_response'
+            && ($data['response_format']['json_schema']['name'] ?? '') === 'argusly_response'
             && is_array($data['response_format']['json_schema']['schema'] ?? null)
             && ($data['response_format']['json_schema']['strict'] ?? null) === true;
     });

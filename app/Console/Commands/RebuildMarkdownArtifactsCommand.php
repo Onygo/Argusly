@@ -10,7 +10,7 @@ use Illuminate\Console\Command;
 
 class RebuildMarkdownArtifactsCommand extends Command
 {
-    protected $signature = 'publishlayer:markdown:rebuild
+    protected $signature = 'argusly:markdown:rebuild
         {--content= : Optional content UUID}
         {--locale= : Optional locale override}
         {--queue=markdown : Queue name when async}

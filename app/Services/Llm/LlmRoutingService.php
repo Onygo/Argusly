@@ -37,7 +37,7 @@ class LlmRoutingService
         $defaults = [
             'id' => 1,
             'default_text_provider' => (string) config('llm.default_provider', 'openai'),
-            'default_image_provider' => (string) config('publishlayer.ai.images.provider', 'openai'),
+            'default_image_provider' => (string) config('argusly.ai.images.provider', 'openai'),
             'default_text_model_map' => [
                 'openai' => (string) config('llm.providers.openai.default_model', ''),
                 'anthropic' => (string) config('llm.providers.anthropic.default_model', ''),
@@ -45,9 +45,9 @@ class LlmRoutingService
                 'mistral' => (string) config('llm.providers.mistral.default_model', ''),
             ],
             'default_image_model_map' => [
-                'openai' => (string) config('publishlayer.ai.images.openai.model', ''),
+                'openai' => (string) config('argusly.ai.images.openai.model', ''),
                 'anthropic' => '',
-                'gemini' => (string) config('publishlayer.ai.images.gemini.model', ''),
+                'gemini' => (string) config('argusly.ai.images.gemini.model', ''),
                 'mistral' => '',
             ],
             'timeout_seconds' => (int) config('llm.timeouts.request_seconds', 180),

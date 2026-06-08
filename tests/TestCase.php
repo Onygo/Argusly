@@ -32,10 +32,10 @@ abstract class TestCase extends BaseTestCase
 
         // Keep feature tests deterministic regardless of local soft-launch settings.
         config([
-            'publishlayer.launch.soft_launch_mode' => false,
-            'publishlayer.launch.public_registration_enabled' => true,
-            'publishlayer.launch.public_pricing_enabled' => true,
-            'publishlayer.launch.registration_block_mode' => 'redirect',
+            'argusly.launch.soft_launch_mode' => false,
+            'argusly.launch.public_registration_enabled' => true,
+            'argusly.launch.public_pricing_enabled' => true,
+            'argusly.launch.registration_block_mode' => 'redirect',
         ]);
     }
 

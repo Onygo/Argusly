@@ -14,7 +14,7 @@ Example (PHP):
 
 ```php
 $expected = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);
-$provided = $_SERVER['HTTP_X_PUBLISHLAYER_SIGNATURE'] ?? '';
+$provided = $_SERVER['HTTP_X_ARGUSLY_SIGNATURE'] ?? '';
 if (! hash_equals($expected, $provided)) {
     http_response_code(401);
     exit('invalid signature');

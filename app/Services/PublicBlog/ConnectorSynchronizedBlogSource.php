@@ -128,7 +128,7 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
                         ->orWhere('scheduled_publish_at', '<=', now());
                 })
                 ->orderByDesc('updated_at')
-                ->limit(max(1, (int) config('publishlayer_connector.public_blog.max_posts', config('publishlayer.public_blog.max_posts', 300))));
+                ->limit(max(1, (int) config('argusly_connector.public_blog.max_posts', config('argusly.public_blog.max_posts', 300))));
             $query->where($scopeColumn, $scope['id']);
 
             $rows = $query->get();
@@ -534,7 +534,7 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
             return '';
         }
 
-        $disk = (string) config('publishlayer.images.disk', config('publishlayer.ai.images.storage_disk', 'public'));
+        $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
 
         return (string) Storage::disk($disk)->url($path);
     }

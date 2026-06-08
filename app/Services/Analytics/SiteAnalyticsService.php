@@ -14,14 +14,14 @@ class SiteAnalyticsService
     private const PAGEVIEW_EVENT_TYPES = ['page_view', 'pageview'];
     private const ENGAGED_EVENT_TYPES = ['engaged'];
     private const READ_THROUGH_EVENT_TYPES = ['read_through'];
-    public const SCOPE_PUBLISHLAYER_CONTENT = 'publishlayer_content';
+    public const SCOPE_ARGUSLY_CONTENT = 'argusly_content';
     public const SCOPE_ALL = 'all';
     public const SCOPE_OTHER_PAGE = 'other_page';
 
     /**
      * @return array{pageviews_7d:int,pageviews_30d:int,article_daily:Collection<int,object>}
      */
-    public function getQuickStats(?AnalyticsSite $analyticsSite, string $scope = self::SCOPE_PUBLISHLAYER_CONTENT): array
+    public function getQuickStats(?AnalyticsSite $analyticsSite, string $scope = self::SCOPE_ARGUSLY_CONTENT): array
     {
         $scope = $this->normalizeScope($scope);
 
@@ -98,7 +98,7 @@ class SiteAnalyticsService
     public function getLearningsOverview(
         ?AnalyticsSite $analyticsSite,
         int $days,
-        string $scope = self::SCOPE_PUBLISHLAYER_CONTENT
+        string $scope = self::SCOPE_ARGUSLY_CONTENT
     ): array {
         $scope = $this->normalizeScope($scope);
         $days = min(max($days, 1), 90);
@@ -250,7 +250,7 @@ class SiteAnalyticsService
         return match ($scope) {
             self::SCOPE_ALL,
             self::SCOPE_OTHER_PAGE => $scope,
-            default => self::SCOPE_PUBLISHLAYER_CONTENT,
+            default => self::SCOPE_ARGUSLY_CONTENT,
         };
     }
 
@@ -277,7 +277,7 @@ class SiteAnalyticsService
                     });
             }),
             default => $query->where(function (Builder $builder): void {
-                $builder->where('page_type', self::SCOPE_PUBLISHLAYER_CONTENT)
+                $builder->where('page_type', self::SCOPE_ARGUSLY_CONTENT)
                     ->orWhere(function (Builder $legacy): void {
                         $legacy->whereNull('page_type')->whereNotNull('content_id');
                     });

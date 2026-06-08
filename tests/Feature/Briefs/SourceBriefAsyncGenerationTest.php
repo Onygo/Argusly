@@ -474,7 +474,7 @@ describe('Source generation status endpoint', function () {
             'generation_status' => ContentSource::GENERATION_STATUS_FAILED,
             'generation_progress_step' => 'failed',
             'generation_failure_code' => 'dispatch_failed',
-            'generation_failure_message' => "SQLSTATE[42S02]: Base table or view not found: 1146 Table 'publishlayer.source_extractions' doesn't exist",
+            'generation_failure_message' => "SQLSTATE[42S02]: Base table or view not found: 1146 Table 'argusly.source_extractions' doesn't exist",
             'created_by_user_id' => (int) $user->id,
         ]);
 

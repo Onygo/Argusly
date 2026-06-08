@@ -16,12 +16,12 @@ uses(RefreshDatabase::class);
 
 it('uses organization legal_name on invoice and remains stable after workspace display name changes', function () {
     $organization = Organization::query()->create([
-        'name' => 'PublishLayer Trading',
-        'legal_name' => 'PublishLayer Legal B.V.',
+        'name' => 'Argusly Trading',
+        'legal_name' => 'Argusly Legal B.V.',
         'slug' => 'legal-pref-org-' . Str::random(6),
         'status' => 'active',
         'approved_at' => now(),
-        'billing_company_name' => 'PublishLayer Trading Name',
+        'billing_company_name' => 'Argusly Trading Name',
         'billing_country_code' => 'NL',
         'billing_vat_number' => 'NL123456789B01',
         'billing_kvk_number' => '12345678',
@@ -84,17 +84,17 @@ it('uses organization legal_name on invoice and remains stable after workspace d
     $invoice = app(InvoiceService::class)
         ->createForPaymentIntent($intent->fresh('billable.clientSite.workspace.organization'));
 
-    expect($invoice->billing_company_name)->toBe('PublishLayer Legal B.V.');
+    expect($invoice->billing_company_name)->toBe('Argusly Legal B.V.');
 
     $workspace->update(['display_name' => 'Workspace Renamed Later']);
 
     $invoice->refresh();
-    expect($invoice->billing_company_name)->toBe('PublishLayer Legal B.V.');
+    expect($invoice->billing_company_name)->toBe('Argusly Legal B.V.');
 
     $issuer = app(BillingSettingsService::class)->getInvoiceIssuerProfile();
     $pdfData = InvoicePdfData::fromInvoice($invoice->fresh(['items', 'paymentIntent']), $issuer, null);
     $html = view('pdf.invoice', ['invoice' => $invoice, 'pdf' => $pdfData])->render();
 
-    expect($html)->toContain('PublishLayer Legal B.V.');
+    expect($html)->toContain('Argusly Legal B.V.');
 });
 

@@ -12,21 +12,21 @@ it('calculates the ai visibility score breakdown from deterministic hits', funct
     $query = new LlmTrackingQuery([
         'name' => 'AI visibility',
         'query_text' => 'best AI content tools for SEO',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer', 'PublishLayer AI'],
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly', 'Argusly AI'],
         'competitor_terms' => ['Frase', 'MarketMuse'],
     ]);
 
     $score = $calculator->calculate(
         $query,
-        'PublishLayer is a strong option for AI SEO workflows, while Frase is another recommendation.',
+        'Argusly is a strong option for AI SEO workflows, while Frase is another recommendation.',
         [
             [
-                'term' => 'PublishLayer',
+                'term' => 'Argusly',
                 'count' => 1,
                 'bucket' => 'first',
-                'context_snippets' => ['PublishLayer is a strong option for AI SEO workflows.'],
+                'context_snippets' => ['Argusly is a strong option for AI SEO workflows.'],
             ],
         ],
         [
@@ -39,12 +39,12 @@ it('calculates the ai visibility score breakdown from deterministic hits', funct
         ],
         ['brand' => ['bucket' => 'first']],
         [
-            ['url' => 'https://publishlayer.com/features', 'domain' => 'publishlayer.com', 'type' => 'website'],
+            ['url' => 'https://argusly.com/features', 'domain' => 'argusly.com', 'type' => 'website'],
         ],
-        ['publishlayer.com'],
+        ['argusly.com'],
         0,
         'block_1',
-        'PublishLayer is a strong option for AI SEO workflows.',
+        'Argusly is a strong option for AI SEO workflows.',
     );
 
     expect((float) $score['presence_score'])->toBe(1.0);
@@ -60,13 +60,13 @@ it('calculates the ai visibility score breakdown from deterministic hits', funct
     expect((float) data_get($score, 'visibility_breakdown.subscores_100.owned_visibility'))->toBeGreaterThan(80.0);
 });
 
-it('returns a zero score when publishlayer is not present', function () {
+it('returns a zero score when argusly is not present', function () {
     $calculator = app(LlmVisibilityScoreCalculator::class);
 
     $query = new LlmTrackingQuery([
         'name' => 'Brand gap',
         'query_text' => 'content optimization platforms',
-        'brand_terms' => ['PublishLayer'],
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['Frase'],
     ]);
 
@@ -99,22 +99,22 @@ it('penalizes negative context and missing owned citations', function () {
 
     $query = new LlmTrackingQuery([
         'name' => 'Brand sentiment',
-        'query_text' => 'is PublishLayer difficult to use',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer'],
+        'query_text' => 'is Argusly difficult to use',
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['AcmeSEO'],
     ]);
 
     $score = $calculator->calculate(
         $query,
-        'PublishLayer can feel difficult for new teams, while AcmeSEO is easier to start with.',
+        'Argusly can feel difficult for new teams, while AcmeSEO is easier to start with.',
         [
             [
-                'term' => 'PublishLayer',
+                'term' => 'Argusly',
                 'count' => 1,
                 'bucket' => 'middle',
-                'context_snippets' => ['PublishLayer can feel difficult for new teams.'],
+                'context_snippets' => ['Argusly can feel difficult for new teams.'],
                 'first_position' => 10,
             ],
         ],
@@ -133,7 +133,7 @@ it('penalizes negative context and missing owned citations', function () {
         ['example-news.com'],
         10,
         'block_2',
-        'PublishLayer can feel difficult for new teams.',
+        'Argusly can feel difficult for new teams.',
     );
 
     expect((string) $score['context_label'])->toBe('negative');
@@ -148,26 +148,26 @@ it('rewards earned authority and source diversity more honestly than owned-only 
     $calculator = app(LlmVisibilityScoreCalculator::class);
 
     $query = new LlmTrackingQuery([
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer'],
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['Semrush'],
     ]);
 
     $ownedOnly = $calculator->calculate(
         $query,
-        'PublishLayer is mentioned with its own page https://publishlayer.com/ai-visibility.',
-        [['term' => 'PublishLayer', 'count' => 1, 'bucket' => 'first', 'context_snippets' => ['PublishLayer is mentioned.']]],
+        'Argusly is mentioned with its own page https://argusly.com/ai-visibility.',
+        [['term' => 'Argusly', 'count' => 1, 'bucket' => 'first', 'context_snippets' => ['Argusly is mentioned.']]],
         [],
         ['brand' => ['bucket' => 'first']],
-        [['url' => 'https://publishlayer.com/ai-visibility', 'domain' => 'publishlayer.com', 'type' => 'website']],
-        ['publishlayer.com'],
+        [['url' => 'https://argusly.com/ai-visibility', 'domain' => 'argusly.com', 'type' => 'website']],
+        ['argusly.com'],
     );
 
     $earned = $calculator->calculate(
         $query,
-        'PublishLayer is mentioned by editorial roundups from Search Engine Journal and G2.',
-        [['term' => 'PublishLayer', 'count' => 1, 'bucket' => 'first', 'context_snippets' => ['PublishLayer is mentioned by editorial roundups.']]],
+        'Argusly is mentioned by editorial roundups from Search Engine Journal and G2.',
+        [['term' => 'Argusly', 'count' => 1, 'bucket' => 'first', 'context_snippets' => ['Argusly is mentioned by editorial roundups.']]],
         [],
         ['brand' => ['bucket' => 'first']],
         [

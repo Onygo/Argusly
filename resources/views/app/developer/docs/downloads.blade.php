@@ -70,11 +70,11 @@
             <div class="mt-3 space-y-2">
                 <div class="rounded border border-border bg-surfaceSubtle p-3">
                     <p class="mb-1 text-xs text-textSecondary">Generate OpenAPI specification:</p>
-                    <code class="text-sm text-textPrimary">php artisan publishlayer:generate-openapi</code>
+                    <code class="text-sm text-textPrimary">php artisan argusly:generate-openapi</code>
                 </div>
                 <div class="rounded border border-border bg-surfaceSubtle p-3">
                     <p class="mb-1 text-xs text-textSecondary">Generate Postman collection:</p>
-                    <code class="text-sm text-textPrimary">php artisan publishlayer:generate-postman</code>
+                    <code class="text-sm text-textPrimary">php artisan argusly:generate-postman</code>
                 </div>
             </div>
         </div>

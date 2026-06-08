@@ -64,8 +64,10 @@ class BriefTestDraftController extends Controller
         $resp = Http::withoutVerifying()
             ->timeout(15)
             ->withHeaders([
-                'X-PublishLayer-Timestamp' => $ts,
-                'X-PublishLayer-Signature' => $sig,
+                'X-Argusly-Timestamp' => $ts,
+                'X-Argusly-Signature' => $sig,
+                'X-Argusly-Timestamp' => $ts,
+                'X-Argusly-Signature' => $sig,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ])

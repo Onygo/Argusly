@@ -1374,7 +1374,7 @@ class SeriesArticleGenerationService
 
         return [
             'action_id' => $action?->id,
-            'cost' => max(1, (int) ($action?->credits_cost ?? config('publishlayer.ai.drafts.credit_cost', 4))),
+            'cost' => max(1, (int) ($action?->credits_cost ?? config('argusly.ai.drafts.credit_cost', 4))),
         ];
     }
 

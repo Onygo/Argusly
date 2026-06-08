@@ -71,7 +71,7 @@ it('loads the admin dashboard with normal wordpress site rows', function () {
         'version' => '1.2.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.2.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.2.0.zip',
         'is_security_release' => false,
     ]);
 

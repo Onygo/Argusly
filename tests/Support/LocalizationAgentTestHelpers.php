@@ -154,7 +154,7 @@ if (! function_exists('attachLocalizedVersion')) {
             'content_id' => $content->id,
             'type' => ContentVersion::TYPE_REVISION,
             'body' => $body,
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         ContentVersion::query()->whereKey($version->id)->update([

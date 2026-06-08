@@ -9,10 +9,10 @@ uses(RefreshDatabase::class);
 it('extracts mention positions sentence indexes and buckets', function () {
     $analyzer = app(LlmTrackingAnalyzer::class);
 
-    $answer = 'PublishLayer appears early. Filler content here. ' . str_repeat('x', 220) . ' AcmeSEO appears later in the answer.';
-    $hits = $analyzer->extractMentions($answer, ['PublishLayer', 'AcmeSEO']);
+    $answer = 'Argusly appears early. Filler content here. ' . str_repeat('x', 220) . ' AcmeSEO appears later in the answer.';
+    $hits = $analyzer->extractMentions($answer, ['Argusly', 'AcmeSEO']);
 
-    $publishLayerHit = collect($hits)->firstWhere('term', 'PublishLayer');
+    $publishLayerHit = collect($hits)->firstWhere('term', 'Argusly');
     $acmeHit = collect($hits)->firstWhere('term', 'AcmeSEO');
 
     expect($publishLayerHit)->not->toBeNull();
@@ -28,17 +28,17 @@ it('captures first mention block context and detected domains from raw provider 
 
     $query = new LlmTrackingQuery([
         'query_text' => 'best ai visibility tools',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer', 'Publish Layer'],
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly', 'Publish Layer'],
         'competitor_terms' => ['AcmeSEO'],
-        'target_urls' => ['https://publishlayer.com/features'],
+        'target_urls' => ['https://argusly.com/features'],
     ]);
 
     $answer = "AcmeSEO is often listed first.\n\nPublish Layer is a strong option when teams want owned publishing workflows.";
     $raw = [
         'citations' => [
-            ['url' => 'https://publishlayer.com/features'],
+            ['url' => 'https://argusly.com/features'],
             ['url' => 'https://example-news.com/review'],
         ],
     ];
@@ -48,8 +48,8 @@ it('captures first mention block context and detected domains from raw provider 
     expect($result->firstMentionIndex)->not->toBeNull()
         ->and($result->firstMentionBlock)->toBe('block_2')
         ->and($result->firstMentionContext)->toContain('Publish Layer')
-        ->and($result->detectedDomains)->toContain('publishlayer.com')
-        ->and(collect($result->sources)->pluck('domain')->all())->toContain('publishlayer.com');
+        ->and($result->detectedDomains)->toContain('argusly.com')
+        ->and(collect($result->sources)->pluck('domain')->all())->toContain('argusly.com');
 });
 
 it('classifies sources with explainable heuristics', function () {
@@ -65,7 +65,7 @@ it('computes share of voice ratios correctly', function () {
 
     $snapshot = $analyzer->computeShareOfVoiceSnapshot(
         [
-            ['term' => 'PublishLayer', 'count' => 2],
+            ['term' => 'Argusly', 'count' => 2],
             ['term' => 'PL', 'count' => 1],
         ],
         [
@@ -84,9 +84,9 @@ it('suggests content when competitors are mentioned but brand is missing', funct
     $query = new LlmTrackingQuery([
         'name' => 'Visibility check',
         'query_text' => 'Best B2B content workflow software alternatives',
-        'brand_terms' => ['PublishLayer'],
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['AcmeSEO'],
-        'target_urls' => ['https://publishlayer.com/features'],
+        'target_urls' => ['https://argusly.com/features'],
         'locale' => 'en',
     ]);
 

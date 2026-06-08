@@ -158,12 +158,12 @@ class WebhookController extends Controller
             'sample_payload' => $sample,
             'headers' => [
                 'Content-Type' => 'application/json',
-                'X-PublishLayer-Event' => $event,
-                'X-PublishLayer-Event-Version' => WebhookEventRegistry::CURRENT_VERSION,
-                'X-PublishLayer-Event-ID' => 'evt_01HXY...',
-                'X-PublishLayer-Signature' => 'sha256=...',
-                'X-PublishLayer-Delivery-Attempt' => '1',
-                'X-PublishLayer-Timestamp' => now()->format('Y-m-d\TH:i:s.u\Z'),
+                'X-Argusly-Event' => $event,
+                'X-Argusly-Event-Version' => WebhookEventRegistry::CURRENT_VERSION,
+                'X-Argusly-Event-ID' => 'evt_01HXY...',
+                'X-Argusly-Signature' => 'sha256=...',
+                'X-Argusly-Delivery-Attempt' => '1',
+                'X-Argusly-Timestamp' => now()->format('Y-m-d\TH:i:s.u\Z'),
             ],
         ]);
     }

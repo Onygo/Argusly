@@ -18,9 +18,9 @@ class SeoAuditCrawlerService
     private const BROKEN_LINK_CHECK_LIMIT = 6;
     private const MAX_SITEMAP_BYTES = 2_000_000;
     private const REDIRECT_LIMIT = 5;
-    private const USER_AGENT = 'PublishLayerSeoAuditCrawler/1.0 (+https://argusly.local)';
+    private const USER_AGENT = 'ArguslySeoAuditCrawler/1.0 (+https://argusly.local)';
     private const FETCH_DIAGNOSTIC_SAMPLE_LIMIT = 100;
-    private const PAGE_TYPE_PUBLISHLAYER_ARTICLE = 'publishlayer_article';
+    private const PAGE_TYPE_ARGUSLY_ARTICLE = 'argusly_article';
     private const PAGE_TYPE_SITE_PAGE = 'site_page';
     private const PAGE_TYPE_SYSTEM_PAGE = 'system_page';
 
@@ -46,7 +46,7 @@ class SeoAuditCrawlerService
         $this->crawlBaseHost = strtolower($baseHost);
         $this->allowedRedirectDomains = $this->buildAllowedRedirectDomains($site, $baseHost);
         $this->fetchDiagnostics = [];
-        $this->publishLayerContentByUrlKey = $this->buildPublishLayerContentLookup($site);
+        $this->publishLayerContentByUrlKey = $this->buildArguslyContentLookup($site);
 
         $seedUrls = $this->discoverFromSitemap($baseUrl, $baseHost, $maxPages);
         $crawlSource = $seedUrls !== [] ? 'sitemap' : 'bfs';
@@ -197,7 +197,7 @@ class SeoAuditCrawlerService
                 'fetched_url' => $page['fetched_url'],
                 'fetch_meta' => $page['fetch_meta'],
                 'page_type' => $classification['page_type'],
-                'publishlayer_article_id' => $classification['publishlayer_article_id'],
+                'argusly_content_id' => $classification['argusly_content_id'],
             ];
         }
 
@@ -236,7 +236,7 @@ class SeoAuditCrawlerService
             'fetched_url' => $page['fetched_url'],
             'fetch_meta' => $page['fetch_meta'],
             'page_type' => $classification['page_type'],
-            'publishlayer_article_id' => $classification['publishlayer_article_id'],
+            'argusly_content_id' => $classification['argusly_content_id'],
         ];
     }
 
@@ -481,13 +481,13 @@ class SeoAuditCrawlerService
                 'fetch_error_category' => (string) ($page['fetch_error_category'] ?? ''),
                 'fetch_meta' => is_array($page['fetch_meta'] ?? null) ? $page['fetch_meta'] : null,
                 'page_type' => (string) ($page['page_type'] ?? self::PAGE_TYPE_SITE_PAGE),
-                'publishlayer_article_id' => (string) ($page['publishlayer_article_id'] ?? ''),
+                'argusly_content_id' => (string) ($page['argusly_content_id'] ?? ''),
             ],
         ];
     }
 
     /**
-     * @return array{page_type:string,publishlayer_article_id:?string}
+     * @return array{page_type:string,argusly_content_id:?string}
      */
     private function classifyPage(string $url, string $fetchedUrl, ?string $canonicalUrl, string $html): array
     {
@@ -495,39 +495,39 @@ class SeoAuditCrawlerService
         if ($this->isSystemPageUrl($url) || $this->isSystemPageUrl($fetchedUrl) || $this->isSystemPageUrl($canonicalUrl)) {
             return [
                 'page_type' => self::PAGE_TYPE_SYSTEM_PAGE,
-                'publishlayer_article_id' => null,
+                'argusly_content_id' => null,
             ];
         }
 
-        $publishLayerArticleId = $this->resolvePublishLayerArticleId($canonicalUrl, $url, $fetchedUrl);
+        $publishLayerArticleId = $this->resolveArguslyArticleId($canonicalUrl, $url, $fetchedUrl);
         if ($publishLayerArticleId !== null) {
             return [
-                'page_type' => self::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-                'publishlayer_article_id' => $publishLayerArticleId,
+                'page_type' => self::PAGE_TYPE_ARGUSLY_ARTICLE,
+                'argusly_content_id' => $publishLayerArticleId,
             ];
         }
 
-        if ($this->containsPublishLayerTrackingScript($html)) {
+        if ($this->containsArguslyTrackingScript($html)) {
             return [
-                'page_type' => self::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-                'publishlayer_article_id' => null,
+                'page_type' => self::PAGE_TYPE_ARGUSLY_ARTICLE,
+                'argusly_content_id' => null,
             ];
         }
 
         return [
             'page_type' => self::PAGE_TYPE_SITE_PAGE,
-            'publishlayer_article_id' => null,
+            'argusly_content_id' => null,
         ];
     }
 
-    private function containsPublishLayerTrackingScript(string $html): bool
+    private function containsArguslyTrackingScript(string $html): bool
     {
         $haystack = strtolower($html);
         if ($haystack === '') {
             return false;
         }
 
-        return str_contains($haystack, 'track.publishlayer');
+        return str_contains($haystack, 'track.argusly');
     }
 
     private function isSystemPageUrl(string $url): bool
@@ -560,7 +560,7 @@ class SeoAuditCrawlerService
         return false;
     }
 
-    private function resolvePublishLayerArticleId(?string $canonicalUrl, string $url, string $fetchedUrl): ?string
+    private function resolveArguslyArticleId(?string $canonicalUrl, string $url, string $fetchedUrl): ?string
     {
         $keys = [];
 
@@ -611,7 +611,7 @@ class SeoAuditCrawlerService
     /**
      * @return array<string,string>
      */
-    private function buildPublishLayerContentLookup(ClientSite $site): array
+    private function buildArguslyContentLookup(ClientSite $site): array
     {
         $siteId = (string) $site->id;
         if ($siteId === '') {
@@ -904,8 +904,8 @@ class SeoAuditCrawlerService
     private function shouldDisableTlsVerifyFor(string $url): bool
     {
         if ($this->isProductionEnvironment()) {
-            if (config('publishlayer.http_insecure_local') === true) {
-                throw new RuntimeException('PUBLISHLAYER_HTTP_INSECURE_LOCAL must never be enabled in production.');
+            if (config('argusly.http_insecure_local') === true) {
+                throw new RuntimeException('ARGUSLY_HTTP_INSECURE_LOCAL must never be enabled in production.');
             }
 
             return false;
@@ -915,7 +915,7 @@ class SeoAuditCrawlerService
             return false;
         }
 
-        if (config('publishlayer.http_insecure_local') !== true) {
+        if (config('argusly.http_insecure_local') !== true) {
             return false;
         }
 

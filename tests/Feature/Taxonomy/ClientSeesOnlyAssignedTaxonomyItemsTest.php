@@ -82,7 +82,7 @@ it('returns only active taxonomy items from sets assigned to the clients tenant'
 
     $intentResponse = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plainTokenA,
-        'X-PublishLayer-Site' => 'tenant-a.example.com',
+        'X-Argusly-Site' => 'tenant-a.example.com',
     ])->getJson('/api/v1/taxonomy/intents');
 
     $intentResponse->assertOk();
@@ -93,7 +93,7 @@ it('returns only active taxonomy items from sets assigned to the clients tenant'
 
     $audienceResponse = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plainTokenA,
-        'X-PublishLayer-Site' => 'tenant-a.example.com',
+        'X-Argusly-Site' => 'tenant-a.example.com',
     ])->getJson('/api/v1/taxonomy/audiences');
 
     $audienceResponse->assertOk();

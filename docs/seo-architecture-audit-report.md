@@ -38,7 +38,7 @@ The Argusly codebase demonstrates a surprisingly advanced SEO architecture that 
 | **contents** | Published articles | Same 9 SEO fields as drafts + `primary_keyword`, `publish_url_key`, `canonical_url_key` | `robots`, `schema_type`, `internal_link_targets` | Good coverage. Has `primary_keyword` which could serve as `focus_keyword`. |
 | **content_seo** | Legacy dedicated SEO table | `meta_title`, `meta_description`, `primary_keyword`, `secondary_keywords` (JSON), `schema_enabled`, `toc_enabled` | `robots`, OG/Twitter fields | Appears to be legacy - main SEO fields now on drafts/contents directly. Risk of dual source of truth. |
 | **seo_audits** | Audit run tracking | `pages_crawled`, `issue_counts` (JSON), `status`, `started_at`, `finished_at`, `error_message`, `meta` | None | Well-structured. Maps to `seo_audit_runs` in target. |
-| **seo_audit_pages** | Crawled page data | `url`, `title`, `meta_description`, `canonical_url`, `robots_meta`, `h1`, `word_count`, `internal_links_count`, `broken_links_count`, `page_type`, `publishlayer_article_id` | None | Excellent coverage with article linking. Maps to `seo_audit_issues` scope. |
+| **seo_audit_pages** | Crawled page data | `url`, `title`, `meta_description`, `canonical_url`, `robots_meta`, `h1`, `word_count`, `internal_links_count`, `broken_links_count`, `page_type`, `argusly_content_id` | None | Excellent coverage with article linking. Maps to `seo_audit_issues` scope. |
 | **seo_audit_issues** | Detected problems | `severity`, `code`, `title`, `description`, `recommendation`, `context_json` | None | Complete. Maps to target `seo_audit_issues`. |
 | **seo_audit_fix_suggestions** | AI-generated fixes | `issue_code`, `status`, `input_snapshot` (JSON), `suggestion` (JSON), `token_usage`, `credits_reserved`, `credits_charged`, `created_by`, `applied_by` | None | Excellent implementation. Maps to target `seo_suggestions`. |
 | **content_publish_targets** | Publishing targets | `target_type`, `target_identifier`, `wp_post_id`, `wp_featured_media_id`, `sync_status`, `last_synced_at`, `meta` | `seo_sync_status`, `seo_last_synced_at` | Good structure. Could extend for SEO-specific sync tracking. |
@@ -200,7 +200,7 @@ $content->update([
 #### Support for SEO Metadata
 **Not Implemented:** Laravel connector does not:
 - Push any SEO fields to the remote Laravel site
-- Have an API endpoint equivalent to WordPress `/publishlayer/v1/posts`
+- Have an API endpoint equivalent to WordPress `/argusly/v1/posts`
 - Use webhooks for delivery
 
 The Laravel flow simply marks content as published locally and generates a guessed `published_url` based on `/blog/{slug}` pattern.

@@ -211,7 +211,7 @@ it('push uses active featured image version', function () {
     ]);
 
     Http::fake([
-        'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
+        'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
     ]);
 
     $this->actingAs($user)

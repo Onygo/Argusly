@@ -9,7 +9,7 @@ uses(RefreshDatabase::class);
 
 it('shows the temporary launch homepage when soft launch mode is enabled', function () {
     config([
-        'publishlayer.launch.soft_launch_mode' => true,
+        'argusly.launch.soft_launch_mode' => true,
     ]);
 
     $this->get(route('landing'))
@@ -21,8 +21,8 @@ it('shows the temporary launch homepage when soft launch mode is enabled', funct
 
 it('blocks public registration routes when registration is disabled', function () {
     config([
-        'publishlayer.launch.public_registration_enabled' => false,
-        'publishlayer.launch.registration_block_mode' => 'redirect',
+        'argusly.launch.public_registration_enabled' => false,
+        'argusly.launch.registration_block_mode' => 'redirect',
     ]);
 
     $this->get('/register')
@@ -40,8 +40,8 @@ it('blocks public registration routes when registration is disabled', function (
 
 it('returns 404 for registration routes when configured', function () {
     config([
-        'publishlayer.launch.public_registration_enabled' => false,
-        'publishlayer.launch.registration_block_mode' => '404',
+        'argusly.launch.public_registration_enabled' => false,
+        'argusly.launch.registration_block_mode' => '404',
     ]);
 
     $this->get('/register')->assertNotFound();
@@ -49,7 +49,7 @@ it('returns 404 for registration routes when configured', function () {
 
 it('keeps login available while registration is disabled', function () {
     config([
-        'publishlayer.launch.public_registration_enabled' => false,
+        'argusly.launch.public_registration_enabled' => false,
     ]);
 
     $this->get('/login')->assertOk();

@@ -26,7 +26,7 @@ function contactPayload(array $overrides = []): array
         'topic' => 'Enterprise pricing',
         'source_page' => 'landing.cta',
         'cta_label' => 'Request enterprise pricing',
-        'url' => 'https://publishlayer.test/company/contact?topic=Enterprise+pricing',
+        'url' => 'https://argusly.test/company/contact?topic=Enterprise+pricing',
         'recaptcha_token' => 'valid-recaptcha-token',
     ], $overrides);
 }
@@ -37,7 +37,7 @@ function recaptchaSuccessResponse(): array
         'success' => true,
         'score' => 0.9,
         'action' => 'contact',
-        'hostname' => 'publishlayer.test',
+        'hostname' => 'argusly.test',
         'error-codes' => [],
     ];
 }
@@ -48,7 +48,7 @@ function recaptchaFailedTokenResponse(): array
         'success' => false,
         'score' => 0.0,
         'action' => 'contact',
-        'hostname' => 'publishlayer.test',
+        'hostname' => 'argusly.test',
         'error-codes' => ['invalid-input-response'],
     ];
 }
@@ -59,7 +59,7 @@ function recaptchaLowScoreResponse(): array
         'success' => true,
         'score' => 0.2,
         'action' => 'contact',
-        'hostname' => 'publishlayer.test',
+        'hostname' => 'argusly.test',
         'error-codes' => [],
     ];
 }
@@ -70,7 +70,7 @@ function recaptchaActionMismatchResponse(): array
         'success' => true,
         'score' => 0.9,
         'action' => 'wrong_action',
-        'hostname' => 'publishlayer.test',
+        'hostname' => 'argusly.test',
         'error-codes' => [],
     ];
 }

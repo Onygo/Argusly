@@ -96,7 +96,7 @@
                     <x-forms.recaptcha action="contact" />
                     <div class="md:col-span-2 flex flex-wrap gap-3">
                         <button type="submit" class="pl-public-primary-button disabled:cursor-not-allowed disabled:opacity-60" @disabled(! $recaptchaConfigured)>{{ __('public.page.contact_form.send') }}</button>
-                        <a href="mailto:{{ config('publishlayer.contact.recipient_email', config('mail.from.address')) }}" class="pl-public-secondary-button">{{ __('public.page.contact_form.direct_email') }}</a>
+                        <a href="mailto:{{ config('argusly.contact.recipient_email', config('mail.from.address')) }}" class="pl-public-secondary-button">{{ __('public.page.contact_form.direct_email') }}</a>
                         @if(!empty($scheduleCallUrl))
                             <a href="{{ $scheduleCallUrl }}" class="pl-public-secondary-button" target="_blank" rel="noopener">{{ __('public.page.contact_form.schedule_call') }}</a>
                         @endif

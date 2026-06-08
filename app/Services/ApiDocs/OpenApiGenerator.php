@@ -19,7 +19,7 @@ class OpenApiGenerator
     ) {
         $this->routeExtractor = $routeExtractor;
         $this->builder = $builder;
-        $this->config = config('publishlayer-docs', []);
+        $this->config = config('argusly-docs', []);
     }
 
     /**
@@ -41,7 +41,7 @@ class OpenApiGenerator
     {
         $spec = $this->generate();
 
-        $outputPath = $outputPath ?? $this->config['openapi']['output'] ?? 'docs/openapi/publishlayer.yaml';
+        $outputPath = $outputPath ?? $this->config['openapi']['output'] ?? 'docs/openapi/argusly.yaml';
         $format = $format ?: ($this->config['openapi']['format'] ?? 'yaml');
 
         return $this->write($spec, $outputPath, $format);
@@ -193,7 +193,7 @@ class OpenApiGenerator
      */
     public function clearCache(): void
     {
-        $cacheKey = $this->config['cache']['key'] ?? 'publishlayer:openapi:spec';
+        $cacheKey = $this->config['cache']['key'] ?? 'argusly:openapi:spec';
         cache()->forget($cacheKey);
     }
 }

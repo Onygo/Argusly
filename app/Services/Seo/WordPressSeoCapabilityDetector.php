@@ -105,8 +105,8 @@ class WordPressSeoCapabilityDetector
             return $this->providers->resolve('aioseo');
         }
 
-        if ($this->hasAnySignature($candidates, ['publishlayer/publishlayer.php', 'publishlayer'])) {
-            return $this->providers->resolve('publishlayer');
+        if ($this->hasAnySignature($candidates, ['argusly/argusly.php', 'argusly'])) {
+            return $this->providers->resolve('argusly');
         }
 
         return $this->providers->resolve('none');
@@ -140,7 +140,7 @@ class WordPressSeoCapabilityDetector
             'yoast' => 'yoast',
             'rankmath', 'rank_math' => 'rankmath',
             'aioseo', 'all_in_one_seo' => 'aioseo',
-            'publishlayer', 'publishlayer_wp', 'pl' => 'publishlayer',
+            'argusly', 'argusly_wp', 'pl' => 'argusly',
             default => null,
         };
     }

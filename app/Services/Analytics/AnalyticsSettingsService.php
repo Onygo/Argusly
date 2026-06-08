@@ -128,15 +128,15 @@ class AnalyticsSettingsService
         $environment = app()->environment();
 
         if ($environment === 'testing') {
-            return (bool) config('publishlayer.analytics.allow_tracking_in_testing', false);
+            return (bool) config('argusly.analytics.allow_tracking_in_testing', false);
         }
 
         if ($environment === 'local') {
-            return (bool) config('publishlayer.analytics.allow_tracking_on_local', false);
+            return (bool) config('argusly.analytics.allow_tracking_on_local', false);
         }
 
         if (in_array($environment, ['staging', 'acceptance'], true)) {
-            return (bool) config('publishlayer.analytics.allow_tracking_on_staging', true);
+            return (bool) config('argusly.analytics.allow_tracking_on_staging', true);
         }
 
         return true;

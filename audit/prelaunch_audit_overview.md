@@ -1,4 +1,4 @@
-# PublishLayer Pre-Launch Production Readiness Audit
+# Argusly Pre-Launch Production Readiness Audit
 
 **Date**: 2026-03-13
 **Auditor**: Claude (Opus 4.5)
@@ -6,11 +6,11 @@
 
 ## Executive Summary
 
-This audit covers the PublishLayer multi-project SaaS ecosystem consisting of:
+This audit covers the Argusly multi-project SaaS ecosystem consisting of:
 
-1. **PublishLayer Main App** - Laravel-based AI content platform
-2. **PublishLayer Laravel Connector** - Package for Laravel client integration
-3. **PublishLayer WordPress Plugin** - Plugin for WordPress client integration
+1. **Argusly Main App** - Laravel-based AI content platform
+2. **Argusly Laravel Connector** - Package for Laravel client integration
+3. **Argusly WordPress Plugin** - Plugin for WordPress client integration
 
 ### Overall Verdict: **READY WITH FIXES**
 
@@ -20,20 +20,20 @@ The codebase is architecturally sound with proper security controls, comprehensi
 
 ## Projects Overview
 
-### PublishLayer Main App
-- **Location**: `/Users/ricardohagens/Sites/_project_publishlayer/publishlayer`
+### Argusly Main App
+- **Location**: `/Users/ricardohagens/Sites/_project_argusly/argusly`
 - **Stack**: Laravel 11, Pest for testing
 - **Key Features**: Briefs, Drafts, Draft Intelligence, Content Publishing, Credits, Billing, Analytics, LLM Tracking
 - **Size**: 193 migrations, 80+ controllers, 150+ services, 43 jobs, 249 tests
 
 ### Laravel Connector
-- **Location**: `/Users/ricardohagens/Sites/_project_publishlayer/publishlayer-laravel-connector`
+- **Location**: `/Users/ricardohagens/Sites/_project_argusly/argusly-laravel-connector`
 - **Stack**: Laravel package, compatible with Laravel 11/12
 - **Key Features**: Knowledge Base sync, Webhook handling, Health checks
 - **Size**: 54 PHP files (~5,071 lines), 29 tests
 
 ### WordPress Plugin
-- **Location**: `/Users/ricardohagens/Sites/_project_publishlayer/wordpress-publishlayer/wp-content/plugins/publishlayer`
+- **Location**: `/Users/ricardohagens/Sites/_project_argusly/wordpress-argusly/wp-content/plugins/argusly`
 - **Version**: 0.1.12
 - **Key Features**: Briefs, Drafts, KB Articles, Content Sync, Auto-updates
 - **Size**: 2,000+ lines in main file, modular includes
@@ -134,7 +134,7 @@ The codebase is architecturally sound with proper security controls, comprehensi
 
 The following detailed audit documents are available:
 
-1. **[publishlayer_findings.md](./publishlayer_findings.md)** - Main app findings
+1. **[argusly_findings.md](./argusly_findings.md)** - Main app findings
 2. **[laravel_connector_findings.md](./laravel_connector_findings.md)** - Laravel connector findings
 3. **[wordpress_plugin_findings.md](./wordpress_plugin_findings.md)** - WordPress plugin findings
 4. **[prelaunch_fix_plan.md](./prelaunch_fix_plan.md)** - Prioritized fix plan

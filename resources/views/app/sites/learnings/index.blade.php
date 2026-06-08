@@ -17,7 +17,7 @@
                 </select>
                 <select name="scope" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
                     <option value="all" {{ $scope === 'all' ? 'selected' : '' }}>All pages</option>
-                    <option value="publishlayer_content" {{ $scope === 'publishlayer_content' ? 'selected' : '' }}>Argusly content</option>
+                    <option value="argusly_content" {{ $scope === 'argusly_content' ? 'selected' : '' }}>Argusly content</option>
                     <option value="other_page" {{ $scope === 'other_page' ? 'selected' : '' }}>Other site pages</option>
                 </select>
                 <select name="sort" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">

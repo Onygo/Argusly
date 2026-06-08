@@ -83,15 +83,15 @@ function createAuthenticatedDeveloperUser(): User
 
 beforeEach(function () {
     // Generate OpenAPI spec for docs pages
-    $this->artisan('publishlayer:generate-openapi');
+    $this->artisan('argusly:generate-openapi');
 });
 
 afterEach(function () {
     // Clean up generated files
     $files = [
-        base_path('docs/openapi/publishlayer.yaml'),
-        base_path('docs/postman/publishlayer-collection.json'),
-        base_path('docs/postman/publishlayer-environment.json'),
+        base_path('docs/openapi/argusly.yaml'),
+        base_path('docs/postman/argusly-collection.json'),
+        base_path('docs/postman/argusly-environment.json'),
     ];
 
     foreach ($files as $file) {
@@ -123,7 +123,7 @@ test('developer docs page shows api reference when spec exists', function () {
 
 test('developer docs page shows warning when spec missing', function () {
     // Delete the OpenAPI spec
-    File::delete(base_path('docs/openapi/publishlayer.yaml'));
+    File::delete(base_path('docs/openapi/argusly.yaml'));
 
     $user = createAuthenticatedDeveloperUser();
 
@@ -166,7 +166,7 @@ test('openapi spec download works when file exists', function () {
 });
 
 test('openapi spec download returns 404 when file missing', function () {
-    File::delete(base_path('docs/openapi/publishlayer.yaml'));
+    File::delete(base_path('docs/openapi/argusly.yaml'));
 
     $user = createAuthenticatedDeveloperUser();
 
@@ -178,7 +178,7 @@ test('openapi spec download returns 404 when file missing', function () {
 
 test('postman collection download works when file exists', function () {
     // Generate postman files
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
     $user = createAuthenticatedDeveloperUser();
 
@@ -191,7 +191,7 @@ test('postman collection download works when file exists', function () {
 
 test('postman environment download works when file exists', function () {
     // Generate postman files
-    $this->artisan('publishlayer:generate-postman');
+    $this->artisan('argusly:generate-postman');
 
     $user = createAuthenticatedDeveloperUser();
 

@@ -1,8 +1,8 @@
 # WordPress Plugin Audit Findings
 
 **Date**: 2026-03-13
-**Project**: PublishLayer WordPress Plugin
-**Location**: `/Users/ricardohagens/Sites/_project_publishlayer/wordpress-publishlayer/wp-content/plugins/publishlayer`
+**Project**: Argusly WordPress Plugin
+**Location**: `/Users/ricardohagens/Sites/_project_argusly/wordpress-argusly/wp-content/plugins/argusly`
 **Version**: 0.1.12
 
 ---
@@ -45,23 +45,23 @@ if (!defined('WP_UNINSTALL_PLUGIN')) { exit; }
 
 // Delete options
 $options = [
-    'publishlayer_api_base',
-    'publishlayer_site_token',
-    'publishlayer_webhook_secret',
-    'publishlayer_sslverify',
-    'publishlayer_debug',
-    'publishlayer_license_key_enc',
-    'publishlayer_updater_last_error',
-    'publishlayer_updater_enabled',
-    'publishlayer_updater_client_secret',
-    'publishlayer_logs',
+    'argusly_api_base',
+    'argusly_site_token',
+    'argusly_webhook_secret',
+    'argusly_sslverify',
+    'argusly_debug',
+    'argusly_license_key_enc',
+    'argusly_updater_last_error',
+    'argusly_updater_enabled',
+    'argusly_updater_client_secret',
+    'argusly_logs',
 ];
 foreach ($options as $opt) {
     delete_option($opt);
 }
 
 // Delete posts (optional - ask user)
-$post_types = ['publishlayer_brief', 'publishlayer_draft', 'kb_article'];
+$post_types = ['argusly_brief', 'argusly_draft', 'kb_article'];
 foreach ($post_types as $pt) {
     $posts = get_posts(['post_type' => $pt, 'numberposts' => -1]);
     foreach ($posts as $post) {
@@ -90,10 +90,10 @@ $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_pl
 ```
 
 All REST endpoints:
-- `POST /publishlayer/v1/webhook/draft`
-- `POST /publishlayer/v1/posts/{id}/featured-image`
-- `GET /publishlayer/v1/ping`
-- `POST /publishlayer/v1/posts`
+- `POST /argusly/v1/webhook/draft`
+- `POST /argusly/v1/posts/{id}/featured-image`
+- `GET /argusly/v1/ping`
+- `POST /argusly/v1/posts`
 
 **Impact**: WordPress REST API permission system bypassed. Security scanners flag as vulnerable. Custom auth logic is sole protection.
 
@@ -121,7 +121,7 @@ All REST endpoints:
 
 Returns without authentication:
 - `ok: true`
-- `plugin: 'publishlayer'`
+- `plugin: 'argusly'`
 - `plugin_version: 0.1.12`
 - `site_url: [WordPress URL]`
 - `wp_version: [version]`
@@ -162,7 +162,7 @@ Returns without authentication:
 **Status**: Should Fix Soon
 
 **Evidence**:
-`publishlayer.php` lines 2033-2048 after `handle_create_brief()` early return on line 2031.
+`argusly.php` lines 2033-2048 after `handle_create_brief()` early return on line 2031.
 
 **Impact**: Dead code. Maintenance confusion.
 
@@ -243,9 +243,9 @@ License key field shows empty placeholder instead of encrypted value on edit.
 ## Plugin Structure
 
 ### Main File
-- `publishlayer.php` - 2,000+ lines
+- `argusly.php` - 2,000+ lines
 - Boot sequence at end of file
-- Class-based organization (`PublishLayer_WP`)
+- Class-based organization (`Argusly_WP`)
 
 ### Includes Structure
 ```
@@ -272,8 +272,8 @@ includes/
 ```
 
 ### Custom Post Types
-- `publishlayer_brief` - Brief documents
-- `publishlayer_draft` - Draft content
+- `argusly_brief` - Brief documents
+- `argusly_draft` - Draft content
 - `kb_article` - Knowledge Base articles (configurable)
 
 ---
@@ -307,8 +307,8 @@ private static function verifySignature($secret, $rawBody, $timestamp, $signatur
 
 ## Content Sync Flow
 
-### Primary: Webhook from PublishLayer
-1. Receives POST to `/publishlayer/v1/webhook/draft`
+### Primary: Webhook from Argusly
+1. Receives POST to `/argusly/v1/webhook/draft`
 2. Validates HMAC signature
 3. Parses and sanitizes payload
 4. Finds or creates draft post
@@ -335,7 +335,7 @@ private static function verifySignature($secret, $rawBody, $timestamp, $signatur
 - Seeds webhook secret if missing
 - Registers post types
 - Flushes rewrite rules
-- Registers domain with PublishLayer
+- Registers domain with Argusly
 
 ### on_deactivate()
 - Unschedules cron job

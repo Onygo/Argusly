@@ -28,7 +28,7 @@ use Illuminate\Support\Str;
  *
  * Laravel destinations must be configured with:
  * - base_url: The Laravel application URL
- * - sync_endpoint: Path to sync endpoint (default: /publishlayer/sync)
+ * - sync_endpoint: Path to sync endpoint (default: /argusly/sync)
  * - api_key: Authentication key
  * - site_id: Destination site identifier
  *
@@ -237,10 +237,10 @@ class LaravelConnector implements ConnectorContract
         $headers = [
             'Accept' => 'application/json',
             'Content-Type' => 'application/json',
-            'X-PublishLayer-Key' => $apiKey,
-            'X-PublishLayer-Site' => $siteId,
-            'X-PublishLayer-Content' => (string) $content->id,
-            'X-PublishLayer-Idempotency-Key' => $idempotencyKey,
+            'X-Argusly-API-Key' => $apiKey,
+            'X-Argusly-Site' => $siteId,
+            'X-Argusly-Content' => (string) $content->id,
+            'X-Argusly-Idempotency-Key' => $idempotencyKey,
             'User-Agent' => 'Argusly/LaravelConnector',
         ];
 

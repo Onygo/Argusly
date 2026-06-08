@@ -164,7 +164,7 @@ class ImagePresetService
      */
     public function getSystemDefaultInstructions(): string
     {
-        return config('publishlayer.images.default_style_instructions', implode("\n", [
+        return config('argusly.images.default_style_instructions', implode("\n", [
             'Clean and modern aesthetic',
             'High contrast with professional lighting',
             'No text overlays or logos',

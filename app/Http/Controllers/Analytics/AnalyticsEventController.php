@@ -170,10 +170,10 @@ class AnalyticsEventController extends Controller
                         }
                     }
 
-                    $isPublishLayerPage = (is_string($contentId) && $contentId !== '') || $articleId !== '';
+                    $isArguslyPage = (is_string($contentId) && $contentId !== '') || $articleId !== '';
                     $row['content_id'] = $contentId;
-                    $row['page_type'] = $isPublishLayerPage
-                        ? 'publishlayer_content'
+                    $row['page_type'] = $isArguslyPage
+                        ? 'argusly_content'
                         : 'other_page';
                 } else {
                     $row['content_id'] = null;
@@ -566,10 +566,10 @@ class AnalyticsEventController extends Controller
         $candidates = [
             $event['article_id'] ?? null,
             $event['articleId'] ?? null,
-            $event['publishlayer_article_id'] ?? null,
-            $event['publishlayerArticleId'] ?? null,
-            data_get($event, 'meta.publishlayer_article_id'),
-            data_get($event, 'meta.publishlayerArticleId'),
+            $event['argusly_content_id'] ?? null,
+            $event['arguslyArticleId'] ?? null,
+            data_get($event, 'meta.argusly_content_id'),
+            data_get($event, 'meta.arguslyArticleId'),
         ];
 
         foreach ($candidates as $candidate) {

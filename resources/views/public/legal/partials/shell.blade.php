@@ -28,7 +28,7 @@
                             <li>
                                 <a
                                     href="{{ $item['url'] }}"
-                                    class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors {{ $activeLegal === $item['key'] ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f7f4ed] hover:text-textPrimary' }}"
+                                    class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors {{ $activeLegal === $item['key'] ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}"
                                     @if($activeLegal === $item['key']) aria-current="page" @endif
                                 >
                                     @if($activeLegal === $item['key'])

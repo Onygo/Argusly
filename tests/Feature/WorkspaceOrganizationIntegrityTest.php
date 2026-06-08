@@ -18,7 +18,7 @@ it('requires organization when creating workspace', function () {
 });
 
 it('requires a valid workspace when creating client site token', function () {
-    config()->set('publishlayer.admin_key', 'test-admin-key');
+    config()->set('argusly.admin_key', 'test-admin-key');
 
     $payload = [
         'workspace_id' => (string) Str::uuid(),

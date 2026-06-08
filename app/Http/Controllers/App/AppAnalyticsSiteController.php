@@ -27,10 +27,10 @@ class AppAnalyticsSiteController extends Controller
 
         $analyticsSite = $site->analyticsSite;
         $trackingBaseUrl = $this->getTrackingBaseUrl();
-        $scriptVersion = (string) config('publishlayer.tracking_script_version', config('analytics.script.version', '1.1.0'));
+        $scriptVersion = (string) config('argusly.tracking_script_version', config('analytics.script.version', '1.1.0'));
         $trackingSnippet = $this->buildTrackingSnippet($analyticsSite, $trackingBaseUrl, $scriptVersion);
         $scope = $this->siteAnalyticsService->normalizeScope(
-            (string) $request->query('scope', SiteAnalyticsService::SCOPE_PUBLISHLAYER_CONTENT)
+            (string) $request->query('scope', SiteAnalyticsService::SCOPE_ARGUSLY_CONTENT)
         );
         $stats = $this->buildStats($analyticsSite, $scope);
 
@@ -159,7 +159,7 @@ class AppAnalyticsSiteController extends Controller
         $errorDetails = null;
 
         if ($this->isLocalSslVerificationFailure($result->message, (string) ($site->site_url ?? ''))) {
-            $errorMessage = 'Local SSL verification failed while checking your domain. Enable PUBLISHLAYER_HTTP_INSECURE_LOCAL for local only, or install a trusted local certificate.';
+            $errorMessage = 'Local SSL verification failed while checking your domain. Enable ARGUSLY_HTTP_INSECURE_LOCAL for local only, or install a trusted local certificate.';
             $errorDetails = $result->details ?: $result->message;
         }
 
@@ -223,7 +223,7 @@ class AppAnalyticsSiteController extends Controller
 
     private function getTrackingBaseUrl(): string
     {
-        $configuredUrl = trim((string) config('publishlayer.tracking_url', ''));
+        $configuredUrl = trim((string) config('argusly.tracking_url', ''));
 
         if ($configuredUrl !== '') {
             return rtrim($configuredUrl, '/');
@@ -246,7 +246,7 @@ class AppAnalyticsSiteController extends Controller
             return null;
         }
 
-        $scriptSrc = rtrim($trackingBaseUrl, '/') . '/pl.js?v=' . rawurlencode($scriptVersion);
+        $scriptSrc = rtrim($trackingBaseUrl, '/') . '/argusly.js?v=' . rawurlencode($scriptVersion);
         $siteKey = $analyticsSite->public_key;
         $engagedAfterSeconds = (int) config('analytics.tracking.engaged_after_seconds', 10);
         $readThroughScrollPercent = (int) config('analytics.tracking.read_through_scroll_percent', 75);
@@ -254,11 +254,11 @@ class AppAnalyticsSiteController extends Controller
 
         return implode(PHP_EOL, [
             '<script>',
-            '  window.PublishLayer = window.PublishLayer || {};',
-            '  window.PublishLayer.siteKey = "' . $siteKey . '";',
-            '  window.PublishLayer.engagedAfterSeconds = ' . $engagedAfterSeconds . ';',
-            '  window.PublishLayer.readThroughScrollPercent = ' . $readThroughScrollPercent . ';',
-            '  window.PublishLayer.readThroughFallbackSeconds = ' . $readThroughFallbackSeconds . ';',
+            '  window.Argusly = window.Argusly || {};',
+            '  window.Argusly.siteKey = "' . $siteKey . '";',
+            '  window.Argusly.engagedAfterSeconds = ' . $engagedAfterSeconds . ';',
+            '  window.Argusly.readThroughScrollPercent = ' . $readThroughScrollPercent . ';',
+            '  window.Argusly.readThroughFallbackSeconds = ' . $readThroughFallbackSeconds . ';',
             '</script>',
             '<script async src="' . $scriptSrc . '"></script>',
         ]);

@@ -65,7 +65,7 @@ class ContentVersion extends Model
     public const TYPE_PUBLISHED_SNAPSHOT = 'published_snapshot';
 
     // Source constants
-    public const SOURCE_PUBLISHLAYER = 'pl';
+    public const SOURCE_ARGUSLY = 'pl';
     public const SOURCE_WORDPRESS = 'wp';
     public const SOURCE_API = 'api';
 
@@ -149,9 +149,9 @@ class ContentVersion extends Model
     /**
      * Check if this version was created in Argusly.
      */
-    public function isFromPublishLayer(): bool
+    public function isFromArgusly(): bool
     {
-        return $this->source === self::SOURCE_PUBLISHLAYER || $this->source === null;
+        return $this->source === self::SOURCE_ARGUSLY || $this->source === null;
     }
 
     /**

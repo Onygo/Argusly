@@ -244,7 +244,7 @@ class ContentImage extends Model
 
     private function resolveImageDisk(): string
     {
-        return (string) config('publishlayer.images.disk', config('publishlayer.ai.images.storage_disk', 'public'));
+        return (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
     }
 
     private function normalizeWordPressUploadUrl(string $value): string
@@ -284,7 +284,7 @@ class ContentImage extends Model
 
     private function resolveWordPressPublicBaseUrl(): string
     {
-        $base = trim((string) config('publishlayer.webhooks.connector_public_url', ''));
+        $base = trim((string) config('argusly.webhooks.connector_public_url', ''));
         if ($base === '') {
             $base = trim((string) config('app.url', ''));
         }

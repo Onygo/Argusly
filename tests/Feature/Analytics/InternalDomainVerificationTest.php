@@ -8,7 +8,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Analytics\DomainVerificationService;
-use App\Services\Analytics\PublishLayerTrackingSiteResolver;
+use App\Services\Analytics\ArguslyTrackingSiteResolver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -17,9 +17,9 @@ uses(RefreshDatabase::class);
 
 describe('Internal Domain Verification', function () {
     it('auto-verifies an internal domain without requiring meta tag', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com', 'www.publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com', 'www.argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
 
         // No HTTP fake needed - internal domains don't make external requests
 
@@ -33,13 +33,13 @@ describe('Internal Domain Verification', function () {
         expect($analyticsSite->verified_at)->not->toBeNull();
         expect($analyticsSite->isInternallyVerified())->toBeTrue();
         expect($analyticsSite->flags['internally_verified'])->toBeTrue();
-        expect($analyticsSite->flags['internal_domain'])->toBe('publishlayer.com');
+        expect($analyticsSite->flags['internal_domain'])->toBe('argusly.com');
     });
 
     it('auto-verifies www subdomain as internal domain', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com', 'www.publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com', 'www.argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://www.publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://www.argusly.com');
 
         $response = $this->actingAs($user)
             ->post(route('app.sites.analytics.verify', $site));
@@ -52,7 +52,7 @@ describe('Internal Domain Verification', function () {
     });
 
     it('requires meta tag verification for external customer domains', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
         [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://customer-site.com');
 
@@ -70,57 +70,57 @@ describe('Internal Domain Verification', function () {
     });
 
     it('does not allow customer domains to be auto-verified', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
         $service = app(DomainVerificationService::class);
 
-        expect($service->isInternalVerifiedDomain('publishlayer.com'))->toBeTrue();
+        expect($service->isInternalVerifiedDomain('argusly.com'))->toBeTrue();
         expect($service->isInternalVerifiedDomain('customer-site.com'))->toBeFalse();
-        expect($service->isInternalVerifiedDomain('fake-publishlayer.com'))->toBeFalse();
+        expect($service->isInternalVerifiedDomain('fake-argusly.com'))->toBeFalse();
         expect($service->isInternalVerifiedDomain(''))->toBeFalse();
     });
 
     it('handles case-insensitive domain matching', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['PublishLayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['Argusly.com']);
 
         $service = app(DomainVerificationService::class);
 
-        expect($service->isInternalVerifiedDomain('publishlayer.com'))->toBeTrue();
-        expect($service->isInternalVerifiedDomain('PUBLISHLAYER.COM'))->toBeTrue();
-        expect($service->isInternalVerifiedDomain('PublishLayer.com'))->toBeTrue();
+        expect($service->isInternalVerifiedDomain('argusly.com'))->toBeTrue();
+        expect($service->isInternalVerifiedDomain('ARGUSLY.COM'))->toBeTrue();
+        expect($service->isInternalVerifiedDomain('Argusly.com'))->toBeTrue();
     });
 });
 
-describe('PublishLayerTrackingSiteResolver', function () {
+describe('ArguslyTrackingSiteResolver', function () {
     it('resolves internal domain to analytics site', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
 
         // Simulate request from internal domain
-        $this->app['request']->headers->set('HOST', 'publishlayer.com');
+        $this->app['request']->headers->set('HOST', 'argusly.com');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
 
-        expect($resolver->isInternalDomain('publishlayer.com'))->toBeTrue();
+        expect($resolver->isInternalDomain('argusly.com'))->toBeTrue();
         expect($resolver->isInternalDomain('customer-site.com'))->toBeFalse();
     });
 
     it('returns tracking config for verified internal site', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
         config()->set('analytics.tracking.engaged_after_seconds', 10);
         config()->set('analytics.tracking.read_through_scroll_percent', 75);
         config()->set('analytics.tracking.read_through_fallback_seconds', 20);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
 
         // Mark as verified first
-        $analyticsSite->markInternallyVerified('publishlayer.com');
+        $analyticsSite->markInternallyVerified('argusly.com');
 
         // Simulate request from internal domain
-        $this->app['request']->headers->set('HOST', 'publishlayer.com');
+        $this->app['request']->headers->set('HOST', 'argusly.com');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
         $config = $resolver->getTrackingConfig();
 
         expect($config)->not->toBeNull();
@@ -131,26 +131,26 @@ describe('PublishLayerTrackingSiteResolver', function () {
     });
 
     it('falls back to the track subdomain when no tracking url is configured', function () {
-        config()->set('domains.base', 'publishlayer.com');
-        config()->set('publishlayer.tracking_url', '');
-        config()->set('publishlayer.tracking_script_version', '1.2.1');
+        config()->set('domains.base', 'argusly.com');
+        config()->set('argusly.tracking_url', '');
+        config()->set('argusly.tracking_script_version', '1.2.1');
 
-        $this->app['request']->headers->set('HOST', 'publishlayer.com');
+        $this->app['request']->headers->set('HOST', 'argusly.com');
         $this->app['request']->server->set('HTTPS', 'on');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
 
-        expect($resolver->getTrackingScriptUrl())->toBe('https://track.publishlayer.com/pl.js?v=1.2.1');
+        expect($resolver->getTrackingScriptUrl())->toBe('https://track.argusly.com/argusly.js?v=1.2.1');
     });
 
     it('returns null for non-internal domain', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
         [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://customer-site.com');
 
         $this->app['request']->headers->set('HOST', 'customer-site.com');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
 
         expect($resolver->isInternalDomain())->toBeFalse();
         expect($resolver->resolve())->toBeNull();
@@ -158,43 +158,43 @@ describe('PublishLayerTrackingSiteResolver', function () {
     });
 
     it('returns null when analytics is disabled', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
 
         $analyticsSite->update(['is_enabled' => false]);
 
-        $this->app['request']->headers->set('HOST', 'publishlayer.com');
+        $this->app['request']->headers->set('HOST', 'argusly.com');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
 
         expect($resolver->resolve())->toBeNull();
     });
 
     it('does not inject tracking in testing environment by default', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
-        config()->set('publishlayer.analytics.allow_tracking_in_testing', false);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
+        config()->set('argusly.analytics.allow_tracking_in_testing', false);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
-        $analyticsSite->markInternallyVerified('publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
+        $analyticsSite->markInternallyVerified('argusly.com');
 
-        $this->app['request']->headers->set('HOST', 'publishlayer.com');
+        $this->app['request']->headers->set('HOST', 'argusly.com');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
 
         expect($resolver->shouldInjectTracking())->toBeFalse();
     });
 
     it('injects tracking in testing environment when allowed', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
-        config()->set('publishlayer.analytics.allow_tracking_in_testing', true);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
+        config()->set('argusly.analytics.allow_tracking_in_testing', true);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
-        $analyticsSite->markInternallyVerified('publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
+        $analyticsSite->markInternallyVerified('argusly.com');
 
-        $this->app['request']->headers->set('HOST', 'publishlayer.com');
+        $this->app['request']->headers->set('HOST', 'argusly.com');
 
-        $resolver = app(PublishLayerTrackingSiteResolver::class);
+        $resolver = app(ArguslyTrackingSiteResolver::class);
 
         expect($resolver->shouldInjectTracking())->toBeTrue();
     });
@@ -234,10 +234,10 @@ describe('AnalyticsSite Internal Verification Methods', function () {
 
 describe('Analytics UI for Internal Verification', function () {
     it('shows first-party domain label for internally verified site', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
-        $analyticsSite->markInternallyVerified('publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
+        $analyticsSite->markInternallyVerified('argusly.com');
 
         $response = $this->actingAs($user)
             ->get(route('app.sites.analytics.show', $site));
@@ -245,12 +245,12 @@ describe('Analytics UI for Internal Verification', function () {
         $response->assertOk();
         $response->assertSee('Verified via first-party domain');
         $response->assertSee('First-Party Domain Verified');
-        $response->assertSee('publishlayer.com');
+        $response->assertSee('argusly.com');
         $response->assertDontSee('Domain Verification Required');
     });
 
     it('shows verification instructions for external unverified site', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
         [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://customer-site.com');
 
@@ -264,10 +264,10 @@ describe('Analytics UI for Internal Verification', function () {
     });
 
     it('shows simplified tracking section for internally verified site', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
-        $analyticsSite->markInternallyVerified('publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
+        $analyticsSite->markInternallyVerified('argusly.com');
 
         $response = $this->actingAs($user)
             ->get(route('app.sites.analytics.show', $site));
@@ -278,10 +278,10 @@ describe('Analytics UI for Internal Verification', function () {
     });
 
     it('shows a first-party empty state on learnings for internally verified sites', function () {
-        config()->set('publishlayer.analytics.internal_verified_domains', ['publishlayer.com']);
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
-        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://publishlayer.com');
-        $analyticsSite->markInternallyVerified('publishlayer.com');
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
+        $analyticsSite->markInternallyVerified('argusly.com');
 
         $response = $this->actingAs($user)
             ->get(route('app.sites.learnings.index', $site));
@@ -294,7 +294,7 @@ describe('Analytics UI for Internal Verification', function () {
 });
 
 function createInternalVerificationContext(
-    string $siteUrl = 'https://publishlayer.com',
+    string $siteUrl = 'https://argusly.com',
     string $organizationSlugPrefix = 'internal-verification-org'
 ): array {
     $host = parse_url($siteUrl, PHP_URL_HOST);

@@ -154,7 +154,7 @@ class InternalLinkPlacementService
                 }
 
                 $targetUrl = trim((string) ($entry['target_url'] ?? $entry['href'] ?? ''));
-                $targetContentId = trim((string) ($entry['target_content_id'] ?? $entry['source_publishlayer_id'] ?? $entry['id'] ?? ''));
+                $targetContentId = trim((string) ($entry['target_content_id'] ?? $entry['source_argusly_id'] ?? $entry['id'] ?? ''));
                 $anchorText = trim((string) ($entry['anchor_text'] ?? $entry['anchor'] ?? $entry['title'] ?? ''));
                 $title = trim((string) ($entry['title'] ?? $anchorText));
                 $reason = trim((string) ($entry['reason'] ?? ''));

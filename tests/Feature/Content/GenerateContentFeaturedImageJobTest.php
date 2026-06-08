@@ -83,8 +83,8 @@ it('stores generated featured image and debits credits via wallet', function () 
     ]);
 
     config([
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.openai.api_key' => 'test-key',
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.openai.api_key' => 'test-key',
     ]);
 
     Http::fake([
@@ -186,9 +186,9 @@ it('does not send response_format for gpt image models', function () {
     ]);
 
     config([
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.openai.api_key' => 'test-key',
-        'publishlayer.ai.images.openai.model' => 'gpt-image-1',
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.openai.api_key' => 'test-key',
+        'argusly.ai.images.openai.model' => 'gpt-image-1',
     ]);
 
     Http::fake([
@@ -278,10 +278,10 @@ it('stores generated featured image with gemini provider', function () {
 
     config([
         'llm.default_provider' => 'openai',
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.gemini.api_key' => 'gemini-test-key',
-        'publishlayer.ai.images.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
-        'publishlayer.ai.images.gemini.model' => 'gemini-2.5-flash-image-preview',
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.gemini.api_key' => 'gemini-test-key',
+        'argusly.ai.images.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+        'argusly.ai.images.gemini.model' => 'gemini-2.5-flash-image-preview',
     ]);
 
     \App\Models\LlmGlobalSetting::query()->updateOrCreate(
@@ -402,9 +402,9 @@ it('keeps job successful when webp encoding is disabled', function () {
     ]);
 
     config([
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.openai.api_key' => 'test-key',
-        'publishlayer.ai.images.webp.enabled' => false,
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.openai.api_key' => 'test-key',
+        'argusly.ai.images.webp.enabled' => false,
     ]);
 
     Http::fake([
@@ -469,8 +469,8 @@ it('creates unique file paths across regenerated image versions without overwrit
     );
 
     config([
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.openai.api_key' => 'test-key',
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.openai.api_key' => 'test-key',
     ]);
 
     Http::fake([
@@ -564,8 +564,8 @@ it('releases reserved credits when featured image generation fails', function ()
     ]);
 
     config([
-        'publishlayer.ai.images.storage_disk' => 'public',
-        'publishlayer.ai.images.openai.api_key' => 'test-key',
+        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.ai.images.openai.api_key' => 'test-key',
     ]);
 
     Http::fake([

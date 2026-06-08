@@ -295,7 +295,7 @@ function makeLaravelTestContext(): array
         'config' => [
             'laravel_connector' => [
                 'enabled' => true,
-                'sync_url' => 'https://example.com/api/publishlayer/sync',
+                'sync_url' => 'https://example.com/api/argusly/sync',
                 'api_key' => encrypt('test-key'),
                 'site_id' => 'test-site',
             ],

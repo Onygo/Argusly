@@ -187,7 +187,7 @@ class NormalizeContentBrief
             $creditCost = (int) data_get($draft->meta, 'required_credits', 0);
             if ($creditCost <= 0) {
                 // Use default from config
-                $creditCost = max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4));
+                $creditCost = max(1, (int) config('argusly.ai.drafts.credit_cost', 4));
             }
 
             // Auto-fix the draft

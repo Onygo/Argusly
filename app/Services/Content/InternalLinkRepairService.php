@@ -671,7 +671,7 @@ class InternalLinkRepairService
                     'source' => 'internal_link_repair',
                     'summary' => $this->repairSummaryForMeta($rows),
                 ],
-                'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+                'source' => ContentVersion::SOURCE_ARGUSLY,
                 'created_by' => null,
             ]);
 

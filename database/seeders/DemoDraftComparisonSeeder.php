@@ -801,7 +801,7 @@ class DemoDraftComparisonSeeder extends Seeder
             'seo_title' => 'Hybrid Draft Workflow for Reliable Multi-model Content Delivery',
             'seo_meta_description' => 'Combine multi-model drafts into one trusted final article using transparent scoring, credit-safe orchestration, and editor controls.',
             'seo_h1' => 'Hybrid Draft Workflow for Reliable Multi-model Delivery',
-            'seo_canonical' => 'https://publishlayer-demo.local/hybrid-draft-workflow',
+            'seo_canonical' => 'https://argusly-demo.local/hybrid-draft-workflow',
             'output_type' => 'kb_article',
             'content_html' => '<h1>Hybrid Draft Workflow for Reliable Multi-model Delivery</h1><h2>Generate and compare</h2><p>Create multiple drafts from one brief, then compare model outputs with explainable scoring.</p><h2>Select and synthesize</h2><p>Use winner recommendations, generate a best-of-all hybrid, and continue editing in the normal draft flow.</p>',
             'meta' => [
@@ -1178,7 +1178,7 @@ class DemoDraftComparisonSeeder extends Seeder
             'seo_title' => $title,
             'seo_meta_description' => 'Seeded demo draft from comparison variant.',
             'seo_h1' => $title,
-            'seo_canonical' => 'https://publishlayer-demo.local/' . str($title)->slug('-'),
+            'seo_canonical' => 'https://argusly-demo.local/' . str($title)->slug('-'),
             'output_type' => 'kb_article',
             'content_html' => $html,
             'meta' => [

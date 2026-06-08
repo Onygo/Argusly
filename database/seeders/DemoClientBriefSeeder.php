@@ -37,9 +37,9 @@ class DemoClientBriefSeeder extends Seeder
             ],
             [
                 'type' => 'wordpress',
-                'site_url' => 'https://publishlayer-demo.local',
-                'base_url' => 'https://publishlayer-demo.local',
-                'allowed_domains' => ['publishlayer-demo.local'],
+                'site_url' => 'https://argusly-demo.local',
+                'base_url' => 'https://argusly-demo.local',
+                'allowed_domains' => ['argusly-demo.local'],
                 'is_active' => true,
                 'status' => 'connected',
             ]

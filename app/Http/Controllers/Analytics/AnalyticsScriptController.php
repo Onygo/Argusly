@@ -20,7 +20,7 @@ class AnalyticsScriptController extends Controller
 
     private function getScript(): string
     {
-        $path = resource_path('analytics/pl.js');
+        $path = resource_path('analytics/argusly.js');
 
         if (file_exists($path)) {
             return file_get_contents($path);

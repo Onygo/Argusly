@@ -11,7 +11,7 @@ class PluginDownloadTokenService
 {
     public function issueToken(LicenseKey $licenseKey, string $domain, PluginRelease $release): string
     {
-        $ttlSeconds = (int) config('publishlayer.plugin_updates.download_token_ttl_seconds', 300);
+        $ttlSeconds = (int) config('argusly.plugin_updates.download_token_ttl_seconds', 300);
 
         $payload = [
             'license_key_id' => $licenseKey->id,

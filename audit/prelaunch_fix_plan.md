@@ -72,12 +72,12 @@ grep -rn "dd\|dump\|var_dump\|print_r" app resources/views --include="*.php" --i
 **Risk**: Medium (needs testing)
 
 **Steps**:
-1. Create `/wp-content/plugins/publishlayer/uninstall.php`:
+1. Create `/wp-content/plugins/argusly/uninstall.php`:
 
 ```php
 <?php
 /**
- * PublishLayer Uninstall Handler
+ * Argusly Uninstall Handler
  *
  * Removes all plugin data when deleted via WordPress admin.
  */
@@ -88,16 +88,16 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 
 // Delete all options
 $options = [
-    'publishlayer_api_base',
-    'publishlayer_site_token',
-    'publishlayer_webhook_secret',
-    'publishlayer_sslverify',
-    'publishlayer_debug',
-    'publishlayer_license_key_enc',
-    'publishlayer_updater_last_error',
-    'publishlayer_updater_enabled',
-    'publishlayer_updater_client_secret',
-    'publishlayer_logs',
+    'argusly_api_base',
+    'argusly_site_token',
+    'argusly_webhook_secret',
+    'argusly_sslverify',
+    'argusly_debug',
+    'argusly_license_key_enc',
+    'argusly_updater_last_error',
+    'argusly_updater_enabled',
+    'argusly_updater_client_secret',
+    'argusly_logs',
 ];
 
 foreach ($options as $option) {
@@ -105,10 +105,10 @@ foreach ($options as $option) {
 }
 
 // Optionally delete posts (user should be warned)
-$delete_content = apply_filters('publishlayer_delete_content_on_uninstall', false);
+$delete_content = apply_filters('argusly_delete_content_on_uninstall', false);
 
 if ($delete_content) {
-    $post_types = ['publishlayer_brief', 'publishlayer_draft'];
+    $post_types = ['argusly_brief', 'argusly_draft'];
     foreach ($post_types as $post_type) {
         $posts = get_posts([
             'post_type' => $post_type,
@@ -122,11 +122,11 @@ if ($delete_content) {
 }
 
 // Clear cron
-wp_clear_scheduled_hook('publishlayer_poll_drafts');
+wp_clear_scheduled_hook('argusly_poll_drafts');
 
 // Clear transients
 global $wpdb;
-$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%publishlayer%'");
+$wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%argusly%'");
 $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '%_transient_pl_%'");
 ```
 
@@ -149,13 +149,13 @@ ANTHROPIC_API_KEY=sk-ant-...
 GEMINI_API_KEY=...
 MAILGUN_SECRET=...
 MOLLIE_KEY=...
-PUBLISHLAYER_ADMIN_KEY=...
+ARGUSLY_ADMIN_KEY=...
 ```
 
 **Verification Command**:
 ```bash
 php artisan tinker --execute="
-    \$keys = ['OPENAI_API_KEY', 'MAILGUN_SECRET', 'MOLLIE_KEY', 'PUBLISHLAYER_ADMIN_KEY'];
+    \$keys = ['OPENAI_API_KEY', 'MAILGUN_SECRET', 'MOLLIE_KEY', 'ARGUSLY_ADMIN_KEY'];
     foreach (\$keys as \$k) {
         echo \$k . ': ' . (env(\$k) ? 'SET' : 'MISSING') . PHP_EOL;
     }
@@ -186,7 +186,7 @@ php artisan tinker --execute="
 
 **Sample Supervisor Config**:
 ```ini
-[program:publishlayer-worker]
+[program:argusly-worker]
 process_name=%(program_name)s_%(process_num)02d
 command=php /path/to/artisan queue:work --sleep=3 --tries=3 --max-time=3600
 autostart=true
@@ -195,7 +195,7 @@ stopasgroup=true
 killasgroup=true
 numprocs=4
 redirect_stderr=true
-stdout_logfile=/var/log/publishlayer-worker.log
+stdout_logfile=/var/log/argusly-worker.log
 ```
 
 ---
@@ -349,7 +349,7 @@ php artisan route:list | grep -c "GET\|POST"
 
 ### Laravel Connector
 ```bash
-cd publishlayer-laravel-connector
+cd argusly-laravel-connector
 composer test
 ```
 

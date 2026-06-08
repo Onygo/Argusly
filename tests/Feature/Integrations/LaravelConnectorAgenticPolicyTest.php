@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use PublishLayer\LaravelConnector\Models\PublishLayerArticle;
+use Argusly\LaravelConnector\Models\ArguslyArticle;
 
 uses(RefreshDatabase::class);
 
@@ -37,17 +37,17 @@ function agenticConnectorPayload(array $overrides = []): array
 }
 
 beforeEach(function () {
-    config()->set('publishlayer.enabled', true);
-    config()->set('publishlayer.api_key', 'sync-secret');
-    config()->set('publishlayer.require_signature', false);
-    config()->set('publishlayer.site_id', 'agentic-site');
-    config()->set('publishlayer.allowed_operations', ['create', 'update', 'draft']);
-    config()->set('publishlayer.autonomous_allowed', false);
+    config()->set('argusly.enabled', true);
+    config()->set('argusly.api_key', 'sync-secret');
+    config()->set('argusly.require_signature', false);
+    config()->set('argusly.site_id', 'agentic-site');
+    config()->set('argusly.allowed_operations', ['create', 'update', 'draft']);
+    config()->set('argusly.autonomous_allowed', false);
 });
 
 it('creates guided drafts and stores structured agentic metadata', function () {
-    $response = $this->withHeaders(['X-PublishLayer-Api-Key' => 'sync-secret'])
-        ->postJson('/api/publishlayer/sync', agenticConnectorPayload());
+    $response = $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', agenticConnectorPayload());
 
     $response->assertOk()
         ->assertJsonPath('accepted', true)
@@ -55,7 +55,7 @@ it('creates guided drafts and stores structured agentic metadata', function () {
         ->assertJsonPath('preview_ready', true)
         ->assertJsonPath('processed_idempotency_key', 'idem-agentic-1');
 
-    $article = PublishLayerArticle::query()->where('source_publishlayer_id', 'content-1')->firstOrFail();
+    $article = ArguslyArticle::query()->where('source_argusly_id', 'content-1')->firstOrFail();
 
     expect($article->status)->toBe('draft')
         ->and($article->locale)->toBe('en')
@@ -65,8 +65,8 @@ it('creates guided drafts and stores structured agentic metadata', function () {
 });
 
 it('blocks autonomous publishing by default', function () {
-    $response = $this->withHeaders(['X-PublishLayer-Api-Key' => 'sync-secret'])
-        ->postJson('/api/publishlayer/sync', agenticConnectorPayload([
+    $response = $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', agenticConnectorPayload([
             'policy' => [
                 'execution_mode' => 'autonomous',
                 'idempotency_key' => 'idem-agentic-autonomous',
@@ -79,8 +79,8 @@ it('blocks autonomous publishing by default', function () {
 });
 
 it('rejects safety blocked actions and duplicate idempotency keys', function () {
-    $this->withHeaders(['X-PublishLayer-Api-Key' => 'sync-secret'])
-        ->postJson('/api/publishlayer/sync', agenticConnectorPayload([
+    $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', agenticConnectorPayload([
             'policy' => [
                 'safety_check_status' => 'block',
                 'idempotency_key' => 'idem-agentic-safety',
@@ -94,12 +94,12 @@ it('rejects safety blocked actions and duplicate idempotency keys', function () 
         'policy' => ['idempotency_key' => 'idem-agentic-duplicate'],
     ]);
 
-    $this->withHeaders(['X-PublishLayer-Api-Key' => 'sync-secret'])
-        ->postJson('/api/publishlayer/sync', $payload)
+    $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', $payload)
         ->assertOk();
 
-    $this->withHeaders(['X-PublishLayer-Api-Key' => 'sync-secret'])
-        ->postJson('/api/publishlayer/sync', $payload)
+    $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', $payload)
         ->assertStatus(409)
         ->assertJsonPath('rejected', true);
 });

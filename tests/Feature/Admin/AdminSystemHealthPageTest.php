@@ -10,7 +10,7 @@ uses(RefreshDatabase::class);
 
 it('shows webhook queue failed jobs as queue-filtered 24h count with all-time queue total', function () {
     $admin = makeAdminSystemHealthUser();
-    config(['publishlayer.webhooks.queue' => 'default']);
+    config(['argusly.webhooks.queue' => 'default']);
 
     DB::table('jobs')->insert([
         'queue' => 'generation',

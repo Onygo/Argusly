@@ -12,7 +12,7 @@ use App\Models\Workspace;
 use App\Services\Agents\AgentAutomationSettingsResolver;
 use App\Services\Entitlements\WorkspaceEntitlementsService;
 use App\Services\Agents\SiteOptimizationOverviewBuilder;
-use App\Services\LlmTracking\PublishLayerTrackingDefaults;
+use App\Services\LlmTracking\ArguslyTrackingDefaults;
 use App\Services\PluginUpdates\PluginReleaseService;
 use App\Services\SubscriptionService;
 use App\Services\Sites\SiteApiKeyService;
@@ -76,7 +76,7 @@ class AppSitesController extends Controller
         SiteApiKeyService $keys,
         WorkspaceEntitlementsService $entitlements,
         SubscriptionService $subscriptions,
-        PublishLayerTrackingDefaults $trackingDefaults,
+        ArguslyTrackingDefaults $trackingDefaults,
     ): RedirectResponse {
         Gate::authorize('manage-organization');
 
@@ -229,7 +229,7 @@ class AppSitesController extends Controller
                 ->withErrors(['sites' => 'WordPress plugin is not available for download yet.']);
         }
 
-        $disk = (string) config('publishlayer.plugin_updates.disk', 'local');
+        $disk = (string) config('argusly.plugin_updates.disk', 'local');
         $path = trim((string) $release->zip_storage_path);
 
         if ($path === '' || ! Storage::disk($disk)->exists($path)) {
@@ -250,7 +250,7 @@ class AppSitesController extends Controller
                 fpassthru($stream);
                 fclose($stream);
             },
-            'publishlayer-wordpress-plugin-' . $release->version . '.zip',
+            'argusly-wordpress-plugin-' . $release->version . '.zip',
             ['Content-Type' => 'application/zip']
         );
     }

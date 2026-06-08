@@ -6,7 +6,6 @@ return [
     'api' => [
         'base_url' => env('ARGUSLY_CONNECTOR_API_URL', 'https://api.argusly.com'),
         'token' => env('ARGUSLY_CONNECTOR_TOKEN'),
-        'send_api_key_alias' => (bool) env('ARGUSLY_CONNECTOR_SEND_API_KEY_ALIAS', false),
         'timeout' => (int) env('ARGUSLY_CONNECTOR_TIMEOUT', 15),
     ],
 

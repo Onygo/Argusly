@@ -14,8 +14,8 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config()->set('publishlayer_connector.public_blog.use_connector', false);
-    config()->set('publishlayer_connector.public_blog.fallback_to_local', true);
+    config()->set('argusly_connector.public_blog.use_connector', false);
+    config()->set('argusly_connector.public_blog.fallback_to_local', true);
     config()->set('cache.default', 'array');
 
     $organization = Organization::query()->create([
@@ -124,7 +124,7 @@ function fakeEnglishTranslation(?\Closure $configure = null): void
 it('normalizes a misplaced en article to a published nl source with the same slug', function () {
     $content = makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -140,15 +140,15 @@ it('normalizes a misplaced en article to a published nl source with the same slu
     expect($content->localeCode())->toBe('nl')
         ->and((bool) $content->is_source_locale)->toBeTrue()
         ->and($content->translation_source_content_id)->toBeNull()
-        ->and((string) data_get($content->currentVersion?->meta, 'slug'))->toBe('publishlayer-laravel-seo-architectuur')
-        ->and((string) $content->published_url)->toBe(url('/nl/blog/publishlayer-laravel-seo-architectuur'))
-        ->and((string) $content->seo_canonical)->toBe(url('/nl/blog/publishlayer-laravel-seo-architectuur'));
+        ->and((string) data_get($content->currentVersion?->meta, 'slug'))->toBe('argusly-laravel-seo-architectuur')
+        ->and((string) $content->published_url)->toBe(url('/nl/blog/argusly-laravel-seo-architectuur'))
+        ->and((string) $content->seo_canonical)->toBe(url('/nl/blog/argusly-laravel-seo-architectuur'));
 });
 
 it('redirects the old en blog url to the new nl route and preserves query strings', function () {
     makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -159,13 +159,13 @@ it('redirects the old en blog url to the new nl route and preserves query string
     $this->artisan('marketing:backfill-blog-locales', ['--only-misplaced-en' => true])
         ->assertSuccessful();
 
-    $this->get('/en/blog/publishlayer-laravel-seo-architectuur?utm_source=test')
+    $this->get('/en/blog/argusly-laravel-seo-architectuur?utm_source=test')
         ->assertStatus(301)
-        ->assertRedirect('/nl/blog/publishlayer-laravel-seo-architectuur?utm_source=test');
+        ->assertRedirect('/nl/blog/argusly-laravel-seo-architectuur?utm_source=test');
 
     $this->assertDatabaseHas('marketing_blog_redirects', [
-        'source_path' => '/en/blog/publishlayer-laravel-seo-architectuur',
-        'target_path' => '/nl/blog/publishlayer-laravel-seo-architectuur',
+        'source_path' => '/en/blog/argusly-laravel-seo-architectuur',
+        'target_path' => '/nl/blog/argusly-laravel-seo-architectuur',
         'source_locale' => 'en',
         'target_locale' => 'nl',
     ]);
@@ -176,7 +176,7 @@ it('generates a linked english draft variant by default', function () {
 
     $source = makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -212,7 +212,7 @@ it('publishes the generated english variant when publish-en is set', function ()
 
     $source = makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -236,7 +236,7 @@ it('publishes the generated english variant when publish-en is set', function ()
         ->and((string) $translated->status)->toBe('published')
         ->and((string) $translated->published_url)->toBe(url('/en/blog/scalable-laravel-seo-architecture'));
 
-    $nlUrl = LocalizedMarketingUrl::route('public.blog.show', ['slug' => 'publishlayer-laravel-seo-architectuur'], 'nl', false);
+    $nlUrl = LocalizedMarketingUrl::route('public.blog.show', ['slug' => 'argusly-laravel-seo-architectuur'], 'nl', false);
     $enUrl = LocalizedMarketingUrl::route('public.blog.show', ['slug' => 'scalable-laravel-seo-architecture'], 'en', false);
 
     $this->get($nlUrl)
@@ -345,7 +345,7 @@ it('is idempotent when the backfill command is run twice', function () {
 
     $source = makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -409,7 +409,7 @@ it('keeps english drafts out of the sitemap', function () {
 
     makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -425,7 +425,7 @@ it('keeps english drafts out of the sitemap', function () {
     $response = $this->get('/sitemaps/articles.xml');
 
     $response->assertOk()
-        ->assertSee(url('/nl/blog/publishlayer-laravel-seo-architectuur'), false)
+        ->assertSee(url('/nl/blog/argusly-laravel-seo-architectuur'), false)
         ->assertDontSee(url('/en/blog/scalable-laravel-seo-architecture'), false);
 });
 
@@ -434,7 +434,7 @@ it('includes published english variants in the sitemap', function () {
 
     makeMarketingBlogContent($this->workspace, [
         'title' => 'Laravel SEO architectuur: zo ontwerp je een schaalbaar contentplatform',
-        'slug' => 'publishlayer-laravel-seo-architectuur',
+        'slug' => 'argusly-laravel-seo-architectuur',
         'language' => 'en',
         'route_locale' => 'en',
         'is_source_locale' => true,
@@ -451,7 +451,7 @@ it('includes published english variants in the sitemap', function () {
     $response = $this->get('/sitemaps/articles.xml');
 
     $response->assertOk()
-        ->assertSee(url('/nl/blog/publishlayer-laravel-seo-architectuur'), false)
+        ->assertSee(url('/nl/blog/argusly-laravel-seo-architectuur'), false)
         ->assertSee(url('/en/blog/scalable-laravel-seo-architecture'), false)
         ->assertSee('hreflang="en"', false);
 });

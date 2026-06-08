@@ -42,7 +42,7 @@
     </div>
 
     {{-- Dark Governance Section --}}
-    <section class="rounded-2xl border border-publicPrimary/15 bg-publicPrimary p-6 md:p-8">
+    <section class="pl-public-cta-panel pl-public-cta-panel--split p-6 md:p-8">
         <div class="flex items-start gap-3 text-white">
             <x-public.icon name="shield-check" size="md" class="flex-none bg-white/10 text-white" />
             <div>

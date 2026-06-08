@@ -79,7 +79,7 @@ it('keeps notification settings update working', function () {
 it('redirects legacy settings api endpoints to developer api without mutating legacy fields', function () {
     [$user, , $organization] = makeSettingsHubContext();
     $organization->api_enabled = true;
-    $organization->webhook_url = 'https://legacy-hooks.example.com/publishlayer';
+    $organization->webhook_url = 'https://legacy-hooks.example.com/argusly';
     $organization->setApiKey('pl_org_'.Str::random(40));
     $organization->save();
 
@@ -102,7 +102,7 @@ it('redirects legacy settings api endpoints to developer api without mutating le
 
     $organization->refresh();
     expect($organization->api_enabled)->toBeTrue();
-    expect((string) $organization->webhook_url)->toBe('https://legacy-hooks.example.com/publishlayer');
+    expect((string) $organization->webhook_url)->toBe('https://legacy-hooks.example.com/argusly');
     expect((string) $organization->api_key)->toBe($originalLegacyKey);
 });
 
@@ -143,7 +143,7 @@ it('keeps webhook delivery publishing behavior intact', function () {
     $webhook = ApiWebhook::query()->create([
         'workspace_id' => $workspace->id,
         'name' => 'Legacy workspace webhook',
-        'target_url' => 'https://hooks.example.com/publishlayer',
+        'target_url' => 'https://hooks.example.com/argusly',
         'secret' => 'super-secret-value-123456',
         'events' => ['draft.generation.completed'],
         'is_active' => true,

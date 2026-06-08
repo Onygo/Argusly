@@ -34,7 +34,7 @@
     '@type' => 'Organization',
     'name' => 'Argusly',
     'url' => url('/'),
-    'logo' => asset('images/publishlayer-logo.png'),
+    'logo' => asset('images/argusly-logo.svg'),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 <script type="application/ld+json">{!! json_encode([
     "\x40context" => 'https://schema.org',

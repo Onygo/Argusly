@@ -11,7 +11,7 @@
         'ogType' => 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -48,11 +48,11 @@
             </p>
 
             <div class="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <a href="{{ MarketingNavigation::buildUrl($heroPrimaryCta) }}" class="inline-flex w-full items-center justify-center rounded-xl bg-publicPrimary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover sm:w-auto">{{ $heroPrimaryCta['label'] }}</a>
+                <a href="{{ MarketingNavigation::buildUrl($heroPrimaryCta) }}" class="pl-public-primary-button w-full sm:w-auto">{{ $heroPrimaryCta['label'] }}</a>
                 @if (isset($heroSecondaryCta['href']))
-                    <a href="{{ $heroSecondaryCta['href'] }}" class="inline-flex w-full items-center justify-center rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f7f4ed] sm:w-auto">{{ $heroSecondaryCta['label'] }}</a>
+                    <a href="{{ $heroSecondaryCta['href'] }}" class="pl-public-secondary-button w-full sm:w-auto">{{ $heroSecondaryCta['label'] }}</a>
                 @else
-                    <a href="{{ MarketingNavigation::buildUrl($heroSecondaryCta) }}" class="inline-flex w-full items-center justify-center rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f7f4ed] sm:w-auto">{{ $heroSecondaryCta['label'] }}</a>
+                    <a href="{{ MarketingNavigation::buildUrl($heroSecondaryCta) }}" class="pl-public-secondary-button w-full sm:w-auto">{{ $heroSecondaryCta['label'] }}</a>
                 @endif
             </div>
         </div>
@@ -424,7 +424,7 @@
                 </ul>
 
                 <div class="mt-7">
-                    <a href="#capabilities" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f7f4ed]">
+                    <a href="#capabilities" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
                         {{ __('public.landing.gov_explore') }}
                         <x-public.icon name="arrow-right" size="xs" />
                     </a>
@@ -463,7 +463,7 @@
                     <div class="rounded-md border border-border bg-white p-4">
                         <div class="flex items-center justify-between">
                             <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.workflow_final') }}</p>
-                            <span class="inline-flex items-center rounded-full border border-border bg-[#f7f4ed] px-3 py-1 text-xs font-medium text-textSecondary">{{ __('public.landing.workflow_queued') }}</span>
+                            <span class="inline-flex items-center rounded-full border border-border bg-[#f8fafc] px-3 py-1 text-xs font-medium text-textSecondary">{{ __('public.landing.workflow_queued') }}</span>
                         </div>
                         <p class="mt-1 text-xs text-textSecondary">{{ __('public.landing.workflow_signoff') }}</p>
                     </div>
@@ -549,7 +549,7 @@
                 </ul>
 
                 <div class="mt-8">
-                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-publicPrimary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">
+                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="pl-public-primary-button">
                         {{ __('public.landing.agentic_cta') }}
                         <x-public.icon name="arrow-right" size="xs" class="bg-white/10 text-white" />
                     </a>
@@ -583,7 +583,7 @@
 {{-- AI Search --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-        <div class="rounded-2xl border border-publicPrimary/20 bg-publicPrimary px-6 py-8 sm:px-8 md:px-10 md:py-10">
+        <div class="pl-public-cta-panel pl-public-cta-panel--split py-8 md:py-10">
             <div class="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)] lg:items-center">
                 <div class="text-white">
                     <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium tracking-wide text-white">
@@ -612,17 +612,17 @@
 
                     <div class="mt-8 flex flex-wrap gap-3">
                         @if ($isEarlyAccess)
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access']) }}" class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-medium text-publicPrimary transition-colors hover:bg-white/90">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access']) }}" class="pl-public-cta-primary">
                                 {{ __('public.nav.early_access') }}
                             </a>
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}#contact-form" class="inline-flex items-center justify-center rounded-xl border border-white/18 bg-white/8 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-white/14">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}#contact-form" class="pl-public-cta-secondary">
                                 {{ __('public.landing.ai_search_cta_demo') }}
                             </a>
                         @else
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('pricing') }}" class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-medium text-publicPrimary transition-colors hover:bg-white/90">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('pricing') }}" class="pl-public-cta-primary">
                                 {{ __('public.landing.ai_search_cta_pricing') }}
                             </a>
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}#contact-form" class="inline-flex items-center justify-center rounded-xl border border-white/18 bg-white/8 px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-white/14">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}#contact-form" class="pl-public-cta-secondary">
                                 {{ __('public.landing.ai_search_cta_demo') }}
                             </a>
                         @endif
@@ -630,7 +630,7 @@
                 </div>
 
                 <div class="rounded-2xl border border-white/12 bg-white/8 p-5">
-                    <div class="rounded-2xl bg-[#f7f4ed] p-5 text-publicPrimary">
+                    <div class="rounded-2xl bg-[#f8fafc] p-5 text-publicPrimary">
                         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-publicPrimary/72">{{ __('public.landing.ai_search_visual_eyebrow') }}</p>
                         <h3 class="mt-3 text-xl font-semibold leading-tight text-publicPrimary">{{ __('public.landing.ai_search_visual_title') }}</h3>
 
@@ -677,7 +677,7 @@
                 <article class="pl-integration-column pl-integration-step">
                     <div class="pl-integration-node-row">
                         <span class="pl-integration-anchor-icon">
-                            <i data-lucide="layers" class="h-5 w-5 text-accentYellow-900"></i>
+                            <x-brand-logo :show-text="false" />
                         </span>
                     </div>
                     <div class="pl-integration-copy">
@@ -730,13 +730,13 @@
 {{-- Bottom CTA --}}
 <section id="cta" class="bg-surface">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-        <div class="rounded-2xl border border-publicPrimary/10 bg-publicPrimary px-6 py-12 text-center md:px-10">
+        <div class="pl-public-cta-panel">
             <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.landing.cta_title') }}</h2>
             <p class="mx-auto mt-3 max-w-2xl text-sm text-white/76 md:text-base">{{ __('public.landing.cta_text') }}</p>
 
             <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-                <a href="{{ MarketingNavigation::buildUrl($bottomCta['primary']) }}" class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">{{ $bottomCta['primary']['label'] }}</a>
-                <a href="{{ MarketingNavigation::buildUrl($bottomCta['secondary']) }}" class="inline-flex items-center justify-center rounded-xl border border-white/18 bg-white/8 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/14">{{ $bottomCta['secondary']['label'] }}</a>
+                <a href="{{ MarketingNavigation::buildUrl($bottomCta['primary']) }}" class="pl-public-cta-primary">{{ $bottomCta['primary']['label'] }}</a>
+                <a href="{{ MarketingNavigation::buildUrl($bottomCta['secondary']) }}" class="pl-public-cta-secondary">{{ $bottomCta['secondary']['label'] }}</a>
             </div>
         </div>
     </div>

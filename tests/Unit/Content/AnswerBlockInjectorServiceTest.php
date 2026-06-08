@@ -113,14 +113,14 @@ it('prevents duplicate question injection and generates faq schema', function ()
 
     StructuredAnswerBlock::query()->create([
         'content_id' => $content->id,
-        'question' => 'What is PublishLayer?',
-        'answer' => 'PublishLayer ships structured content.',
+        'question' => 'What is Argusly?',
+        'answer' => 'Argusly ships structured content.',
         'order' => 0,
     ]);
 
     StructuredAnswerBlock::query()->create([
         'content_id' => $content->id,
-        'question' => 'What is PublishLayer?',
+        'question' => 'What is Argusly?',
         'answer' => 'Duplicate should not render.',
         'order' => 1,
     ]);
@@ -131,7 +131,7 @@ it('prevents duplicate question injection and generates faq schema', function ()
 
     expect(substr_count($html, 'data-answer-block="true"'))->toBe(1)
         ->and(data_get($schema, 'mainEntity'))->toHaveCount(1)
-        ->and(data_get($schema, 'mainEntity.0.name'))->toBe('What is PublishLayer?');
+        ->and(data_get($schema, 'mainEntity.0.name'))->toBe('What is Argusly?');
 });
 
 it('marks markdown artifacts stale after an answer block update', function () {

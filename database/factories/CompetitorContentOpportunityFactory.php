@@ -38,7 +38,7 @@ class CompetitorContentOpportunityFactory extends Factory
             'attackable_angle' => 'Win practical intent with a step-by-step guide and answer blocks.',
             'reason' => 'Competitors publish this topic and Argusly has no matching coverage.',
             'competitor_evidence' => [],
-            'publishlayer_coverage' => ['status' => 'missing'],
+            'argusly_coverage' => ['status' => 'missing'],
             'normalized_payload' => ['source' => 'competitor_intelligence'],
             'dedupe_hash' => hash('sha256', (string) $competitor?->workspace_id . '|' . $type . '|' . $topic),
             'last_seen_at' => now(),

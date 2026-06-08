@@ -148,7 +148,7 @@ class AppServiceProvider extends ServiceProvider
         'services.openai.key' => 'OPENAI_API_KEY',
         'services.mailgun.secret' => 'MAILGUN_SECRET',
         'billing.mollie.key' => 'MOLLIE_KEY',
-        'publishlayer.admin_key' => 'PUBLISHLAYER_ADMIN_KEY',
+        'argusly.admin_key' => 'ARGUSLY_ADMIN_KEY',
     ];
 
     public function register(): void
@@ -688,10 +688,10 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Additional security check: ensure admin key is sufficiently strong
-        $adminKey = (string) config('publishlayer.admin_key');
+        $adminKey = (string) config('argusly.admin_key');
         if (strlen($adminKey) < 32) {
             throw new RuntimeException(
-                'PUBLISHLAYER_ADMIN_KEY must be at least 32 characters in production. '
+                'ARGUSLY_ADMIN_KEY must be at least 32 characters in production. '
                 .'Generate with: openssl rand -hex 32'
             );
         }

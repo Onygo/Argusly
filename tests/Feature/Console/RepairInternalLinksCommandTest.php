@@ -285,7 +285,7 @@ function attachCurrentHtml(Content $content, string $html): void
         'parent_version_id' => null,
         'body' => $html,
         'meta' => [],
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => null,
     ]);
 

@@ -107,7 +107,7 @@ it('returns update metadata when newer compatible plugin release exists', functi
         'version' => '1.2.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.7',
-        'zip_storage_path' => 'plugin-releases/publishlayer-1.2.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-1.2.0.zip',
         'is_security_release' => false,
     ]);
 
@@ -166,7 +166,7 @@ it('streams plugin zip with valid token and blocks when license becomes inactive
         'version' => '1.3.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.7',
-        'zip_storage_path' => 'plugin-releases/publishlayer-1.3.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-1.3.0.zip',
         'is_security_release' => true,
     ]);
 

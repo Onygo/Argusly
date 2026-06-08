@@ -59,7 +59,7 @@ it('creates a refresh draft from the current content state without overwriting l
         'parent_version_id' => null,
         'body' => '<p>Current content body for refresh drafting.</p>',
         'meta' => ['excerpt' => 'Refresh snapshot'],
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => $owner->id,
     ]);
 
@@ -166,7 +166,7 @@ it('preserves translation lineage when creating a refresh draft for translated c
         'parent_version_id' => null,
         'body' => '<p>Bijgewerkte Nederlandse body voor refresh drafting.</p>',
         'meta' => ['excerpt' => 'Translated refresh snapshot'],
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => $owner->id,
     ]);
 

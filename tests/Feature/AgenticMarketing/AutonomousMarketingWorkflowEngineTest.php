@@ -68,7 +68,7 @@ function makeAutonomousWorkflowScope(): array
         'priority' => 'high',
         'kpi_type' => 'pipeline',
         'monthly_credit_budget' => 100,
-        'brand_entities' => ['PublishLayer'],
+        'brand_entities' => ['Argusly'],
         'competitors' => [],
         'channels' => ['linkedin', 'website'],
         'tone' => 'expert',

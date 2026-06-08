@@ -28,13 +28,13 @@
 
         <div class="rounded-lg border border-border bg-surface p-4">
             <h2 class="text-sm font-semibold text-textPrimary">Argusly Webhook Events</h2>
-            @if (! $has_publishlayer_logs)
-                <p class="mt-3 text-sm text-textSecondary">`publishlayer_webhook_events` table not available.</p>
-            @elseif ($publishlayer_webhook_events->isEmpty())
+            @if (! $has_argusly_logs)
+                <p class="mt-3 text-sm text-textSecondary">`argusly_webhook_events` table not available.</p>
+            @elseif ($argusly_webhook_events->isEmpty())
                 <p class="mt-3 text-sm text-textSecondary">No Argusly webhook events yet.</p>
             @else
                 <div class="mt-3 space-y-2">
-                    @foreach ($publishlayer_webhook_events as $event)
+                    @foreach ($argusly_webhook_events as $event)
                         <div class="rounded border border-border p-3">
                             <p class="text-sm font-medium text-textPrimary">{{ data_get($event, 'event_name', 'event') }}</p>
                             <p class="mt-1 text-xs text-textSecondary">{{ data_get($event, 'target_url', 'n/a') }}</p>

@@ -58,7 +58,7 @@ it('removes legacy related article placeholders from stored content records', fu
         'content_id' => (string) $content->id,
         'type' => ContentVersion::TYPE_PUBLISHED_SNAPSHOT,
         'body' => $html,
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
     ]);
 
     $this->artisan('content:remove-legacy-related-links', ['--content' => (string) $content->id])

@@ -49,7 +49,7 @@ class CompetitorIntelligenceDemoSeeder extends Seeder
                 'content_excerpt' => 'This implementation guide explains how content teams configure AI visibility workflows, answer blocks, schema, and recurring topic refreshes.',
             ],
             [
-                'url' => 'https://compass-content.example/publishlayer-alternatives',
+                'url' => 'https://compass-content.example/argusly-alternatives',
                 'title' => 'Best Argusly Alternatives for Agentic Marketing',
                 'meta_description' => 'Compare agentic marketing platforms, pricing, features, and implementation tradeoffs.',
                 'content_excerpt' => 'A comparison page for Argusly alternatives, pricing, demos, AI SEO workflows, competitor tracking, and content opportunity planning.',

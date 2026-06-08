@@ -416,7 +416,7 @@ function attachScheduledContentVersion(Content $content, string $body): ContentV
         'content_id' => $content->id,
         'type' => ContentVersion::TYPE_REVISION,
         'body' => $body,
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
     ]);
 
     $content->forceFill([

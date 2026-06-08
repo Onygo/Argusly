@@ -11,7 +11,7 @@
         'ogType' => 'website',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -27,7 +27,7 @@
             <p class="mt-3 max-w-2xl text-sm text-textSecondary md:text-base">{{ __('public.blog.unavailable_text') }}</p>
             <div class="mt-8 flex gap-3">
                 <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="pl-public-secondary-button">{{ __('public.blog.back_to_blog') }}</a>
-                <a href="{{ \App\Support\LocalizedMarketingUrl::route('landing') }}" class="inline-flex items-center justify-center rounded-xl bg-publicPrimary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">{{ __('public.blog.back_home') }}</a>
+                <a href="{{ \App\Support\LocalizedMarketingUrl::route('landing') }}" class="pl-public-primary-button">{{ __('public.blog.back_home') }}</a>
             </div>
         </div>
     </section>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Connectors\ConnectorHeaders;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -19,14 +20,14 @@ class VerifyClientDomainMiddleware
             return response()->json(['error' => 'Client not resolved'], 401);
         }
 
-        $siteHeader = trim((string) $request->header('X-PublishLayer-Site'));
+        $siteHeader = ConnectorHeaders::site($request);
         if ($siteHeader === '') {
-            return response()->json(['error' => 'Missing X-PublishLayer-Site'], 403);
+            return response()->json(['error' => 'Missing X-Argusly-Site'], 403);
         }
 
         $host = $this->extractHost($siteHeader);
         if ($host === '') {
-            return response()->json(['error' => 'Invalid X-PublishLayer-Site'], 403);
+            return response()->json(['error' => 'Invalid X-Argusly-Site'], 403);
         }
 
         $host = strtolower($host);

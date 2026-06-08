@@ -112,7 +112,7 @@
                         <button type="submit" class="pl-public-primary-button disabled:cursor-not-allowed disabled:opacity-60" @disabled(! $recaptchaConfigured)>
                             {{ __('public.page.contact_form.send') }}
                         </button>
-                        <a href="mailto:{{ config('publishlayer.contact.recipient_email', config('mail.from.address')) }}" class="pl-public-secondary-button">
+                        <a href="mailto:{{ config('argusly.contact.recipient_email', config('mail.from.address')) }}" class="pl-public-secondary-button">
                             {{ __('public.page.contact_form.direct_email') }}
                         </a>
                     </div>
@@ -134,10 +134,10 @@
                 </div>
 
                 @if(!empty($scheduleCallUrl))
-                    <div class="rounded-2xl border border-publicPrimary/15 bg-publicPrimary p-6 text-white">
+                    <div class="pl-public-cta-panel pl-public-cta-panel--split p-6">
                         <h3 class="text-lg font-semibold">{{ __('public.contact.schedule_title') }}</h3>
                         <p class="mt-2 text-sm text-white/80">{{ __('public.contact.schedule_text') }}</p>
-                        <a href="{{ $scheduleCallUrl }}" class="mt-4 inline-flex items-center justify-center rounded-md bg-white px-5 py-2.5 text-sm font-medium text-publicPrimary transition-colors hover:bg-white/90" target="_blank" rel="noopener">
+                        <a href="{{ $scheduleCallUrl }}" class="pl-public-cta-primary mt-4" target="_blank" rel="noopener">
                             {{ __('public.page.contact_form.schedule_call') }}
                         </a>
                     </div>

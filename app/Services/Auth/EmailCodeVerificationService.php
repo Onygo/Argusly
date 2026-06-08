@@ -51,32 +51,32 @@ class EmailCodeVerificationService
 
     public function expiryMinutes(): int
     {
-        return max(1, (int) config('publishlayer.auth.email_code.expiry_minutes', 15));
+        return max(1, (int) config('argusly.auth.email_code.expiry_minutes', 15));
     }
 
     public function resendCooldownSeconds(): int
     {
-        return max(1, (int) config('publishlayer.auth.email_code.resend_cooldown_seconds', 60));
+        return max(1, (int) config('argusly.auth.email_code.resend_cooldown_seconds', 60));
     }
 
     public function verifyMaxAttempts(): int
     {
-        return max(1, (int) config('publishlayer.auth.email_code.verify_max_attempts', 5));
+        return max(1, (int) config('argusly.auth.email_code.verify_max_attempts', 5));
     }
 
     public function verifyDecaySeconds(): int
     {
-        return max(1, (int) config('publishlayer.auth.email_code.verify_decay_seconds', 900));
+        return max(1, (int) config('argusly.auth.email_code.verify_decay_seconds', 900));
     }
 
     public function resendMaxAttempts(): int
     {
-        return max(1, (int) config('publishlayer.auth.email_code.resend_max_attempts', 5));
+        return max(1, (int) config('argusly.auth.email_code.resend_max_attempts', 5));
     }
 
     public function resendDecaySeconds(): int
     {
-        return max(1, (int) config('publishlayer.auth.email_code.resend_decay_seconds', 900));
+        return max(1, (int) config('argusly.auth.email_code.resend_decay_seconds', 900));
     }
 
     private function generateCode(): string

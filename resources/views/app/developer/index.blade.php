@@ -117,7 +117,7 @@
                     </div>
                     <div>
                         <label class="mb-1 block text-xs text-textSecondary">Sync endpoint path</label>
-                        <input name="config[laravel_connector][sync_endpoint]" value="{{ old('config.laravel_connector.sync_endpoint', '/publishlayer/sync') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" placeholder="/publishlayer/sync">
+                        <input name="config[laravel_connector][sync_endpoint]" value="{{ old('config.laravel_connector.sync_endpoint', '/wp-json/argusly/v1/content/sync') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" placeholder="/wp-json/argusly/v1/content/sync">
                     </div>
                     <div>
                         <label class="mb-1 block text-xs text-textSecondary">Site ID</label>
@@ -187,7 +187,7 @@
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-xs text-textSecondary">Sync endpoint path</label>
-                                    <input name="config[laravel_connector][sync_endpoint]" value="{{ data_get($destination->sanitizedConfig(), 'laravel_connector.sync_endpoint', '/publishlayer/sync') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                                    <input name="config[laravel_connector][sync_endpoint]" value="{{ data_get($destination->sanitizedConfig(), 'laravel_connector.sync_endpoint', '/wp-json/argusly/v1/content/sync') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-xs text-textSecondary">Site ID</label>
@@ -351,7 +351,7 @@
                         </div>
                         <div>
                             <label class="mb-1 block text-xs text-textSecondary">Target URL</label>
-                            <input name="target_url" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" placeholder="https://example.com/webhooks/publishlayer" required>
+                            <input name="target_url" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" placeholder="https://example.com/webhooks/argusly" required>
                         </div>
                         <div>
                             <label class="mb-1 block text-xs text-textSecondary">Signing secret</label>
@@ -467,9 +467,9 @@
 
             <x-settings.section-card title="Quick Reference" description="Essential integration details.">
                 <div class="space-y-2 text-sm">
-                    <p><span class="font-medium text-textPrimary">API base path:</span> <code class="rounded bg-surfaceSubtle px-1 py-0.5">https://api.publishlayer.com/api/v1</code></p>
+                    <p><span class="font-medium text-textPrimary">API base path:</span> <code class="rounded bg-surfaceSubtle px-1 py-0.5">https://api.argusly.com/api/v1</code></p>
                     <p><span class="font-medium text-textPrimary">Authentication:</span> <code class="rounded bg-surfaceSubtle px-1 py-0.5">Authorization: Bearer &lt;api_key&gt;</code></p>
-                    <p><span class="font-medium text-textPrimary">Webhook signature:</span> HMAC SHA-256 in <code class="rounded bg-surfaceSubtle px-1 py-0.5">X-PublishLayer-Signature</code></p>
+                    <p><span class="font-medium text-textPrimary">Webhook signature:</span> HMAC SHA-256 in <code class="rounded bg-surfaceSubtle px-1 py-0.5">X-Argusly-Signature</code></p>
                     <p><span class="font-medium text-textPrimary">Async polling:</span> <code class="rounded bg-surfaceSubtle px-1 py-0.5">GET /api/v1/operations/{operation}</code></p>
                 </div>
             </x-settings.section-card>

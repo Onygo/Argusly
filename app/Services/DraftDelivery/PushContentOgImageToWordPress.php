@@ -43,7 +43,7 @@ class PushContentOgImageToWordPress
         $url = trim((string) ($clientRefs['draft_webhook_url'] ?? $content->clientSite->draft_webhook_url ?? ''));
         $secret = trim((string) ($clientRefs['draft_webhook_secret'] ?? $content->clientSite->draft_webhook_secret ?? ''));
         if ($url !== '' && $secret === '') {
-            $secret = trim((string) config('publishlayer.webhooks.secret', ''));
+            $secret = trim((string) config('argusly.webhooks.secret', ''));
         }
 
         if ($url === '' || $secret === '') {
@@ -89,8 +89,10 @@ class PushContentOgImageToWordPress
                 ])
                 ->withHeaders([
                     'Content-Type' => 'application/json',
-                    'X-PublishLayer-Timestamp' => $ts,
-                    'X-PublishLayer-Signature' => $signature,
+                    'X-Argusly-Timestamp' => $ts,
+                    'X-Argusly-Signature' => $signature,
+                    'X-Argusly-Timestamp' => $ts,
+                    'X-Argusly-Signature' => $signature,
                 ])
                 ->send('POST', $url, ['body' => $body]);
 

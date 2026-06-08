@@ -1066,7 +1066,7 @@ return [
                 [
                     'title' => 'Argusly monitoring script',
                     'points' => [
-                        'The public site loads Argusly\'s own pl.js monitoring script from the Argusly tracking subdomain.',
+                        'The public site loads Argusly\'s own argusly.js monitoring script from the Argusly tracking subdomain.',
                         'The script records page views and engagement signals such as scroll depth, read-through, and read time for blog and content performance reporting.',
                         'The script uses a session-scoped identifier in browser sessionStorage rather than a long-lived marketing cookie.',
                         'The tracking script respects Do Not Track when it is enabled in the browser.',

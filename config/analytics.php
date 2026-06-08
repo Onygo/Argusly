@@ -80,7 +80,7 @@ return [
     */
 
     'script' => [
-        // Cache duration for pl.js in seconds (1 hour)
+        // Cache duration for argusly.js in seconds (1 hour)
         'cache_seconds' => 3600,
 
         // Script version for cache busting

@@ -6,7 +6,7 @@
     <title>{{ $metaTitle ?? __('public.early_access.soft_launch_meta_title') }}</title>
     <meta name="description" content="{{ $metaDescription ?? __('public.early_access.soft_launch_meta_description') }}" />
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking')
+    @include('public.partials.argusly-tracking')
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -75,13 +75,13 @@
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
                 <div>
-                    <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-[#f7f4ed] px-3 py-1 text-xs font-medium text-publicPrimary">
+                    <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-[#f8fafc] px-3 py-1 text-xs font-medium text-publicPrimary">
                         {{ __('public.landing.agentic_badge') }}
                     </span>
                     <h2 class="mt-4 text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ __('public.landing.agentic_title') }}</h2>
                     <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ __('public.landing.agentic_text') }}</p>
                     <div class="mt-7">
-                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f7f4ed]">
+                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
                             {{ __('public.landing.agentic_cta') }}
                             <x-public.icon name="arrow-right" size="xs" />
                         </a>

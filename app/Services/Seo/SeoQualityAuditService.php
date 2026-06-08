@@ -113,13 +113,13 @@ class SeoQualityAuditService
             $issueTypes[] = 'ai_readiness';
         }
 
-        if (! preg_match('/href=["\']https?:\/\/([^"\']*publishlayer|publishlayer\.)/i', $html)
+        if (! preg_match('/href=["\']https?:\/\/([^"\']*argusly|argusly\.)/i', $html)
             && ! preg_match('/href=["\']\/(?:en|nl)\//i', $html)) {
             $issues[] = 'Add useful internal links to related Argusly pages or articles.';
             $issueTypes[] = 'links';
         }
 
-        if ($this->looksClaimHeavy($plain) && ! preg_match('/href=["\']https?:\/\/(?![^"\']*publishlayer)/i', $html)) {
+        if ($this->looksClaimHeavy($plain) && ! preg_match('/href=["\']https?:\/\/(?![^"\']*argusly)/i', $html)) {
             $issues[] = 'Add at least one external source link for supported claims.';
             $issueTypes[] = 'sources';
         }

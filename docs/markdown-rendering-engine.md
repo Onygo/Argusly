@@ -12,7 +12,7 @@ Argusly now generates canonical Markdown artifacts for publishable content.
 
 ## Generation flow
 
-1. `GenerateContentMarkdownJob` or `publishlayer:markdown:rebuild` loads the content item.
+1. `GenerateContentMarkdownJob` or `argusly:markdown:rebuild` loads the content item.
 2. `MarkdownEligibilityService` confirms the content is public-eligible.
 3. `MarkdownRenderer` converts canonical HTML into normalized Markdown.
 4. `MarkdownArtifactService` stores both the Markdown and canonical HTML snapshot, plus checksum, excerpt, source, version, and locale.

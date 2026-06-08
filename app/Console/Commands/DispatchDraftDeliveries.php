@@ -28,7 +28,7 @@ class DispatchDraftDeliveries extends Command
             ->all();
 
         foreach ($draftIds as $id) {
-            DeliverDraftJob::dispatch($id)->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+            DeliverDraftJob::dispatch($id)->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
         }
 
         $this->info('Dispatched ' . count($draftIds) . ' deliveries.');

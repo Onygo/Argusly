@@ -32,8 +32,8 @@ Overall run SEO Health Score is the equal-weight average of all analysed page sc
 ## Query Parameters
 The run detail page persists and supports:
 
-- `scope`: `publishlayer` | `other` | `all`
-- `issue_filter`: `all` | `publishlayer` | `other` | `actionable` | `not_actionable`
+- `scope`: `argusly` | `other` | `all`
+- `issue_filter`: `all` | `argusly` | `other` | `actionable` | `not_actionable`
 - `issue_type`: issue code filter
 - `ai_show_all`: `0|1`
 - `focus_page_id`: preselects AI-fix candidates for a specific page

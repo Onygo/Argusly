@@ -143,7 +143,7 @@ class SeoFieldSyncCapabilityResolver
             'yoast' => 'Yoast SEO',
             'rankmath' => 'Rank Math',
             'aioseo' => 'AIOSEO',
-            'publishlayer' => 'Argusly SEO',
+            'argusly' => 'Argusly SEO',
             'none' => 'No SEO plugin detected',
             default => Str::headline($providerKey),
         };

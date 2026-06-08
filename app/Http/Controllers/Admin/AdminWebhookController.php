@@ -22,8 +22,8 @@ class AdminWebhookController extends Controller
                 ->get();
         }
 
-        if (Schema::hasTable('publishlayer_webhook_events')) {
-            $publishLayerWebhookEvents = DB::table('publishlayer_webhook_events')
+        if (Schema::hasTable('argusly_webhook_events')) {
+            $publishLayerWebhookEvents = DB::table('argusly_webhook_events')
                 ->orderByDesc('created_at')
                 ->limit(50)
                 ->get();
@@ -31,9 +31,9 @@ class AdminWebhookController extends Controller
 
         return view('admin.webhooks.index', [
             'billing_webhook_events' => $billingWebhookEvents,
-            'publishlayer_webhook_events' => $publishLayerWebhookEvents,
+            'argusly_webhook_events' => $publishLayerWebhookEvents,
             'has_billing_logs' => Schema::hasTable('webhook_events'),
-            'has_publishlayer_logs' => Schema::hasTable('publishlayer_webhook_events'),
+            'has_argusly_logs' => Schema::hasTable('argusly_webhook_events'),
         ]);
     }
 }

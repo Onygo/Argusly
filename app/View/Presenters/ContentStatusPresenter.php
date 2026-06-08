@@ -247,7 +247,7 @@ class ContentStatusPresenter
     public function fullStatus(): array
     {
         return [
-            'publishlayer' => [
+            'argusly' => [
                 'label' => 'Argusly Status',
                 'value' => $this->lifecycleLabel(),
                 'color' => $this->lifecycleColor(),

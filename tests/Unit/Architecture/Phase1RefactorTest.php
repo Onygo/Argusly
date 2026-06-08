@@ -435,7 +435,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
     });
 
     it('has source constants for origin tracking', function () {
-        expect(ContentVersion::SOURCE_PUBLISHLAYER)->toBe('pl')
+        expect(ContentVersion::SOURCE_ARGUSLY)->toBe('pl')
             ->and(ContentVersion::SOURCE_WORDPRESS)->toBe('wp')
             ->and(ContentVersion::SOURCE_API)->toBe('api');
     });
@@ -453,7 +453,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
             'content_id' => $content->id,
             'type' => ContentVersion::TYPE_BRIEF,
             'body' => '{"topic": "test"}',
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         $draftVersion = ContentVersion::create([
@@ -461,7 +461,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
             'type' => ContentVersion::TYPE_DRAFT,
             'parent_version_id' => $briefVersion->id,
             'body' => '<p>Draft content</p>',
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         expect($briefVersion->isBrief())->toBeTrue()
@@ -487,7 +487,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
         ]);
 
         expect($version->isFromWordPress())->toBeTrue()
-            ->and($version->isFromPublishLayer())->toBeFalse()
+            ->and($version->isFromArgusly())->toBeFalse()
             ->and($version->isFromApi())->toBeFalse();
     });
 
@@ -504,7 +504,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
             'content_id' => $content->id,
             'type' => ContentVersion::TYPE_BRIEF,
             'body' => '{"topic": "test"}',
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         $draftVersion = ContentVersion::create([
@@ -512,7 +512,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
             'type' => ContentVersion::TYPE_DRAFT,
             'parent_version_id' => $briefVersion->id,
             'body' => '<p>Draft content</p>',
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         $revisionVersion = ContentVersion::create([
@@ -520,7 +520,7 @@ describe('ContentVersion - Hierarchical Tree (Preferred)', function () {
             'type' => ContentVersion::TYPE_REVISION,
             'parent_version_id' => $draftVersion->id,
             'body' => '<p>Revised content</p>',
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         $root = $revisionVersion->getRootVersion();

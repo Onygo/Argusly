@@ -187,7 +187,7 @@ it('missing remote content is not shown as fully published', function () {
         ->and($presenter->needsAttention())->toBeTrue();
 });
 
-it('content remains valid in PublishLayer when remote delivery fails', function () {
+it('content remains valid in Argusly when remote delivery fails', function () {
     [$workspace, $site, $content, $draft] = makeStatusTestContextWithDraft();
 
     // Content is approved and ready
@@ -210,7 +210,7 @@ it('content remains valid in PublishLayer when remote delivery fails', function 
 // Edge Case Tests
 // ============================================================================
 
-it('handles imported WordPress content managed by PublishLayer', function () {
+it('handles imported WordPress content managed by Argusly', function () {
     [$workspace, $site, $content] = makeStatusTestContext();
 
     // Simulating imported content that already has a remote ID
@@ -288,7 +288,7 @@ it('handles remote post deleted after successful publish', function () {
 
     $presenter = ContentStatusPresenter::for($content->fresh());
 
-    // Content lifecycle still shows as published (it was published in PublishLayer)
+    // Content lifecycle still shows as published (it was published in Argusly)
     expect($presenter->lifecycleStatus())->toBe(ContentLifecycleStatus::PUBLISHED)
         // But remote is missing
         ->and($presenter->existenceStatus())->toBe(RemoteExistenceStatus::MISSING)
@@ -346,8 +346,8 @@ it('full status returns all status information', function () {
 
     $fullStatus = $presenter->fullStatus();
 
-    expect($fullStatus)->toHaveKeys(['publishlayer', 'delivery', 'remote', 'sync'])
-        ->and($fullStatus['publishlayer']['value'])->toBe('Published')
+    expect($fullStatus)->toHaveKeys(['argusly', 'delivery', 'remote', 'sync'])
+        ->and($fullStatus['argusly']['value'])->toBe('Published')
         ->and($fullStatus['delivery']['value'])->toBe('Delivered')
         ->and($fullStatus['remote']['value'])->toBe('Published')
         ->and($fullStatus['remote']['url'])->toBe('https://example.com/post/12345')

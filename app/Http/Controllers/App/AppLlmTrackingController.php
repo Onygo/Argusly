@@ -11,7 +11,7 @@ use App\Models\LlmTrackingQueryRun;
 use App\Models\LlmTrackingQuerySet;
 use App\Services\Entitlements\FeatureGate;
 use App\Services\LlmTracking\AiAttentionDashboardBuilder;
-use App\Services\LlmTracking\PublishLayerTrackingDefaults;
+use App\Services\LlmTracking\ArguslyTrackingDefaults;
 use App\View\Presenters\TrackingQueryDetailPresenter;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +27,7 @@ class AppLlmTrackingController extends Controller
         Request $request,
         ClientSite $site,
         FeatureGate $featureGate,
-        PublishLayerTrackingDefaults $defaults,
+        ArguslyTrackingDefaults $defaults,
         AiAttentionDashboardBuilder $dashboardBuilder,
     ): View {
         $this->assertSiteInOrganization($request, $site);

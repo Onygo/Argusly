@@ -61,7 +61,7 @@ Current foundational rules:
 Use:
 
 ```bash
-php artisan publishlayer:markdown:rebuild --sync
+php artisan argusly:markdown:rebuild --sync
 ```
 
 Optional flags:

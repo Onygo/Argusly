@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\PluginUpdates\LicenseKeyService;
+use App\Support\Connectors\ConnectorHeaders;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -14,8 +15,8 @@ class VerifyPluginRequestSignature
 
     public function handle(Request $request, Closure $next)
     {
-        $timestamp = (string) $request->header('X-PL-Timestamp', '');
-        $signature = (string) $request->header('X-PL-Signature', '');
+        $timestamp = ConnectorHeaders::timestamp($request);
+        $signature = ConnectorHeaders::value($request, ConnectorHeaders::SIGNATURE);
 
         if ($timestamp === '' || $signature === '') {
             return response()->json(['error' => 'Missing signature headers'], 401);
@@ -26,7 +27,7 @@ class VerifyPluginRequestSignature
         }
 
         $age = abs(now()->timestamp - (int) $timestamp);
-        $maxAge = (int) config('publishlayer.plugin_updates.signature_ttl_seconds', 300);
+        $maxAge = (int) config('argusly.plugin_updates.signature_ttl_seconds', 300);
         if ($age > $maxAge) {
             return response()->json(['error' => 'Expired signature timestamp'], 401);
         }

@@ -55,5 +55,5 @@
 - Add workspace entitlement enforcement service for `max_sites`, brief/draft quotas, and push permission.
 - Add WP heartbeat endpoint (`/api/wp/heartbeat`) and app-side test connection action.
 - Expand `/app/sites` into full setup flow: add site, generate key once, status, details, key rotation, enable/disable, removal.
-- Add WP token replay protection support (`X-PL-Timestamp`, `X-PL-Nonce`) with backward-compatible config.
+- Add WP token replay protection support (`X-Argusly-Timestamp`, `X-Argusly-Nonce`) with canonical Argusly config.
 - Add focused admin visibility columns for site status/version/last seen.

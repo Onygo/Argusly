@@ -6,7 +6,7 @@
 |--------------------------------------------------------------------------
 |
 | These routes are loaded on app.argusly.local (dev) or
-| app.publishlayer.com (production). They serve the customer application.
+| app.argusly.com (production). They serve the customer application.
 |
 | Routes are served WITHOUT the /app prefix since we're on a subdomain.
 |

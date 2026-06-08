@@ -119,7 +119,7 @@ it('allows draft generation api above the legacy article quota when credits are 
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $token,
-        'X-PublishLayer-Site' => 'api-quota.example.com',
+        'X-Argusly-Site' => 'api-quota.example.com',
     ])->postJson('/api/v1/drafts/' . $draft->id . '/generate', []);
 
     $response->assertStatus(202);
@@ -131,7 +131,7 @@ it('returns a structured insufficient credits error when draft generation has no
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $token,
-        'X-PublishLayer-Site' => 'api-quota.example.com',
+        'X-Argusly-Site' => 'api-quota.example.com',
     ])->postJson('/api/v1/drafts/' . $draft->id . '/generate', []);
 
     $response->assertStatus(422);
@@ -145,7 +145,7 @@ it('allows draft generation again immediately after extra credits are purchased'
 
     $firstResponse = $this->withHeaders([
         'Authorization' => 'Bearer ' . $token,
-        'X-PublishLayer-Site' => 'api-quota.example.com',
+        'X-Argusly-Site' => 'api-quota.example.com',
     ])->postJson('/api/v1/drafts/' . $draft->id . '/generate', []);
 
     $firstResponse->assertStatus(422);
@@ -155,7 +155,7 @@ it('allows draft generation again immediately after extra credits are purchased'
 
     $secondResponse = $this->withHeaders([
         'Authorization' => 'Bearer ' . $token,
-        'X-PublishLayer-Site' => 'api-quota.example.com',
+        'X-Argusly-Site' => 'api-quota.example.com',
     ])->postJson('/api/v1/drafts/' . $draft->id . '/generate', []);
 
     $secondResponse->assertStatus(202);

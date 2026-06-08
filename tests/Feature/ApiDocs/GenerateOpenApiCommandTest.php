@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\File;
 
 beforeEach(function () {
     // Ensure clean state
-    $outputPath = base_path('docs/openapi/publishlayer.yaml');
+    $outputPath = base_path('docs/openapi/argusly.yaml');
     if (File::exists($outputPath)) {
         File::delete($outputPath);
     }
@@ -13,31 +13,31 @@ beforeEach(function () {
 
 afterEach(function () {
     // Clean up generated file
-    $outputPath = base_path('docs/openapi/publishlayer.yaml');
+    $outputPath = base_path('docs/openapi/argusly.yaml');
     if (File::exists($outputPath)) {
         File::delete($outputPath);
     }
 });
 
 test('generate-openapi command runs successfully', function () {
-    $this->artisan('publishlayer:generate-openapi')
+    $this->artisan('argusly:generate-openapi')
         ->assertSuccessful();
 });
 
 test('generate-openapi command creates output file', function () {
-    $this->artisan('publishlayer:generate-openapi')
+    $this->artisan('argusly:generate-openapi')
         ->assertSuccessful();
 
-    expect(File::exists(base_path('docs/openapi/publishlayer.yaml')))->toBeTrue();
+    expect(File::exists(base_path('docs/openapi/argusly.yaml')))->toBeTrue();
 });
 
 test('generate-openapi command with validation passes', function () {
-    $this->artisan('publishlayer:generate-openapi', ['--validate' => true])
+    $this->artisan('argusly:generate-openapi', ['--validate' => true])
         ->assertSuccessful();
 });
 
 test('generate-openapi command shows statistics', function () {
-    $this->artisan('publishlayer:generate-openapi', ['--stats' => true])
+    $this->artisan('argusly:generate-openapi', ['--stats' => true])
         ->assertSuccessful()
         ->expectsOutputToContain('Total routes');
 });
@@ -48,7 +48,7 @@ test('generated spec contains required openapi fields', function () {
 
     expect($spec)->toHaveKeys(['openapi', 'info', 'paths', 'components']);
     expect($spec['openapi'])->toBe('3.1.0');
-    expect($spec['info']['title'])->toBe('PublishLayer API');
+    expect($spec['info']['title'])->toBe('Argusly API');
     expect($spec['info']['version'])->toBe('1.0.0');
 });
 
@@ -75,11 +75,11 @@ test('generated spec contains documented paths', function () {
 });
 
 test('generate-openapi command supports json format', function () {
-    $outputPath = base_path('docs/openapi/publishlayer.json');
+    $outputPath = base_path('docs/openapi/argusly.json');
 
-    $this->artisan('publishlayer:generate-openapi', [
+    $this->artisan('argusly:generate-openapi', [
         '--format' => 'json',
-        '--output' => 'docs/openapi/publishlayer.json',
+        '--output' => 'docs/openapi/argusly.json',
     ])->assertSuccessful();
 
     expect(File::exists($outputPath))->toBeTrue();

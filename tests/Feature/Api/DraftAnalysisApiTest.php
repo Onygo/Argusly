@@ -95,7 +95,7 @@ it('returns the latest draft analysis via the api', function () {
 
     $headers = [
         'Authorization' => 'Bearer ' . $token,
-        'X-PublishLayer-Site' => parse_url((string) $site->site_url, PHP_URL_HOST),
+        'X-Argusly-Site' => parse_url((string) $site->site_url, PHP_URL_HOST),
     ];
 
     $this->withHeaders($headers)
@@ -112,7 +112,7 @@ it('queues draft analysis via the api', function () {
 
     $headers = [
         'Authorization' => 'Bearer ' . $token,
-        'X-PublishLayer-Site' => parse_url((string) $site->site_url, PHP_URL_HOST),
+        'X-Argusly-Site' => parse_url((string) $site->site_url, PHP_URL_HOST),
     ];
 
     $this->withHeaders($headers)

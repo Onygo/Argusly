@@ -368,7 +368,7 @@ describe('Tracking Events Endpoint', function () {
         expect(AnalyticsEvent::query()->whereIn('event_type', ['page_view', 'engaged', 'read_through'])->count())->toBe(3);
     });
 
-    it('classifies page views into publishlayer content or other pages', function () {
+    it('classifies page views into argusly content or other pages', function () {
         [$analyticsSite, $clientSite] = createAnalyticsSite(verified: true, allowedDomains: ['example.com']);
 
         $content = Content::query()->create([
@@ -415,7 +415,7 @@ describe('Tracking Events Endpoint', function () {
         expect($mapped)->not->toBeNull();
         expect((string) $mapped->url_key)->toBe('example.com/blog/launch-post');
         expect((string) $mapped->content_id)->toBe((string) $content->id);
-        expect((string) $mapped->page_type)->toBe('publishlayer_content');
+        expect((string) $mapped->page_type)->toBe('argusly_content');
 
         expect($other)->not->toBeNull();
         expect((string) $other->url_key)->toBe('example.com/pricing');
@@ -424,10 +424,10 @@ describe('Tracking Events Endpoint', function () {
 
         expect($engaged)->not->toBeNull();
         expect((string) $engaged->content_id)->toBe((string) $content->id);
-        expect((string) $engaged->page_type)->toBe('publishlayer_content');
+        expect((string) $engaged->page_type)->toBe('argusly_content');
     });
 
-    it('marks page as publishlayer content when article_id is present without URL mapping', function () {
+    it('marks page as argusly content when article_id is present without URL mapping', function () {
         [$analyticsSite] = createAnalyticsSite(verified: true, allowedDomains: ['example.com']);
         $articleId = (string) Str::uuid();
 
@@ -446,7 +446,7 @@ describe('Tracking Events Endpoint', function () {
         expect($event)->not->toBeNull();
         expect((string) $event->article_id)->toBe($articleId);
         expect($event->content_id)->toBeNull();
-        expect((string) $event->page_type)->toBe('publishlayer_content');
+        expect((string) $event->page_type)->toBe('argusly_content');
     });
 
     it('stores scroll depth milestones per session', function () {

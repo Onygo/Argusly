@@ -39,7 +39,7 @@ class AppLearningsController extends Controller
 
         $days = (int) $request->query('days', 7);
         $scope = $this->siteAnalyticsService->normalizeScope(
-            (string) $request->query('scope', SiteAnalyticsService::SCOPE_PUBLISHLAYER_CONTENT)
+            (string) $request->query('scope', SiteAnalyticsService::SCOPE_ARGUSLY_CONTENT)
         );
         $sort = $this->normalizeSort((string) $request->query('sort', 'views'));
 

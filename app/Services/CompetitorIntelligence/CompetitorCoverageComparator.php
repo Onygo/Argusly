@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 class CompetitorCoverageComparator
 {
     /**
-     * @return array{publishlayer_content_count:int,coverage_status:string,overlap_score:float,matches:array<int,array<string,mixed>>}
+     * @return array{argusly_content_count:int,coverage_status:string,overlap_score:float,matches:array<int,array<string,mixed>>}
      */
     public function compare(Workspace $workspace, string $topic, ?string $clientSiteId = null): array
     {
@@ -30,7 +30,7 @@ class CompetitorCoverageComparator
         $weakMatches = $query->filter(fn (Content $content): bool => $this->isWeak($content));
 
         return [
-            'publishlayer_content_count' => $count,
+            'argusly_content_count' => $count,
             'coverage_status' => match (true) {
                 $count === 0 => 'missing',
                 $weakMatches->isNotEmpty() => 'weak',

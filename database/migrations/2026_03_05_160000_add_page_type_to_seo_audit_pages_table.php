@@ -18,8 +18,8 @@ return new class extends Migration
                 $table->string('page_type', 32)->nullable()->after('broken_links_count');
             }
 
-            if (! Schema::hasColumn('seo_audit_pages', 'publishlayer_article_id')) {
-                $table->uuid('publishlayer_article_id')->nullable()->after('page_type');
+            if (! Schema::hasColumn('seo_audit_pages', 'argusly_content_id')) {
+                $table->uuid('argusly_content_id')->nullable()->after('page_type');
             }
         });
 
@@ -29,8 +29,8 @@ return new class extends Migration
 
         Schema::table('seo_audit_pages', function (Blueprint $table): void {
             $table->index(['seo_audit_id', 'page_type'], 'seo_audit_pages_audit_type_idx');
-            $table->index('publishlayer_article_id', 'seo_audit_pages_article_idx');
-            $table->foreign('publishlayer_article_id', 'seo_audit_pages_article_fk')
+            $table->index('argusly_content_id', 'seo_audit_pages_article_idx');
+            $table->foreign('argusly_content_id', 'seo_audit_pages_article_fk')
                 ->references('id')
                 ->on('contents')
                 ->nullOnDelete();
@@ -48,8 +48,8 @@ return new class extends Migration
             $table->dropIndex('seo_audit_pages_audit_type_idx');
             $table->dropIndex('seo_audit_pages_article_idx');
 
-            if (Schema::hasColumn('seo_audit_pages', 'publishlayer_article_id')) {
-                $table->dropColumn('publishlayer_article_id');
+            if (Schema::hasColumn('seo_audit_pages', 'argusly_content_id')) {
+                $table->dropColumn('argusly_content_id');
             }
 
             if (Schema::hasColumn('seo_audit_pages', 'page_type')) {

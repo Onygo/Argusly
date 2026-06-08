@@ -7,18 +7,18 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Track Subdomain Routes (track.publishlayer.com)
+| Track Subdomain Routes (track.argusly.com)
 |--------------------------------------------------------------------------
 |
 | These routes handle the public analytics tracking system:
-| - Serving the pl.js tracking script
+| - Serving the argusly.js tracking script
 | - Receiving analytics events from customer websites
 | - Providing configuration for tracking behavior
 |
 */
 
 // Tracking script - publicly cacheable
-Route::get('/pl.js', AnalyticsScriptController::class)
+Route::get('/argusly.js', AnalyticsScriptController::class)
     ->withoutMiddleware(['throttle:api'])
     ->name('analytics.script');
 

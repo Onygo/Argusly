@@ -141,7 +141,7 @@ class CompetitorIntelligenceAnalyzer
                     'client_site_id' => $competitor?->client_site_id,
                     'topic' => $topic,
                     'competitor_content_count' => $topicItems->count(),
-                    'publishlayer_content_count' => $coverage['publishlayer_content_count'],
+                    'argusly_content_count' => $coverage['argusly_content_count'],
                     'overlap_score' => $coverage['overlap_score'],
                     'opportunity_score' => $opportunityScore,
                     'coverage_status' => $coverage['coverage_status'],

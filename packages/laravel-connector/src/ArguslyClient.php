@@ -82,7 +82,6 @@ final class ArguslyClient
 
         $headers = array_filter([
             'Authorization' => 'Bearer ' . $token,
-            'X-Argusly-API-Key' => data_get($this->config, 'api.send_api_key_alias', false) ? $token : null,
             'X-Argusly-Site' => data_get($this->config, 'site.id'),
             'X-Argusly-Destination-Id' => data_get($this->config, 'destination.id'),
         ], static fn ($value): bool => $value !== null && $value !== '');

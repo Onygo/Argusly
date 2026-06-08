@@ -164,7 +164,7 @@ class AdminBillingController extends Controller
             'kvk_number' => (string) ($data['kvk_number'] ?? ''),
             'email' => (string) ($data['email'] ?? ''),
             'website' => (string) ($data['website'] ?? ''),
-            'logo_path' => (string) ($data['logo_path'] ?? 'images/publishlayer-logo.jpg'),
+            'logo_path' => (string) ($data['logo_path'] ?? 'images/argusly-logo.svg'),
         ]);
 
         return back()->with('status', 'Invoice issuer profile updated.');

@@ -84,7 +84,7 @@ it('reports missing webhook and activation gaps for paid subscription intent', f
 
     $this->artisan('billing:diagnose-mollie-webhook-gaps', [
         '--provider_payment_id' => 'tr_diag_missing_001',
-        '--notify-email' => 'dev@publishlayer.com',
+        '--notify-email' => 'dev@argusly.com',
         '--alert-cooldown-minutes' => 0,
         '--fail-on-issues' => true,
     ])
@@ -92,7 +92,7 @@ it('reports missing webhook and activation gaps for paid subscription intent', f
         ->assertExitCode(1);
 
     Mail::assertSent(BillingWebhookGapsAlert::class, function (BillingWebhookGapsAlert $mail): bool {
-        return $mail->hasTo('dev@publishlayer.com');
+        return $mail->hasTo('dev@argusly.com');
     });
 });
 
@@ -197,7 +197,7 @@ it('passes when webhook exists and allowance is granted', function () {
 
     $this->artisan('billing:diagnose-mollie-webhook-gaps', [
         '--provider_payment_id' => 'tr_diag_ok_001',
-        '--notify-email' => 'dev@publishlayer.com',
+        '--notify-email' => 'dev@argusly.com',
         '--alert-cooldown-minutes' => 0,
         '--fail-on-issues' => true,
     ])

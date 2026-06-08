@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4fb95ca6d89ceb0a349c86f78a1fccfa",
+    "content-hash": "48debe4a49f425f321a83f88cfc53455",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -3706,92 +3706,6 @@
                 "source": "https://github.com/bobthecow/psysh/tree/v0.12.23"
             },
             "time": "2026-05-23T13:41:31+00:00"
-        },
-        {
-            "name": "publishlayer/laravel-connector",
-            "version": "v0.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/publishlayer/laravel-connector.git",
-                "reference": "1205c78a99a2484440d5ab5a4e06b20ed9bc440c"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/publishlayer/laravel-connector/zipball/1205c78a99a2484440d5ab5a4e06b20ed9bc440c",
-                "reference": "1205c78a99a2484440d5ab5a4e06b20ed9bc440c",
-                "shasum": ""
-            },
-            "require": {
-                "illuminate/console": "^11.0|^12.0",
-                "illuminate/database": "^11.0|^12.0",
-                "illuminate/http": "^11.0|^12.0",
-                "illuminate/routing": "^11.0|^12.0",
-                "illuminate/support": "^11.0|^12.0",
-                "illuminate/validation": "^11.0|^12.0",
-                "illuminate/view": "^11.0|^12.0",
-                "php": "^8.2"
-            },
-            "require-dev": {
-                "orchestra/testbench": "^9.0|^10.0",
-                "phpunit/phpunit": "^10.5|^11.5"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "0.1.x-dev"
-                },
-                "laravel": {
-                    "providers": [
-                        "PublishLayer\\LaravelConnector\\PublishLayerServiceProvider"
-                    ],
-                    "aliases": {
-                        "PublishLayer": "PublishLayer\\LaravelConnector\\Facades\\PublishLayer"
-                    }
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "PublishLayer\\LaravelConnector\\": "src/"
-                }
-            },
-            "autoload-dev": {
-                "psr-4": {
-                    "PublishLayer\\LaravelConnector\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "vendor/bin/phpunit"
-                ],
-                "test:prefer-lowest": [
-                    "composer update --prefer-lowest --prefer-stable && vendor/bin/phpunit"
-                ]
-            },
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "PublishLayer",
-                    "homepage": "https://github.com/publishlayer"
-                }
-            ],
-            "description": "Sync and render PublishLayer knowledge base content inside Laravel applications.",
-            "homepage": "https://github.com/publishlayer/laravel-connector",
-            "keywords": [
-                "knowledge-base",
-                "laravel",
-                "markdown",
-                "publishlayer",
-                "webhooks"
-            ],
-            "support": {
-                "issues": "https://github.com/publishlayer/laravel-connector/issues",
-                "source": "https://github.com/publishlayer/laravel-connector",
-                "docs": "https://github.com/publishlayer/laravel-connector#readme",
-                "security": "https://github.com/publishlayer/laravel-connector/security"
-            },
-            "time": "2026-03-24T10:22:46+00:00"
         },
         {
             "name": "ralouphie/getallheaders",

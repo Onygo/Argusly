@@ -28,7 +28,7 @@ class LaravelConnectorDestinationConfigurator
         $settings = is_array(data_get($config, 'laravel_connector')) ? data_get($config, 'laravel_connector') : [];
 
         $baseUrl = SiteUrl::normalizeBaseUrl((string) data_get($settings, 'base_url', ''));
-        $syncEndpoint = trim((string) data_get($settings, 'sync_endpoint', '/publishlayer/sync'));
+        $syncEndpoint = trim((string) data_get($settings, 'sync_endpoint', '/argusly/sync'));
         $siteId = trim((string) data_get($settings, 'site_id', ''));
         $mode = trim((string) data_get($settings, 'mode', 'hosted_views'));
         $enabled = (bool) data_get($settings, 'enabled', true);
@@ -36,7 +36,7 @@ class LaravelConnectorDestinationConfigurator
 
         $normalizedSettings = [
             'base_url' => $baseUrl,
-            'sync_endpoint' => '/'.ltrim($syncEndpoint !== '' ? $syncEndpoint : '/publishlayer/sync', '/'),
+            'sync_endpoint' => '/'.ltrim($syncEndpoint !== '' ? $syncEndpoint : '/argusly/sync', '/'),
             'site_id' => $siteId,
             'enabled' => $enabled,
             'mode' => in_array($mode, ['hosted_views', 'headless'], true) ? $mode : 'hosted_views',

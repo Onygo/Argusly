@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class ProcessBriefsCommand extends Command
 {
-    protected $signature = 'publishlayer:processBriefs {--limit=25}';
+    protected $signature = 'argusly:processBriefs {--limit=25}';
     protected $description = 'Process queued briefs and create drafts';
 
     public function handle(BriefToDraftService $service): int

@@ -286,7 +286,7 @@ class CreditWalletService
             throw new RuntimeException('Image has no connected site for reservation.');
         }
 
-        $cost = max(1, (int) ($image->credit_cost ?: config('publishlayer.ai.images.credit_cost', 6)));
+        $cost = max(1, (int) ($image->credit_cost ?: config('argusly.ai.images.credit_cost', 6)));
 
         if ($image->credit_status === 'reserved' && $image->credit_ledger_entry_id) {
             $existingReservation = CreditLedgerEntry::query()->find($image->credit_ledger_entry_id);
@@ -411,7 +411,7 @@ class CreditWalletService
 
     public function commitUsageForContentImage(ContentImage $image, ?string $userId = null): CreditLedgerEntry
     {
-        $cost = max(1, (int) ($image->credit_cost ?: config('publishlayer.ai.images.credit_cost', 6)));
+        $cost = max(1, (int) ($image->credit_cost ?: config('argusly.ai.images.credit_cost', 6)));
 
         if ($image->credit_status === 'committed' && $image->credit_ledger_entry_id) {
             $existingUsage = CreditLedgerEntry::query()->find($image->credit_ledger_entry_id);
@@ -565,7 +565,7 @@ class CreditWalletService
         string $reason = 'release',
         ?string $userId = null
     ): ?CreditLedgerEntry {
-        $cost = max(1, (int) ($image->credit_cost ?: config('publishlayer.ai.images.credit_cost', 6)));
+        $cost = max(1, (int) ($image->credit_cost ?: config('argusly.ai.images.credit_cost', 6)));
         if (! $image->credit_wallet_id) {
             return null;
         }
@@ -1560,7 +1560,7 @@ class CreditWalletService
 
         $resolvedCost = $action
             ? (int) $action->credits_cost
-            : max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4));
+            : max(1, (int) config('argusly.ai.drafts.credit_cost', 4));
 
         $draft->credit_action_id = $draft->credit_action_id ?: $action?->id;
         $draft->credit_cost = $resolvedCost;
@@ -1588,7 +1588,7 @@ class CreditWalletService
 
         return $action
             ? max(1, (int) $action->credits_cost)
-            : max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4));
+            : max(1, (int) config('argusly.ai.drafts.credit_cost', 4));
     }
 
     private function preferredCreditActionKeyForOutputType(string $outputType): string

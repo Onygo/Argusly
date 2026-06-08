@@ -14,7 +14,7 @@ uses(RefreshDatabase::class);
 it('queues inactivity onboarding nudges for matching users', function () {
     Bus::fake();
 
-    config()->set('publishlayer.onboarding.require_email_verification', true);
+    config()->set('argusly.onboarding.require_email_verification', true);
 
     $organization = Organization::query()->create([
         'name' => 'Org',

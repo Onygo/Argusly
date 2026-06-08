@@ -91,7 +91,7 @@ function makeLaravelDraftSeoPayloadContext(): array
 
     $headers = [
         'Authorization' => 'Bearer ' . $plainToken,
-        'X-PublishLayer-Site' => 'laravel-seo.example.com',
+        'X-Argusly-Site' => 'laravel-seo.example.com',
     ];
 
     return [$headers, $draft];

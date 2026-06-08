@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\SiteToken;
+use App\Support\Connectors\ConnectorHeaders;
 use App\Support\SiteUrl;
 use Closure;
 use Illuminate\Http\Request;
@@ -15,12 +16,17 @@ class SiteTokenMiddleware
     {
         $auth = (string) $request->header('Authorization');
         if (!str_starts_with($auth, 'Bearer ')) {
-            return response()->json(['error' => 'Missing bearer token'], 401);
+            $headerToken = ConnectorHeaders::apiKey($request);
+            if ($headerToken === '') {
+                return $this->errorResponse($request, 'Missing bearer token', 401);
+            }
+
+            $auth = 'Bearer '.$headerToken;
         }
 
         $token = trim(substr($auth, 7));
         if ($token === '') {
-            return response()->json(['error' => 'Missing bearer token'], 401);
+            return $this->errorResponse($request, 'Missing bearer token', 401);
         }
 
         $hash = hash('sha256', $token);
@@ -32,7 +38,7 @@ class SiteTokenMiddleware
             ->first();
 
         if (! $siteToken) {
-            return response()->json(['error' => 'Invalid token'], 401);
+            return $this->errorResponse($request, 'Invalid token', 401);
         }
 
         $clientSite = $siteToken->clientSite;
@@ -58,15 +64,15 @@ class SiteTokenMiddleware
             ($clientSite && $clientSite->status === 'disabled') ||
             ! $organization->isActive()
         ) {
-            return response()->json(['error' => 'Invalid token'], 401);
+            return $this->errorResponse($request, 'Invalid token', 401);
         }
 
         if ($clientSite && ! $this->claimsMatchSite($request, $clientSite)) {
-            return response()->json(['error' => 'Token site scope mismatch'], 403);
+            return $this->errorResponse($request, 'Token site scope mismatch', 403);
         }
 
         if (! $this->passesReplayProtection($request, $siteToken)) {
-            return response()->json(['error' => 'Invalid timestamp or nonce'], 401);
+            return $this->errorResponse($request, 'Invalid timestamp or nonce', 401);
         }
 
         $siteToken->last_used_at = Carbon::now();
@@ -88,11 +94,29 @@ class SiteTokenMiddleware
         return $next($request);
     }
 
+    private function errorResponse(Request $request, string $message, int $status)
+    {
+        if (str_starts_with($request->path(), 'api/v1/connectors/')) {
+            return response()->json([
+                'ok' => false,
+                'data' => null,
+                'meta' => [],
+                'errors' => [
+                    [
+                        'message' => $message,
+                    ],
+                ],
+            ], $status);
+        }
+
+        return response()->json(['error' => $message], $status);
+    }
+
     private function resolveClaimedHost(Request $request): string
     {
         $claimed = trim((string) ($request->input('site_url')
             ?: $request->input('client.site_url')
-            ?: $request->header('X-PublishLayer-Site', '')));
+            ?: ConnectorHeaders::site($request)));
 
         return SiteUrl::hostFromUrl($claimed);
     }
@@ -122,9 +146,9 @@ class SiteTokenMiddleware
 
     private function passesReplayProtection(Request $request, SiteToken $siteToken): bool
     {
-        $timestamp = trim((string) $request->header('X-PL-Timestamp', ''));
-        $nonce = trim((string) $request->header('X-PL-Nonce', ''));
-        $strict = (bool) config('publishlayer.wp_connector.require_timestamp_nonce', false);
+        $timestamp = ConnectorHeaders::timestamp($request);
+        $nonce = ConnectorHeaders::nonce($request);
+        $strict = (bool) config('argusly.wp_connector.require_timestamp_nonce', config('argusly.wp_connector.require_timestamp_nonce', false));
 
         if (! $strict && $timestamp === '' && $nonce === '') {
             return true;
@@ -134,7 +158,7 @@ class SiteTokenMiddleware
             return false;
         }
 
-        $maxAge = (int) config('publishlayer.wp_connector.timestamp_ttl_seconds', 300);
+        $maxAge = (int) config('argusly.wp_connector.timestamp_ttl_seconds', config('argusly.wp_connector.timestamp_ttl_seconds', 300));
         if ($maxAge <= 0) {
             $maxAge = 300;
         }

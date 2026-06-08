@@ -41,14 +41,11 @@
 </head>
 <body class="min-h-full bg-background text-textPrimary antialiased">
     <main class="flex min-h-screen items-center">
-        <section class="w-full border-y border-border bg-[#f6f5f2]">
+        <section class="w-full border-y border-border bg-surfaceSubtle">
             <div class="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)] lg:py-16">
                 <div class="max-w-2xl">
-                    <a href="{{ $homeUrl }}" class="inline-flex items-center gap-2 rounded-md px-1 py-1 hover:bg-white/70">
-                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                            <i data-lucide="layers" class="h-4 w-4"></i>
-                        </span>
-                        <span class="text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
+                    <a href="{{ $homeUrl }}" class="rounded-md px-1 py-1 hover:bg-white/70">
+                        <x-brand-logo text-class="text-sm font-bold tracking-tight text-textPrimary" />
                     </a>
 
                     <div class="mt-10 inline-flex items-center gap-2 rounded-full border border-publicPrimary/15 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">
@@ -116,7 +113,7 @@
 
                             <div class="rounded-xl border border-border bg-publicPrimary p-4 text-white">
                                 <p class="font-mono text-xs leading-6 text-white/80">
-                                    publishlayer:error {{ $code }}<br>
+                                    argusly:error {{ $code }}<br>
                                     retry_policy: eerst koffie, dan refresh<br>
                                     confidence: komt goed
                                 </p>

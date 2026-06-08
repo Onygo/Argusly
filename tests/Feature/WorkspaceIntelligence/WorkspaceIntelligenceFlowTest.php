@@ -146,7 +146,7 @@ it('approves selected organization sections into the approved profile', function
         'source_type' => 'manual_text',
         'source_payload' => ['manual_text' => 'B2B automation platform'],
         'ai_payload' => [
-            'brand_summary' => 'PublishLayer helps teams govern content operations.',
+            'brand_summary' => 'Argusly helps teams govern content operations.',
             'seo_topics' => ['content governance', 'editorial workflow automation'],
         ],
         'status' => EnrichmentRun::STATUS_DRAFT,
@@ -164,7 +164,7 @@ it('approves selected organization sections into the approved profile', function
     $run->refresh();
 
     expect($profile)->not->toBeNull()
-        ->and($profile?->brand_summary)->toBe('PublishLayer helps teams govern content operations.')
+        ->and($profile?->brand_summary)->toBe('Argusly helps teams govern content operations.')
         ->and($profile?->seo_topics)->toBe(['content governance', 'editorial workflow automation'])
         ->and($run->status)->toBe(EnrichmentRun::STATUS_APPROVED);
 });
@@ -267,13 +267,13 @@ it('generates an organization proposal from a website url', function () {
             <!doctype html>
             <html>
             <head>
-                <title>PublishLayer for regulated B2B content teams</title>
+                <title>Argusly for regulated B2B content teams</title>
                 <meta name="description" content="Govern editorial workflows and brand consistency.">
             </head>
             <body>
                 <main>
                     <h1>Governed content operations for B2B teams</h1>
-                    <p>PublishLayer helps marketing and editorial teams manage approval flows, brand consistency, and SEO planning.</p>
+                    <p>Argusly helps marketing and editorial teams manage approval flows, brand consistency, and SEO planning.</p>
                 </main>
             </body>
             </html>

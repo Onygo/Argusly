@@ -9,7 +9,7 @@ class AdminKeyMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        $expected = (string) config('publishlayer.admin_key');
+        $expected = (string) config('argusly.admin_key');
         $given = (string) $request->header('X-Admin-Key');
 
         if ($expected === '' || !hash_equals($expected, $given)) {

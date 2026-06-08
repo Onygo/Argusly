@@ -214,7 +214,7 @@ class OpenAiProvider implements LlmProvider
 
         if (is_array($schemaOrExpectation['schema'] ?? null)) {
             return $this->normalizeJsonSchemaPayload([
-                'name' => (string) ($schemaOrExpectation['name'] ?? 'publishlayer_response'),
+                'name' => (string) ($schemaOrExpectation['name'] ?? 'argusly_response'),
                 'description' => (string) ($schemaOrExpectation['description'] ?? ''),
                 'schema' => $schemaOrExpectation['schema'],
                 'strict' => (bool) ($schemaOrExpectation['strict'] ?? true),
@@ -223,7 +223,7 @@ class OpenAiProvider implements LlmProvider
 
         if (array_key_exists('type', $schemaOrExpectation) || array_key_exists('properties', $schemaOrExpectation)) {
             return $this->normalizeJsonSchemaPayload([
-                'name' => 'publishlayer_response',
+                'name' => 'argusly_response',
                 'schema' => $schemaOrExpectation,
                 'strict' => true,
             ]);
@@ -238,10 +238,10 @@ class OpenAiProvider implements LlmProvider
      */
     private function normalizeJsonSchemaPayload(array $jsonSchema): array
     {
-        $name = trim((string) ($jsonSchema['name'] ?? 'publishlayer_response'));
+        $name = trim((string) ($jsonSchema['name'] ?? 'argusly_response'));
         $schema = is_array($jsonSchema['schema'] ?? null) ? $jsonSchema['schema'] : $jsonSchema;
         $payload = [
-            'name' => $name !== '' ? $name : 'publishlayer_response',
+            'name' => $name !== '' ? $name : 'argusly_response',
             'schema' => $schema,
             'strict' => (bool) ($jsonSchema['strict'] ?? true),
         ];

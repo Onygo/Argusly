@@ -54,7 +54,7 @@ it('renders the verified subprocessors that are actually used by the platform', 
 it('renders the current cookies and first-party monitoring disclosures', function () {
     $this->get(route('public.legal.cookies'))
         ->assertOk()
-        ->assertSee('PublishLayer')
+        ->assertSee('Argusly')
         ->assertSee('performance monitoring')
         ->assertSee('sessionStorage')
         ->assertDontSee('Consent management')

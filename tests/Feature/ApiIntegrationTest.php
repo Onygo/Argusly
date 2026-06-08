@@ -76,7 +76,7 @@ it('accepts brief creation via site token', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/briefs', $payload);
 
     $response->assertStatus(201)
@@ -114,7 +114,7 @@ it('accepts nested brief intent keys via site token without returning 422', func
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'nested-intent.example.com',
+        'X-Argusly-Site' => 'nested-intent.example.com',
     ])->postJson('/api/v1/briefs', [
         'client' => [
             'type' => 'wordpress',
@@ -168,7 +168,7 @@ it('normalizes legacy flat brief intent input before validation', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'legacy-intent.example.com',
+        'X-Argusly-Site' => 'legacy-intent.example.com',
     ])->postJson('/api/v1/briefs', [
         'client' => [
             'type' => 'wordpress',
@@ -219,7 +219,7 @@ it('provides default intent keys when none are submitted', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'default-intent.example.com',
+        'X-Argusly-Site' => 'default-intent.example.com',
     ])->postJson('/api/v1/briefs', [
         'client' => [
             'type' => 'wordpress',
@@ -270,7 +270,7 @@ it('provides landing page default intent keys based on output type', function ()
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'landing-intent.example.com',
+        'X-Argusly-Site' => 'landing-intent.example.com',
     ])->postJson('/api/v1/briefs', [
         'client' => [
             'type' => 'wordpress',
@@ -338,7 +338,7 @@ it('blocks brief draft generation via api when credits are insufficient', functi
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/briefs', $payload);
 
     $response->assertStatus(422)
@@ -394,7 +394,7 @@ it('blocks draft generate endpoint via api when credits are insufficient', funct
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/drafts/' . $draft->id . '/generate', []);
 
     $response->assertStatus(422)
@@ -449,7 +449,7 @@ it('lists drafts via site token', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->getJson('/api/v1/drafts?status=ready');
 
     $response->assertStatus(200)
@@ -514,7 +514,7 @@ it('returns generation options for wp plugin dropdowns', function () {
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->getJson('/api/v1/generation/options');
 
     $response->assertStatus(200)
@@ -602,7 +602,7 @@ it('stores generation preferences from wp brief payload on content and draft', f
 
     $response = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/briefs', $payload);
 
     $response->assertStatus(201)
@@ -677,7 +677,7 @@ it('treats duplicate wp brief submissions as idempotent replay and avoids duplic
 
     $first = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/briefs', $payload);
 
     $first->assertStatus(201);
@@ -686,7 +686,7 @@ it('treats duplicate wp brief submissions as idempotent replay and avoids duplic
 
     $second = $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'example.com',
+        'X-Argusly-Site' => 'example.com',
     ])->postJson('/api/v1/briefs', $payload);
 
     $second->assertStatus(200)
@@ -763,7 +763,7 @@ it('keeps a single wp publish target when draft ack is replayed', function () {
 
     $headers = [
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Site' => 'ack.example.com',
+        'X-Argusly-Site' => 'ack.example.com',
     ];
 
     $payload = [

@@ -7,18 +7,18 @@
 - Flow is asynchronous and requires a running queue worker.
 
 ## Enablement
-Set environment variables (optional defaults shown in `config/publishlayer.php`):
+Set environment variables (optional defaults shown in `config/argusly.php`):
 
-- `PUBLISHLAYER_AI_IMAGE_PROVIDER=openai`
-- `PUBLISHLAYER_AI_IMAGE_CREDIT_COST=6`
-- `PUBLISHLAYER_AI_IMAGE_STORAGE_DISK=public`
-- `PUBLISHLAYER_AI_IMAGE_OPENAI_BASE_URL=https://api.openai.com/v1`
-- `PUBLISHLAYER_AI_IMAGE_MODEL=gpt-image-1`
-- `PUBLISHLAYER_AI_IMAGE_SIZE=1536x1024`
-- `PUBLISHLAYER_AI_IMAGE_QUALITY=medium`
-- `PUBLISHLAYER_AI_IMAGE_TIMEOUT_SECONDS=90`
+- `ARGUSLY_AI_IMAGE_PROVIDER=openai`
+- `ARGUSLY_AI_IMAGE_CREDIT_COST=6`
+- `ARGUSLY_AI_IMAGE_STORAGE_DISK=public`
+- `ARGUSLY_AI_IMAGE_OPENAI_BASE_URL=https://api.openai.com/v1`
+- `ARGUSLY_AI_IMAGE_MODEL=gpt-image-1`
+- `ARGUSLY_AI_IMAGE_SIZE=1536x1024`
+- `ARGUSLY_AI_IMAGE_QUALITY=medium`
+- `ARGUSLY_AI_IMAGE_TIMEOUT_SECONDS=90`
 - `OPENAI_API_KEY=...`
-- `PUBLISHLAYER_OG_FONT_PATH=/absolute/path/to/font.ttf` (optional override)
+- `ARGUSLY_OG_FONT_PATH=/absolute/path/to/font.ttf` (optional override)
 
 ## Queue requirement
 Run a worker for the generation queue:
@@ -38,7 +38,7 @@ php artisan queue:work --queue=generation,default --timeout=3600
   - keyword line once (optional when it already appears in title),
   - title line once,
   - adaptive dark overlay for readability,
-  - Arial/Helvetica Bold system font paths (or custom `PUBLISHLAYER_OG_FONT_PATH`).
+  - Arial/Helvetica Bold system font paths (or custom `ARGUSLY_OG_FONT_PATH`).
 - OG generation uses `0` extra credits, but may create a featured background first if missing.
 
 ## OG template options

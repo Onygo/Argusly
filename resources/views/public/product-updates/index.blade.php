@@ -6,7 +6,7 @@
     <title>{{ $metaTitle }}</title>
     <meta name="description" content="{{ $metaDescription }}" />
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     <link rel="canonical" href="{{ $canonicalUrl }}" />
     <meta property="og:type" content="{{ $ogType ?? 'website' }}" />
@@ -71,7 +71,7 @@
                         <button type="submit" class="rounded-lg bg-publicPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-publicPrimaryHover">
                             {{ __('public.product_updates.search') }}
                         </button>
-                        <a href="{{ route('public.product_updates.index', $langParam) }}" class="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-[#f7f4ed]">
+                        <a href="{{ route('public.product_updates.index', $langParam) }}" class="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-[#f8fafc]">
                             {{ __('public.product_updates.reset') }}
                         </a>
                     </div>
@@ -128,17 +128,17 @@
                 @empty
                     {{-- Empty State --}}
                     <div class="pl-public-card p-8 text-center md:p-12">
-                        <div class="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f7f4ed]">
+                        <div class="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f8fafc]">
                             <i data-lucide="inbox" class="h-8 w-8 text-publicPrimary"></i>
                         </div>
                         <h2 class="text-lg font-semibold text-textPrimary">{{ __('public.product_updates.empty_title') }}</h2>
                         <p class="mx-auto mt-2 max-w-md text-sm text-textSecondary">{{ __('public.product_updates.empty') }}</p>
                         <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                            <a href="{{ route('public.company.roadmap') }}" class="inline-flex items-center gap-2 rounded-xl bg-publicPrimary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">
+                            <a href="{{ route('public.company.roadmap') }}" class="pl-public-primary-button">
                                 <i data-lucide="map" class="h-4 w-4"></i>
                                 {{ __('public.product_updates.view_roadmap') }}
                             </a>
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-[#f7f4ed]">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-[#f8fafc]">
                                 <i data-lucide="message-circle" class="h-4 w-4"></i>
                                 {{ __('public.nav.contact') }}
                             </a>
@@ -158,18 +158,18 @@
     {{-- CTA --}}
     <section class="pl-public-warm">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <div class="mx-auto max-w-3xl text-center">
-                <h2 class="text-balance text-2xl font-semibold tracking-tight text-textPrimary md:text-3xl">
+            <div class="pl-public-cta-panel">
+                <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
                     {{ __('public.product_updates.cta_title') }}
                 </h2>
-                <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-textSecondary md:text-base">
+                <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">
                     {{ __('public.product_updates.cta_text') }}
                 </p>
                 <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                    <a href="{{ $ctaHref }}" class="inline-flex items-center justify-center rounded-xl bg-publicPrimary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">
+                    <a href="{{ $ctaHref }}" class="pl-public-cta-primary">
                         {{ $isEarlyAccess ? __('public.nav.early_access') : __('public.cta.primary') }}
                     </a>
-                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-secondary-button">
+                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-cta-secondary">
                         {{ __('public.cta.secondary') }}
                     </a>
                 </div>

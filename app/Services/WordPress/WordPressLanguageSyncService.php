@@ -124,8 +124,8 @@ class WordPressLanguageSyncService
         $payload['meta'] = array_merge(
             is_array($payload['meta'] ?? null) ? $payload['meta'] : [],
             [
-                '_publishlayer_language' => $language->value,
-                '_publishlayer_is_translation' => $draft->isTranslation(),
+                '_argusly_language' => $language->value,
+                '_argusly_is_translation' => $draft->isTranslation(),
             ]
         );
 

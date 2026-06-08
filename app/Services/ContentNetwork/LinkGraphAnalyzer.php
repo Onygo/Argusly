@@ -147,10 +147,10 @@ class LinkGraphAnalyzer
 
         return SeoAuditPage::query()
             ->where('seo_audit_id', $latestAudit->id)
-            ->whereIn('publishlayer_article_id', $contentIds)
-            ->get(['publishlayer_article_id', 'internal_links_count'])
+            ->whereIn('argusly_content_id', $contentIds)
+            ->get(['argusly_content_id', 'internal_links_count'])
             ->mapWithKeys(function (SeoAuditPage $page): array {
-                return [(string) $page->publishlayer_article_id => (int) $page->internal_links_count];
+                return [(string) $page->argusly_content_id => (int) $page->internal_links_count];
             })
             ->all();
     }

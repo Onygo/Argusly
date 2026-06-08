@@ -47,7 +47,7 @@ it('computes summary counts from underlying audit data', function () {
     $dashboard = $response->viewData('dashboard');
 
     expect((int) data_get($dashboard, 'summary.pages_analysed_total'))->toBe(3)
-        ->and((int) data_get($dashboard, 'summary.publishlayer_pages_count'))->toBe(2)
+        ->and((int) data_get($dashboard, 'summary.argusly_pages_count'))->toBe(2)
         ->and((int) data_get($dashboard, 'summary.other_pages_count'))->toBe(1)
         ->and((int) data_get($dashboard, 'summary.issues.error'))->toBe(1)
         ->and((int) data_get($dashboard, 'summary.issues.warning'))->toBe(1)
@@ -79,16 +79,16 @@ it('aligns audit index issue counters with default detail scope', function () {
         ->and((int) data_get($dashboard, 'summary.issues.improvement'))->toBe((int) data_get($indexAudit, 'overview_issue_counts.info'));
 });
 
-it('filters scope tabs for publishlayer, other, and all', function () {
+it('filters scope tabs for argusly, other, and all', function () {
     $ctx = makeSeoAuditRunDashboardContext();
 
-    $publishlayer = $this->actingAs($ctx['user'])
-        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=publishlayer');
-    $publishlayer->assertOk();
+    $argusly = $this->actingAs($ctx['user'])
+        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=argusly');
+    $argusly->assertOk();
 
-    $publishlayerRows = collect(data_get($publishlayer->viewData('dashboard'), 'page_table_rows', []));
-    expect($publishlayerRows)->toHaveCount(2);
-    expect($publishlayerRows->every(fn (array $row): bool => (bool) $row['is_publishlayer']))->toBeTrue();
+    $arguslyRows = collect(data_get($argusly->viewData('dashboard'), 'page_table_rows', []));
+    expect($arguslyRows)->toHaveCount(2);
+    expect($arguslyRows->every(fn (array $row): bool => (bool) $row['is_argusly']))->toBeTrue();
 
     $other = $this->actingAs($ctx['user'])
         ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=other');
@@ -96,7 +96,7 @@ it('filters scope tabs for publishlayer, other, and all', function () {
 
     $otherRows = collect(data_get($other->viewData('dashboard'), 'page_table_rows', []));
     expect($otherRows)->toHaveCount(1);
-    expect($otherRows->every(fn (array $row): bool => ! (bool) $row['is_publishlayer']))->toBeTrue();
+    expect($otherRows->every(fn (array $row): bool => ! (bool) $row['is_argusly']))->toBeTrue();
 
     $all = $this->actingAs($ctx['user'])
         ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=all');
@@ -110,7 +110,7 @@ it('marks plugin-dependent seo fixes as recommendation only when wordpress seo s
     $ctx = makeSeoAuditRunDashboardContext();
 
     $response = $this->actingAs($ctx['user'])
-        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=publishlayer');
+        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=argusly');
 
     $response->assertOk();
     $rows = collect(data_get($response->viewData('dashboard'), 'ai_panel.rows', []));
@@ -125,7 +125,7 @@ it('exposes field-level seo sync capability states in ai seo fix ui', function (
     $ctx = makeSeoAuditRunDashboardContext();
 
     $response = $this->actingAs($ctx['user'])
-        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=publishlayer');
+        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=argusly');
 
     $response->assertOk()
         ->assertSee('Connector SEO capabilities')
@@ -154,7 +154,7 @@ it('marks twitter and og fields as syncable when provider mapping supports them'
     ]);
 
     $response = $this->actingAs($ctx['user'])
-        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=publishlayer');
+        ->get(route('app.sites.seo-audits.show', [$ctx['site'], $ctx['audit']]) . '?scope=argusly');
 
     $response->assertOk()->assertSee('Provider: Rank Math');
 
@@ -215,7 +215,7 @@ it('applies ai suggestion to draft metadata without publishing content', functio
         'workspace_id' => $ctx['workspace']->id,
         'client_site_id' => $ctx['site']->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'meta_description_missing',
         'status' => SeoAuditFixSuggestion::STATUS_GENERATED,
         'suggestion' => [
@@ -259,7 +259,7 @@ it('shows apply and edit actions for a newly generated suggestion', function () 
         'workspace_id' => $ctx['workspace']->id,
         'client_site_id' => $ctx['site']->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'title_missing',
         'status' => SeoAuditFixSuggestion::STATUS_GENERATED,
         'suggestion_state' => SeoAuditSuggestionState::SUGGESTED,
@@ -319,7 +319,7 @@ it('shows applied suggestion actions after local apply', function () {
         'workspace_id' => $ctx['workspace']->id,
         'client_site_id' => $ctx['site']->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'title_missing',
         'status' => SeoAuditFixSuggestion::STATUS_APPLIED,
         'suggestion_state' => SeoAuditSuggestionState::APPLIED_LOCAL,
@@ -333,7 +333,7 @@ it('shows applied suggestion actions after local apply', function () {
     \App\Models\SeoApplyLog::query()->create([
         'suggestion_id' => $suggestion->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'title_missing',
         'content_id' => $ctx['content']->id,
         'draft_id' => $draft->id,
@@ -387,7 +387,7 @@ it('shows synced suggestion state after wordpress delivery', function () {
         'workspace_id' => $ctx['workspace']->id,
         'client_site_id' => $ctx['site']->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'title_missing',
         'status' => SeoAuditFixSuggestion::STATUS_APPLIED,
         'suggestion_state' => SeoAuditSuggestionState::APPLIED_LOCAL,
@@ -401,7 +401,7 @@ it('shows synced suggestion state after wordpress delivery', function () {
     \App\Models\SeoApplyLog::query()->create([
         'suggestion_id' => $suggestion->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'title_missing',
         'content_id' => $ctx['content']->id,
         'draft_id' => $draft->id,
@@ -451,7 +451,7 @@ it('creates an editable draft when opening suggestion edit without an existing d
         'workspace_id' => $ctx['workspace']->id,
         'client_site_id' => $ctx['site']->id,
         'seo_audit_id' => $ctx['audit']->id,
-        'seo_audit_page_id' => $ctx['publishlayerPage']->id,
+        'seo_audit_page_id' => $ctx['arguslyPage']->id,
         'issue_code' => 'title_missing',
         'status' => SeoAuditFixSuggestion::STATUS_GENERATED,
         'suggestion_state' => SeoAuditSuggestionState::SUGGESTED,
@@ -531,7 +531,7 @@ function makeSeoAuditRunDashboardContext(): array
     $content = Content::query()->create([
         'workspace_id' => $workspace->id,
         'client_site_id' => $site->id,
-        'title' => 'PublishLayer Article 1',
+        'title' => 'Argusly Article 1',
         'type' => 'article',
         'status' => 'published',
         'source' => 'pl',
@@ -541,7 +541,7 @@ function makeSeoAuditRunDashboardContext(): array
     $contentTwo = Content::query()->create([
         'workspace_id' => $workspace->id,
         'client_site_id' => $site->id,
-        'title' => 'PublishLayer Article 2',
+        'title' => 'Argusly Article 2',
         'type' => 'article',
         'status' => 'published',
         'source' => 'pl',
@@ -568,7 +568,7 @@ function makeSeoAuditRunDashboardContext(): array
         'issue_counts' => ['error' => 0, 'warning' => 1, 'info' => 1],
     ]);
 
-    $publishlayerPage = SeoAuditPage::query()->create([
+    $arguslyPage = SeoAuditPage::query()->create([
         'seo_audit_id' => $audit->id,
         'url' => 'https://seo-dashboard.example.com/pl-1',
         'status_code' => 200,
@@ -579,8 +579,8 @@ function makeSeoAuditRunDashboardContext(): array
         'word_count' => 400,
         'internal_links_count' => 3,
         'broken_links_count' => 0,
-        'page_type' => SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-        'publishlayer_article_id' => $content->id,
+        'page_type' => SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE,
+        'argusly_content_id' => $content->id,
     ]);
 
     SeoAuditPage::query()->create([
@@ -594,8 +594,8 @@ function makeSeoAuditRunDashboardContext(): array
         'word_count' => 500,
         'internal_links_count' => 4,
         'broken_links_count' => 0,
-        'page_type' => SeoAuditPage::PAGE_TYPE_PUBLISHLAYER_ARTICLE,
-        'publishlayer_article_id' => $contentTwo->id,
+        'page_type' => SeoAuditPage::PAGE_TYPE_ARGUSLY_ARTICLE,
+        'argusly_content_id' => $contentTwo->id,
     ]);
 
     $otherPage = SeoAuditPage::query()->create([
@@ -610,12 +610,12 @@ function makeSeoAuditRunDashboardContext(): array
         'internal_links_count' => 1,
         'broken_links_count' => 1,
         'page_type' => SeoAuditPage::PAGE_TYPE_SITE_PAGE,
-        'publishlayer_article_id' => null,
+        'argusly_content_id' => null,
     ]);
 
     SeoAuditIssue::query()->create([
         'seo_audit_id' => $audit->id,
-        'seo_audit_page_id' => $publishlayerPage->id,
+        'seo_audit_page_id' => $arguslyPage->id,
         'severity' => 'warning',
         'code' => 'meta_description_missing',
         'title' => 'Missing meta description',
@@ -655,7 +655,7 @@ function makeSeoAuditRunDashboardContext(): array
         'internal_links_count' => 1,
         'broken_links_count' => 0,
         'page_type' => SeoAuditPage::PAGE_TYPE_SITE_PAGE,
-        'publishlayer_article_id' => null,
+        'argusly_content_id' => null,
     ]);
 
     SeoAuditIssue::query()->create([
@@ -675,5 +675,5 @@ function makeSeoAuditRunDashboardContext(): array
         'active' => true,
     ]);
 
-    return compact('organization', 'workspace', 'site', 'audit', 'publishlayerPage', 'content', 'user');
+    return compact('organization', 'workspace', 'site', 'audit', 'arguslyPage', 'content', 'user');
 }

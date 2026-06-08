@@ -2,17 +2,17 @@
 
 ## Migration Notes
 
-- Run the new migrations before enabling agentic connector delivery. They add structured output, locale, canonical, hreflang, schema, AI visibility, and metadata fields to `publishlayer_articles`.
+- Run the new migrations before enabling agentic connector delivery. They add structured output, locale, canonical, hreflang, schema, AI visibility, and metadata fields to `argusly_articles`.
 - Argusly stores connector capabilities from heartbeat payloads in `client_sites.capabilities.agentic`.
 - Legacy connector payloads remain supported. Missing policy data is treated as guided draft-safe execution.
 - Autonomous publishing remains disabled by default for both WordPress and Laravel connectors.
 - Laravel connector environments should add:
-  - `PUBLISHLAYER_AUTONOMOUS_ALLOWED=false`
-  - `PUBLISHLAYER_ALLOWED_OPERATIONS=create,update,draft`
-  - `PUBLISHLAYER_DEFAULT_STATUS=draft`
-  - `PUBLISHLAYER_ALLOW_SCHEMA_UPDATES=false`
-  - `PUBLISHLAYER_ALLOW_INTERNAL_LINK_UPDATES=false`
-  - `PUBLISHLAYER_REQUIRE_SIGNATURE=true`
+  - `ARGUSLY_AUTONOMOUS_ALLOWED=false`
+  - `ARGUSLY_ALLOWED_OPERATIONS=create,update,draft`
+  - `ARGUSLY_DEFAULT_STATUS=draft`
+  - `ARGUSLY_ALLOW_SCHEMA_UPDATES=false`
+  - `ARGUSLY_ALLOW_INTERNAL_LINK_UPDATES=false`
+  - `ARGUSLY_REQUIRE_SIGNATURE=true`
 
 ## Production Checklist
 

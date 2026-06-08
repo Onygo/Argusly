@@ -91,7 +91,7 @@ function makeLaravelDestinationConnectionContext(): array
             'laravel_connector' => [
                 'base_url' => 'https://health.example.com',
                 'site_id' => 'health-site-1',
-                'sync_endpoint' => '/api/publishlayer/sync',
+                'sync_endpoint' => '/api/argusly/sync',
                 'api_key_encrypted' => Crypt::encryptString('health-secret-123'),
                 'enabled' => true,
                 'mode' => 'hosted_views',
@@ -106,7 +106,7 @@ it('tests laravel connector destination connectivity from the developer ui', fun
     $ctx = makeLaravelDestinationConnectionContext();
 
     Http::fake([
-        'https://health.example.com/api/publishlayer/health' => Http::response([
+        'https://health.example.com/api/argusly/health' => Http::response([
             'ok' => true,
             'checks' => [],
         ], 200),
@@ -122,7 +122,7 @@ it('surfaces laravel connector connection test failures to operators', function 
     $ctx = makeLaravelDestinationConnectionContext();
 
     Http::fake([
-        'https://health.example.com/api/publishlayer/health' => Http::response([
+        'https://health.example.com/api/argusly/health' => Http::response([
             'ok' => false,
             'message' => 'The provided site identifier does not match this connector.',
         ], 422),

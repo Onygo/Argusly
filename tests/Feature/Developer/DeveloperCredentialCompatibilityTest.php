@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Api\ApiScopes;
 use App\Services\Integrations\ApiKeyService;
+use App\Services\Sites\SiteApiKeyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -62,7 +63,7 @@ it('shows legacy organization key and keeps legacy auth compatible', function ()
 
     $this->withHeaders([
         'Authorization' => 'Bearer ' . $plain,
-        'X-PublishLayer-Workspace-Id' => (string) $workspace->id,
+        'X-Argusly-Workspace-Id' => (string) $workspace->id,
     ])->getJson('/api/v1/me')
         ->assertOk()
         ->assertJsonPath('data.workspace.id', (string) $workspace->id);
@@ -86,10 +87,10 @@ it('imports legacy credentials with an idempotent backfill command', function ()
         'revoked_at' => null,
     ]);
 
-    $this->artisan('publishlayer:backfill-workspace-api-keys', ['--workspace' => (string) $workspace->id])
+    $this->artisan('argusly:backfill-workspace-api-keys', ['--workspace' => (string) $workspace->id])
         ->assertSuccessful();
 
-    $this->artisan('publishlayer:backfill-workspace-api-keys', ['--workspace' => (string) $workspace->id])
+    $this->artisan('argusly:backfill-workspace-api-keys', ['--workspace' => (string) $workspace->id])
         ->assertSuccessful();
 
     expect(ApiKey::query()
@@ -118,7 +119,7 @@ it('blocks revoking imported legacy credentials from developer ui', function () 
         'revoked_at' => null,
     ]);
 
-    $this->artisan('publishlayer:backfill-workspace-api-keys', ['--workspace' => (string) $workspace->id])
+    $this->artisan('argusly:backfill-workspace-api-keys', ['--workspace' => (string) $workspace->id])
         ->assertSuccessful();
 
     $imported = ApiKey::query()
@@ -147,6 +148,20 @@ it('keeps new workspace api keys operational after compatibility changes', funct
         ->getJson('/api/v1/me')
         ->assertOk()
         ->assertJsonPath('data.workspace.id', (string) $workspace->id);
+});
+
+it('generates Argusly prefixes for new site and workspace credentials', function () {
+    [, $workspace, $site] = makeDeveloperCredentialContext('dev-compat-argusly-prefixes');
+
+    [, $sitePlain] = app(SiteApiKeyService::class)->createForSite($site, ['heartbeat:write']);
+    $workspaceKey = app(ApiKeyService::class)->create(
+        workspace: $workspace,
+        name: 'Argusly workspace key',
+        scopes: [ApiScopes::USAGE_READ],
+    );
+
+    expect($sitePlain)->toStartWith('arg_site_')
+        ->and($workspaceKey['plain_text_key'])->toStartWith('arg_ws_');
 });
 
 it('denies developer credential access for unauthorized roles', function () {
@@ -236,4 +251,3 @@ function makeDeveloperCredentialContext(string $prefix): array
 
     return [$owner, $workspace, $site];
 }
-

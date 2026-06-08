@@ -2,7 +2,7 @@
     {{-- Document header --}}
     <div class="pl-public-card p-6 md:p-8">
         <div class="flex items-start gap-4">
-            <div class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#f7f4ed]">
+            <div class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#f8fafc]">
                 <x-public.icon name="{{ $documentIcon ?? 'file-text' }}" size="md" />
             </div>
             <div class="min-w-0 flex-1">
@@ -13,7 +13,7 @@
                         {{ __('public.legal.ownership_line', ['product' => \App\Support\Brand::product(), 'parent' => \App\Support\Brand::parent()]) }}
                     </p>
                 @endif
-                <div class="mt-4 flex items-center gap-2 rounded-lg bg-[#f7f4ed] px-3 py-2 text-xs uppercase tracking-wide text-textMuted">
+                <div class="mt-4 flex items-center gap-2 rounded-lg bg-[#f8fafc] px-3 py-2 text-xs uppercase tracking-wide text-textMuted">
                     <i data-lucide="calendar" class="h-3.5 w-3.5"></i>
                     <span>{{ __('public.legal.last_updated_label') }}: {{ $lastUpdated }}</span>
                 </div>
@@ -85,13 +85,13 @@
     @endif
 
     {{-- Closing CTA block --}}
-    <div class="rounded-2xl border border-publicPrimary/15 bg-publicPrimary p-6 md:p-8">
+    <div class="pl-public-cta-panel pl-public-cta-panel--split p-6 md:p-8">
         <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
                 <h3 class="text-lg font-semibold text-white">{{ __('public.legal.cta_title') }}</h3>
                 <p class="mt-2 text-sm leading-6 text-white/75">{{ __('public.legal.cta_text') }}</p>
             </div>
-            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="inline-flex flex-none items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">
+            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-cta-primary flex-none">
                 {{ __('public.legal.cta_button') }}
             </a>
         </div>

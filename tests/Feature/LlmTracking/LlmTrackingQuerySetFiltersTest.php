@@ -34,12 +34,12 @@ it('creates query sets and assigns new tracking queries to them', function () {
         ->post(route('app.sites.llm-tracking.store', $site), [
             'llm_tracking_query_set_id' => $querySet->id,
             'name' => 'Brand reputation',
-            'query_text' => 'What is PublishLayer known for?',
-            'target_brand' => 'PublishLayer',
-            'target_domain' => 'publishlayer.com',
-            'brand_terms' => 'PublishLayer',
+            'query_text' => 'What is Argusly known for?',
+            'target_brand' => 'Argusly',
+            'target_domain' => 'argusly.com',
+            'brand_terms' => 'Argusly',
             'competitor_terms' => 'AcmeSEO',
-            'target_urls' => 'https://publishlayer.com/features',
+            'target_urls' => 'https://argusly.com/features',
             'tags' => 'brand, monitoring',
             'locale' => 'en',
             'frequency' => 'daily',
@@ -51,8 +51,8 @@ it('creates query sets and assigns new tracking queries to them', function () {
     $query = LlmTrackingQuery::query()->where('client_site_id', $site->id)->where('name', 'Brand reputation')->first();
 
     expect((int) $query?->llm_tracking_query_set_id)->toBe((int) $querySet->id)
-        ->and((string) $query?->target_brand)->toBe('PublishLayer')
-        ->and((string) $query?->target_domain)->toBe('publishlayer.com')
+        ->and((string) $query?->target_brand)->toBe('Argusly')
+        ->and((string) $query?->target_domain)->toBe('argusly.com')
         ->and((array) $query?->tags)->toBe(['brand', 'monitoring']);
 });
 
@@ -82,12 +82,12 @@ it('filters the dashboard by query set and provider', function () {
         'client_site_id' => $site->id,
         'llm_tracking_query_set_id' => $brandSet->id,
         'name' => 'Brand reputation',
-        'query_text' => 'What is PublishLayer known for?',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer'],
+        'query_text' => 'What is Argusly known for?',
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['AcmeSEO'],
-        'target_urls' => ['https://publishlayer.com/features'],
+        'target_urls' => ['https://argusly.com/features'],
         'locale' => 'en',
         'frequency' => 'daily',
         'priority' => 80,
@@ -100,11 +100,11 @@ it('filters the dashboard by query set and provider', function () {
         'llm_tracking_query_set_id' => $geoSet->id,
         'name' => 'GEO comparison',
         'query_text' => 'Best AI SEO visibility platform',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer'],
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['OtherBrand'],
-        'target_urls' => ['https://publishlayer.com/features'],
+        'target_urls' => ['https://argusly.com/features'],
         'locale' => 'en',
         'frequency' => 'weekly',
         'priority' => 60,
@@ -117,8 +117,8 @@ it('filters the dashboard by query set and provider', function () {
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
         'status' => 'succeeded',
-        'answer_text' => 'PublishLayer is visible here.',
-        'normalized_response' => 'PublishLayer is visible here.',
+        'answer_text' => 'Argusly is visible here.',
+        'normalized_response' => 'Argusly is visible here.',
         'brand_mentioned' => true,
         'urls_cited' => true,
         'presence_score' => 1.0,

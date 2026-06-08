@@ -6,50 +6,58 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    --color-background: #F7F7F8;
+    --color-background: #F8FAFC;
     --color-surface: #FFFFFF;
-    --color-surfaceSubtle: #FAFAFB;
-    --color-surfaceMuted: #F3F4F6;
-    --color-border: #E5E7EB;
-    --color-borderStrong: #D1D5DB;
-    --color-divider: #EEF0F2;
+    --color-surfaceSubtle: #F8FAFC;
+    --color-surfaceMuted: #F1F5F9;
+    --color-border: #E7EAF0;
+    --color-borderStrong: #C9CED8;
+    --color-divider: #E7EAF0;
 
-    --color-textPrimary: #111827;
-    --color-textSecondary: #4B5563;
-    --color-textMuted: #6B7280;
-    --color-textFaint: #9CA3AF;
+    --color-textPrimary: #0B0F17;
+    --color-textSecondary: #475467;
+    --color-textMuted: #667085;
+    --color-textFaint: #98A2B3;
     --color-textInverse: #FFFFFF;
 
-    --color-primary: #111827;
-    --color-primaryHover: #0B0F19;
-    --color-primarySoftBg: rgba(17, 24, 39, 0.06);
-    --color-primarySoftRing: rgba(17, 24, 39, 0.18);
+    --color-primary: #0B0F17;
+    --color-primaryHover: #171C26;
+    --color-primarySoftBg: rgba(35, 92, 255, 0.08);
+    --color-primarySoftRing: rgba(35, 92, 255, 0.2);
 
     /* Public marketing colors are isolated from app/admin primary tokens. */
-    --color-publicPrimary: #1F2A37;
-    --color-publicPrimaryHover: #151C26;
-    --color-publicPrimarySoftBg: rgba(31, 42, 55, 0.08);
-    --color-publicPrimarySoftRing: rgba(31, 42, 55, 0.18);
+    --color-publicPrimary: #235CFF;
+    --color-publicPrimaryHover: #1E4FE0;
+    --color-publicPrimarySoftBg: rgba(35, 92, 255, 0.08);
+    --color-publicPrimarySoftRing: rgba(35, 92, 255, 0.2);
 
-    --color-link: #111827;
-    --color-linkHover: #0B0F19;
+    --color-link: #235CFF;
+    --color-linkHover: #1E4FE0;
 
     --color-success: #16A34A;
     --color-warning: #F59E0B;
     --color-danger: #EF4444;
-    --color-info: #2563EB;
-    --color-accentYellow-100: #FEF3C7;
-    --color-accentYellow-900: #7C2D12;
+    --color-info: #235CFF;
+    --color-accentYellow-50: #EFF4FF;
+    --color-accentYellow-100: #E0EAFF;
+    --color-accentYellow-200: #C7D7FE;
+    --color-accentYellow-300: #A4BCFD;
+    --color-accentYellow-600: #235CFF;
+    --color-accentYellow-700: #1E4FE0;
+    --color-accentYellow-800: #173DB3;
+    --color-accentYellow-900: #235CFF;
+    --color-purple: #7657FF;
 }
 
 @layer base {
     body {
         @apply bg-background text-textPrimary antialiased;
-        font-feature-settings: 'cv11', 'ss01';
-        font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+        text-rendering: geometricPrecision;
     }
 
     input,
@@ -261,29 +269,29 @@
 
     .pl-public-hero {
         @apply border-b border-border/70;
-        background: #f3f0e8;
+        background: #ffffff;
     }
 
     .pl-public-warm {
         @apply border-y border-border/70;
-        background: #f7f4ed;
+        background: #f8fafc;
     }
 
     .pl-public-canvas {
-        background: #fcfbf8;
+        background: #ffffff;
     }
 
     .pl-public-card {
-        @apply rounded-[28px] border border-border/80 bg-white;
+        @apply rounded-2xl border border-border/80 bg-white;
     }
 
     .pl-public-card-soft {
-        @apply rounded-[28px] border border-border/80;
-        background: #fcfbf8;
+        @apply rounded-2xl border border-border/80;
+        background: #f8fafc;
     }
 
     .pl-public-card-compact {
-        @apply rounded-[24px] border border-border/80 bg-white;
+        @apply rounded-2xl border border-border/80 bg-white;
     }
 
     .pl-public-pill {
@@ -292,15 +300,32 @@
 
     .pl-public-pill-soft {
         @apply inline-flex items-center rounded-full border border-publicPrimary/15 px-3 py-1 text-xs font-medium text-publicPrimary;
-        background: #f7f4ed;
+        background: #f8fafc;
     }
 
     .pl-public-primary-button {
-        @apply inline-flex items-center justify-center rounded-xl bg-publicPrimary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover;
+        @apply inline-flex items-center justify-center gap-2 rounded-full bg-textPrimary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black focus:outline-none focus:ring-2 focus:ring-publicPrimarySoftRing;
     }
 
     .pl-public-secondary-button {
-        @apply inline-flex items-center justify-center rounded-xl border border-border bg-white px-6 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-surfaceMuted;
+        @apply inline-flex items-center justify-center gap-2 rounded-full border border-border bg-white px-6 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-surfaceMuted focus:outline-none focus:ring-2 focus:ring-publicPrimarySoftRing;
+    }
+
+    .pl-public-cta-panel {
+        @apply rounded-2xl border border-publicPrimary/10 px-6 py-12 text-center text-white sm:px-8 md:px-10;
+        background: linear-gradient(135deg, #2f5bff 0%, #4b55ff 48%, #6b4df4 100%);
+    }
+
+    .pl-public-cta-panel--split {
+        @apply text-left;
+    }
+
+    .pl-public-cta-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/40;
+    }
+
+    .pl-public-cta-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/30;
     }
 
     .pl-action-menu__item {
@@ -380,7 +405,7 @@
     }
 
     .pl-public-btn-primary {
-        @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-publicPrimary px-4 text-sm font-medium text-textInverse transition-colors hover:bg-publicPrimaryHover focus:outline-none focus:ring-2 focus:ring-publicPrimarySoftRing;
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-textInverse transition-colors hover:bg-primaryHover focus:outline-none focus:ring-2 focus:ring-publicPrimarySoftRing;
     }
 
     .pl-public-btn-secondary {
@@ -388,15 +413,15 @@
     }
 
     .pl-public-dark-surface {
-        @apply border border-publicPrimary/15 bg-publicPrimary text-textInverse;
+        @apply border border-textPrimary bg-textPrimary text-textInverse;
     }
 
     .pl-product-preview {
-        @apply w-full max-w-[38rem] rounded-[30px] border border-border bg-[#f7f4ed] p-3 sm:p-4;
+        @apply w-full max-w-[38rem] rounded-2xl border border-border bg-surfaceSubtle p-3 sm:p-4;
     }
 
     .pl-product-preview__frame {
-        @apply overflow-hidden rounded-[24px] border border-border bg-surface;
+        @apply overflow-hidden rounded-2xl border border-border bg-surface;
     }
 
     .pl-product-preview__bar {
@@ -613,6 +638,76 @@
 
     .pl-badge {
         @apply inline-flex items-center rounded-sm border border-border bg-surfaceMuted px-2 py-0.5 text-xs font-medium text-textSecondary;
+    }
+
+    .pl-work-shell {
+        @apply bg-surfaceSubtle;
+    }
+
+    .pl-work-sidebar {
+        @apply border-r border-border bg-white;
+    }
+
+    .pl-work-sidebar-brand {
+        @apply flex h-[4.5rem] items-center gap-3 border-b border-border px-5;
+    }
+
+    .pl-work-sidebar-section {
+        @apply border-b border-border/70 py-3;
+    }
+
+    .pl-work-sidebar-section-title {
+        @apply sr-only;
+    }
+
+    .pl-work-header {
+        @apply sticky top-0 z-30 border-b border-border bg-white;
+    }
+
+    .pl-work-topbar {
+        @apply flex min-h-16 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 md:px-6;
+    }
+
+    .pl-work-impersonation {
+        @apply flex min-h-14 items-center justify-between gap-4 border-b border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900 md:px-6;
+    }
+
+    .pl-work-chip {
+        @apply inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-textPrimary transition-colors hover:bg-surfaceSubtle;
+    }
+
+    .pl-work-chip-muted {
+        @apply inline-flex h-10 items-center justify-center rounded-md border border-border bg-surfaceSubtle px-4 text-sm font-semibold text-textSecondary transition-colors hover:bg-white;
+    }
+
+    .pl-work-avatar {
+        @apply inline-flex h-10 w-10 items-center justify-center rounded-full bg-textPrimary text-xs font-bold text-white;
+    }
+
+    .pl-work-select {
+        @apply h-10 rounded-md border border-border bg-white px-3 text-sm font-medium text-textSecondary focus:outline-none focus:ring-2 focus:ring-primarySoftRing;
+    }
+
+    .pl-work-shell [data-sidebar-item] {
+        @apply h-10 rounded-md border-0 px-3 text-sm font-medium text-textMuted transition-colors;
+    }
+
+    .pl-work-shell [data-sidebar-item]:hover {
+        @apply bg-surfaceSubtle text-textPrimary;
+    }
+
+    .pl-work-shell [data-sidebar-item].border-l-2 {
+        background-color: var(--color-publicPrimarySoftBg) !important;
+        color: var(--color-publicPrimary) !important;
+        border-left-width: 0 !important;
+    }
+
+    .pl-work-shell [data-sidebar-icon-wrap] {
+        @apply text-current;
+    }
+
+    .pl-work-shell .pl-search {
+        @apply h-10 rounded-md bg-surfaceSubtle;
     }
 
     .pl-tab {

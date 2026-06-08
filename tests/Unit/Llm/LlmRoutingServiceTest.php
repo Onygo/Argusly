@@ -13,8 +13,8 @@ it('resolves global defaults when no rules exist', function () {
     config([
         'llm.default_provider' => 'openai',
         'llm.providers.openai.default_model' => 'gpt-4.1-mini',
-        'publishlayer.ai.images.provider' => 'openai',
-        'publishlayer.ai.images.openai.model' => 'gpt-image-1',
+        'argusly.ai.images.provider' => 'openai',
+        'argusly.ai.images.openai.model' => 'gpt-image-1',
     ]);
 
     $routing = app(LlmRoutingService::class);

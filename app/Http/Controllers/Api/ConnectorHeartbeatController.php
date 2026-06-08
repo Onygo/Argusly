@@ -17,13 +17,13 @@ class ConnectorHeartbeatController extends Controller
         $siteToken = $request->attributes->get('siteToken');
 
         if (! $siteToken || ! $siteToken->hasScope('heartbeat:write')) {
-            return response()->json(['error' => 'Forbidden'], 403);
+            return $this->errorResponse($request, 'Forbidden', 403);
         }
 
         /** @var ClientSite|null $clientSite */
         $clientSite = $request->attributes->get('clientSite');
         if (! $clientSite) {
-            return response()->json(['error' => 'Client site not resolved'], 401);
+            return $this->errorResponse($request, 'Client site not resolved', 401);
         }
 
         $data = $request->validate([
@@ -55,7 +55,7 @@ class ConnectorHeartbeatController extends Controller
                     'received' => $incomingHost,
                 ]);
 
-                return response()->json(['error' => 'Site URL mismatch'], 422);
+                return $this->errorResponse($request, 'Site URL mismatch', 422);
             }
         }
 
@@ -157,14 +157,55 @@ class ConnectorHeartbeatController extends Controller
             'version' => $connectorVersion,
         ]);
 
-        return response()->json([
+        $payload = [
             'ok' => true,
             'site_id' => $clientSite->id,
             'capabilities' => $clientSite->capabilities,
             'server_time' => now()->toIso8601String(),
             'next_recommended_heartbeat_seconds' => 300,
-            'connector_public_url' => trim((string) config('publishlayer.webhooks.connector_public_url', '')),
-        ]);
+            'connector_public_url' => trim((string) config('argusly.webhooks.connector_public_url', '')),
+        ];
+
+        if ($this->isCanonicalConnectorRoute($request)) {
+            return response()->json([
+                'ok' => true,
+                'data' => [
+                    'site_id' => $payload['site_id'],
+                    'capabilities' => $payload['capabilities'],
+                    'connector_public_url' => $payload['connector_public_url'],
+                ],
+                'meta' => [
+                    'server_time' => $payload['server_time'],
+                    'next_recommended_heartbeat_seconds' => $payload['next_recommended_heartbeat_seconds'],
+                ],
+                'errors' => [],
+            ]);
+        }
+
+        return response()->json($payload);
+    }
+
+    private function errorResponse(Request $request, string $message, int $status): JsonResponse
+    {
+        if ($this->isCanonicalConnectorRoute($request)) {
+            return response()->json([
+                'ok' => false,
+                'data' => null,
+                'meta' => [],
+                'errors' => [
+                    [
+                        'message' => $message,
+                    ],
+                ],
+            ], $status);
+        }
+
+        return response()->json(['error' => $message], $status);
+    }
+
+    private function isCanonicalConnectorRoute(Request $request): bool
+    {
+        return str_starts_with($request->path(), 'api/v1/connectors/');
     }
 
     /**

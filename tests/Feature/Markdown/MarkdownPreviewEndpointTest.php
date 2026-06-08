@@ -37,9 +37,9 @@ it('renders answer blocks and faq schema in the article preview', function () {
 
     StructuredAnswerBlock::query()->create([
         'content_id' => $content->id,
-        'question' => 'What is PublishLayer?',
-        'answer' => 'PublishLayer is a publishing workflow for structured AI content.',
-        'entities' => ['PublishLayer'],
+        'question' => 'What is Argusly?',
+        'answer' => 'Argusly is a publishing workflow for structured AI content.',
+        'entities' => ['Argusly'],
         'order' => 0,
     ]);
 
@@ -84,9 +84,9 @@ it('serves the app answers document route for accessible content', function () {
 
     StructuredAnswerBlock::query()->create([
         'content_id' => $content->id,
-        'question' => 'What is PublishLayer?',
-        'answer' => 'PublishLayer is a publishing workflow for structured AI content.',
-        'entities' => ['PublishLayer'],
+        'question' => 'What is Argusly?',
+        'answer' => 'Argusly is a publishing workflow for structured AI content.',
+        'entities' => ['Argusly'],
         'order' => 0,
     ]);
 
@@ -100,8 +100,8 @@ it('serves the app answers document route for accessible content', function () {
     $this->actingAs($user)
         ->getJson(route('app.content.answers', $content))
         ->assertOk()
-        ->assertJsonPath('answers.0.question', 'What is PublishLayer?')
-        ->assertJsonPath('answers.0.entities.0', 'PublishLayer');
+        ->assertJsonPath('answers.0.question', 'What is Argusly?')
+        ->assertJsonPath('answers.0.entities.0', 'Argusly');
 });
 
 function makeMarkdownCommandContent(): array

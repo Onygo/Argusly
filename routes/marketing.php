@@ -6,7 +6,7 @@
 |--------------------------------------------------------------------------
 |
 | These routes are loaded on the apex domain (argusly.local in dev,
-| publishlayer.com in production). They serve public marketing pages.
+| argusly.com in production). They serve public marketing pages.
 |
 */
 

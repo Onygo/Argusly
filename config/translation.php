@@ -48,7 +48,7 @@ return [
         'PL_TRANSLATION_PROCESSING_LOCK_TTL',
         max(
             ((int) env('PL_TRANSLATION_RETRY_AFTER', 300)) * 3,
-            ((int) env('PUBLISHLAYER_TRANSLATION_STALE_LOCK_TIMEOUT_MINUTES', 10)) * 60
+            ((int) env('ARGUSLY_TRANSLATION_STALE_LOCK_TIMEOUT_MINUTES', 10)) * 60
         )
     ),
 

@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="pl-app-shell min-h-screen bg-background antialiased text-textPrimary">
+<body class="pl-app-shell pl-work-shell min-h-screen bg-background antialiased text-textPrimary">
 @php
     $researchLayerFlag = app(\App\Support\FeatureFlags::class)->isEnabled('research_layer', false);
     $agenticMarketingFlag = app(\App\Support\FeatureFlags::class)->isEnabled('agentic_marketing', false);
@@ -32,20 +32,22 @@
         : 'pl-page pl-page--wide';
     $impersonationActive = session()->has('admin_impersonator_id');
     $impersonationLabel = trim((string) (auth()->user()?->organization?->name ?? 'this workspace'));
+    $impersonatorName = $impersonationActive
+        ? (\App\Models\User::query()->whereKey(session('admin_impersonator_id'))->value('name') ?? 'Admin')
+        : null;
+    $impersonationTargetName = trim((string) (auth()->user()?->name ?? $impersonationLabel));
 @endphp
 <div class="flex min-h-screen w-full">
-    <aside id="sidebar" data-collapsed="false" class="hidden lg:flex sticky top-0 h-screen w-64 flex-col border-r border-border bg-surface transition-all duration-300">
-            <div class="flex h-14 items-center gap-2 border-b border-border px-4">
-            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                <i data-lucide="layers" class="h-4 w-4"></i>
-            </div>
+    <aside id="sidebar" data-collapsed="false" class="pl-work-sidebar hidden lg:flex sticky top-0 h-screen w-64 flex-col transition-all duration-300">
+            <div class="pl-work-sidebar-brand">
+            <x-brand-logo :show-text="false" />
             <div data-sidebar-label class="leading-tight">
                 <span class="block text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
             </div>
         </div>
 
         <nav class="flex-1 overflow-y-auto px-2 py-3">
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.content')) }}</p>
                 <div class="space-y-1">
                     <a href="{{ route('app.dashboard') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.dashboard') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.dashboard') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -134,7 +136,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.publishing')) }}</p>
                 <div class="space-y-1">
                     <a href="{{ route('app.sites') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.sites') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $sitesNavActive ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -168,7 +170,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div class="pl-work-sidebar-section">
                 <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.administration')) }}</p>
                 <div class="space-y-1">
                     <a href="{{ route('app.billing.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.billing') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.billing.*') ? 'border-l-2 border-l-primary bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
@@ -214,15 +216,31 @@
     </aside>
 
     <div class="flex flex-1 flex-col min-w-0">
-        <header class="sticky top-0 z-30 border-b border-border bg-surface">
-            <div class="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 md:px-6">
+        <header class="pl-work-header">
+            @if ($impersonationActive)
+                <div class="pl-work-impersonation">
+                    <div class="flex min-w-0 items-center gap-2">
+                        <i data-lucide="shield-user" class="h-4 w-4 shrink-0"></i>
+                        <span class="min-w-0 truncate font-semibold">
+                            Impersonation active: {{ $impersonatorName }} is viewing {{ $impersonationLabel }} as {{ $impersonationTargetName }}.
+                        </span>
+                    </div>
+                    <form method="POST" action="{{ route('impersonation.stop') }}" class="shrink-0">
+                        @csrf
+                        <button type="submit" class="inline-flex h-9 items-center rounded-md border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-900 transition-colors hover:bg-amber-100">
+                            Stop impersonating
+                        </button>
+                    </form>
+                </div>
+            @endif
+            <div class="pl-work-topbar">
                 <div class="flex min-w-0 flex-1 items-center gap-3">
                     <button id="mobileMenuBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-textSecondary hover:bg-surfaceMuted lg:hidden">
                         <i data-lucide="menu" class="h-4 w-4"></i>
                     </button>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-xs text-textFaint">{{ auth()->user()?->organization?->name ?? 'Client App' }}</p>
-                        <h1 class="truncate text-sm font-semibold text-textPrimary">{{ $title ?? 'Workspace' }}</h1>
+                    <div class="flex min-w-0 items-center gap-2">
+                        <span class="pl-work-chip">{{ auth()->user()?->organization?->name ?? 'Workspace' }}</span>
+                        <span class="pl-work-chip-muted hidden sm:inline-flex">{{ $title ?? 'Workspace' }}</span>
                     </div>
                 </div>
                 <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:flex-1">
@@ -230,23 +248,6 @@
                         $notificationBell = $appNotificationBell ?? ['workspace_id' => null, 'unread_count' => 0, 'recent' => collect()];
                         $notificationBellUnreadCount = (int) ($notificationBell['unread_count'] ?? 0);
                     @endphp
-                    @if ($impersonationActive)
-                        <div class="inline-flex h-9 max-w-[14rem] items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50/60 px-2.5 text-xs text-amber-900 sm:max-w-none sm:gap-2">
-                            <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
-                                <i data-lucide="shield-user" class="h-3 w-3"></i>
-                            </span>
-                            <span class="min-w-0 truncate font-medium">
-                                <span class="sm:hidden">Impersonating</span>
-                                <span class="hidden sm:inline">Impersonating {{ $impersonationLabel }}</span>
-                            </span>
-                            <form method="POST" action="{{ route('impersonation.stop') }}" class="shrink-0">
-                                @csrf
-                                <button type="submit" class="inline-flex items-center rounded-full border border-amber-200 px-2 py-1 text-[11px] font-medium text-amber-900 transition hover:bg-amber-100">
-                                    Return
-                                </button>
-                            </form>
-                        </div>
-                    @endif
                     @if (($appCreditNav['available'] ?? null) !== null)
                         @php
                             $creditNavIsLow = (bool) ($appCreditNav['is_low'] ?? false);
@@ -278,15 +279,15 @@
                             @endif
                         </div>
                     @endif
-                    <div class="relative hidden md:block">
+                    <div class="relative hidden min-w-[18rem] flex-1 md:block">
                         <form method="GET" action="{{ route('app.search') }}" class="relative">
                             <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-textFaint"></i>
                             <input
                                 type="text"
                                 name="q"
                                 value="{{ (string) request()->query('q', '') }}"
-                                class="pl-search w-72"
-                                placeholder="Search content"
+                                class="pl-search w-full"
+                                placeholder="Search content, campaigns, contacts, topics..."
                                 aria-label="Search"
                                 autocomplete="off"
                                 data-global-search
@@ -326,16 +327,14 @@
                         $languageSwitchToNl = $languageSwitchBaseUrl.(count($languageSwitchQuery) || $appLocale !== 'nl' ? '?'.http_build_query(array_merge($languageSwitchQuery, ['lang' => 'nl'])) : '');
                         $languageSwitchToEn = $languageSwitchBaseUrl.(count($languageSwitchQuery) || $appLocale !== 'en' ? '?'.http_build_query(array_merge($languageSwitchQuery, ['lang' => 'en'])) : '');
                     @endphp
-                    <div class="hidden items-center gap-1 rounded-md border border-border bg-surface px-1 py-1 text-xs md:inline-flex">
-                        <a href="{{ $languageSwitchToNl }}" class="rounded px-2 py-1 {{ $appLocale === 'nl' ? 'bg-primary text-textInverse' : 'text-textSecondary hover:bg-surfaceMuted' }}">NL</a>
-                        <a href="{{ $languageSwitchToEn }}" class="rounded px-2 py-1 {{ $appLocale === 'en' ? 'bg-primary text-textInverse' : 'text-textSecondary hover:bg-surfaceMuted' }}">EN</a>
-                    </div>
-                    <button id="userMenuBtn" type="button" class="inline-flex h-9 max-w-[9rem] items-center gap-2 rounded-md border border-border bg-surface px-2.5 text-sm hover:bg-surfaceMuted" aria-label="User menu">
-                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-md bg-surfaceMuted text-xs font-medium text-textPrimary">{{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 1)) }}</span>
-                        <span class="hidden max-w-28 truncate text-textSecondary md:inline">{{ auth()->user()->name ?? 'User' }}</span>
-                        <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                    <select class="pl-work-select hidden md:block" onchange="if (this.value) window.location.href = this.value;" aria-label="Language">
+                        <option value="{{ $languageSwitchToEn }}" @selected($appLocale === 'en')>English</option>
+                        <option value="{{ $languageSwitchToNl }}" @selected($appLocale === 'nl')>Nederlands</option>
+                    </select>
+                    <button id="userMenuBtn" type="button" class="pl-work-avatar" aria-label="User menu">
+                        {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
                     </button>
-                    <div id="userMenu" class="hidden absolute right-4 top-12 z-50 w-56 rounded-md border border-border bg-surface md:right-6">
+                    <div id="userMenu" class="hidden absolute right-4 {{ $impersonationActive ? 'top-[7.25rem]' : 'top-16' }} z-50 w-56 rounded-md border border-border bg-surface md:right-6">
                         <div class="p-1">
                             <a href="{{ route('app.settings') }}" class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary">
                                 <i data-lucide="user" class="h-4 w-4"></i> Profile
@@ -358,9 +357,7 @@
             <div class="fixed inset-y-0 left-0 w-72 bg-surface border-r border-border z-50">
                 <div class="flex h-14 items-center justify-between border-b border-border px-4">
                     <div class="flex items-center gap-2">
-                        <div class="flex h-7 w-7 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                            <i data-lucide="layers" class="h-4 w-4"></i>
-                        </div>
+                        <x-brand-logo :show-text="false" />
                         <div class="leading-tight">
                             <span class="block text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</span>
                             @if (config('brand.show_parent_branding', true))

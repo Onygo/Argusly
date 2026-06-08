@@ -29,7 +29,7 @@ it('allows company onboarding route for users without billing details', function
     $this->actingAs($user)
         ->get(route('app.onboarding.company.show'))
         ->assertOk()
-        ->assertSee('Vul je bedrijfsgegevens in om te kunnen starten met PublishLayer');
+        ->assertSee('Vul je bedrijfsgegevens in om te kunnen starten met Argusly');
 });
 
 it('reaches subscription start flow even when billing details are incomplete', function () {

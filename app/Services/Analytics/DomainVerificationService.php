@@ -10,7 +10,7 @@ use RuntimeException;
 
 class DomainVerificationService
 {
-    private const META_NAME = 'publishlayer-site-verification';
+    private const META_NAME = 'argusly-site-verification';
 
     private const TIMEOUT_SECONDS = 10;
 
@@ -37,7 +37,7 @@ class DomainVerificationService
      */
     public function getInternalVerifiedDomains(): array
     {
-        $domains = config('publishlayer.analytics.internal_verified_domains', []);
+        $domains = config('argusly.analytics.internal_verified_domains', []);
 
         if (! is_array($domains)) {
             return [];
@@ -272,7 +272,6 @@ class DomainVerificationService
      */
     private function extractVerificationToken(string $html): ?string
     {
-        // Match: <meta name="publishlayer-site-verification" content="TOKEN">
         $pattern = '/<meta\s+[^>]*name=["\']'.preg_quote(self::META_NAME, '/').'["\'][^>]*content=["\']([^"\']+)["\']/i';
 
         if (preg_match($pattern, $html, $matches)) {
@@ -292,8 +291,8 @@ class DomainVerificationService
     private function shouldDisableTlsVerifyFor(string $url): bool
     {
         if ($this->isProductionEnvironment()) {
-            if (config('publishlayer.http_insecure_local') === true) {
-                throw new RuntimeException('PUBLISHLAYER_HTTP_INSECURE_LOCAL must never be enabled in production.');
+            if (config('argusly.http_insecure_local') === true) {
+                throw new RuntimeException('ARGUSLY_HTTP_INSECURE_LOCAL must never be enabled in production.');
             }
 
             return false;
@@ -303,7 +302,7 @@ class DomainVerificationService
             return false;
         }
 
-        if (config('publishlayer.http_insecure_local') !== true) {
+        if (config('argusly.http_insecure_local') !== true) {
             return false;
         }
 

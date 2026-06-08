@@ -155,7 +155,7 @@ describe('PluginArchiveUploadService', function () {
 
     it('stores archive and creates release', function () {
         Storage::fake('local');
-        config(['publishlayer.plugin_updates.disk' => 'local']);
+        config(['argusly.plugin_updates.disk' => 'local']);
 
         $service = new PluginArchiveUploadService();
 
@@ -163,12 +163,12 @@ describe('PluginArchiveUploadService', function () {
         $zipPath = sys_get_temp_dir() . '/plugin-' . uniqid() . '.zip';
         $zip = new ZipArchive();
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-        $zip->addFromString('publishlayer/plugin.php', '<?php // plugin');
+        $zip->addFromString('argusly/plugin.php', '<?php // plugin');
         $zip->close();
 
         $file = new UploadedFile(
             $zipPath,
-            'publishlayer-plugin.zip',
+            'argusly-plugin.zip',
             'application/zip',
             null,
             true
@@ -196,7 +196,7 @@ describe('PluginArchiveUploadService', function () {
 describe('Upload diagnostics endpoint', function () {
     it('returns server diagnostics for superadmin', function () {
         Storage::fake('local');
-        config(['publishlayer.plugin_updates.disk' => 'local']);
+        config(['argusly.plugin_updates.disk' => 'local']);
 
         $superadmin = createSuperadminUser();
 

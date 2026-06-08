@@ -4,18 +4,18 @@
 
 **Date**: 2026-03-13 (Original)
 **Updated**: 2026-03-24 (All findings resolved)
-**Project**: PublishLayer Laravel Connector
-**Location**: `/Users/ricardohagens/Sites/_project_publishlayer/publishlayer-laravel-connector`
+**Project**: Argusly Laravel Connector
+**Location**: `/Users/ricardohagens/Sites/_project_argusly/argusly-laravel-connector`
 
 ---
 
 ## Project Overview
 
-- **Package Name**: `publishlayer/laravel-connector`
+- **Package Name**: `argusly/laravel-connector`
 - **Compatibility**: Laravel 11 & 12
 - **Files**: 54 PHP files (~5,071 lines)
 - **Tests**: 29 test files
-- **Service Provider**: `PublishLayerConnectorServiceProvider`
+- **Service Provider**: `ArguslyConnectorServiceProvider`
 
 ---
 
@@ -79,7 +79,7 @@ Fixed in connector package via cached schema-state checks. Schema status is now 
 **Area**: Reliability
 **Status**: ✅ External package (connector repository)
 
-**Note**: This finding applies to the external `publishlayer/laravel-connector` package, not the main app. The connector package handles this via its own codebase.
+**Note**: This finding applies to the external `argusly/laravel-connector` package, not the main app. The connector package handles this via its own codebase.
 
 ---
 
@@ -109,7 +109,7 @@ Fixed in connector package via retrying sync transactions. Database operations n
 **Area**: UX
 **Status**: ✅ External package (connector repository)
 
-**Note**: This finding applies to the external `publishlayer/laravel-connector` package, not the main app.
+**Note**: This finding applies to the external `argusly/laravel-connector` package, not the main app.
 
 ---
 
@@ -120,7 +120,7 @@ Fixed in connector package via retrying sync transactions. Database operations n
 **Area**: Testing
 **Status**: ✅ External package (connector repository)
 
-**Note**: This finding applies to the external `publishlayer/laravel-connector` package.
+**Note**: This finding applies to the external `argusly/laravel-connector` package.
 
 ---
 
@@ -129,7 +129,7 @@ Fixed in connector package via retrying sync transactions. Database operations n
 **Area**: Documentation
 **Status**: ✅ External package (connector repository)
 
-**Note**: This finding applies to the external `publishlayer/laravel-connector` package.
+**Note**: This finding applies to the external `argusly/laravel-connector` package.
 
 ---
 
@@ -138,7 +138,7 @@ Fixed in connector package via retrying sync transactions. Database operations n
 **Area**: Architecture
 **Status**: ✅ External package (connector repository)
 
-**Note**: This finding applies to the external `publishlayer/laravel-connector` package.
+**Note**: This finding applies to the external `argusly/laravel-connector` package.
 
 ---
 
@@ -152,16 +152,16 @@ Fixed in connector package via retrying sync transactions. Database operations n
    - Proper namespace organization
 
 2. **Comprehensive Model Layer**
-   - `PublishLayerArticle` with proper relationships
-   - `PublishLayerCategory` with article count scopes
-   - `PublishLayerArticleRelation` for related articles
-   - `PublishLayerWebhookEvent` for idempotency
+   - `ArguslyArticle` with proper relationships
+   - `ArguslyCategory` with article count scopes
+   - `ArguslyArticleRelation` for related articles
+   - `ArguslyWebhookEvent` for idempotency
 
 3. **Proper Event System**
    - `DraftReady` event
    - `RevisionReady` event
    - `PublishRequested` event
-   - `PublishLayerWebhookReceived` event
+   - `ArguslyWebhookReceived` event
 
 4. **Robust Webhook Handling**
    - HMAC signature verification
@@ -214,7 +214,7 @@ Fixed in connector package via retrying sync transactions. Database operations n
 ### Core Services
 - `src/Services/KnowledgeSyncService.php`
 - `src/Services/ConnectorHealthService.php`
-- `src/Services/PublishLayerInbox.php`
+- `src/Services/ArguslyInbox.php`
 
 ### Controllers
 - `src/Http/Controllers/WebhookController.php`
@@ -223,10 +223,10 @@ Fixed in connector package via retrying sync transactions. Database operations n
 - `src/Http/Controllers/HealthController.php`
 
 ### Models
-- `src/Models/PublishLayerArticle.php`
-- `src/Models/PublishLayerCategory.php`
-- `src/Models/PublishLayerWebhookEvent.php`
-- `src/Models/PublishLayerSyncLog.php`
+- `src/Models/ArguslyArticle.php`
+- `src/Models/ArguslyCategory.php`
+- `src/Models/ArguslyWebhookEvent.php`
+- `src/Models/ArguslySyncLog.php`
 
 ### Commands
 - `src/Console/Commands/InstallConnectorCommand.php`

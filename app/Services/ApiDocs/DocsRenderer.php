@@ -15,7 +15,7 @@ class DocsRenderer
 
     public function __construct()
     {
-        $this->config = config('publishlayer-docs', []);
+        $this->config = config('argusly-docs', []);
     }
 
     /**
@@ -29,7 +29,7 @@ class DocsRenderer
 
         $cacheEnabled = $this->config['cache']['enabled'] ?? true;
         $cacheTtl = $this->config['cache']['ttl'] ?? 3600;
-        $cacheKey = $this->config['cache']['key'] ?? 'publishlayer:openapi:spec';
+        $cacheKey = $this->config['cache']['key'] ?? 'argusly:openapi:spec';
 
         if ($cacheEnabled) {
             $this->spec = Cache::remember($cacheKey, $cacheTtl, fn () => $this->loadSpec());
@@ -45,7 +45,7 @@ class DocsRenderer
      */
     protected function loadSpec(): array
     {
-        $path = base_path($this->config['openapi']['output'] ?? 'docs/openapi/publishlayer.yaml');
+        $path = base_path($this->config['openapi']['output'] ?? 'docs/openapi/argusly.yaml');
 
         if (! File::exists($path)) {
             return [];
@@ -65,7 +65,7 @@ class DocsRenderer
      */
     public function specExists(): bool
     {
-        $path = base_path($this->config['openapi']['output'] ?? 'docs/openapi/publishlayer.yaml');
+        $path = base_path($this->config['openapi']['output'] ?? 'docs/openapi/argusly.yaml');
 
         return File::exists($path);
     }

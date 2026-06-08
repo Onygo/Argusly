@@ -221,7 +221,7 @@ class AdminDashboardController extends Controller
     {
         Gate::authorize('admin-area-view-sites');
 
-        $disk = (string) config('publishlayer.plugin_updates.disk', 'local');
+        $disk = (string) config('argusly.plugin_updates.disk', 'local');
         $path = trim((string) $release->zip_storage_path);
 
         if ($path === '' || ! Storage::disk($disk)->exists($path)) {
@@ -242,7 +242,7 @@ class AdminDashboardController extends Controller
                 fpassthru($stream);
                 fclose($stream);
             },
-            'publishlayer-wordpress-plugin-' . $release->version . '.zip',
+            'argusly-wordpress-plugin-' . $release->version . '.zip',
             ['Content-Type' => 'application/zip']
         );
     }
@@ -260,7 +260,7 @@ class AdminDashboardController extends Controller
                 ->withErrors(['dashboard' => 'The latest WordPress plugin release cannot be deleted. Upload or keep a newer release first.']);
         }
 
-        $disk = (string) config('publishlayer.plugin_updates.disk', 'local');
+        $disk = (string) config('argusly.plugin_updates.disk', 'local');
         $path = trim((string) $release->zip_storage_path);
         $version = (string) $release->version;
 
@@ -296,7 +296,7 @@ class AdminDashboardController extends Controller
         Gate::authorize('admin-area-superadmin');
 
         $serverLimits = $uploadService->getServerLimits();
-        $disk = (string) config('publishlayer.plugin_updates.disk', 'local');
+        $disk = (string) config('argusly.plugin_updates.disk', 'local');
 
         // Check storage directory is writable
         $storageWritable = false;

@@ -47,7 +47,7 @@ it('shows wordpress site plugin version status on admin dashboard based on heart
         'version' => '1.2.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.7',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.2.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.2.0.zip',
         'is_security_release' => false,
     ]);
 
@@ -62,7 +62,7 @@ it('shows wordpress site plugin version status on admin dashboard based on heart
 
 it('allows superadmin to upload wordpress plugin release from admin dashboard', function () {
     Storage::fake('local');
-    config(['publishlayer.plugin_updates.disk' => 'local']);
+    config(['argusly.plugin_updates.disk' => 'local']);
 
     $superadmin = makeAdminPluginUser('superadmin');
 
@@ -70,12 +70,12 @@ it('allows superadmin to upload wordpress plugin release from admin dashboard', 
     $zipPath = sys_get_temp_dir() . '/test-plugin-' . uniqid() . '.zip';
     $zip = new ZipArchive();
     $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-    $zip->addFromString('publishlayer/plugin.php', '<?php // Plugin code');
+    $zip->addFromString('argusly/plugin.php', '<?php // Plugin code');
     $zip->close();
 
     $uploadedFile = new UploadedFile(
         $zipPath,
-        'publishlayer-wordpress-plugin.zip',
+        'argusly-wordpress-plugin.zip',
         'application/zip',
         null,
         true
@@ -103,54 +103,54 @@ it('allows superadmin to upload wordpress plugin release from admin dashboard', 
 
 it('blocks non-superadmin from uploading wordpress plugin release from admin dashboard', function () {
     Storage::fake('local');
-    config(['publishlayer.plugin_updates.disk' => 'local']);
+    config(['argusly.plugin_updates.disk' => 'local']);
 
     $admin = makeAdminPluginUser('admin');
 
     $this->actingAs($admin)
         ->post(route('admin.dashboard.plugin-releases.store'), [
             'version' => '1.4.0',
-            'archive' => UploadedFile::fake()->create('publishlayer-wordpress-plugin.zip', 120, 'application/zip'),
+            'archive' => UploadedFile::fake()->create('argusly-wordpress-plugin.zip', 120, 'application/zip'),
         ])
         ->assertForbidden();
 });
 
 it('allows admin to download plugin release archive from dashboard', function () {
     Storage::fake('local');
-    config(['publishlayer.plugin_updates.disk' => 'local']);
+    config(['argusly.plugin_updates.disk' => 'local']);
 
     $admin = makeAdminPluginUser('admin');
 
-    Storage::disk('local')->put('plugin-releases/publishlayer-wordpress-plugin-1.5.0.zip', 'release-bytes');
+    Storage::disk('local')->put('plugin-releases/argusly-wordpress-plugin-1.5.0.zip', 'release-bytes');
 
     $release = PluginRelease::query()->create([
         'version' => '1.5.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.5.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.5.0.zip',
         'is_security_release' => false,
     ]);
 
     $this->actingAs($admin)
         ->get(route('admin.dashboard.plugin-releases.download', $release))
         ->assertOk()
-        ->assertDownload('publishlayer-wordpress-plugin-1.5.0.zip');
+        ->assertDownload('argusly-wordpress-plugin-1.5.0.zip');
 });
 
 it('allows superadmin to delete an older wordpress plugin release and archive', function () {
     Storage::fake('local');
-    config(['publishlayer.plugin_updates.disk' => 'local']);
+    config(['argusly.plugin_updates.disk' => 'local']);
 
     $superadmin = makeAdminPluginUser('superadmin');
 
-    Storage::disk('local')->put('plugin-releases/publishlayer-wordpress-plugin-1.5.0.zip', 'old-release');
-    Storage::disk('local')->put('plugin-releases/publishlayer-wordpress-plugin-1.6.0.zip', 'latest-release');
+    Storage::disk('local')->put('plugin-releases/argusly-wordpress-plugin-1.5.0.zip', 'old-release');
+    Storage::disk('local')->put('plugin-releases/argusly-wordpress-plugin-1.6.0.zip', 'latest-release');
 
     $oldRelease = PluginRelease::query()->create([
         'version' => '1.5.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.5.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.5.0.zip',
         'is_security_release' => false,
     ]);
 
@@ -158,7 +158,7 @@ it('allows superadmin to delete an older wordpress plugin release and archive', 
         'version' => '1.6.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.6.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.6.0.zip',
         'is_security_release' => false,
     ]);
 
@@ -168,23 +168,23 @@ it('allows superadmin to delete an older wordpress plugin release and archive', 
         ->assertSessionHas('status', 'WordPress plugin release deleted.');
 
     expect(PluginRelease::query()->where('version', '1.5.0')->exists())->toBeFalse();
-    expect(Storage::disk('local')->exists('plugin-releases/publishlayer-wordpress-plugin-1.5.0.zip'))->toBeFalse();
-    expect(Storage::disk('local')->exists('plugin-releases/publishlayer-wordpress-plugin-1.6.0.zip'))->toBeTrue();
+    expect(Storage::disk('local')->exists('plugin-releases/argusly-wordpress-plugin-1.5.0.zip'))->toBeFalse();
+    expect(Storage::disk('local')->exists('plugin-releases/argusly-wordpress-plugin-1.6.0.zip'))->toBeTrue();
 });
 
 it('prevents deleting the latest wordpress plugin release', function () {
     Storage::fake('local');
-    config(['publishlayer.plugin_updates.disk' => 'local']);
+    config(['argusly.plugin_updates.disk' => 'local']);
 
     $superadmin = makeAdminPluginUser('superadmin');
 
-    Storage::disk('local')->put('plugin-releases/publishlayer-wordpress-plugin-1.6.0.zip', 'latest-release');
+    Storage::disk('local')->put('plugin-releases/argusly-wordpress-plugin-1.6.0.zip', 'latest-release');
 
     $latestRelease = PluginRelease::query()->create([
         'version' => '1.6.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.6.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.6.0.zip',
         'is_security_release' => false,
     ]);
 
@@ -194,12 +194,12 @@ it('prevents deleting the latest wordpress plugin release', function () {
         ->assertSessionHasErrors('dashboard');
 
     expect(PluginRelease::query()->where('version', '1.6.0')->exists())->toBeTrue();
-    expect(Storage::disk('local')->exists('plugin-releases/publishlayer-wordpress-plugin-1.6.0.zip'))->toBeTrue();
+    expect(Storage::disk('local')->exists('plugin-releases/argusly-wordpress-plugin-1.6.0.zip'))->toBeTrue();
 });
 
 it('blocks non-superadmin from deleting wordpress plugin releases', function () {
     Storage::fake('local');
-    config(['publishlayer.plugin_updates.disk' => 'local']);
+    config(['argusly.plugin_updates.disk' => 'local']);
 
     $admin = makeAdminPluginUser('admin');
 
@@ -207,7 +207,7 @@ it('blocks non-superadmin from deleting wordpress plugin releases', function () 
         'version' => '1.5.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.5.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.5.0.zip',
         'is_security_release' => false,
     ]);
 
@@ -251,7 +251,7 @@ it('shows wordpress plugin status columns on admin sites page', function () {
         'version' => '1.1.0',
         'min_wp_version' => '6.0',
         'tested_wp_version' => '6.8',
-        'zip_storage_path' => 'plugin-releases/publishlayer-wordpress-plugin-1.1.0.zip',
+        'zip_storage_path' => 'plugin-releases/argusly-wordpress-plugin-1.1.0.zip',
         'is_security_release' => false,
     ]);
 

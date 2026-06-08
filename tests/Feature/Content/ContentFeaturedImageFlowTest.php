@@ -96,7 +96,7 @@ it('fails push action gracefully when site connector is missing', function () {
 });
 
 it('searches unsplash images from the images tab', function () {
-    config(['publishlayer.stock_images.unsplash.access_key' => 'unsplash-test-key']);
+    config(['argusly.stock_images.unsplash.access_key' => 'unsplash-test-key']);
 
     [$user, $content] = createImageGenerationContext();
 
@@ -143,7 +143,7 @@ it('searches unsplash images from the images tab', function () {
 });
 
 it('uses an unsplash photo as active featured image with attribution and download tracking', function () {
-    config(['publishlayer.stock_images.unsplash.access_key' => 'unsplash-test-key']);
+    config(['argusly.stock_images.unsplash.access_key' => 'unsplash-test-key']);
 
     [$user, $content] = createImageGenerationContext();
 
@@ -210,7 +210,7 @@ it('uses an unsplash photo as active featured image with attribution and downloa
 });
 
 it('rejects tampered unsplash image urls before download tracking', function () {
-    config(['publishlayer.stock_images.unsplash.access_key' => 'unsplash-test-key']);
+    config(['argusly.stock_images.unsplash.access_key' => 'unsplash-test-key']);
 
     [$user, $content] = createImageGenerationContext();
 
@@ -268,7 +268,7 @@ it('pushes featured image payload with draft_id to wordpress webhook', function 
     ]);
 
     Http::fake([
-        'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image' => Http::response([
+        'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image' => Http::response([
             'ok' => true,
             'attachment_id' => 4321,
             'featured_image_id' => 4321,
@@ -282,7 +282,7 @@ it('pushes featured image payload with draft_id to wordpress webhook', function 
         ->assertSessionHasNoErrors();
 
     Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($content, $draft) {
-        if ($request->url() !== 'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image') {
+        if ($request->url() !== 'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image') {
             return false;
         }
 
@@ -294,7 +294,7 @@ it('pushes featured image payload with draft_id to wordpress webhook', function 
             && data_get($payload, 'wp_post_id') === '987'
             && data_get($payload, 'featured_image_attribution') === 'Photo by Jane Creator on Unsplash'
             && str_starts_with((string) data_get($payload, 'image_attribution.photographer_url'), 'https://unsplash.com/@janecreator')
-            && str_contains((string) data_get($payload, 'image_attribution.photographer_url'), 'utm_source=publishlayer');
+            && str_contains((string) data_get($payload, 'image_attribution.photographer_url'), 'utm_source=argusly');
     });
 
     $image = ContentImage::query()->where('content_id', $content->id)->where('type', 'featured')->firstOrFail();
@@ -362,13 +362,13 @@ it('ensures wp_post_id before pushing featured image when mapping is missing', f
     ]);
 
     Http::fake([
-        'https://images.example.com/wp-json/publishlayer/v1/posts' => Http::response([
+        'https://images.example.com/wp-json/argusly/v1/posts' => Http::response([
             'ok' => true,
             'post_id' => '321',
             'wp_post_id' => '321',
             'url' => 'https://images.example.com/?p=321',
         ], 200),
-        'https://images.example.com/wp-json/publishlayer/v1/posts/321/featured-image' => Http::response([
+        'https://images.example.com/wp-json/argusly/v1/posts/321/featured-image' => Http::response([
             'ok' => true,
             'attachment_id' => '777',
             'featured_image_id' => '777',
@@ -381,11 +381,11 @@ it('ensures wp_post_id before pushing featured image when mapping is missing', f
         ->assertSessionHasNoErrors();
 
     Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
-        return $request->url() === 'https://images.example.com/wp-json/publishlayer/v1/posts';
+        return $request->url() === 'https://images.example.com/wp-json/argusly/v1/posts';
     });
 
     Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($content, $draft) {
-        if ($request->url() !== 'https://images.example.com/wp-json/publishlayer/v1/posts/321/featured-image') {
+        if ($request->url() !== 'https://images.example.com/wp-json/argusly/v1/posts/321/featured-image') {
             return false;
         }
 
@@ -424,7 +424,7 @@ it('allows image push action for laravel site type when connector is configured'
     ]);
 
     Http::fake([
-        'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
+        'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
     ]);
 
     $this->actingAs($user)
@@ -433,7 +433,7 @@ it('allows image push action for laravel site type when connector is configured'
         ->assertSessionHasNoErrors();
 
     Http::assertSent(function (\Illuminate\Http\Client\Request $request) use ($content, $draft) {
-        if ($request->url() !== 'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image') {
+        if ($request->url() !== 'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image') {
             return false;
         }
 
@@ -467,7 +467,7 @@ it('uses medium non-webp path by default for wordpress payload', function () {
     ]);
 
     Http::fake([
-        'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
+        'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
     ]);
 
     $this->actingAs($user)
@@ -506,7 +506,7 @@ it('uses medium webp path for wordpress payload when site supports webp', functi
     ]);
 
     Http::fake([
-        'https://wp.example.com/wp-json/publishlayer/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
+        'https://wp.example.com/wp-json/argusly/v1/posts/987/featured-image' => Http::response(['ok' => true], 200),
     ]);
 
     $this->actingAs($user)

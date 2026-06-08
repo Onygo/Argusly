@@ -130,7 +130,7 @@
 
             <div class="rounded-lg border border-border bg-background p-4">
                 <p class="text-xs text-textSecondary">Argusly pages</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) data_get($summary, 'publishlayer_pages_count', 0)) }}</p>
+                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) data_get($summary, 'argusly_pages_count', 0)) }}</p>
             </div>
 
             <div class="rounded-lg border border-border bg-background p-4">
@@ -476,7 +476,7 @@
         <div class="mb-6 flex flex-wrap gap-2">
             @foreach ([
                 'all' => 'All',
-                'publishlayer' => 'Argusly content',
+                'argusly' => 'Argusly content',
                 'other' => 'Other pages',
                 'actionable' => 'Only actionable',
                 'not_actionable' => 'Only not actionable',

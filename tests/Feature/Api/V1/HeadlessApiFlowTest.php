@@ -220,7 +220,7 @@ it('creates webhook and queues brief.created delivery', function () {
     $webhookResponse = $this->withHeaders(apiHeaders($ctx['plain_key']))
         ->postJson('/api/v1/webhooks', [
             'name' => 'Integration webhook',
-            'target_url' => 'https://example.com/publishlayer-webhook',
+            'target_url' => 'https://example.com/argusly-webhook',
             'secret' => Str::random(32),
             'events' => ['brief.created'],
         ]);

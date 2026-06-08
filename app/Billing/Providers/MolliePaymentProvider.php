@@ -561,7 +561,7 @@ class MolliePaymentProvider implements PaymentProvider
         $email = trim((string) (
             $organization?->primaryUser?->email
             ?: $organization?->users()->orderBy('created_at')->value('email')
-            ?: 'billing@publishlayer.com'
+            ?: 'billing@argusly.com'
         ));
 
         $customer = $this->mollie->customers->create([

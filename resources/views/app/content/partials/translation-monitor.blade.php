@@ -8,7 +8,7 @@
         ->mapWithKeys(fn (array $status): array => [(string) $status['locale'] => $status['content'] ?? null]);
     $staleThresholdSeconds = max(
         5,
-        (int) config('translation.processing_lock_ttl_seconds', config('publishlayer.translations.stale_lock_timeout_minutes', 10) * 60)
+        (int) config('translation.processing_lock_ttl_seconds', config('argusly.translations.stale_lock_timeout_minutes', 10) * 60)
     );
 
     $formatAge = static function (?int $seconds): string {

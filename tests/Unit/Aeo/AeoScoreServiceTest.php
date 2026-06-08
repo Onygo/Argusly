@@ -67,7 +67,7 @@ it('scores structured answer-first content with a usable breakdown', function ()
         'content_id' => $content->id,
         'revision_number' => 1,
         'label' => 'R1',
-        'content_html' => '<p>AEO score is a visibility signal for answer-first content. PublishLayer helps teams improve ChatGPT and Google AI readability.</p><h2>Why it matters</h2><ul><li>AI visibility</li></ul><h2>FAQ</h2><p>Helpful answers.</p>',
+        'content_html' => '<p>AEO score is a visibility signal for answer-first content. Argusly helps teams improve ChatGPT and Google AI readability.</p><h2>Why it matters</h2><ul><li>AI visibility</li></ul><h2>FAQ</h2><p>Helpful answers.</p>',
         'is_active' => true,
     ]);
 
@@ -80,7 +80,7 @@ it('scores structured answer-first content with a usable breakdown', function ()
         'content_id' => $content->id,
         'question' => 'What is an AEO score?',
         'answer' => 'An AEO score is a content quality score for direct AI answer visibility.',
-        'entities' => ['PublishLayer', 'ChatGPT', 'Google AI'],
+        'entities' => ['Argusly', 'ChatGPT', 'Google AI'],
         'order' => 0,
     ]);
 

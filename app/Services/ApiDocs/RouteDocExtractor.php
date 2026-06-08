@@ -12,7 +12,7 @@ class RouteDocExtractor
 
     public function __construct()
     {
-        $this->config = config('publishlayer-docs', []);
+        $this->config = config('argusly-docs', []);
     }
 
     /**

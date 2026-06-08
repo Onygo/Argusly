@@ -433,7 +433,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const storageKey = 'publishlayer.dashboard.latest-content.expanded.v1';
+            const storageKey = 'argusly.dashboard.latest-content.expanded.v1';
             const interactiveSelector = 'a, button, input, select, textarea, label, summary, [data-no-row-toggle]';
 
             const readExpandedKeys = () => {

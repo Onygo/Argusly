@@ -228,7 +228,7 @@ describe('Analytics Settings Service', function () {
     it('shouldRenderTracking returns false when GA4 ID is empty', function () {
         $service = app(AnalyticsSettingsService::class);
 
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $service->updateSettings([
             'analytics_enabled' => true,
@@ -254,7 +254,7 @@ describe('Analytics Rendering', function () {
     });
 
     it('renders GA4 script when enabled with valid ID', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([
@@ -272,7 +272,7 @@ describe('Analytics Rendering', function () {
     });
 
     it('renders GTM head script when enabled', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([
@@ -292,7 +292,7 @@ describe('Analytics Rendering', function () {
     });
 
     it('renders custom script when provider is custom_head_script', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
 
         $customScript = '<script>console.log("custom tracking");</script>';
 
@@ -312,17 +312,17 @@ describe('Analytics Rendering', function () {
 
 describe('Environment-based Tracking', function () {
     it('respects testing environment config', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => false]);
+        config(['argusly.analytics.allow_tracking_in_testing' => false]);
 
         $service = app(AnalyticsSettingsService::class);
         expect($service->isTrackingAllowedInEnvironment())->toBeFalse();
 
-        config(['publishlayer.analytics.allow_tracking_in_testing' => true]);
+        config(['argusly.analytics.allow_tracking_in_testing' => true]);
         expect($service->isTrackingAllowedInEnvironment())->toBeTrue();
     });
 
     it('returns false for isEnabled when environment blocks tracking', function () {
-        config(['publishlayer.analytics.allow_tracking_in_testing' => false]);
+        config(['argusly.analytics.allow_tracking_in_testing' => false]);
 
         $service = app(AnalyticsSettingsService::class);
         $service->updateSettings([

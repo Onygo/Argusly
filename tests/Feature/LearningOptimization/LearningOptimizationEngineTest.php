@@ -108,7 +108,7 @@ it('builds learning profiles and explainable optimization recommendations from p
         'workspace_id' => $workspace->id,
         'platform' => SocialPlatform::LINKEDIN->value,
         'account_type' => 'organization',
-        'display_name' => 'PublishLayer LinkedIn',
+        'display_name' => 'Argusly LinkedIn',
         'status' => 'connected',
     ]);
 

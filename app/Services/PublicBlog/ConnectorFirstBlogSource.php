@@ -8,7 +8,7 @@ use App\Exceptions\PublicBlogSourceUnavailableException;
 class ConnectorFirstBlogSource implements PublicBlogSource
 {
     public function __construct(
-        private readonly PublishLayerConnectorBlogSource $connector,
+        private readonly ArguslyConnectorBlogSource $connector,
         private readonly ConnectorSynchronizedBlogSource $local
     ) {
     }
@@ -18,7 +18,7 @@ class ConnectorFirstBlogSource implements PublicBlogSource
      */
     public function fetchPublishedPosts(): array
     {
-        $fallbackToLocal = (bool) config('publishlayer_connector.public_blog.fallback_to_local', config('publishlayer.public_blog.fallback_to_local', true));
+        $fallbackToLocal = (bool) config('argusly_connector.public_blog.fallback_to_local', config('argusly.public_blog.fallback_to_local', true));
 
         if (! $this->connector->isEnabled()) {
             return $this->local->fetchPublishedPosts();

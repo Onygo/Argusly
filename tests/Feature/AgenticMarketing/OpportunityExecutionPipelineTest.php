@@ -185,7 +185,7 @@ it('generates concrete execution output for answer faq summary cta and links', f
         'topic' => 'ai visibility',
         'topic_hash' => hash('sha256', 'ai visibility'),
         'competitor_content_count' => 4,
-        'publishlayer_content_count' => 1,
+        'argusly_content_count' => 1,
         'overlap_score' => 72,
         'opportunity_score' => 84,
         'coverage_status' => 'weak',

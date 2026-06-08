@@ -103,7 +103,7 @@ it('dispatches only due active content automations', function () {
 });
 
 it('does not dispatch due automations when estimated credits are insufficient', function () {
-    config()->set('publishlayer.ai.drafts.credit_cost', 4);
+    config()->set('argusly.ai.drafts.credit_cost', 4);
     config()->set('translation.default_credit_cost', 6);
 
     [$workspace, $site] = makeContentAutomationSchedulerContext();

@@ -1180,9 +1180,9 @@ return [
         'Saved at :time.' => 'Opgeslagen om :time.',
 
         'Endpoint not found' => 'Endpoint niet gevonden',
-        'OpenAPI specification not found. Run php artisan publishlayer:generate-openapi first.' => 'OpenAPI-specificatie niet gevonden. Draai eerst php artisan publishlayer:generate-openapi.',
-        'Postman collection not found. Run php artisan publishlayer:generate-postman first.' => 'Postman-collectie niet gevonden. Draai eerst php artisan publishlayer:generate-postman.',
-        'Postman environment not found. Run php artisan publishlayer:generate-postman first.' => 'Postman-omgeving niet gevonden. Draai eerst php artisan publishlayer:generate-postman.',
+        'OpenAPI specification not found. Run php artisan argusly:generate-openapi first.' => 'OpenAPI-specificatie niet gevonden. Draai eerst php artisan argusly:generate-openapi.',
+        'Postman collection not found. Run php artisan argusly:generate-postman first.' => 'Postman-collectie niet gevonden. Draai eerst php artisan argusly:generate-postman.',
+        'Postman environment not found. Run php artisan argusly:generate-postman first.' => 'Postman-omgeving niet gevonden. Draai eerst php artisan argusly:generate-postman.',
         'Invoice document not found.' => 'Factuurdocument niet gevonden.',
         'No workspace available for this organization.' => 'Geen workspace beschikbaar voor deze organisatie.',
         'No workspace found for this organization.' => 'Geen workspace gevonden voor deze organisatie.',

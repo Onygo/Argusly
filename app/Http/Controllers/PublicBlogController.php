@@ -172,7 +172,7 @@ class PublicBlogController extends Controller
                 'name' => 'Argusly',
                 'logo' => [
                     '@type' => 'ImageObject',
-                    'url' => asset('images/publishlayer-logo.png'),
+                    'url' => asset('images/argusly-logo.svg'),
                 ],
             ],
             'mainEntityOfPage' => [
@@ -611,7 +611,7 @@ class PublicBlogController extends Controller
         return $request->isMethod('GET')
             && ! $request->ajax()
             && $request->getQueryString() === null
-            && (bool) config('publishlayer.public_blog.cache_article_pages', true);
+            && (bool) config('argusly.public_blog.cache_article_pages', true);
     }
 
     private function articleResponseCacheKey(PublicBlogService $blog, string $locale, string $slug): string

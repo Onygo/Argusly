@@ -17,8 +17,8 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    config()->set('publishlayer_connector.public_blog.use_connector', false);
-    config()->set('publishlayer_connector.public_blog.fallback_to_local', true);
+    config()->set('argusly_connector.public_blog.use_connector', false);
+    config()->set('argusly_connector.public_blog.fallback_to_local', true);
 
     $this->organization = Organization::query()->create([
         'name' => 'Cross Locale Test Org',

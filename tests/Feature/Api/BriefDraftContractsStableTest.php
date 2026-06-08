@@ -57,7 +57,7 @@ it('keeps brief create and draft list api response structures stable', function 
 
     $headers = [
         'Authorization' => 'Bearer ' . $plainToken,
-        'X-PublishLayer-Site' => 'api-contract.example.com',
+        'X-Argusly-Site' => 'api-contract.example.com',
     ];
 
     $briefResponse = $this->withHeaders($headers)->postJson('/api/v1/briefs', [

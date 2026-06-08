@@ -164,7 +164,7 @@ class RegenerateContentDraftJob implements ShouldQueue
                     $draft->delivery_last_error = null;
                     $draft->save();
 
-                    DeliverDraftJob::dispatch((string) $draft->id)->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+                    DeliverDraftJob::dispatch((string) $draft->id)->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
                 }
             } catch (Throwable $postProcessException) {
                 Log::warning('RegenerateContentDraftJob post-process failed after successful generation.', [

@@ -991,7 +991,7 @@ class AppContentController extends Controller
 
     private function resolveCalendarShowWeekNumbers(Request $request): bool
     {
-        $default = (bool) config('publishlayer.calendar.show_week_numbers', false);
+        $default = (bool) config('argusly.calendar.show_week_numbers', false);
 
         if (! $request->has('week_numbers')) {
             return $default;
@@ -2409,7 +2409,7 @@ class AppContentController extends Controller
 
         // Force delivery for explicit user-initiated republish (bypass checksum skip)
         DeliverDraftJob::dispatch((string) $draft->id, forceDelivery: true)
-            ->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+            ->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
 
         return back()->with('status', 'Content queued for WordPress republish.');
     }
@@ -2646,7 +2646,7 @@ class AppContentController extends Controller
                 $draft->delivery_last_error = null;
                 $draft->save();
 
-                DeliverDraftJob::dispatch((string) $draft->id)->onQueue((string) config('publishlayer.webhooks.queue', 'deliveries'));
+                DeliverDraftJob::dispatch((string) $draft->id)->onQueue((string) config('argusly.webhooks.queue', 'deliveries'));
             }
 
             return back()->with('status', sprintf(

@@ -30,9 +30,9 @@ function llmDashboardTestSite(): ClientSite
         'workspace_id' => $workspace->id,
         'type' => 'wordpress',
         'name' => 'Dash Site',
-        'site_url' => 'https://publishlayer.com',
-        'base_url' => 'https://publishlayer.com',
-        'allowed_domains' => ['publishlayer.com'],
+        'site_url' => 'https://argusly.com',
+        'base_url' => 'https://argusly.com',
+        'allowed_domains' => ['argusly.com'],
         'is_active' => true,
         'status' => 'connected',
     ]);
@@ -45,11 +45,11 @@ it('returns provider-aware dashboard components for brand visibility competitor 
         'client_site_id' => $site->id,
         'name' => 'GEO tools',
         'query_text' => 'generative engine optimization tools',
-        'target_brand' => 'PublishLayer',
-        'target_domain' => 'publishlayer.com',
-        'brand_terms' => ['PublishLayer'],
+        'target_brand' => 'Argusly',
+        'target_domain' => 'argusly.com',
+        'brand_terms' => ['Argusly'],
         'competitor_terms' => ['Semrush'],
-        'target_urls' => ['https://publishlayer.com'],
+        'target_urls' => ['https://argusly.com'],
         'locale' => 'en',
         'frequency' => 'daily',
         'is_active' => true,
@@ -72,7 +72,7 @@ it('returns provider-aware dashboard components for brand visibility competitor 
         'position_score' => 0.75,
         'citation_score' => 0.65,
         'competitor_hits' => [['term' => 'Semrush', 'count' => 2]],
-        'sources' => [['url' => 'https://publishlayer.com/geo', 'domain' => 'publishlayer.com', 'type' => 'website']],
+        'sources' => [['url' => 'https://argusly.com/geo', 'domain' => 'argusly.com', 'type' => 'website']],
     ]);
 
     $query->setRelation('runs', $query->runs()->where('status', 'succeeded')->latest('run_at')->get());

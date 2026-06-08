@@ -25,9 +25,9 @@
                 <div class="flex items-center justify-between">
                     <span class="text-sm text-textSecondary">Content Lifecycle</span>
                     <x-status-badge
-                        :label="$fullStatus['publishlayer']['value']"
-                        :color="$fullStatus['publishlayer']['color']"
-                        :icon="$fullStatus['publishlayer']['icon']"
+                        :label="$fullStatus['argusly']['value']"
+                        :color="$fullStatus['argusly']['color']"
+                        :icon="$fullStatus['argusly']['icon']"
                     />
                 </div>
             </div>

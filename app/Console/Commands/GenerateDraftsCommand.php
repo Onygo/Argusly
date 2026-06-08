@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class GenerateDraftsCommand extends Command
 {
-    protected $signature = 'publishlayer:generateDrafts {--limit=10} {--include-failed=0}';
+    protected $signature = 'argusly:generateDrafts {--limit=10} {--include-failed=0}';
     protected $description = 'Generate draft content_html using the unified LLM pipeline';
 
     public function handle(): int

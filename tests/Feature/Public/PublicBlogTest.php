@@ -23,8 +23,8 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     Cache::flush();
 
-    config()->set('publishlayer_connector.public_blog.use_connector', false);
-    config()->set('publishlayer_connector.public_blog.fallback_to_local', true);
+    config()->set('argusly_connector.public_blog.use_connector', false);
+    config()->set('argusly_connector.public_blog.fallback_to_local', true);
 
     $organization = Organization::query()->create([
         'name' => 'Localized Blog Org',
@@ -164,7 +164,7 @@ it('loads local blog surfaces with featured images without ambiguous content ima
             'first_published_at' => $publishedAt,
             'public_blog_excerpt' => 'Featured excerpt',
             'public_blog_reading_time_minutes' => 2,
-            'public_blog_author' => 'PublishLayer',
+            'public_blog_author' => 'Argusly',
             'public_blog_category' => 'Product',
             'public_blog_tags' => ['featured'],
             'public_blog_featured_image_url' => 'https://images.example.test/featured.jpg',

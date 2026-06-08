@@ -5,7 +5,7 @@ info:
   description: |
     Headless and hybrid API surface for Argusly workspaces.
 servers:
-  - url: https://api.publishlayer.com/api/v1
+  - url: https://api.argusly.com/api/v1
 security:
   - bearerAuth: []
 components:

@@ -24,7 +24,7 @@ class SyncOnboardingStateOnRegistered
         }
 
         $state = $this->states->markRegistered($user, $event->workspaceId);
-        if ((bool) config('publishlayer.onboarding.require_email_verification', false)) {
+        if ((bool) config('argusly.onboarding.require_email_verification', false)) {
             SendOnboardingEmailJob::dispatch($user->id, 'verify_email');
             return;
         }

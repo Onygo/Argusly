@@ -192,7 +192,7 @@ class LlmModelCatalog
         $configured = (array) config('llm.providers.' . $provider . '.allowed_models', []);
         $defaults = [
             (string) config('llm.providers.' . $provider . '.default_model', ''),
-            (string) config('publishlayer.ai.images.' . $provider . '.model', ''),
+            (string) config('argusly.ai.images.' . $provider . '.model', ''),
         ];
         $pricing = array_keys((array) config('llm.pricing.model_rates_usd_per_1m.' . $provider, []));
 

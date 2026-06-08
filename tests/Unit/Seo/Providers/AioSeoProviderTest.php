@@ -23,7 +23,7 @@ it('declares aioseo seo capabilities and syncable field keys', function () {
         ]);
 });
 
-it('maps publishlayer seo fields to aioseo wordpress meta keys', function () {
+it('maps argusly seo fields to aioseo wordpress meta keys', function () {
     $provider = new AioSeoProvider();
 
     $mapped = $provider->mapToWordPressMeta([

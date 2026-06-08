@@ -279,17 +279,17 @@ describe('WebhookEnvelope - Headers', function () {
 
         expect($headers)->toHaveKeys([
             'Content-Type',
-            'X-PublishLayer-Event',
-            'X-PublishLayer-Event-Version',
-            'X-PublishLayer-Event-ID',
-            'X-PublishLayer-Signature',
-            'X-PublishLayer-Delivery-Attempt',
-            'X-PublishLayer-Timestamp',
+            'X-Argusly-Event',
+            'X-Argusly-Event-Version',
+            'X-Argusly-Event-ID',
+            'X-Argusly-Signature',
+            'X-Argusly-Delivery-Attempt',
+            'X-Argusly-Timestamp',
         ])
             ->and($headers['Content-Type'])->toBe('application/json')
-            ->and($headers['X-PublishLayer-Event'])->toBe('article.created')
-            ->and($headers['X-PublishLayer-Signature'])->toBe('sha256=signature123')
-            ->and($headers['X-PublishLayer-Delivery-Attempt'])->toBe('1');
+            ->and($headers['X-Argusly-Event'])->toBe('article.created')
+            ->and($headers['X-Argusly-Signature'])->toBe('sha256=signature123')
+            ->and($headers['X-Argusly-Delivery-Attempt'])->toBe('1');
     });
 
     it('includes deprecation headers for deprecated events', function () {
@@ -300,8 +300,8 @@ describe('WebhookEnvelope - Headers', function () {
 
         $headers = $envelope->headers('signature123');
 
-        expect($headers)->toHaveKeys(['X-PublishLayer-Deprecation', 'Sunset'])
-            ->and($headers['X-PublishLayer-Deprecation'])->toBe('true')
+        expect($headers)->toHaveKeys(['X-Argusly-Deprecation', 'Sunset'])
+            ->and($headers['X-Argusly-Deprecation'])->toBe('true')
             ->and($headers['Sunset'])->toBe('Sun, 01 Jun 2026 00:00:00 GMT');
     });
 
@@ -313,7 +313,7 @@ describe('WebhookEnvelope - Headers', function () {
 
         $headers = $envelope->headers('signature123');
 
-        expect($headers)->not->toHaveKey('X-PublishLayer-Deprecation')
+        expect($headers)->not->toHaveKey('X-Argusly-Deprecation')
             ->and($headers)->not->toHaveKey('Sunset');
     });
 });
@@ -382,9 +382,9 @@ describe('WebhookEnvelope - Legacy Support', function () {
 
         $headers = $envelope->legacyHeaders('signature123');
 
-        expect($headers)->toHaveKey('X-PublishLayer-Event')
-            ->and($headers)->not->toHaveKey('X-PublishLayer-Event-Version')
-            ->and($headers)->not->toHaveKey('X-PublishLayer-Event-ID');
+        expect($headers)->toHaveKey('X-Argusly-Event')
+            ->and($headers)->not->toHaveKey('X-Argusly-Event-Version')
+            ->and($headers)->not->toHaveKey('X-Argusly-Event-ID');
     });
 });
 

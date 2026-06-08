@@ -44,13 +44,8 @@
         };
     @endphp
     <div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-        <a href="{{ LocalizedMarketingUrl::route('landing') }}" class="inline-flex items-center gap-2 rounded-md px-1 py-1 hover:bg-surfaceMuted">
-            <span class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accentYellow-100 text-accentYellow-900">
-                <i data-lucide="layers" class="h-4 w-4"></i>
-            </span>
-            <span class="leading-tight">
-                <span class="block text-sm font-semibold text-textPrimary">Argusly</span>
-            </span>
+        <a href="{{ LocalizedMarketingUrl::route('landing') }}" class="inline-flex items-center gap-3">
+            <x-brand-logo text-class="text-[17px] font-bold tracking-tight text-textPrimary" />
         </a>
 
         <nav class="hidden items-center gap-6 text-sm text-textMuted md:flex">
@@ -65,7 +60,7 @@
 
                     <div class="absolute left-1/2 top-full z-20 mt-3 w-[22rem] -translate-x-1/2 pl-public-card p-3 shadow-sm">
                         @if ($resourceHubItem !== null)
-                            <a href="{{ MarketingNavigation::buildUrl($resourceHubItem) }}" class="block rounded-2xl border border-publicPrimary/12 bg-[#f7f4ed] px-4 py-4 transition-colors hover:bg-surface">
+                            <a href="{{ MarketingNavigation::buildUrl($resourceHubItem) }}" class="block rounded-2xl border border-publicPrimary/12 bg-surfaceSubtle px-4 py-4 transition-colors hover:bg-surface">
                                 <span class="block text-xs font-semibold uppercase tracking-[0.14em] text-textMuted">{{ __('public.nav.resources') }}</span>
                                 <span class="mt-2 block text-sm font-semibold text-textPrimary">{{ $resourceHubItem['label'] }}</span>
                                 <span class="mt-1 block text-sm leading-6 text-textSecondary">{{ $resourceHubItem['description'] }}</span>
@@ -114,11 +109,12 @@
                     <path d="M6 6l12 12M18 6l-12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
                 </svg>
             </button>
-            <a href="{{ route('login') }}" class="hidden items-center rounded-lg px-3 py-2 text-sm text-textSecondary transition-colors hover:bg-[#f7f4ed] md:inline-flex">
+            <a href="{{ route('login') }}" class="hidden items-center rounded-lg px-3 py-2 text-sm text-textSecondary transition-colors hover:bg-surfaceMuted md:inline-flex">
                 {{ __('public.nav.sign_in') }}
             </a>
-            <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="hidden items-center justify-center rounded-lg bg-publicPrimary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-publicPrimaryHover md:inline-flex">
+            <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="hidden items-center justify-center gap-2 rounded-full bg-textPrimary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black md:inline-flex">
                 {{ $primaryCta['label'] }}
+                <x-public.icon name="arrow-right" size="xs" class="text-white" />
             </a>
         </div>
     </div>
@@ -135,7 +131,7 @@
                     </summary>
                     <div class="mt-1 space-y-1 px-3 pb-2">
                         @if ($resourceHubItem !== null)
-                            <a href="{{ MarketingNavigation::buildUrl($resourceHubItem) }}" class="block rounded-md border border-publicPrimary/12 bg-[#f7f4ed] px-3 py-3 text-textPrimary">
+                            <a href="{{ MarketingNavigation::buildUrl($resourceHubItem) }}" class="block rounded-md border border-publicPrimary/12 bg-surfaceSubtle px-3 py-3 text-textPrimary">
                                 <span class="block text-sm font-semibold">{{ $resourceHubItem['label'] }}</span>
                                 <span class="mt-1 block text-xs leading-5 text-textSecondary">{{ $resourceHubItem['description'] }}</span>
                             </a>
@@ -153,8 +149,11 @@
                 <a href="{{ MarketingNavigation::buildUrl($item) }}" class="rounded-md px-3 py-2 {{ $isActive ? 'bg-surfaceMuted text-textPrimary' : 'hover:bg-surfaceMuted hover:text-textPrimary' }}">{{ $item['label'] }}</a>
             @endforeach
             <div class="mt-2 flex flex-wrap gap-2 px-3 pb-1">
-                <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-[#f7f4ed]">{{ __('public.nav.sign_in') }}</a>
-                <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="inline-flex items-center justify-center rounded-lg bg-publicPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-publicPrimaryHover">{{ $primaryCta['label'] }}</a>
+                <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-full border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-surfaceMuted">{{ __('public.nav.sign_in') }}</a>
+                <a href="{{ MarketingNavigation::buildUrl($primaryCta) }}" class="inline-flex items-center justify-center gap-2 rounded-full bg-textPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black">
+                    {{ $primaryCta['label'] }}
+                    <x-public.icon name="arrow-right" size="xs" class="text-white" />
+                </a>
             </div>
         </nav>
     </div>

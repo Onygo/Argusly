@@ -32,8 +32,8 @@ it('renders invoice pdf html with required totals fields', function () {
     expect($html)->toContain((string) $pdfData->vatAmount);
     expect($html)->toContain((string) $pdfData->totalGross);
     expect($html)->toContain('invoice-brand-wordmark');
-    expect($html)->toContain('PublishLayer');
-    expect($html)->toContain('aria-label="PublishLayer brand icon"');
+    expect($html)->toContain('Argusly');
+    expect($html)->toContain('aria-label="Argusly brand icon"');
     expect($html)->toContain('font-family: Arial, sans-serif;');
     expect($html)->toContain('body,');
 });
@@ -71,7 +71,7 @@ it('does not duplicate full seller address block between header and footer', fun
     $invoice = createInvoiceForPdfTemplateTest();
 
     app(BillingSettingsService::class)->putInvoiceIssuerProfile([
-        'company_name' => 'PublishLayer (part of Onygo)',
+        'company_name' => 'Argusly (part of Onygo)',
         'address_line1' => 'Stationssingel 6',
         'address_line2' => '',
         'postal_code' => '4103 XJ',
@@ -79,8 +79,8 @@ it('does not duplicate full seller address block between header and footer', fun
         'country_code' => 'NL',
         'vat_number' => '',
         'kvk_number' => '70804028',
-        'email' => 'billing@publishlayer.com',
-        'website' => 'publishlayer.com',
+        'email' => 'billing@argusly.com',
+        'website' => 'argusly.com',
         'logo_path' => 'images/pl-logo.svg',
     ]);
 
@@ -94,7 +94,7 @@ it('does not duplicate full seller address block between header and footer', fun
 
     expect(substr_count($html, 'Stationssingel 6'))->toBe(1);
     expect(substr_count($html, 'KvK 70804028'))->toBe(1);
-    expect(substr_count($html, 'PublishLayer (part of Onygo)'))->toBeLessThanOrEqual(2);
+    expect(substr_count($html, 'Argusly (part of Onygo)'))->toBeLessThanOrEqual(2);
 });
 
 it('renders issuer logo image when issuer logo data is provided', function () {
@@ -112,7 +112,7 @@ it('renders issuer logo image when issuer logo data is provided', function () {
     ])->render();
 
     expect($html)->toContain('src="data:image/png;base64,ZmFrZWltYWdl"');
-    expect($html)->toContain('alt="PublishLayer logo"');
+    expect($html)->toContain('alt="Argusly logo"');
 });
 
 it('returns a pdf response for invoice preview', function () {

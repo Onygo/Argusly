@@ -259,12 +259,12 @@ it('generates linkedin variants through the configured llm provider', function (
 it('adds the linkedin test disclaimer when enabled', function (): void {
     config([
         'social_distribution.linkedin_test_disclaimer_enabled' => true,
-        'social_distribution.linkedin_test_disclaimer_text' => 'Test vanuit PublishLayer: automatisch gegenereerd voor een Agentic Marketing Automation demo.',
+        'social_distribution.linkedin_test_disclaimer_text' => 'Test vanuit Argusly: automatisch gegenereerd voor een Agentic Marketing Automation demo.',
     ]);
 
     $text = app(LinkedInPostTextRenderer::class)->render('Deze post is automatisch gemaakt.', hashtags: ['#Demo']);
 
-    expect($text)->toStartWith('Test vanuit PublishLayer:')
+    expect($text)->toStartWith('Test vanuit Argusly:')
         ->and($text)->toContain('Deze post is automatisch gemaakt.')
         ->and($text)->toContain('#Demo');
 });
@@ -280,14 +280,14 @@ it('does not add the linkedin test disclaimer when disabled', function (): void 
 it('does not duplicate the linkedin test disclaimer', function (): void {
     config([
         'social_distribution.linkedin_test_disclaimer_enabled' => true,
-        'social_distribution.linkedin_test_disclaimer_text' => 'Test vanuit PublishLayer: automatisch gegenereerd voor een Agentic Marketing Automation demo.',
+        'social_distribution.linkedin_test_disclaimer_text' => 'Test vanuit Argusly: automatisch gegenereerd voor een Agentic Marketing Automation demo.',
     ]);
 
     $renderer = app(LinkedInPostTextRenderer::class);
-    $once = $renderer->render('Test vanuit PublishLayer: automatisch gegenereerd voor een Agentic Marketing Automation demo.'."\n\n".'Body.');
+    $once = $renderer->render('Test vanuit Argusly: automatisch gegenereerd voor een Agentic Marketing Automation demo.'."\n\n".'Body.');
     $twice = $renderer->render($once);
 
-    expect(substr_count($twice, 'Test vanuit PublishLayer:'))->toBe(1);
+    expect(substr_count($twice, 'Test vanuit Argusly:'))->toBe(1);
 });
 
 it('uses the same linkedin renderer for preview snapshots and publishing', function (): void {
@@ -295,7 +295,7 @@ it('uses the same linkedin renderer for preview snapshots and publishing', funct
         'services.linkedin.enabled' => true,
         'services.linkedin.publishing_enabled' => true,
         'social_distribution.linkedin_test_disclaimer_enabled' => true,
-        'social_distribution.linkedin_test_disclaimer_text' => 'Test vanuit PublishLayer: automatisch gegenereerd voor een Agentic Marketing Automation demo.',
+        'social_distribution.linkedin_test_disclaimer_text' => 'Test vanuit Argusly: automatisch gegenereerd voor een Agentic Marketing Automation demo.',
     ]);
 
     $organization = Organization::query()->create([
@@ -329,7 +329,7 @@ it('uses the same linkedin renderer for preview snapshots and publishing', funct
         'status' => SocialPostVariantStatus::APPROVED,
         'variant_number' => 1,
         'body' => 'Preview en publish moeten gelijk zijn.',
-        'hashtags' => ['#Demo', '#PublishLayer'],
+        'hashtags' => ['#Demo', '#Argusly'],
         'generation_prompt_context' => ['source_url' => 'https://example.test/post'],
         'approved_at' => now(),
     ]);
@@ -355,7 +355,7 @@ it('uses the same linkedin renderer for preview snapshots and publishing', funct
     (new DistributionLinkedInPublisher($posts, $renderer))->publish($publication->fresh(['socialAccount', 'variant']));
 
     expect($variant->refresh()->socialPost->body)->toBe($previewText)
-        ->and($previewText)->toContain('#Demo #PublishLayer')
+        ->and($previewText)->toContain('#Demo #Argusly')
         ->and($previewText)->toContain('https://example.test/post');
 });
 
@@ -416,13 +416,13 @@ it('normalizes common dutch linkedin wording issues', function (): void {
 it('normalizes dutch title case in generated linkedin copy', function (): void {
     $review = app(\App\Services\SocialDistribution\SocialCopyLanguageAgent::class)->review(
         'Agentic Marketing: De Nieuwe AI-Gestuurde Aanpak voor het Plannen, Uitvoeren en Optimaliseren van Campagnes',
-        "Een inzicht uit Agentic Marketing: De Nieuwe AI-Gestuurde Aanpak voor het Plannen, Uitvoeren en Optimaliseren van Campagnes:\n\nPublishLayer koppelt AI aan B2B-workflows.",
+        "Een inzicht uit Agentic Marketing: De Nieuwe AI-Gestuurde Aanpak voor het Plannen, Uitvoeren en Optimaliseren van Campagnes:\n\nArgusly koppelt AI aan B2B-workflows.",
         'nl',
     );
 
     expect($review['hook'])->toBe('Agentic marketing: de nieuwe AI-gestuurde aanpak voor het plannen, uitvoeren en optimaliseren van campagnes')
         ->and($review['body'])->toContain('Een inzicht uit agentic marketing: de nieuwe AI-gestuurde aanpak voor het plannen, uitvoeren en optimaliseren van campagnes:')
-        ->and($review['body'])->toContain('PublishLayer koppelt AI aan B2B-workflows.')
+        ->and($review['body'])->toContain('Argusly koppelt AI aan B2B-workflows.')
         ->and($review['report']['changed'])->toBeTrue()
         ->and($review['report']['corrections'])->toContain('Dutch title case -> Dutch sentence case');
 });

@@ -249,7 +249,7 @@ class GenerateDraftJob implements ShouldQueue
         if ((int) ($draft->credit_cost ?? 0) <= 0) {
             $requiredCredits = (int) data_get($draft->meta, 'required_credits', 0);
             if ($requiredCredits <= 0) {
-                $requiredCredits = max(1, (int) config('publishlayer.ai.drafts.credit_cost', 4));
+                $requiredCredits = max(1, (int) config('argusly.ai.drafts.credit_cost', 4));
             }
             $draft->credit_cost = $requiredCredits;
             $draft->save();

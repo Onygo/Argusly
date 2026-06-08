@@ -10,8 +10,8 @@ class GeneratePostmanCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'publishlayer:generate-postman
-        {--openapi= : Path to OpenAPI spec (default: docs/openapi/publishlayer.yaml)}
+    protected $signature = 'argusly:generate-postman
+        {--openapi= : Path to OpenAPI spec (default: docs/openapi/argusly.yaml)}
         {--output= : Output directory (default: docs/postman/)}
         {--collection-name= : Collection filename}
         {--environment-name= : Environment filename}';
@@ -30,10 +30,10 @@ class GeneratePostmanCommand extends Command
         $this->newLine();
 
         // Get paths
-        $openApiPath = $this->option('openapi') ?? config('publishlayer-docs.openapi.output', 'docs/openapi/publishlayer.yaml');
-        $outputDir = $this->option('output') ?? config('publishlayer-docs.postman.output_dir', 'docs/postman/');
-        $collectionName = $this->option('collection-name') ?? 'publishlayer-collection.json';
-        $environmentName = $this->option('environment-name') ?? 'publishlayer-environment.json';
+        $openApiPath = $this->option('openapi') ?? config('argusly-docs.openapi.output', 'docs/openapi/argusly.yaml');
+        $outputDir = $this->option('output') ?? config('argusly-docs.postman.output_dir', 'docs/postman/');
+        $collectionName = $this->option('collection-name') ?? 'argusly-collection.json';
+        $environmentName = $this->option('environment-name') ?? 'argusly-environment.json';
 
         // Ensure output dir ends with /
         if (! str_ends_with($outputDir, '/')) {
@@ -43,7 +43,7 @@ class GeneratePostmanCommand extends Command
         // Check if OpenAPI file exists
         if (! file_exists(base_path($openApiPath))) {
             $this->components->error("OpenAPI file not found: {$openApiPath}");
-            $this->line('Run `php artisan publishlayer:generate-openapi` first.');
+            $this->line('Run `php artisan argusly:generate-openapi` first.');
 
             return self::FAILURE;
         }

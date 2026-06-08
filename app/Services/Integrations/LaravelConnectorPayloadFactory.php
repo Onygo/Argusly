@@ -75,7 +75,7 @@ class LaravelConnectorPayloadFactory
                 'status' => $status,
                 'published_at' => optional($content->updated_at)->toIso8601String(),
                 'source_updated_at' => optional($sourceUpdatedAt)->toIso8601String(),
-                'publishlayer' => $this->resolvePublishLayerMetadata($content),
+                'argusly' => $this->resolveArguslyMetadata($content),
                 'category' => $category,
                 'chain' => $content->series_id ? [
                     'series_id' => (string) $content->series_id,
@@ -130,7 +130,7 @@ class LaravelConnectorPayloadFactory
 
         return collect(is_array($rows) ? $rows : [])
             ->map(fn ($row) => $this->normalizeRelatedArticle($row))
-            ->filter(fn ($row) => is_array($row) && $row['source_publishlayer_id'] !== '')
+            ->filter(fn ($row) => is_array($row) && $row['source_argusly_id'] !== '')
             ->values()
             ->all();
     }
@@ -138,7 +138,7 @@ class LaravelConnectorPayloadFactory
     /**
      * @return array<string, mixed>
      */
-    private function resolvePublishLayerMetadata(Content $content): array
+    private function resolveArguslyMetadata(Content $content): array
     {
         return [
             'external_key' => $this->nullableString($content->external_key),
@@ -405,7 +405,7 @@ class LaravelConnectorPayloadFactory
             return null;
         }
 
-        $id = trim((string) ($candidate['source_publishlayer_id'] ?? $candidate['id'] ?? ''));
+        $id = trim((string) ($candidate['source_argusly_id'] ?? $candidate['id'] ?? ''));
         $slug = trim((string) ($candidate['slug'] ?? ''));
         $title = trim((string) ($candidate['title'] ?? ''));
 
@@ -414,7 +414,7 @@ class LaravelConnectorPayloadFactory
         }
 
         return [
-            'source_publishlayer_id' => $id,
+            'source_argusly_id' => $id,
             'slug' => $slug !== '' ? Str::slug($slug) : Str::slug($title !== '' ? $title : $id),
             'title' => $title !== '' ? $title : Str::headline(str_replace('-', ' ', $slug !== '' ? $slug : $id)),
         ];

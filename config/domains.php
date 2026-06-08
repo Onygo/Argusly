@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The root domain without subdomain prefix (e.g., argusly.local for
-    | local development, publishlayer.com for production).
+    | local development, argusly.com for production).
     |
     */
 
@@ -59,7 +59,7 @@ return [
 
     'excluded_hosts' => [
         'wordpress.argusly.local',
-        'laravel.publishlayer.com',
+        'laravel.argusly.com',
     ],
 
 ];

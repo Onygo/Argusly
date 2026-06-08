@@ -53,7 +53,7 @@ it('maps knowledge article payloads for laravel connector destinations', functio
             'laravel_connector' => [
                 'base_url' => 'https://payload.example.com',
                 'site_id' => 'site-123',
-                'sync_endpoint' => '/publishlayer/sync',
+                'sync_endpoint' => '/argusly/sync',
                 'enabled' => true,
                 'mode' => 'hosted_views',
             ],
@@ -114,7 +114,7 @@ it('maps knowledge article payloads for laravel connector destinations', functio
             ],
             'related_articles' => [
                 [
-                    'source_publishlayer_id' => 'rel-1',
+                    'source_argusly_id' => 'rel-1',
                     'slug' => 'related-one',
                     'title' => 'Related One',
                 ],
@@ -151,7 +151,7 @@ it('maps knowledge article payloads for laravel connector destinations', functio
     StructuredAnswerBlock::query()->create([
         'content_id' => $content->id,
         'question' => 'What is the connector?',
-        'answer' => 'The connector syncs PublishLayer content into Laravel.',
+        'answer' => 'The connector syncs Argusly content into Laravel.',
         'entities' => ['connector'],
         'order' => 0,
     ]);
@@ -177,7 +177,7 @@ it('maps knowledge article payloads for laravel connector destinations', functio
     expect(data_get($payload, 'article.featured_image_url'))->toBe('https://cdn.example.com/featured.png');
     expect(data_get($payload, 'article.featured_image_attribution'))->toBe('Photo by Jane Creator on Unsplash');
     expect(data_get($payload, 'article.image_attribution.photographer_name'))->toBe('Jane Creator');
-    expect((string) data_get($payload, 'article.image_attribution.photographer_url'))->toContain('utm_source=publishlayer');
+    expect((string) data_get($payload, 'article.image_attribution.photographer_url'))->toContain('utm_source=argusly');
     expect(data_get($payload, 'article.status'))->toBe('draft');
     expect(data_get($payload, 'article.locale'))->toBe('en');
     expect(data_get($payload, 'article.canonical_url'))->toBe('https://payload.example.com/knowledge/platform-connector-article');

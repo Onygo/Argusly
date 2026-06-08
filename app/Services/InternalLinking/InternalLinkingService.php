@@ -105,7 +105,7 @@ class InternalLinkingService
                     return null;
                 }
 
-                $relatedId = trim((string) ($row['source_publishlayer_id'] ?? $row['id'] ?? ''));
+                $relatedId = trim((string) ($row['source_argusly_id'] ?? $row['id'] ?? ''));
                 $relatedTitle = trim((string) ($row['title'] ?? ''));
                 $relatedUrl = trim((string) ($row['target_url'] ?? $row['href'] ?? $row['url'] ?? ''));
 

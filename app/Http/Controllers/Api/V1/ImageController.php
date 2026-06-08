@@ -75,7 +75,7 @@ class ImageController extends Controller
             ->first();
 
         if ($activeGeneration) {
-            $lockTimeoutMinutes = max(1, (int) config('publishlayer.ai.images.generation_lock_timeout_minutes', 5));
+            $lockTimeoutMinutes = max(1, (int) config('argusly.ai.images.generation_lock_timeout_minutes', 5));
             $staleCutoff = now()->subMinutes($lockTimeoutMinutes);
             if ($activeGeneration->updated_at && $activeGeneration->updated_at->lt($staleCutoff)) {
                 $previousStatus = (string) $activeGeneration->status;

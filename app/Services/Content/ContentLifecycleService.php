@@ -423,7 +423,7 @@ class ContentLifecycleService
                 'request_id' => (string) data_get($draft->meta, 'generation.request_id', ''),
                 'draft_meta' => $draft->meta,
             ],
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
             'created_by' => $createdByUserId,
         ]);
     }

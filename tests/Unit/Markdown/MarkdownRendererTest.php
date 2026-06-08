@@ -27,7 +27,7 @@ it('renders structured faq data into a dedicated markdown section', function () 
         revisionHtml: '<p>Main body.</p>',
         revisionMeta: [
             'faqs' => [
-                ['question' => 'What does PublishLayer do?', 'answer' => '<p>It manages publishable AI content.</p>'],
+                ['question' => 'What does Argusly do?', 'answer' => '<p>It manages publishable AI content.</p>'],
                 ['question' => 'Does it support connectors?', 'answer' => '<p>Yes, through connected destinations.</p>'],
             ],
         ],
@@ -36,7 +36,7 @@ it('renders structured faq data into a dedicated markdown section', function () 
     $rendered = $renderer->render($content);
 
     expect($rendered['rendered_markdown'])->toContain('## Frequently Asked Questions')
-        ->and($rendered['rendered_markdown'])->toContain('### What does PublishLayer do?')
+        ->and($rendered['rendered_markdown'])->toContain('### What does Argusly do?')
         ->and($rendered['rendered_markdown'])->toContain('It manages publishable AI content.');
 });
 
@@ -89,9 +89,9 @@ it('renders structured answer blocks into answer-first markdown sections', funct
 
     \App\Models\StructuredAnswerBlock::query()->create([
         'content_id' => $content->id,
-        'question' => 'What is PublishLayer AEO?',
-        'answer' => 'PublishLayer AEO is a scoring layer for answer-first content visibility.',
-        'entities' => ['PublishLayer', 'ChatGPT'],
+        'question' => 'What is Argusly AEO?',
+        'answer' => 'Argusly AEO is a scoring layer for answer-first content visibility.',
+        'entities' => ['Argusly', 'ChatGPT'],
         'order' => 0,
     ]);
 
@@ -99,8 +99,8 @@ it('renders structured answer blocks into answer-first markdown sections', funct
 
     expect($rendered['rendered_markdown'])->toContain('## Answer')
         ->and($rendered['rendered_markdown'])->toContain('## Key Questions')
-        ->and($rendered['rendered_markdown'])->toContain('### What is PublishLayer AEO?')
-        ->and($rendered['rendered_markdown'])->toContain('PublishLayer AEO is a scoring layer for answer-first content visibility.');
+        ->and($rendered['rendered_markdown'])->toContain('### What is Argusly AEO?')
+        ->and($rendered['rendered_markdown'])->toContain('Argusly AEO is a scoring layer for answer-first content visibility.');
 });
 
 function makeRendererContent(

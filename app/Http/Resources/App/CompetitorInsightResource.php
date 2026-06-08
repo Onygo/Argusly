@@ -30,7 +30,7 @@ class CompetitorInsightResource extends JsonResource
             'attackable_angle' => $this->attackable_angle,
             'reason' => $this->reason,
             'competitor_evidence' => $this->competitor_evidence ?? [],
-            'publishlayer_coverage' => $this->publishlayer_coverage ?? [],
+            'argusly_coverage' => $this->argusly_coverage ?? [],
             'normalized_payload' => $this->normalized_payload ?? [],
             'last_seen_at' => optional($this->last_seen_at)->toIso8601String(),
         ];

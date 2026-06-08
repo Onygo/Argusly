@@ -25,7 +25,7 @@ it('fetches and normalizes source content successfully', function () {
 
     Http::fake([
         'https://example.com/report' => Http::response(
-            '<html><head><title>Quarterly Report</title></head><body><h1>Revenue up 14%</h1><p>Entity: PublishLayer.</p></body></html>',
+            '<html><head><title>Quarterly Report</title></head><body><h1>Revenue up 14%</h1><p>Entity: Argusly.</p></body></html>',
             200,
             ['Content-Type' => 'text/html']
         ),

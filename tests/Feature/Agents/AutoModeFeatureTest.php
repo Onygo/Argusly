@@ -88,7 +88,7 @@ it('creates a refresh draft automatically for high urgency content when auto mod
         'parent_version_id' => null,
         'body' => '<p>Current content body for refresh drafting.</p>',
         'meta' => ['excerpt' => 'Refresh snapshot'],
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => $owner->id,
     ]);
 
@@ -260,7 +260,7 @@ it('reuses the same refresh draft when the same published snapshot is analyzed t
         'parent_version_id' => null,
         'body' => '<p>Current content body for refresh drafting.</p>',
         'meta' => ['excerpt' => 'Refresh snapshot'],
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => $owner->id,
     ]);
 

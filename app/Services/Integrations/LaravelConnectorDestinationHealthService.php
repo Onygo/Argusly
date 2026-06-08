@@ -49,8 +49,8 @@ class LaravelConnectorDestinationHealthService
                 ->connectTimeout(5)
                 ->acceptJson()
                 ->withHeaders([
-                    'X-PublishLayer-Key' => $apiKey,
-                    'X-PublishLayer-Site' => $siteId,
+                    'X-Argusly-API-Key' => $apiKey,
+                    'X-Argusly-Site' => $siteId,
                     'User-Agent' => 'Argusly/LaravelConnectorHealthCheck',
                 ])
                 ->get($healthUrl);

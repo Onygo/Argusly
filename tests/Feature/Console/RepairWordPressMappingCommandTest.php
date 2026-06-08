@@ -112,13 +112,13 @@ it('repairs wp mapping by preferring the published remote post', function () {
     ]);
 
     Http::fake([
-        'https://repair.example.com/wp-json/publishlayer/v1/posts/131' => Http::response([
+        'https://repair.example.com/wp-json/argusly/v1/posts/131' => Http::response([
             'id' => 131,
             'status' => 'draft',
             'modified_gmt' => '2026-02-01T10:00:00',
             'url' => 'https://repair.example.com/?p=131',
         ], 200),
-        'https://repair.example.com/wp-json/publishlayer/v1/posts/132' => Http::response([
+        'https://repair.example.com/wp-json/argusly/v1/posts/132' => Http::response([
             'id' => 132,
             'status' => 'publish',
             'modified_gmt' => '2026-03-01T11:30:00',

@@ -33,7 +33,7 @@
         'ogType' => 'article',
     ])
     @include('partials.brand-meta')
-    @include('public.partials.publishlayer-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
+    @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -71,7 +71,7 @@
             @if (($content['hero_primary_route'] ?? '') !== '' || ($content['hero_secondary_route'] ?? '') !== '')
                 <div class="mt-8 flex flex-wrap gap-3">
                     @if (($content['hero_primary_route'] ?? '') !== '')
-                        <a href="{{ \App\Support\LocalizedMarketingUrl::route($content['hero_primary_route'], (array) ($content['hero_primary_params'] ?? [])) }}" class="inline-flex items-center justify-center rounded-xl bg-publicPrimary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-publicPrimaryHover">
+                        <a href="{{ \App\Support\LocalizedMarketingUrl::route($content['hero_primary_route'], (array) ($content['hero_primary_params'] ?? [])) }}" class="pl-public-primary-button">
                             {{ $content['hero_primary_label'] ?? __('public.nav.contact') }}
                         </a>
                     @endif
@@ -221,7 +221,7 @@
                     </section>
                 @endif
 
-                <section class="rounded-3xl bg-publicPrimary p-6 text-white">
+                <section class="pl-public-cta-panel pl-public-cta-panel--split p-6">
                     @if (($cta['eyebrow'] ?? '') !== '')
                         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{{ $cta['eyebrow'] }}</p>
                     @endif
@@ -229,12 +229,12 @@
                     <p class="mt-3 text-sm leading-7 text-white/80">{{ $cta['text'] ?? '' }}</p>
                     <div class="mt-5 flex flex-col gap-3">
                         @if (($cta['primary_route'] ?? '') !== '')
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route($cta['primary_route'], (array) ($cta['primary_params'] ?? [])) }}" class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route($cta['primary_route'], (array) ($cta['primary_params'] ?? [])) }}" class="pl-public-cta-primary">
                                 {{ $cta['primary_label'] ?? __('public.nav.contact') }}
                             </a>
                         @endif
                         @if (($cta['secondary_route'] ?? '') !== '')
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route($cta['secondary_route'], (array) ($cta['secondary_params'] ?? [])) }}" class="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/15">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route($cta['secondary_route'], (array) ($cta['secondary_params'] ?? [])) }}" class="pl-public-cta-secondary">
                                 {{ $cta['secondary_label'] ?? __('public.nav.platform') }}
                             </a>
                         @endif

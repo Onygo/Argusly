@@ -175,7 +175,7 @@ function makeAgenticSafeContent(Workspace $workspace, ClientSite $site, array $a
             'content_id' => (string) $content->id,
             'type' => ContentVersion::TYPE_DRAFT,
             'body' => $body,
-            'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+            'source' => ContentVersion::SOURCE_ARGUSLY,
         ]);
 
         $content->update(['current_version_id' => (string) $version->id]);

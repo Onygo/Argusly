@@ -101,7 +101,7 @@ class UnsplashImageService
 
     public function isConfigured(): bool
     {
-        return trim((string) config('publishlayer.stock_images.unsplash.access_key', '')) !== '';
+        return trim((string) config('argusly.stock_images.unsplash.access_key', '')) !== '';
     }
 
     /**
@@ -110,19 +110,19 @@ class UnsplashImageService
     private function headers(): array
     {
         return [
-            'Authorization' => 'Client-ID '.trim((string) config('publishlayer.stock_images.unsplash.access_key', '')),
+            'Authorization' => 'Client-ID '.trim((string) config('argusly.stock_images.unsplash.access_key', '')),
             'Accept-Version' => 'v1',
         ];
     }
 
     private function baseUrl(): string
     {
-        return rtrim((string) config('publishlayer.stock_images.unsplash.base_url', 'https://api.unsplash.com'), '/');
+        return rtrim((string) config('argusly.stock_images.unsplash.base_url', 'https://api.unsplash.com'), '/');
     }
 
     private function timeout(): int
     {
-        return max(5, (int) config('publishlayer.stock_images.unsplash.timeout_seconds', 12));
+        return max(5, (int) config('argusly.stock_images.unsplash.timeout_seconds', 12));
     }
 
     private function assertConfigured(): void

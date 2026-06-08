@@ -1,4 +1,4 @@
-# PublishLayer Cleanup Candidates
+# Argusly Cleanup Candidates
 
 **Date**: 2026-03-13
 **Status**: Ready for Review
@@ -31,7 +31,7 @@ grep -rn "dd\|dump\|var_dump\|print_r" app resources/views --include="*.php" --i
 
 ### 2. Unreachable Code - WordPress Plugin
 
-**File**: `publishlayer.php`
+**File**: `argusly.php`
 **Lines**: 2033-2048
 **Risk**: None
 **Effort**: 5 minutes

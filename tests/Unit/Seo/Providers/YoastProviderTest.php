@@ -21,7 +21,7 @@ it('declares yoast seo capabilities and syncable field keys', function () {
         ]);
 });
 
-it('maps publishlayer seo fields to yoast wordpress meta keys', function () {
+it('maps argusly seo fields to yoast wordpress meta keys', function () {
     $provider = new YoastProvider();
 
     $mapped = $provider->mapToWordPressMeta([

@@ -209,7 +209,7 @@ function makeRecentContentSmokeContext(): array
         'content_id' => (string) $content->id,
         'type' => ContentVersion::TYPE_REVISION,
         'body' => '<p>Smoke body content.</p>',
-        'source' => ContentVersion::SOURCE_PUBLISHLAYER,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
         'created_by' => $user->id,
     ]);
 

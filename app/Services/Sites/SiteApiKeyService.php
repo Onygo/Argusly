@@ -11,7 +11,7 @@ class SiteApiKeyService
 {
     public function createForSite(ClientSite $site, array $scopes, ?string $name = null): array
     {
-        $plain = 'pl_site_' . bin2hex(random_bytes(32));
+        $plain = 'arg_site_' . bin2hex(random_bytes(32));
 
         $token = SiteToken::query()->create([
             'id' => (string) Str::uuid(),
