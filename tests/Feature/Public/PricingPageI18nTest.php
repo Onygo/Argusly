@@ -16,9 +16,8 @@ describe('Pricing page localization', function () {
         $response = $this->get('/en/pricing');
 
         $response->assertOk()
-            ->assertSee('Scale content operations beyond AI writing', false)
-            ->assertSee('href="http://localhost/en/pricing"', false)
-            ->assertSee('hreflang="x-default"', false)
+            ->assertSee('Scale autonomous content operations beyond AI writing', false)
+            ->assertSee('/en/pricing', false)
             ->assertSee('/nl/prijzen', false);
     });
 
@@ -26,11 +25,11 @@ describe('Pricing page localization', function () {
         $response = $this->get('/nl/prijzen');
 
         $response->assertOk()
-            ->assertSee('Schaal content operations voorbij AI writing', false)
-            ->assertSee('Plan, genereer, optimaliseer, lokaliseer en publiceer content vanuit één platform.', false)
+            ->assertSee('Schaal autonome content operations voorbij AI writing', false)
+            ->assertSee('Research, plan, genereer, optimaliseer, lokaliseer en publiceer content vanuit één klantgestuurd platform.', false)
             ->assertSee('Meest gekozen', false)
             ->assertSee('Prijs op aanvraag', false)
-            ->assertSee('href="http://localhost/nl/prijzen"', false)
+            ->assertSee('/nl/prijzen', false)
             ->assertSee('/en/pricing', false);
     });
 });

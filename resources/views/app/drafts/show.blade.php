@@ -26,6 +26,13 @@
         $publishReadinessSection = $analysisSections->firstWhere('key', 'publish_readiness');
         $draftLocaleLabel = strtoupper((string) $draft->language->value);
         $sourceDraftLocaleLabel = $draft->sourceDraft ? strtoupper((string) $draft->sourceDraft->language->value) : null;
+        $sourceContext = is_array(data_get($draft->meta, 'source_context')) ? data_get($draft->meta, 'source_context') : [];
+        $isOpportunityExecutionDraft = trim((string) data_get($sourceContext, 'execution_plan_id', data_get($sourceContext, 'opportunity_execution_plan_id', ''))) !== '';
+        $governance = is_array(data_get($draft->meta, 'governance')) ? data_get($draft->meta, 'governance') : [];
+        $governanceStatusLabel = \Illuminate\Support\Str::headline(str_replace('_', ' ', (string) $draft->status));
+        $executionPlanId = trim((string) (data_get($sourceContext, 'execution_plan_id') ?: data_get($sourceContext, 'opportunity_execution_plan_id', '')));
+        $opportunityId = trim((string) data_get($sourceContext, 'opportunity_id', ''));
+        $signalDetectionIds = collect((array) data_get($sourceContext, 'signal_detection_ids', []))->filter()->values();
     @endphp
 
     <div class="mb-6">
@@ -66,11 +73,26 @@
         </div>
     @endif
 
+    @if ($errors->has('governance'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">
+            {{ $errors->first('governance') }}
+        </div>
+    @endif
+
     @if ($errors->has('translation'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">
             {{ $errors->first('translation') }}
         </div>
     @endif
+
+    <div class="mb-6">
+        @include('app.growth-programs._connection', [
+            'subject' => $draft,
+            'workspaceId' => $draft->clientSite?->workspace_id,
+            'createRoute' => route('app.growth-programs.from-draft', $draft),
+            'attachRoute' => route('app.growth-programs.attach.draft', $draft),
+        ])
+    </div>
 
     @if ($activeTab === 'improve' && $latestImprovementStatus !== '')
         <div class="mb-4 rounded-md border px-3 py-2 text-sm
@@ -174,6 +196,125 @@
             @endforeach
         </div>
     </div>
+
+    @if ($isOpportunityExecutionDraft)
+        <section class="mb-4 rounded-lg border border-border bg-surface p-4">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <div class="text-xs font-medium uppercase tracking-[0.18em] text-textSecondary">Draft Governance</div>
+                    <h2 class="mt-1 text-lg font-semibold text-textPrimary">{{ $governanceStatusLabel }}</h2>
+                    <p class="mt-1 text-sm text-textSecondary">
+                        @if ((string) $draft->status === \App\Models\Draft::STATUS_APPROVED_FOR_PUBLISHING)
+                            Ready for publishing. No delivery or publication has been started.
+                        @else
+                            Review flow for an Opportunity Execution draft. Publication remains a separate manual step.
+                        @endif
+                    </p>
+                </div>
+
+                @can('update', $draft)
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if (in_array((string) $draft->status, [\App\Models\Draft::STATUS_DRAFT, \App\Models\Draft::STATUS_CHANGES_REQUESTED], true))
+                            <form method="POST" action="{{ route('app.drafts.ready-for-review', $draft) }}">
+                                @csrf
+                                <button class="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                                    <i data-lucide="eye" class="h-4 w-4" aria-hidden="true"></i>
+                                    Mark ready for review
+                                </button>
+                            </form>
+                        @endif
+
+                        @if ((string) $draft->status === \App\Models\Draft::STATUS_READY_FOR_REVIEW)
+                            <form method="POST" action="{{ route('app.drafts.approve-for-publishing', $draft) }}">
+                                @csrf
+                                <button class="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primaryHover">
+                                    <i data-lucide="check" class="h-4 w-4" aria-hidden="true"></i>
+                                    Approve for publishing
+                                </button>
+                            </form>
+                        @endif
+
+                        @if ((string) $draft->status !== \App\Models\Draft::STATUS_ARCHIVED)
+                            <form method="POST" action="{{ route('app.drafts.archive-governance', $draft) }}">
+                                @csrf
+                                <button class="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textSecondary hover:bg-surfaceSubtle">
+                                    <i data-lucide="archive" class="h-4 w-4" aria-hidden="true"></i>
+                                    Archive governance
+                                </button>
+                            </form>
+                        @endif
+                    </div>
+                @endcan
+            </div>
+
+            @if ((string) $draft->status === \App\Models\Draft::STATUS_READY_FOR_REVIEW)
+                @can('update', $draft)
+                    <form method="POST" action="{{ route('app.drafts.request-changes', $draft) }}" class="mt-4 rounded-md border border-border bg-background p-3">
+                        @csrf
+                        <label for="governance_note" class="text-sm font-medium text-textPrimary">Request changes</label>
+                        <div class="mt-2 flex flex-col gap-2 sm:flex-row">
+                            <input id="governance_note" name="note" type="text" maxlength="2000" class="min-h-10 flex-1 rounded-md border border-border bg-surface px-3 text-sm text-textPrimary" placeholder="Optional review note">
+                            <button class="inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                                <i data-lucide="message-square-warning" class="h-4 w-4" aria-hidden="true"></i>
+                                Request changes
+                            </button>
+                        </div>
+                    </form>
+                @endcan
+            @endif
+
+            <div class="mt-4 grid gap-3 md:grid-cols-3">
+                <div class="rounded-md border border-border bg-background p-3">
+                    <div class="text-xs text-textSecondary">Source</div>
+                    <div class="mt-2 space-y-1 text-sm">
+                        @if ($draft->brief)
+                            <a href="{{ route('app.content.workspace.show', $draft->brief) }}" class="block font-medium text-primary hover:underline">Brief</a>
+                        @endif
+                        @if ($executionPlanId !== '' && \Illuminate\Support\Facades\Route::has('app.opportunity-intelligence.execution-plans.show'))
+                            <a href="{{ route('app.opportunity-intelligence.execution-plans.show', $executionPlanId) }}" class="block font-medium text-primary hover:underline">Execution plan</a>
+                        @endif
+                        @if ($opportunityId !== '' && \Illuminate\Support\Facades\Route::has('app.opportunity-intelligence.opportunities.show'))
+                            <a href="{{ route('app.opportunity-intelligence.opportunities.show', $opportunityId) }}" class="block font-medium text-primary hover:underline">Opportunity</a>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="rounded-md border border-border bg-background p-3">
+                    <div class="text-xs text-textSecondary">Signal lineage</div>
+                    <div class="mt-2 flex flex-wrap gap-2 text-xs">
+                        @forelse ($signalDetectionIds as $detectionId)
+                            @if (\Illuminate\Support\Facades\Route::has('app.signal-intelligence.detections.show'))
+                                <a href="{{ route('app.signal-intelligence.detections.show', $detectionId) }}" class="rounded-md border border-border bg-surface px-2 py-1 font-medium text-primary hover:underline">Detection</a>
+                            @else
+                                <span class="rounded-md border border-border bg-surface px-2 py-1 text-textSecondary">Detection</span>
+                            @endif
+                        @empty
+                            <span class="text-textSecondary">No linked detections</span>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="rounded-md border border-border bg-background p-3">
+                    <div class="text-xs text-textSecondary">Audit</div>
+                    <dl class="mt-2 space-y-1 text-xs text-textSecondary">
+                        @foreach ([
+                            'ready_for_review_at' => 'Ready',
+                            'changes_requested_at' => 'Changes',
+                            'approved_for_publishing_at' => 'Approved',
+                            'archived_at' => 'Archived',
+                        ] as $key => $label)
+                            @if (!empty($governance[$key]))
+                                <div><dt class="inline text-textMuted">{{ $label }}:</dt> <dd class="inline text-textPrimary">{{ $governance[$key] }}</dd></div>
+                            @endif
+                        @endforeach
+                        @if (!empty($governance['changes_requested_note']))
+                            <div><dt class="text-textMuted">Note:</dt><dd class="text-textPrimary">{{ $governance['changes_requested_note'] }}</dd></div>
+                        @endif
+                    </dl>
+                </div>
+            </div>
+        </section>
+    @endif
 
     <div class="mb-6 inline-flex rounded-lg border border-border bg-surface p-1 text-sm font-medium">
         @foreach ([

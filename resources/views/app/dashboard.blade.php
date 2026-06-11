@@ -13,6 +13,36 @@
         <p class="text-textSecondary mt-1">{{ __('app.dashboard.subtitle') }}</p>
     </div>
 
+    <div class="mb-8 space-y-4">
+        <x-dashboard.recommended-action-widget :action="data_get($actionFirstDashboard, 'recommended_action')" />
+
+        <div class="grid gap-4 lg:grid-cols-2">
+            <x-dashboard.open-opportunities-widget :summary="data_get($actionFirstDashboard, 'open_opportunities')" />
+            <x-dashboard.risk-summary-widget :summary="data_get($actionFirstDashboard, 'risk_summary')" />
+        </div>
+
+        <x-dashboard.next-journey-step-widget :step="data_get($actionFirstDashboard, 'journey_step')" />
+        <x-dashboard.intelligence-feed-widget :items="data_get($actionFirstDashboard, 'intelligence_feed', collect())" />
+    </div>
+
+    @if (!empty($activation) && !data_get($activation, 'is_active'))
+        <x-activation-banner class="mb-8" :activation="$activation" />
+    @elseif (!empty($isEmptyDashboard))
+        <div class="mb-8 rounded-md border border-border bg-surface p-5">
+            <h2 class="text-base font-semibold text-textPrimary">Start met First Value Activation</h2>
+            <p class="mt-1 text-sm text-textSecondary">Dit dashboard wacht nog op data. Open Activation om je eerste AI Visibility run en Signal Intelligence output te bereiken.</p>
+            <a href="{{ route('app.activation.index') }}" class="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
+                <i data-lucide="list-checks" class="h-4 w-4"></i>
+                Open Activation
+            </a>
+        </div>
+    @endif
+
+    <div class="mb-4">
+        <h2 class="text-lg font-semibold text-textPrimary">{{ __('app.dashboard_action_first.supporting_metrics') }}</h2>
+        <p class="mt-1 text-sm text-textSecondary">{{ __('app.dashboard_action_first.supporting_metrics_hint') }}</p>
+    </div>
+
     <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
@@ -350,7 +380,7 @@
                                                 $variantPresenter = $variant['presenter'];
                                                 $variantInsight = $recentContentInsights[$variantContent->id] ?? [];
                                             @endphp
-                                            <div class="grid gap-3 rounded-md border border-border/70 bg-surface px-3 py-3 shadow-sm md:ml-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                                            <div class="grid gap-3 rounded-md border border-border/70 bg-surface px-3 py-3 md:ml-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
                                                 <div class="min-w-0">
                                                     <div class="flex flex-wrap items-center gap-2">
                                                         <span class="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium {{ ($variant['is_source'] ?? false) ? $localeBadgeClasses['source'] : $localeBadgeClasses['variant'] }}">

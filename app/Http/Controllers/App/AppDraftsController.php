@@ -199,6 +199,30 @@ class AppDraftsController extends Controller
             ->with('status', 'Smart suggestions updated.');
     }
 
+    public function markReadyForReview(Request $request, Draft $draft): RedirectResponse
+    {
+        return $this->transitionGovernance($request, $draft, 'ready_for_review');
+    }
+
+    public function requestChanges(Request $request, Draft $draft): RedirectResponse
+    {
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        return $this->transitionGovernance($request, $draft, 'request_changes', (string) ($data['note'] ?? ''));
+    }
+
+    public function approveForPublishing(Request $request, Draft $draft): RedirectResponse
+    {
+        return $this->transitionGovernance($request, $draft, 'approve_for_publishing');
+    }
+
+    public function archiveGovernance(Request $request, Draft $draft): RedirectResponse
+    {
+        return $this->transitionGovernance($request, $draft, 'archive_governance');
+    }
+
     public function runInternalLinking(
         Request $request,
         Draft $draft,
@@ -425,6 +449,35 @@ class AppDraftsController extends Controller
         if ($draft->clientSite?->workspace?->organization_id !== $organization->id) {
             abort(404);
         }
+    }
+
+    private function transitionGovernance(Request $request, Draft $draft, string $action, ?string $note = null): RedirectResponse
+    {
+        $this->ensureDraftOrganizationAccess($draft);
+        $this->authorize('update', $draft);
+
+        try {
+            match ($action) {
+                'ready_for_review' => $draft->markReadyForReview($request->user()),
+                'request_changes' => $draft->requestChanges($request->user(), $note),
+                'approve_for_publishing' => $draft->approveForPublishing($request->user()),
+                'archive_governance' => $draft->archiveGovernance($request->user()),
+                default => throw new \InvalidArgumentException('Unsupported draft governance action.'),
+            };
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors(['governance' => $exception->getMessage()]);
+        }
+
+        $messages = [
+            'ready_for_review' => 'Draft marked as ready for review.',
+            'request_changes' => 'Draft changes requested.',
+            'approve_for_publishing' => 'Draft approved for publishing. No publication has been started.',
+            'archive_governance' => 'Draft governance archived.',
+        ];
+
+        return redirect()
+            ->route('app.drafts.show', $draft)
+            ->with('status', $messages[$action] ?? 'Draft governance updated.');
     }
 
     private function buildAvailableLanguageGroups(Draft $currentDraft, Draft $lineageRoot): \Illuminate\Support\Collection

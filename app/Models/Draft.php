@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
+use RuntimeException;
 
 /**
  * Represents a draft version of content being edited or generated.
@@ -119,6 +120,12 @@ class Draft extends Model
         'language' => SupportedLanguage::class,
         'draft_type' => DraftType::class,
     ];
+
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_READY_FOR_REVIEW = 'ready_for_review';
+    public const STATUS_CHANGES_REQUESTED = 'changes_requested';
+    public const STATUS_APPROVED_FOR_PUBLISHING = 'approved_for_publishing';
+    public const STATUS_ARCHIVED = 'archived';
 
     public function setTitleAttribute(mixed $value): void
     {
@@ -236,6 +243,96 @@ class Draft extends Model
                 'rejection_reason' => $result['rejection_reason'],
             ]);
         }
+    }
+
+    public function markReadyForReview(User $user): self
+    {
+        $this->assertOpportunityExecutionDraft();
+        $this->assertGovernanceTransition([self::STATUS_DRAFT, self::STATUS_CHANGES_REQUESTED], self::STATUS_READY_FOR_REVIEW);
+
+        return $this->transitionGovernance(self::STATUS_READY_FOR_REVIEW, [
+            'ready_for_review_by' => (string) $user->id,
+            'ready_for_review_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function requestChanges(User $user, ?string $note = null): self
+    {
+        $this->assertOpportunityExecutionDraft();
+        $this->assertGovernanceTransition([self::STATUS_READY_FOR_REVIEW], self::STATUS_CHANGES_REQUESTED);
+
+        return $this->transitionGovernance(self::STATUS_CHANGES_REQUESTED, [
+            'changes_requested_by' => (string) $user->id,
+            'changes_requested_at' => now()->toIso8601String(),
+            'changes_requested_note' => trim((string) $note) ?: null,
+        ]);
+    }
+
+    public function approveForPublishing(User $user): self
+    {
+        $this->assertOpportunityExecutionDraft();
+        $this->assertGovernanceTransition([self::STATUS_READY_FOR_REVIEW], self::STATUS_APPROVED_FOR_PUBLISHING);
+
+        return $this->transitionGovernance(self::STATUS_APPROVED_FOR_PUBLISHING, [
+            'approved_for_publishing_by' => (string) $user->id,
+            'approved_for_publishing_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function archiveGovernance(User $user): self
+    {
+        $this->assertOpportunityExecutionDraft();
+        $this->assertGovernanceTransition([
+            self::STATUS_DRAFT,
+            self::STATUS_READY_FOR_REVIEW,
+            self::STATUS_CHANGES_REQUESTED,
+            self::STATUS_APPROVED_FOR_PUBLISHING,
+        ], self::STATUS_ARCHIVED);
+
+        return $this->transitionGovernance(self::STATUS_ARCHIVED, [
+            'archived_by' => (string) $user->id,
+            'archived_at' => now()->toIso8601String(),
+        ]);
+    }
+
+    public function isOpportunityExecutionDraft(): bool
+    {
+        return trim((string) data_get($this->meta, 'source_context.execution_plan_id')) !== ''
+            || trim((string) data_get($this->meta, 'source_context.opportunity_execution_plan_id')) !== '';
+    }
+
+    private function assertOpportunityExecutionDraft(): void
+    {
+        if (! $this->isOpportunityExecutionDraft()) {
+            throw new RuntimeException('Draft governance is only available for opportunity execution drafts.');
+        }
+    }
+
+    /**
+     * @param array<int,string> $allowedFrom
+     */
+    private function assertGovernanceTransition(array $allowedFrom, string $to): void
+    {
+        if (! in_array((string) $this->status, $allowedFrom, true)) {
+            throw new RuntimeException(sprintf('Cannot move draft from %s to %s.', (string) $this->status, $to));
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $audit
+     */
+    private function transitionGovernance(string $status, array $audit): self
+    {
+        $meta = is_array($this->meta) ? $this->meta : [];
+        $governance = is_array($meta['governance'] ?? null) ? $meta['governance'] : [];
+        $meta['governance'] = array_merge($governance, $audit);
+
+        $this->forceFill([
+            'status' => $status,
+            'meta' => $meta,
+        ])->save();
+
+        return $this->refresh();
     }
 
     public function setSeoCanonicalAttribute(mixed $value): void

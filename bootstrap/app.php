@@ -27,6 +27,7 @@ use App\Http\Middleware\SetPublicSiteContext;
 use App\Http\Middleware\SiteTokenMiddleware;
 use App\Http\Middleware\VerifyClientDomainMiddleware;
 use App\Http\Middleware\VerifyPluginRequestSignature;
+use App\Http\Controllers\LegacyPublishLayerRedirectController;
 use App\Support\SecurityResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
@@ -44,6 +45,19 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         using: function () {
             $baseDomain = config('domains.base', 'argusly.local');
+
+            foreach ((array) config('legacy_publishlayer.source_hosts', []) as $legacyHost) {
+                $legacyHost = strtolower(trim((string) $legacyHost));
+
+                if ($legacyHost === '' || $legacyHost === $baseDomain || $legacyHost === "www.{$baseDomain}") {
+                    continue;
+                }
+
+                Route::domain($legacyHost)
+                    ->middleware(['web', 'throttle:web'])
+                    ->any('/{path?}', LegacyPublishLayerRedirectController::class)
+                    ->where('path', '.*');
+            }
 
             // Canonicalize www marketing traffic to the apex domain.
             Route::domain("www.{$baseDomain}")

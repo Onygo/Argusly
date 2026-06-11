@@ -30,6 +30,7 @@ use App\Services\DraftComparison\DraftComparisonService;
 use App\Services\Entitlements\FeatureGate;
 use App\Services\Entitlements\WorkspaceEntitlementsService;
 use App\Services\Integrations\DestinationBillingSiteService;
+use App\Services\OpportunityIntelligence\BriefDraftService;
 use App\Services\SourceBriefing\SourceBriefingService;
 use App\Services\SourceBriefing\Exceptions\SourceBriefingException;
 use App\Services\SourceBriefing\Exceptions\SourcePreviewException;
@@ -42,6 +43,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
@@ -742,6 +744,7 @@ class AppBriefsController extends Controller
         ];
         $briefIntelligenceContext = $this->briefIntelligenceContext($brief, $featureGate);
         $briefIntelligenceEnabled = $featureFlags->isEnabled('brief_intelligence') && $briefIntelligenceContext['enabled'];
+        $executionPlanDraft = $this->executionPlanDraft($brief);
 
         return view('app.briefs.show', [
             'brief' => $brief,
@@ -765,7 +768,30 @@ class AppBriefsController extends Controller
             'canEnhanceBrief' => $request->user()?->can('enhance', $brief) ?? false,
             'canCreateBriefFromResearch' => $request->user()?->can('createFromResearch', Brief::class) ?? false,
             'canManageBriefSuggestions' => $request->user()?->can('applySuggestion', $brief) ?? false,
+            'canCreateFirstDraft' => $this->canCreateFirstDraft($request, $brief, $executionPlanDraft),
+            'executionPlanDraft' => $executionPlanDraft,
         ]);
+    }
+
+    public function createDraft(Request $request, Brief $brief, BriefDraftService $service): RedirectResponse
+    {
+        $this->authorize('generateDraft', $brief);
+
+        try {
+            $draft = $service->createDraft($brief, $request->user());
+        } catch (AuthorizationException $exception) {
+            return back()->withErrors(['brief' => $exception->getMessage()]);
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors(['brief' => $exception->getMessage()]);
+        }
+
+        if (Route::has('app.drafts.show')) {
+            return redirect()
+                ->route('app.drafts.show', $draft)
+                ->with('status', 'First draft created from execution plan brief.');
+        }
+
+        return back()->with('status', 'First draft created from execution plan brief.');
     }
 
     public function edit(
@@ -1187,6 +1213,25 @@ class AppBriefsController extends Controller
         return ! in_array((string) $content->status, ['published', 'scheduled', 'publishing'], true)
             && ! in_array((string) ($content->publish_status ?? ''), ['published', 'scheduled', 'publishing'], true)
             && ! in_array((string) ($content->delivery_status ?? ''), ['delivered', 'partial_success'], true);
+    }
+
+    private function executionPlanDraft(Brief $brief): ?\App\Models\Draft
+    {
+        $draftId = (string) data_get($brief->client_refs, 'draft_id', '');
+        if ($draftId === '') {
+            return null;
+        }
+
+        return $brief->drafts
+            ->first(fn (\App\Models\Draft $draft): bool => (string) $draft->id === $draftId);
+    }
+
+    private function canCreateFirstDraft(Request $request, Brief $brief, ?\App\Models\Draft $executionPlanDraft): bool
+    {
+        return $executionPlanDraft === null
+            && (string) $brief->source === 'opportunity_execution_plan'
+            && in_array((string) $brief->status, ['draft', 'approved'], true)
+            && ($request->user()?->can('generateDraft', $brief) ?? false);
     }
 
     private function resolveSiteForOrganization(string $siteId, int $organizationId): ClientSite

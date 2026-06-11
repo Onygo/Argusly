@@ -47,7 +47,7 @@
 
 <main class="bg-background">
     <section class="pl-public-hero">
-        <div class="mx-auto max-w-5xl px-4 py-16 sm:px-6 md:py-20">
+        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <nav class="mb-6 flex flex-wrap items-center gap-2 text-xs text-textMuted">
                 @foreach ($breadcrumbs as $index => $crumb)
                     <a href="{{ $crumb['url'] }}" class="hover:text-textPrimary">{{ $crumb['label'] }}</a>
@@ -58,12 +58,12 @@
             </nav>
 
             @if (($content['eyebrow'] ?? '') !== '')
-                <div class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">
+                <div class="pl-public-hero-label">
                     {{ $content['eyebrow'] }}
                 </div>
             @endif
 
-            <h1 class="mt-5 text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">{{ $translation->title }}</h1>
+            <h1 class="mt-5 pl-public-heading pl-public-heading-hero">{{ $translation->title }}</h1>
             @if (($content['subheadline'] ?? '') !== '')
                 <p class="mt-4 max-w-3xl text-lg font-medium leading-8 text-textPrimary md:text-xl">{{ $content['subheadline'] }}</p>
             @endif
@@ -89,8 +89,8 @@
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div class="space-y-8">
                 @foreach ((array) ($content['sections'] ?? []) as $section)
-                    <article class="rounded-3xl border border-border bg-surface p-6 md:p-8">
-                        <h2 class="text-2xl font-semibold text-textPrimary">{{ $section['title'] ?? '' }}</h2>
+                    <article class="rounded-md border border-border bg-surface p-6 md:p-8">
+                        <h2 class="pl-public-heading pl-public-heading-h2">{{ $section['title'] ?? '' }}</h2>
                         @if (($section['intro'] ?? '') !== '')
                             <p class="mt-4 text-sm font-medium leading-7 text-textPrimary md:text-base">{{ $section['intro'] }}</p>
                         @endif
@@ -106,7 +106,7 @@
                                         </div>
                                         <div>
                                             @if (($step['title'] ?? '') !== '')
-                                                <h3 class="text-sm font-semibold text-textPrimary md:text-base">{{ $step['title'] }}</h3>
+                                                <h3 class="pl-public-heading pl-public-heading-card">{{ $step['title'] }}</h3>
                                             @endif
                                             @if (($step['text'] ?? '') !== '')
                                                 <p class="mt-1 text-sm leading-7 text-textSecondary md:text-base">{{ $step['text'] }}</p>
@@ -127,7 +127,7 @@
                             </ul>
                         @endif
                         @if (! empty($section['table']['headers'] ?? []) && ! empty($section['table']['rows'] ?? []))
-                            <div class="mt-6 overflow-hidden rounded-2xl border border-border">
+                            <div class="mt-6 overflow-hidden rounded-md border border-border">
                                 <div class="overflow-x-auto">
                                     <table class="pl-responsive-table min-w-full bg-white text-left text-sm text-textSecondary">
                                         <thead>
@@ -156,7 +156,7 @@
                             <div class="mt-6 grid gap-4 md:grid-cols-2">
                                 @foreach ((array) $section['cards'] as $card)
                                     <a href="{{ $card['url'] ?? '#' }}" class="block pl-public-card p-5 transition-colors hover:bg-surface">
-                                        <h3 class="text-base font-semibold text-textPrimary">{{ $card['title'] ?? '' }}</h3>
+                                        <h3 class="pl-public-heading pl-public-heading-card">{{ $card['title'] ?? '' }}</h3>
                                         @if (($card['description'] ?? '') !== '')
                                             <p class="mt-2 text-sm leading-7 text-textSecondary">{{ $card['description'] }}</p>
                                         @endif
@@ -168,7 +168,7 @@
                             <div class="mt-6 space-y-4">
                                 @foreach ((array) $section['qa_blocks'] as $qa)
                                     <div class="pl-public-card p-5">
-                                        <h3 class="text-base font-semibold text-textPrimary">{{ $qa['question'] ?? '' }}</h3>
+                                        <h3 class="pl-public-heading pl-public-heading-card">{{ $qa['question'] ?? '' }}</h3>
                                         @if (($qa['answer'] ?? '') !== '')
                                             <p class="mt-2 text-sm leading-7 text-textSecondary">{{ $qa['answer'] }}</p>
                                         @endif
@@ -180,12 +180,12 @@
                 @endforeach
 
                 @if (! empty($content['faq'] ?? []))
-                    <article class="rounded-3xl border border-border bg-surface p-6 md:p-8">
-                        <h2 class="text-2xl font-semibold text-textPrimary">{{ $content['faq_title'] ?? 'FAQ' }}</h2>
+                    <article class="rounded-md border border-border bg-surface p-6 md:p-8">
+                        <h2 class="pl-public-heading pl-public-heading-h2">{{ $content['faq_title'] ?? 'FAQ' }}</h2>
                         <div class="mt-6 space-y-4">
                             @foreach ((array) ($content['faq'] ?? []) as $item)
                                 <div class="pl-public-card p-5">
-                                    <h3 class="text-base font-semibold text-textPrimary">{{ $item['question'] ?? '' }}</h3>
+                                    <h3 class="pl-public-heading pl-public-heading-card">{{ $item['question'] ?? '' }}</h3>
                                     @if (($item['answer'] ?? '') !== '')
                                         <p class="mt-2 text-sm leading-7 text-textSecondary">{{ $item['answer'] }}</p>
                                     @endif
@@ -199,7 +199,7 @@
             <aside class="space-y-6">
                 @if ($relatedTopics !== [])
                     <section class="pl-public-card-soft p-6">
-                        <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-textMuted">{{ __('public.marketing_topics.related_topics') }}</h2>
+                        <h2 class="pl-public-eyebrow">{{ __('public.marketing_topics.related_topics') }}</h2>
                         <div class="mt-4 space-y-3">
                             @foreach ($relatedTopics as $topic)
                                 <a href="{{ $topic['url'] }}" class="block pl-public-card px-4 py-3 text-sm font-medium text-textPrimary transition-colors hover:bg-surface">
@@ -211,8 +211,8 @@
                 @endif
 
                 @if ($platformLinks !== [])
-                    <section class="rounded-3xl border border-border bg-white p-6">
-                        <h2 class="text-sm font-semibold uppercase tracking-[0.14em] text-textMuted">{{ __('public.marketing_topics.platform_links') }}</h2>
+                    <section class="rounded-md border border-border bg-white p-6">
+                        <h2 class="pl-public-eyebrow">{{ __('public.marketing_topics.platform_links') }}</h2>
                         <div class="mt-4 space-y-3">
                             @foreach ($platformLinks as $link)
                                 <a href="{{ $link['url'] }}" class="block text-sm font-medium text-publicPrimary hover:text-publicPrimaryHover">{{ $link['label'] }}</a>
@@ -225,7 +225,7 @@
                     @if (($cta['eyebrow'] ?? '') !== '')
                         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">{{ $cta['eyebrow'] }}</p>
                     @endif
-                    <h2 class="mt-3 text-2xl font-semibold">{{ $cta['title'] ?? '' }}</h2>
+                    <h2 class="mt-3 pl-public-heading pl-public-heading-h2 text-white">{{ $cta['title'] ?? '' }}</h2>
                     <p class="mt-3 text-sm leading-7 text-white/80">{{ $cta['text'] ?? '' }}</p>
                     <div class="mt-5 flex flex-col gap-3">
                         @if (($cta['primary_route'] ?? '') !== '')

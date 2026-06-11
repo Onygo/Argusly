@@ -1,4 +1,4 @@
-@extends('layouts.app', ['title' => 'Workspace Intelligence'])
+@extends('layouts.app', ['title' => __('app.runtime.Workspace Intelligence')])
 
 @section('content')
     <div class="space-y-6" data-workspace-intelligence data-workspace-intelligence-active-tab="{{ $activeTab }}">
@@ -15,7 +15,7 @@
                     </div>
 
                     <div>
-                        <h1 class="text-3xl font-semibold tracking-tight text-textPrimary">Workspace Intelligence</h1>
+                        <h1 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ __('app.runtime.Workspace Intelligence') }}</h1>
                         <p class="mt-3 max-w-3xl text-sm leading-6 text-textSecondary">
                             Turn enrichment output into reusable operating context. Review approved brand context, personas, and team profiles in one place, then apply only the changes that improve your workspace.
                         </p>

@@ -120,6 +120,10 @@ it('creates a run record and updates flags when job succeeds', function () {
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
     ]);
+    $mock->shouldReceive('resolvePromptVariant')->once()->andReturn([
+        'key' => 'exact',
+        'query_text' => $query->query_text,
+    ]);
     $mock->shouldReceive('run')->once()->andReturn([
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
@@ -187,6 +191,10 @@ it('uses cached run for identical same-day runs without extra quota usage', func
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
     ]);
+    $mock->shouldReceive('resolvePromptVariant')->twice()->andReturn([
+        'key' => 'exact',
+        'query_text' => $query->query_text,
+    ]);
     $mock->shouldReceive('run')->once()->andReturn([
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
@@ -246,6 +254,10 @@ it('fails the run when llm quota is exceeded', function () {
     $mock->shouldReceive('resolveRoute')->once()->andReturn([
         'provider' => 'openai',
         'model' => 'gpt-4.1-mini',
+    ]);
+    $mock->shouldReceive('resolvePromptVariant')->once()->andReturn([
+        'key' => 'exact',
+        'query_text' => $query->query_text,
     ]);
     $mock->shouldReceive('run')->never();
     $this->app->instance(LlmVisibilityTrackingService::class, $mock);

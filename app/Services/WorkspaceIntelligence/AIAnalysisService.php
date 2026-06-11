@@ -210,13 +210,17 @@ PROMPT;
                 ['feature' => 'workspace_intelligence']
             );
 
+            $payload = $this->normalizeBrandContextPayload(
+                $response->json ?? $this->recoverJsonPayload($response->text ?? null)
+            );
+
             return [
-                'payload' => $response->json ?? [],
+                'payload' => $payload ?? [],
                 'provider' => $response->providerName ?: null,
                 'model' => $response->modelUsed ?: null,
                 'request_id' => $response->requestId,
                 'raw_response_length' => mb_strlen($response->text ?? ''),
-                'parser_error' => $response->json === null ? 'json_decode_failed' : null,
+                'parser_error' => $payload === null ? 'json_decode_failed' : null,
             ];
         } catch (\Throwable $e) {
             Log::error('Workspace intelligence AI analysis failed', [
@@ -445,5 +449,160 @@ PROMPT;
 
             return [];
         }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function recoverJsonPayload(?string $text): ?array
+    {
+        $text = trim((string) $text);
+
+        if ($text === '') {
+            return null;
+        }
+
+        foreach ($this->jsonCandidates($text) as $candidate) {
+            $decoded = json_decode($candidate, true);
+
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                return $decoded;
+            }
+
+            if (json_last_error() === JSON_ERROR_NONE && is_string($decoded)) {
+                $nested = $this->recoverJsonPayload($decoded);
+
+                if ($nested !== null) {
+                    return $nested;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed>|null $payload
+     * @return array<string, mixed>|null
+     */
+    private function normalizeBrandContextPayload(?array $payload): ?array
+    {
+        if ($payload === null) {
+            return null;
+        }
+
+        foreach (['payload', 'brand_setup', 'brand_context', 'sections', 'data', 'result'] as $key) {
+            $nested = $payload[$key] ?? null;
+
+            if (is_array($nested) && $this->containsBrandSections($nested)) {
+                return $nested;
+            }
+
+            if (is_string($nested)) {
+                $decoded = $this->recoverJsonPayload($nested);
+
+                if ($decoded !== null && $this->containsBrandSections($decoded)) {
+                    return $decoded;
+                }
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function containsBrandSections(array $payload): bool
+    {
+        foreach (['company_profile', 'brand_voices', 'buyer_personas', 'team_personas'] as $section) {
+            if (array_key_exists($section, $payload)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function jsonCandidates(string $text): array
+    {
+        $candidates = [$text];
+
+        if (preg_match_all('/```(?:json)?\s*(.*?)```/is', $text, $matches)) {
+            foreach ($matches[1] as $match) {
+                $candidates[] = trim($match);
+            }
+        }
+
+        $object = $this->extractBalancedJson($text, '{', '}');
+        if ($object !== null) {
+            $candidates[] = $object;
+        }
+
+        $array = $this->extractBalancedJson($text, '[', ']');
+        if ($array !== null) {
+            $candidates[] = $array;
+        }
+
+        return array_values(array_unique(array_filter(
+            $candidates,
+            static fn (string $candidate): bool => trim($candidate) !== ''
+        )));
+    }
+
+    private function extractBalancedJson(string $text, string $open, string $close): ?string
+    {
+        $start = strpos($text, $open);
+
+        if ($start === false) {
+            return null;
+        }
+
+        $depth = 0;
+        $inString = false;
+        $escaped = false;
+        $length = strlen($text);
+
+        for ($index = $start; $index < $length; $index++) {
+            $char = $text[$index];
+
+            if ($inString) {
+                if ($escaped) {
+                    $escaped = false;
+                    continue;
+                }
+
+                if ($char === '\\') {
+                    $escaped = true;
+                    continue;
+                }
+
+                if ($char === '"') {
+                    $inString = false;
+                }
+
+                continue;
+            }
+
+            if ($char === '"') {
+                $inString = true;
+                continue;
+            }
+
+            if ($char === $open) {
+                $depth++;
+            } elseif ($char === $close) {
+                $depth--;
+
+                if ($depth === 0) {
+                    return substr($text, $start, $index - $start + 1);
+                }
+            }
+        }
+
+        return null;
     }
 }

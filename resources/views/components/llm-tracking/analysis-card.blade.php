@@ -4,7 +4,7 @@
     'icon' => null,
 ])
 
-<section {{ $attributes->class('rounded-lg border border-border bg-surface p-5 shadow-sm') }}>
+<section {{ $attributes->class('rounded-lg border border-border bg-surface p-5') }}>
     @if ($title || $description)
         <div class="flex items-start gap-3">
             @if ($icon)

@@ -3,7 +3,7 @@
     'showText' => true,
     'size' => 'default',
     'tone' => 'default',
-    'textClass' => 'text-sm font-bold tracking-tight text-textPrimary',
+    'textClass' => 'pl-brand-logo-text text-sm text-textPrimary',
 ])
 
 @php

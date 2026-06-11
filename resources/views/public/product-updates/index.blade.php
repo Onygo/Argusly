@@ -35,11 +35,11 @@
     <section class="pl-public-hero">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="max-w-3xl">
-                <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-publicPrimary/15 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">
+                <div class="mb-4 pl-public-hero-label">
                     <x-public.icon name="rocket" size="xs" />
                     <span>{{ __('public.product_updates.badge') }}</span>
                 </div>
-                <h1 class="text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">{{ __('public.product_updates.title') }}</h1>
+                <h1 class="pl-public-heading pl-public-heading-hero">{{ __('public.product_updates.title') }}</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-6 text-textSecondary md:text-base">
                     {{ __('public.product_updates.subtitle') }}
                 </p>
@@ -60,7 +60,7 @@
                             type="search"
                             name="q"
                             value="{{ $searchTerm }}"
-                            class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary"
+                            class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary"
                             placeholder="{{ __('public.product_updates.search_placeholder') }}"
                         />
                     </div>
@@ -68,10 +68,10 @@
                         @if ($activeTag !== '')
                             <input type="hidden" name="tag" value="{{ $activeTag }}">
                         @endif
-                        <button type="submit" class="rounded-lg bg-publicPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-publicPrimaryHover">
+                        <button type="submit" class="rounded-full bg-publicPrimary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-publicPrimaryHover">
                             {{ __('public.product_updates.search') }}
                         </button>
-                        <a href="{{ route('public.product_updates.index', $langParam) }}" class="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-[#f8fafc]">
+                        <a href="{{ route('public.product_updates.index', $langParam) }}" class="rounded-full border border-border bg-white px-4 py-2.5 text-sm font-medium text-textPrimary transition-colors hover:bg-[#f8fafc]">
                             {{ __('public.product_updates.reset') }}
                         </a>
                     </div>
@@ -80,11 +80,11 @@
                 @if (!empty($availableTags))
                     <div class="mt-5 border-t border-border pt-5">
                         <div class="flex flex-wrap items-center gap-2">
-                            <a href="{{ route('public.product_updates.index', array_merge($langParam, $searchTerm !== '' ? ['q' => $searchTerm] : [])) }}" class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors {{ $activeTag === '' ? 'border-publicPrimary bg-publicPrimary/5 text-publicPrimary' : 'border-border bg-white text-textSecondary hover:border-borderStrong hover:text-textPrimary' }}">
+                            <a href="{{ route('public.product_updates.index', array_merge($langParam, $searchTerm !== '' ? ['q' => $searchTerm] : [])) }}" class="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors {{ $activeTag === '' ? 'border-publicPrimary bg-publicPrimary/5 text-publicPrimary' : 'border-border bg-white text-textSecondary hover:border-borderStrong hover:text-textPrimary' }}">
                                 {{ __('public.product_updates.all_tags') }}
                             </a>
                             @foreach ($availableTags as $tag)
-                                <a href="{{ route('public.product_updates.index', array_merge($langParam, ['tag' => $tag], $searchTerm !== '' ? ['q' => $searchTerm] : [])) }}" class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors {{ $activeTag === $tag ? 'border-publicPrimary bg-publicPrimary/5 text-publicPrimary' : 'border-border bg-white text-textSecondary hover:border-borderStrong hover:text-textPrimary' }}">
+                                <a href="{{ route('public.product_updates.index', array_merge($langParam, ['tag' => $tag], $searchTerm !== '' ? ['q' => $searchTerm] : [])) }}" class="rounded-md border px-3 py-1.5 text-xs font-medium transition-colors {{ $activeTag === $tag ? 'border-publicPrimary bg-publicPrimary/5 text-publicPrimary' : 'border-border bg-white text-textSecondary hover:border-borderStrong hover:text-textPrimary' }}">
                                     {{ $tag }}
                                 </a>
                             @endforeach
@@ -128,17 +128,17 @@
                 @empty
                     {{-- Empty State --}}
                     <div class="pl-public-card p-8 text-center md:p-12">
-                        <div class="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f8fafc]">
+                        <div class="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-md bg-[#f8fafc]">
                             <i data-lucide="inbox" class="h-8 w-8 text-publicPrimary"></i>
                         </div>
-                        <h2 class="text-lg font-semibold text-textPrimary">{{ __('public.product_updates.empty_title') }}</h2>
+                        <h2 class="pl-public-heading pl-public-heading-h3">{{ __('public.product_updates.empty_title') }}</h2>
                         <p class="mx-auto mt-2 max-w-md text-sm text-textSecondary">{{ __('public.product_updates.empty') }}</p>
                         <div class="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
                             <a href="{{ route('public.company.roadmap') }}" class="pl-public-primary-button">
                                 <i data-lucide="map" class="h-4 w-4"></i>
                                 {{ __('public.product_updates.view_roadmap') }}
                             </a>
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="inline-flex items-center gap-2 rounded-xl border border-border bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-[#f8fafc]">
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="inline-flex items-center gap-2 rounded-full border border-border bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-[#f8fafc]">
                                 <i data-lucide="message-circle" class="h-4 w-4"></i>
                                 {{ __('public.nav.contact') }}
                             </a>
@@ -159,7 +159,7 @@
     <section class="pl-public-warm">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="pl-public-cta-panel">
-                <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
+                <h2 class="text-balance pl-public-heading pl-public-heading-h2 text-white">
                     {{ __('public.product_updates.cta_title') }}
                 </h2>
                 <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">

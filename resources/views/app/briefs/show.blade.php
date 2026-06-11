@@ -147,6 +147,15 @@
         <div class="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-800">{{ $errors->first('brief_intelligence') }}</div>
     @endif
 
+    <div class="mb-6">
+        @include('app.growth-programs._connection', [
+            'subject' => $brief,
+            'workspaceId' => $brief->clientSite?->workspace_id,
+            'createRoute' => route('app.growth-programs.from-brief', $brief),
+            'attachRoute' => route('app.growth-programs.attach.brief', $brief),
+        ])
+    </div>
+
     <section class="mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-white via-surface to-surfaceSubtle">
         <div class="border-b border-border/70 px-4 py-4 sm:px-6">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -221,6 +230,21 @@
                             <i data-lucide="flask-conical" class="h-4 w-4" aria-hidden="true"></i>
                             <span>Create from research</span>
                         </a>
+                    @endif
+
+                    @if (!empty($executionPlanDraft))
+                        <a href="{{ route('app.drafts.show', $executionPlanDraft) }}" class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
+                            <i data-lucide="file-pen" class="h-4 w-4" aria-hidden="true"></i>
+                            <span>Open draft</span>
+                        </a>
+                    @elseif (!empty($canCreateFirstDraft))
+                        <form method="POST" action="{{ route('app.briefs.create-draft', $brief) }}">
+                            @csrf
+                            <button class="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primaryHover">
+                                <i data-lucide="file-plus-2" class="h-4 w-4" aria-hidden="true"></i>
+                                <span>Create first draft</span>
+                            </button>
+                        </form>
                     @endif
 
                     @if (! $isArchived)

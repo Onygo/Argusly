@@ -3,15 +3,15 @@
 @section('legal_content')
 <div class="space-y-8">
     {{-- Document header --}}
-    <div class="rounded-[20px] border border-border bg-white p-6 md:p-8">
+    <div class="rounded-md border border-border bg-white p-6 md:p-8">
         <div class="flex items-start gap-4">
-            <div class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-[#f8fafc]">
+            <div class="flex h-12 w-12 flex-none items-center justify-center rounded-md bg-[#f8fafc]">
                 <x-public.icon name="users" size="md" />
             </div>
             <div class="min-w-0 flex-1">
-                <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ $document['heading'] }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ $document['heading'] }}</h2>
                 <p class="mt-3 text-sm leading-7 text-textSecondary md:text-base">{{ $document['intro'] }}</p>
-                <div class="mt-4 flex items-center gap-2 rounded-lg bg-[#f8fafc] px-3 py-2 text-xs uppercase tracking-wide text-textMuted">
+                <div class="mt-4 flex items-center gap-2 rounded-md bg-[#f8fafc] px-3 py-2 text-xs uppercase tracking-wide text-textMuted">
                     <i data-lucide="calendar" class="h-3.5 w-3.5"></i>
                     <span>{{ __('public.legal.last_updated_label') }}: {{ $lastUpdated }}</span>
                 </div>
@@ -19,11 +19,11 @@
         </div>
     </div>
 
-    <article class="rounded-[20px] border border-border bg-white p-6 md:p-8">
+    <article class="rounded-md border border-border bg-white p-6 md:p-8">
         <div class="flex items-start gap-3">
             <x-public.icon name="server" size="md" />
             <div>
-                <h3 class="text-lg font-semibold text-textPrimary">{{ __('public.legal.subprocessors.table_title') }}</h3>
+                <h3 class="pl-public-heading pl-public-heading-h3">{{ __('public.legal.subprocessors.table_title') }}</h3>
                 <p class="mt-2 text-sm text-textSecondary">{{ __('public.legal.subprocessors.table_intro') }}</p>
             </div>
         </div>
@@ -32,10 +32,10 @@
             @foreach($subprocessors as $provider)
                 <section class="pl-public-card-compact pl-public-canvas p-5">
                     <div class="flex items-center gap-3">
-                        <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-semibold text-publicPrimary">
+                        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white text-sm font-semibold text-publicPrimary">
                             {{ substr($provider['name'], 0, 2) }}
                         </span>
-                        <h4 class="text-base font-semibold text-textPrimary">{{ $provider['name'] }}</h4>
+                        <h4 class="pl-public-heading pl-public-heading-card">{{ $provider['name'] }}</h4>
                     </div>
 
                     <dl class="mt-5 space-y-3 text-sm">
@@ -82,7 +82,7 @@
         <div class="pl-public-card-compact pl-public-canvas p-6">
             <div class="flex items-center gap-2">
                 <x-public.icon name="files" size="sm" />
-                <h3 class="text-base font-semibold text-textPrimary">{{ __('public.legal.related_documents') }}</h3>
+                <h3 class="pl-public-heading pl-public-heading-card">{{ __('public.legal.related_documents') }}</h3>
             </div>
             <div class="mt-4 flex flex-wrap gap-2">
                 @foreach($relatedLinks as $item)
@@ -99,7 +99,7 @@
     <div class="pl-public-cta-panel pl-public-cta-panel--split p-6 md:p-8">
         <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-                <h3 class="text-lg font-semibold text-white">{{ __('public.legal.cta_title') }}</h3>
+                <h3 class="pl-public-heading pl-public-heading-h3 text-white">{{ __('public.legal.cta_title') }}</h3>
                 <p class="mt-2 text-sm leading-6 text-white/75">{{ __('public.legal.cta_text') }}</p>
             </div>
             <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact') }}" class="pl-public-cta-primary flex-none">

@@ -29,7 +29,7 @@
                 <div class="flex items-start gap-4">
                     <x-public.icon :name="$cardIcons[$card['title']] ?? 'file-text'" size="md" />
                     <div class="flex-1">
-                        <h2 class="text-lg font-semibold text-textPrimary">{{ $card['title'] }}</h2>
+                        <h2 class="pl-public-heading pl-public-heading-h3">{{ $card['title'] }}</h2>
                         <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $card['description'] }}</p>
                         <a href="{{ $card['url'] }}" class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-publicPrimary hover:text-publicPrimaryHover">
                             {{ $card['link_label'] }}
@@ -54,13 +54,13 @@
 
     {{-- Document Updates Section --}}
     <section class="pl-public-card-soft p-6">
-        <h2 class="text-lg font-semibold text-textPrimary">{{ __('public.legal.hub.section_2_title') }}</h2>
+        <h2 class="pl-public-heading pl-public-heading-h3">{{ __('public.legal.hub.section_2_title') }}</h2>
         <p class="mt-2 text-sm leading-6 text-textSecondary">{{ __('public.legal.hub.section_2_text') }}</p>
     </section>
 
     {{-- Contact Section --}}
     <section class="pl-public-card p-6">
-        <h2 class="text-lg font-semibold text-textPrimary">{{ __('public.legal.hub.section_3_title') }}</h2>
+        <h2 class="pl-public-heading pl-public-heading-h3">{{ __('public.legal.hub.section_3_title') }}</h2>
         <p class="mt-2 text-sm leading-6 text-textSecondary">{{ __('public.legal.hub.section_3_text') }}</p>
         <a
             href="{{ $contactUrl }}"

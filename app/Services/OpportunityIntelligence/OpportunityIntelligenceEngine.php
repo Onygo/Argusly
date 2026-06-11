@@ -3,6 +3,7 @@
 namespace App\Services\OpportunityIntelligence;
 
 use App\Enums\OpportunityCategory;
+use App\Enums\OpportunitySignalSource;
 use App\Enums\OpportunityStatus;
 use App\Models\Opportunity;
 use App\Models\OpportunitySignal;
@@ -30,12 +31,7 @@ class OpportunityIntelligenceEngine
             ->where('workspace_id', $workspace->id)
             ->whereNull('deleted_at')
             ->get()
-            ->groupBy(fn (OpportunitySignal $signal): string => implode('|', [
-                $signal->category?->value ?? $this->categoryForSource((string) ($signal->source?->value ?? $signal->source))->value,
-                strtolower(trim((string) ($signal->topic ?: $signal->entity ?: $signal->content_id ?: 'general'))),
-                (string) $signal->content_id,
-                (string) $signal->content_cluster_id,
-            ]))
+            ->groupBy(fn (OpportunitySignal $signal): string => $this->clusterKey($workspace, $signal))
             ->each(function (Collection $signals) use ($workspace, &$created, &$updated): void {
                 $opportunity = $this->persistGroup($workspace, $signals);
                 $opportunity->wasRecentlyCreated ? $created++ : $updated++;
@@ -56,14 +52,16 @@ class OpportunityIntelligenceEngine
         $score = $this->scoring->score($category, $signals);
         $actions = $this->actions->build($category, $signals);
         $hash = hash('sha256', implode('|', [
-            (string) $workspace->id,
-            $category->value,
-            strtolower((string) $topic),
-            (string) $first->content_id,
-            (string) $first->content_cluster_id,
+            'opportunity_cluster',
+            $this->clusterKey($workspace, $first),
         ]));
+        $promotedSignals = $signals->filter(fn (OpportunitySignal $signal): bool => $this->isPromotedSignalIntelligenceSignal($signal));
+        $existingStatus = Opportunity::query()
+            ->where('workspace_id', (string) $workspace->id)
+            ->where('dedupe_hash', $hash)
+            ->value('status');
 
-        return DB::transaction(function () use ($workspace, $signals, $first, $category, $topic, $score, $actions, $hash): Opportunity {
+        return DB::transaction(function () use ($workspace, $signals, $first, $category, $topic, $score, $actions, $hash, $promotedSignals, $existingStatus): Opportunity {
             $opportunity = Opportunity::query()->updateOrCreate(
                 [
                     'workspace_id' => (string) $workspace->id,
@@ -76,7 +74,7 @@ class OpportunityIntelligenceEngine
                     'content_cluster_id' => $first->content_cluster_id,
                     'campaign_id' => $first->campaign_id,
                     'category' => $category->value,
-                    'status' => OpportunityStatus::OPEN->value,
+                    'status' => $existingStatus ?: OpportunityStatus::OPEN->value,
                     'title' => $this->title($category, (string) $topic),
                     'topic' => $topic,
                     'summary' => $this->summary($category, $signals),
@@ -92,6 +90,31 @@ class OpportunityIntelligenceEngine
                         'count' => $signals->count(),
                         'sources' => $signals->pluck('source')->map(fn ($source) => $source?->value ?? $source)->unique()->values()->all(),
                         'average_strength' => round((float) $signals->avg('signal_strength'), 2),
+                        'promoted_signal_intelligence_count' => $promotedSignals->count(),
+                        'signal_detection_ids' => $promotedSignals
+                            ->pluck('metadata.signal_detection_id')
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                    ],
+                    'metadata' => [
+                        'has_signal_intelligence_input' => $promotedSignals->isNotEmpty(),
+                        'signal_detection_ids' => $promotedSignals
+                            ->pluck('metadata.signal_detection_id')
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'linked_signal_event_ids' => $promotedSignals
+                            ->flatMap(fn (OpportunitySignal $signal): array => (array) data_get($signal->metadata, 'linked_signal_event_ids', []))
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
                     ],
                     'first_seen_at' => $signals->min('observed_at') ?: now(),
                     'last_seen_at' => $signals->max('observed_at') ?: now(),
@@ -130,7 +153,58 @@ class OpportunityIntelligenceEngine
             'content_decay' => OpportunityCategory::REFRESH_OPPORTUNITY,
             'engagement_analytics' => OpportunityCategory::ENGAGEMENT_OPPORTUNITY,
             'competitor_intelligence' => OpportunityCategory::COMPETITOR_MOVEMENT,
+            'signal_intelligence' => OpportunityCategory::CONTENT_GAP,
             default => OpportunityCategory::CONTENT_GAP,
+        };
+    }
+
+    private function clusterKey(Workspace $workspace, OpportunitySignal $signal): string
+    {
+        $category = $signal->category?->value ?? $this->categoryForSource((string) ($signal->source?->value ?? $signal->source))->value;
+        $topic = strtolower(trim((string) ($signal->topic ?: $signal->entity ?: $signal->content_id ?: 'general')));
+
+        if (! $this->isPromotedSignalIntelligenceSignal($signal)) {
+            return implode('|', [
+                (string) $workspace->id,
+                $category,
+                $topic,
+                (string) $signal->content_id,
+                (string) $signal->content_cluster_id,
+            ]);
+        }
+
+        return implode('|', [
+            (string) $workspace->id,
+            (string) $signal->client_site_id,
+            $category,
+            $topic,
+            $this->periodKey($signal),
+            $this->scoreBand((float) data_get($signal->metrics, 'urgency_score', 0)),
+            $this->scoreBand((float) data_get($signal->metrics, 'impact_score', 0)),
+        ]);
+    }
+
+    private function isPromotedSignalIntelligenceSignal(OpportunitySignal $signal): bool
+    {
+        $source = $signal->source?->value ?? $signal->source;
+
+        return $source === OpportunitySignalSource::SIGNAL_INTELLIGENCE->value
+            && filled(data_get($signal->metadata, 'signal_detection_id'));
+    }
+
+    private function periodKey(OpportunitySignal $signal): string
+    {
+        return ($signal->observed_at ?? now())->copy()->startOfWeek()->toDateString();
+    }
+
+    private function scoreBand(float $score): string
+    {
+        return match (true) {
+            $score >= 80 => 'very_high',
+            $score >= 60 => 'high',
+            $score >= 40 => 'medium',
+            $score > 0 => 'low',
+            default => 'unknown',
         };
     }
 

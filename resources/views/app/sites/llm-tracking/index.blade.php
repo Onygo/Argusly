@@ -78,6 +78,80 @@
             <div class="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>
         @endif
 
+        <x-first-value-celebrations :items="$firstValueCelebrations ?? collect()" />
+
+        @if ((int) ($totalQueryCount ?? 0) === 0)
+            <section class="rounded-lg border border-primary/25 bg-primarySoftBg/70 p-6">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="max-w-3xl">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-primary">AI Visibility Setup</p>
+                        <h2 class="mt-2 text-xl font-semibold text-textPrimary">Start with your first AI Visibility queries</h2>
+                        <p class="mt-2 text-sm leading-6 text-textSecondary">
+                            AI Visibility laat zien hoe zichtbaar jouw merk is binnen AI-systemen zoals ChatGPT, Claude en Gemini.
+                            Queries zijn de vragen die Argusly volgt. Runs leveren antwoorddata op, en die data kan daarna Signal Events en Detections voeden.
+                        </p>
+                    </div>
+                    <div class="flex shrink-0 flex-wrap gap-2">
+                        <a href="{{ route('app.sites.llm-tracking.starter.preview', $site) }}" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
+                            <i data-lucide="sparkles" class="h-4 w-4"></i>
+                            Generate Starter Queries
+                        </a>
+                        <a href="#create-query-manually" class="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">
+                            <i data-lucide="square-pen" class="h-4 w-4"></i>
+                            Create Query Manually
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mt-5 grid gap-3 md:grid-cols-3">
+                    <div class="rounded-md border border-border bg-white/80 p-4">
+                        <h3 class="text-sm font-semibold text-textPrimary">Why queries matter</h3>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">Each query represents a buyer, category, competitor, or authority question you want AI systems to answer well.</p>
+                    </div>
+                    <div class="rounded-md border border-border bg-white/80 p-4">
+                        <h3 class="text-sm font-semibold text-textPrimary">Recommended starter set</h3>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">Start with up to 10 prompts: brand, competitors, buyer intent, authority, and category leadership.</p>
+                    </div>
+                    <div class="rounded-md border border-border bg-white/80 p-4">
+                        <h3 class="text-sm font-semibold text-textPrimary">How signals appear</h3>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">After a run, AI answer evidence can be normalized into Signal Events for Signal Intelligence.</p>
+                    </div>
+                </div>
+            </section>
+        @elseif ((int) ($runCount ?? 0) === 0 && !empty($firstRunnableQuery))
+            <section class="rounded-lg border border-emerald-200 bg-emerald-50/80 p-6">
+                <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">Your AI Visibility workspace is ready</p>
+                        <h2 class="mt-2 text-xl font-semibold text-textPrimary">Run your first visibility check</h2>
+                        <p class="mt-2 text-sm leading-6 text-textSecondary">You have {{ number_format((int) ($totalQueryCount ?? 0)) }} tracking {{ (int) ($totalQueryCount ?? 0) === 1 ? 'query' : 'queries' }} configured. Start with one manual run to create the first AI Visibility evidence.</p>
+                    </div>
+                    <form method="POST" action="{{ route('app.sites.llm-tracking.run-now', [$site, $firstRunnableQuery]) }}" class="shrink-0">
+                        @csrf
+                        <button class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
+                            <i data-lucide="play" class="h-4 w-4"></i>
+                            Run First Visibility Check
+                        </button>
+                    </form>
+                </div>
+                <div class="mt-5 grid gap-3 md:grid-cols-3">
+                    <div class="rounded-md border border-emerald-200 bg-white/80 p-4">
+                        <p class="text-xs text-textSecondary">Queries configured</p>
+                        <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) ($totalQueryCount ?? 0)) }}</p>
+                    </div>
+                    <div class="rounded-md border border-emerald-200 bg-white/80 p-4">
+                        <p class="text-xs text-textSecondary">Estimated credits</p>
+                        <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) ($estimatedFirstRunCredits ?? 1)) }}</p>
+                        <p class="mt-1 text-xs text-textSecondary">Same-day identical reruns may be cached at 0 credits.</p>
+                    </div>
+                    <div class="rounded-md border border-emerald-200 bg-white/80 p-4">
+                        <p class="text-xs text-textSecondary">Expected duration</p>
+                        <p class="mt-1 text-xl font-semibold text-textPrimary">1-3 min</p>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         <div class="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-7">
             <div class="rounded-lg border border-sky-200 bg-sky-50/70 p-5 md:col-span-3 xl:col-span-2">
                 <p class="text-xs font-semibold uppercase tracking-widest text-sky-800">AI Visibility Score</p>
@@ -255,7 +329,7 @@
                 </div>
             </div>
 
-            <details class="self-start rounded-lg border border-border bg-surface p-5">
+            <details id="create-query-manually" class="self-start rounded-lg border border-border bg-surface p-5">
                 <summary class="cursor-pointer list-none text-sm font-semibold text-textPrimary">
                     Create Query Set
                     <span class="mt-1 block text-xs font-normal text-textSecondary">Add a new monitoring group when the existing sets are not enough.</span>
@@ -302,19 +376,21 @@
                 </div>
 
                 <div class="max-h-96 overflow-auto border-t border-border/70">
-                    <table class="min-w-full text-sm text-textPrimary">
+                    <table class="min-w-[1320px] text-sm text-textPrimary">
                         <thead class="sticky top-0 z-10 bg-surface">
                             <tr class="text-left text-[11px] uppercase tracking-[0.08em] text-textSecondary">
-                                <th class="px-4 py-3 font-medium">Query</th>
-                                <th class="px-4 py-3 font-medium">Set</th>
-                                <th class="px-4 py-3 font-medium">Cadence</th>
-                                <th class="px-4 py-3 font-medium">Status</th>
-                                <th class="px-4 py-3 font-medium">Last run</th>
-                                <th class="px-4 py-3 font-medium">AI visibility</th>
-                                <th class="px-4 py-3 font-medium">Presence</th>
-                                <th class="px-4 py-3 font-medium">Citation</th>
-                                <th class="px-4 py-3 font-medium">Context</th>
-                                <th class="px-4 py-3 font-medium">Actions</th>
+                                <th class="w-56 px-4 py-3 font-medium">Query</th>
+                                <th class="w-72 px-4 py-3 font-medium">Prompt</th>
+                                <th class="w-44 px-4 py-3 font-medium">Target</th>
+                                <th class="w-40 px-4 py-3 font-medium">Set</th>
+                                <th class="w-24 px-4 py-3 font-medium">Cadence</th>
+                                <th class="w-24 px-4 py-3 font-medium">Status</th>
+                                <th class="w-32 px-4 py-3 font-medium">Last run</th>
+                                <th class="w-24 px-4 py-3 font-medium">AI visibility</th>
+                                <th class="w-32 px-4 py-3 font-medium">Presence</th>
+                                <th class="w-24 px-4 py-3 font-medium">Citation</th>
+                                <th class="w-28 px-4 py-3 font-medium">Context</th>
+                                <th class="w-36 px-4 py-3 font-medium">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border/70">
@@ -322,9 +398,14 @@
                                 @php($latestRun = $query->runs->first())
                                 <tr class="align-top hover:bg-surfaceSubtle/60">
                                     <td class="px-4 py-3">
-                                        <div class="font-medium">{{ $query->name }}</div>
-                                        <div class="mt-1 max-w-md text-xs text-textSecondary">{{ \Illuminate\Support\Str::limit($query->query_text, 96) }}</div>
-                                        <div class="mt-1 text-[11px] text-textSecondary">Target brand: {{ $query->target_brand ?: 'Not set' }} · Domain: {{ $query->target_domain ?: 'Not set' }}</div>
+                                        <div class="font-medium leading-5">{{ $query->name }}</div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="text-xs leading-5 text-textSecondary">{{ \Illuminate\Support\Str::limit($query->query_text, 140) }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-xs leading-5">
+                                        <div class="font-medium text-textPrimary">{{ $query->target_brand ?: 'Not set' }}</div>
+                                        <div class="mt-1 text-textSecondary">{{ $query->target_domain ?: 'No domain' }}</div>
                                     </td>
                                     <td class="px-4 py-3 text-xs">{{ $query->querySet?->name ?: 'Unassigned' }}</td>
                                     <td class="px-4 py-3 text-xs">{{ $frequencyLabel($query->frequency) }}</td>
@@ -346,7 +427,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="py-3 text-textSecondary">No tracking queries configured yet.</td>
+                                    <td colspan="12" class="px-4 py-3 text-textSecondary">No tracking queries configured yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>

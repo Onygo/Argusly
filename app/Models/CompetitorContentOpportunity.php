@@ -4,12 +4,14 @@ namespace App\Models;
 
 use App\Concerns\BelongsToOrganizationViaWorkspace;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompetitorContentOpportunity extends Model
 {
     use BelongsToOrganizationViaWorkspace;
+    use HasFactory;
     use HasUuids;
 
     protected $fillable = [

@@ -22,6 +22,7 @@ return [
     'footer' => [
         'tagline' => 'Content, governance, intelligence, and publishing in one platform for B2B teams that need control and proof.',
         'early_access_note' => 'Currently available through Pilot Program onboarding.',
+        'product_by_parent' => ':product is a product by :parent.',
         'rights' => 'All rights reserved.',
         'product' => 'Product',
         'company' => 'Company',
@@ -254,7 +255,7 @@ return [
             'cta_text' => 'Built for teams that need governed planning, intelligence, and publishing in one place.',
             'cta_points' => ['One time guided onboarding on paid plans', 'WordPress and Laravel connectors', 'Insights, governance, and billing in one app'],
             'agentic_title' => 'Add an agentic layer to your content operations.',
-            'agentic_text' => 'Argusly connects objectives, AI visibility, lifecycle intelligence, and governed execution so teams can move from manual content tasks to autonomous improvement loops.',
+            'agentic_text' => 'Argusly connects objectives, AI visibility, lifecycle intelligence, research, and governed execution so teams can choose how far autonomous improvement loops may operate.',
             'agentic_points' => [
                 'AI visibility and answer readiness scoring',
                 'Content decay, refresh, and internal link recommendations',
@@ -270,7 +271,7 @@ return [
         'pricing_meta_description' => 'Explore Argusly pricing plans and credit packs for enterprise content operations.',
         'hero_badge' => 'Content, governance, intelligence, and publishing',
         'hero_title' => 'One platform for governed content operations and AI-first visibility.',
-        'hero_text' => 'Argusly brings briefs, brand context, planning, SEO and GEO insights, and connected publishing together for teams running content across sites.',
+        'hero_text' => 'Argusly brings briefs, brand context, system research, planning, SEO and GEO insights, and connected publishing together for teams running content across sites and LinkedIn.',
         'hero_primary' => 'Request Demo',
         'hero_secondary' => 'See how it works',
         'problem_title' => 'Most teams still run content in fragments',
@@ -298,7 +299,7 @@ return [
                 'description' => 'From brief to draft in a guided workflow.',
                 'icon' => 'pen-tool',
                 'items' => [
-                    'Brief creation with context and research',
+                    'Brief creation with system research and context',
                     'Draft and revision workflow',
                     'Content calendar and scheduling',
                 ],
@@ -368,7 +369,7 @@ return [
                 'description' => 'Publish, connect, and grow authority.',
                 'icon' => 'share-2',
                 'items' => [
-                    'Multi-channel publishing via connectors',
+                    'Multi-channel publishing via CMS, API and LinkedIn connectors',
                     'Insights and analytics',
                     'Content chains and internal linking',
                 ],
@@ -383,7 +384,7 @@ return [
                     'channels' => [
                         ['title' => 'Main site', 'meta' => 'Homepage + docs release', 'state' => 'Scheduled'],
                         ['title' => 'Help center', 'meta' => 'Knowledge sync', 'state' => 'Ready'],
-                        ['title' => 'LinkedIn post', 'meta' => 'Social derivative', 'state' => 'Queued'],
+                        ['title' => 'LinkedIn post', 'meta' => 'Generated, scheduled and ready to publish', 'state' => 'Queued'],
                     ],
                     'chain_label' => 'Content chain',
                     'chain_nodes' => [
@@ -431,17 +432,17 @@ return [
             ['icon' => 'refresh-cw', 'title' => 'Measured iteration', 'text' => 'Feed performance, learnings, and verification results back into the next workflow cycle.'],
         ],
         'agentic_badge' => 'Agentic Marketing',
-        'agentic_title' => 'Move from content production to autonomous AI visibility operations.',
-        'agentic_text' => 'Argusly is evolving into an agentic marketing layer: objectives define the goal, intelligence agents find opportunity gaps, and governed workflows turn those signals into briefs, refreshes, answer blocks, internal links, and publishing actions.',
+        'agentic_title' => 'Move from content production to customer-controlled autonomous marketing operations.',
+        'agentic_text' => 'Argusly is becoming an agentic marketing layer: objectives define the goal, intelligence agents research the market, find opportunity gaps, and governed workflows turn those signals into briefs, refreshes, answer blocks, internal links, LinkedIn posts, and publishing actions.',
         'agentic_points' => [
             'Set objectives such as AI visibility, topical authority, GEO performance, pipeline, or locale expansion',
             'Detect missing entities, weak pages, topic gaps, refresh candidates, and internal link opportunities',
-            'Coordinate human approval with autonomous recommendations and lifecycle optimization queues',
+            'Choose manual, approval-gated, or autonomous execution for recommendations and lifecycle optimization queues',
         ],
         'agentic_visual_eyebrow' => 'Objective-driven loop',
         'agentic_visual_title' => 'Goal → intelligence → action → learning',
         'agentic_visual_steps' => [
-            ['label' => 'Objective', 'text' => 'Define market, language, KPI, entities, competitors, channels, and approval mode.'],
+            ['label' => 'Objective', 'text' => 'Define market, language, KPI, entities, competitors, channels, budgets, and autonomy level.'],
             ['label' => 'Opportunity map', 'text' => 'Surface missing pages, weak answer coverage, entity gaps, and content decay.'],
             ['label' => 'Optimization queue', 'text' => 'Prioritize refreshes, briefs, links, schema, localization, and distribution tasks.'],
         ],
@@ -476,7 +477,7 @@ return [
         'ai_search_visual_title' => 'One workflow from draft to discoverability',
         'ai_search_visual_steps' => [
             ['label' => 'Plan', 'text' => 'Briefs and brand context feed the content workflow.'],
-            ['label' => 'Publish', 'text' => 'Push to connected WordPress or Laravel properties.'],
+            ['label' => 'Publish', 'text' => 'Push to connected WordPress, Laravel, API, and LinkedIn channels.'],
             ['label' => 'Verify', 'text' => 'Use the verification script and insights to measure performance.'],
         ],
         'ai_search_visual_note' => 'SEO, GEO, connectors, and learnings stay connected instead of living in separate tools.',
@@ -488,15 +489,15 @@ return [
         'pricing_title' => 'Publishing infrastructure for the AI era',
         'pricing_badge' => 'Plans',
         'pricing_subline' => 'Scale your authority across search engines and AI platforms.',
-        'pricing_text_1' => 'Argusly combines content orchestration, multi-site publishing, and AI visibility tracking in one platform.',
-        'pricing_text_2' => 'Build discoverability for both traditional search and generative AI with structured workflows, governed publishing, and machine-readable outputs.',
+        'pricing_text_1' => 'Argusly combines content orchestration, customer-controlled automation, multi-site publishing, LinkedIn distribution, and AI visibility tracking in one platform.',
+        'pricing_text_2' => 'Build discoverability for both traditional search and generative AI with system research, structured workflows, governed publishing, and machine-readable outputs.',
         'pricing_monthly_no_setup' => 'Monthly subscription. Implementation support included.',
         'credits_usage_note' => 'Platform credits power content generation, optimization, and AI analysis workflows.',
         'pricing_credit_top_up_helper' => 'Platform credits included. Scale with additional capacity as needed.',
         'pricing_includes' => [
             'Content orchestration and workflows',
             'GEO and AI visibility tracking',
-            'Multi-site publishing infrastructure',
+            'CMS, API and LinkedIn publishing infrastructure',
         ],
         'pricing_plan_copy' => [
             'starter' => [
@@ -523,7 +524,7 @@ return [
             ],
             'scale' => [
                 'name' => 'Scale',
-                'audience' => 'For enterprise teams running large-scale publishing operations.',
+                'audience' => 'For teams running large-scale publishing and autonomous marketing operations.',
                 'features' => [
                     '5 workspaces, 15 sites',
                     'Advanced AI visibility analytics',
@@ -570,7 +571,7 @@ return [
             'growth' => 'Team onboarding with brand voice setup, multi-site configuration, and workflow training.',
             'scale' => 'Full enterprise implementation with custom workflows, API setup, advanced governance, and dedicated rollout support.',
         ],
-        'pricing_enterprise_label' => 'Need custom infrastructure?',
+        'pricing_enterprise_label' => 'Need a custom rollout?',
         'pricing_enterprise_cta' => 'Talk to sales',
         'compare_feature' => 'Capability',
         'compare_rows' => [
@@ -594,8 +595,9 @@ return [
         'why_title' => 'Why teams choose Argusly',
         'why_points' => [
             'One platform for SEO, GEO, and AI visibility instead of disconnected tools',
-            'Structured publishing workflows built for the AI era',
+            'Customer-controlled autonomous workflows built for the AI era',
             'Multi-site content orchestration with governance',
+            'LinkedIn publishing connected to campaigns, approvals and scheduling',
             'Machine-readable outputs including llms.txt for AI discoverability',
             'From content operations to authority building at scale',
         ],
@@ -608,15 +610,15 @@ return [
         ],
         'credit_failure_note' => 'Usage is tracked transparently. View detailed logs and analytics in your workspace.',
         'popular_label' => 'Recommended',
-        'enterprise_title' => 'Enterprise infrastructure',
-        'enterprise_text' => 'For organizations requiring custom compliance, dedicated infrastructure, advanced integrations, or multi-region deployment.',
+        'enterprise_title' => 'Enterprise and custom rollout',
+        'enterprise_text' => 'For organizations that want Argusly tailored around governance, autonomy rules, integration depth, compliance needs, or dedicated operating models.',
         'enterprise_points' => [
-            'Custom infrastructure and SLA',
+            'Custom rollout and SLA',
             'SSO and advanced security',
             'Dedicated success manager',
             'Custom API integrations',
         ],
-        'custom_contact_note' => 'Need custom infrastructure? Contact us for enterprise deployments, compliance requirements, and dedicated support.',
+        'custom_contact_note' => 'Need a custom rollout? Contact us for enterprise deployments, compliance requirements, dedicated support, and product extensions on request.',
         'most_popular' => 'Recommended',
         'custom' => 'Custom',
         'per_month' => 'per month',
@@ -681,9 +683,9 @@ return [
         'ownership_line' => ':product is a product developed and operated by :parent.',
         'last_updated_label' => 'Last updated',
         'last_updated' => [
-            'privacy' => 'March 11, 2026',
-            'terms' => 'February 21, 2026',
-            'security' => 'March 11, 2026',
+            'privacy' => 'June 10, 2026',
+            'terms' => 'June 10, 2026',
+            'security' => 'June 10, 2026',
             'cookies' => 'March 11, 2026',
             'subprocessors' => 'March 11, 2026',
         ],
@@ -740,15 +742,15 @@ return [
             'trust_title' => 'Security built into platform design',
             'trust_text' => 'Argusly is built with security and data protection as foundational requirements, not afterthoughts. We apply consistent controls across infrastructure, application code, and operational practices.',
             'trust_points' => [
-                'Encrypted data in transit and at rest',
+                'Encrypted connections and storage safeguards',
                 'Role-based access controls',
-                'Regular security audits',
-                'EU-based infrastructure',
+                'Security reviews as the product evolves',
+                'Provider and data-location transparency',
             ],
         ],
         'subprocessors' => [
             'table_title' => 'Verified subprocessors',
-            'table_intro' => 'The following subprocessors are currently integrated into Argusly platform operations and may process data as part of service delivery.',
+            'table_intro' => 'The following providers are currently integrated into Argusly platform operations and may process data as part of service delivery. Customer-connected publishing destinations such as WordPress, LinkedIn, API endpoints, or other customer systems are covered in Privacy and Terms and may be governed by their own policies.',
             'fields' => [
                 'legal_entity' => 'Legal entity',
                 'service_category' => 'Service category',
@@ -985,8 +987,8 @@ return [
                     'title' => 'Data we process',
                     'points' => [
                         'Account and contact data such as name, email address, login and verification records, and public contact form submissions.',
-                        'Organization and workspace data such as company details, member roles, workspace names, client site settings, API destinations, and integration configuration.',
-                        'Customer content and content metadata such as briefs, drafts, revisions, generated content, publication settings, and related usage records.',
+                        'Organization and workspace data such as company details, member roles, workspace names, client site settings, social account references, API destinations, and integration configuration.',
+                        'Customer content and content metadata such as briefs, drafts, revisions, generated content, research inputs and outputs, publication settings, scheduling settings, and related usage records.',
                         'Billing and operational data such as invoice details, billing addresses, VAT data, payment status, API key hashes, webhook settings, notifications, logs, and error events.',
                         'Analytics and performance data for connected content properties is processed in pseudonymized or hashed form where implemented, including hashed visitor, session, and IP-derived identifiers.',
                     ],
@@ -995,7 +997,7 @@ return [
                     'title' => 'Data ownership',
                     'points' => [
                         'Customers retain ownership of the content they create or manage through the platform.',
-                        'Argusly stores and processes that content to provide generation, editing, workflow, analytics, and delivery features.',
+                        'Argusly stores and processes that content to provide research, generation, editing, workflow, analytics, automation, and delivery features.',
                     ],
                 ],
                 [
@@ -1008,9 +1010,17 @@ return [
                 [
                     'title' => 'AI processing',
                     'points' => [
-                        'AI features may send prompts, instructions, and relevant content context to external model providers configured in the platform.',
+                        'AI features may send prompts, instructions, research context, and relevant content context to external model providers configured in the platform.',
                         'Current AI providers used by the platform are listed on the Subprocessors page.',
                         'This page does not claim additional privacy documentation or contractual artifacts beyond what is actually published.',
+                    ],
+                ],
+                [
+                    'title' => 'Connected publishing services',
+                    'points' => [
+                        'When Customer connects or uses external publishing services, Argusly may send the content, metadata, account identifiers, access tokens, or scheduling instructions needed to perform the requested integration.',
+                        'Connected services may include WordPress, Laravel or API destinations, LinkedIn, and other configured customer systems.',
+                        'Customer remains responsible for choosing which services to connect and for the settings, permissions, and content approved for those services.',
                     ],
                 ],
                 [
@@ -1029,13 +1039,13 @@ return [
             'intro' => 'B2B SaaS Platform',
             'sections' => [],
             'articles' => [
-                ['title' => 'Article 1. Definitions', 'points' => ['Argusly: the Netherlands-based company operating the Argusly SaaS platform.', 'Customer: any natural person or legal entity acting in the exercise of a profession or business that enters into an agreement with Argusly.', 'Platform: the online SaaS application Argusly including AI functionalities, credit system, API, and integrations with external systems such as WordPress.', 'Account: access to the Platform through unique login credentials.', 'Subscription: periodic access to the Platform for a fixed fee.', 'Credits: prepaid units used to perform AI-based content generation.', 'Content: all data entered by Customer and all output generated by the Platform.']],
+                ['title' => 'Article 1. Definitions', 'points' => ['Argusly: the Netherlands-based company operating the Argusly SaaS platform.', 'Customer: any natural person or legal entity acting in the exercise of a profession or business that enters into an agreement with Argusly.', 'Platform: the online SaaS application Argusly including AI functionalities, credit system, API, and integrations with external systems such as WordPress, Laravel/API destinations, and LinkedIn.', 'Account: access to the Platform through unique login credentials.', 'Subscription: periodic access to the Platform for a fixed fee.', 'Credits: prepaid units used to perform AI-based generation, research, analysis, optimization, translation, and related workflows.', 'Content: all data entered by Customer and all output generated by the Platform.']],
                 ['title' => 'Article 2. Applicability', 'points' => ['These terms apply exclusively to agreements with business customers.', 'Argusly is intended exclusively for B2B use.', 'Customer general terms and conditions are explicitly excluded.']],
-                ['title' => 'Article 3. Services', 'points' => ['Argusly provides an AI content and workflow platform enabling Customer to:', 'a. create briefings', 'b. generate AI-produced content through credits', 'c. manage and revise content', 'd. export or publish content via WordPress integrations', 'Argusly has an obligation of effort and not an obligation of result.', 'Functionalities may be changed or expanded.']],
-                ['title' => 'Article 4. Subscriptions and Credits', 'points' => ['Use of the Platform requires an active subscription.', 'Additional AI functionality is charged through credits.', 'All amounts displayed on the website and within the Platform are inclusive of VAT.', 'Credits are prepaid and non-refundable.', 'Unused credits do not expire during an active subscription period unless stated otherwise.', 'Argusly may adjust prices with a reasonable notice period.']],
+                ['title' => 'Article 3. Services', 'points' => ['Argusly provides an AI content and workflow platform enabling Customer to:', 'a. create briefings and use research or intelligence workflows', 'b. generate AI-produced content through credits', 'c. manage, revise, schedule, and approve content', 'd. export or publish content via connected systems such as WordPress, Laravel/API destinations, and LinkedIn where configured', 'e. configure automation or autonomy settings where the Platform makes them available', 'Argusly has an obligation of effort and not an obligation of result.', 'Functionalities may be changed or expanded.']],
+                ['title' => 'Article 4. Subscriptions and Credits', 'points' => ['Use of the Platform requires an active subscription.', 'Additional AI functionality is charged through credits.', 'Credits may be used for generation, research, analysis, optimization, translations, visibility checks, and related AI workflows.', 'All amounts displayed on the website and within the Platform are inclusive of VAT.', 'Credits are prepaid and non-refundable.', 'Unused credits do not expire during an active subscription period unless stated otherwise.', 'Argusly may adjust prices with a reasonable notice period.']],
                 ['title' => 'Article 5. Payment', 'points' => ['Payment is made in advance via an external payment provider such as Mollie.', 'Subscriptions renew automatically unless cancelled in time.', 'In case of non-payment, access to the Platform may be suspended.']],
-                ['title' => 'Article 6. AI-Generated Content', 'points' => ['AI output is automatically generated based on Customer input.', 'Argusly does not guarantee that output is:', 'a. factually correct', 'b. legally correct', 'c. free from third-party rights', 'Customer is fully responsible for review, editing, and publication of content.', 'Argusly is not liable for damage resulting from publication of AI-generated content.']],
-                ['title' => 'Article 7. WordPress and External Integrations', 'points' => ['The Platform can connect with external systems such as WordPress via API or plugin.', 'Argusly is not responsible for:', 'a. changes in external APIs', 'b. security vulnerabilities in external systems', 'c. incorrect configuration by Customer', 'Customer remains responsible for final publication on external systems.']],
+                ['title' => 'Article 6. AI-Generated Content and Automation', 'points' => ['AI output is automatically generated based on Customer input, connected context, and configured workflows.', 'Customer may enable automation or autonomy settings where available, including workflows that prepare or publish content after configured approvals or rules.', 'Argusly does not guarantee that output is:', 'a. factually correct', 'b. legally correct', 'c. free from third-party rights', 'Customer is responsible for its configuration, review process, approvals, editing, and publication of content.', 'Argusly is not liable for damage resulting from publication or use of AI-generated content except where mandatory law provides otherwise.']],
+                ['title' => 'Article 7. External Integrations and Publishing Channels', 'points' => ['The Platform can connect with external systems such as WordPress, Laravel/API destinations, LinkedIn, and other customer-configured services.', 'Argusly is not responsible for:', 'a. changes in external APIs', 'b. security vulnerabilities, outages, policy limits, or rate limits in external systems', 'c. incorrect configuration, permissions, credentials, or approval settings by Customer', 'Customer remains responsible for the content, account permissions, and final publication settings used on external systems.']],
                 ['title' => 'Article 8. Intellectual Property', 'points' => ['All rights to the Platform are vested in Argusly.', 'Customer obtains a non-transferable right of use.', 'Content entered by Customer remains the property of Customer.', 'AI output may be used commercially by Customer at its own responsibility.']],
                 ['title' => 'Article 9. Liability', 'points' => ['Total liability is limited to the amount paid by Customer in the 12 months preceding the damaging event.', 'Liability for indirect damage is excluded.', 'Limitations do not apply in cases of intent or gross negligence.']],
                 ['title' => 'Article 10. Termination', 'points' => ['Subscriptions run for the selected term.', 'Cancellation must occur before renewal.', 'Argusly may immediately suspend accounts for violation of the AUP.']],
@@ -1052,7 +1062,7 @@ return [
             'heading' => 'Security',
             'intro' => 'Security is built into the platform design and development process. Argusly currently applies practical technical and organizational safeguards appropriate to its current stage.',
             'sections' => [
-                ['title' => 'Security controls', 'bullets' => ['Encrypted connections and secure session settings', 'Authentication flows with hashed passwords and protected sessions', 'Role based permissions and restricted admin access', 'Workspace scoped access checks across customer data and integrations', 'Server side validation and framework protections such as CSRF defenses', 'Rate limiting on public submissions, analytics, and API endpoints', 'Application monitoring, logging, and error tracking', 'Regular framework and dependency updates as the platform evolves']],
+                ['title' => 'Security controls', 'bullets' => ['Encrypted connections and secure session settings', 'Authentication flows with hashed passwords and protected sessions', 'Role based permissions and restricted admin access', 'Workspace scoped access checks across customer data and integrations', 'Server side validation and framework protections such as CSRF defenses', 'Rate limiting on public submissions, analytics, and API endpoints', 'Application monitoring, logging, and error tracking', 'Framework and dependency updates as the platform evolves']],
                 ['title' => 'Security approach', 'bullets' => ['Argusly applies practical safeguards appropriate to the current product and infrastructure footprint.', 'Security controls are reviewed and expanded as platform usage and infrastructure maturity grow.', 'This page is updated when material security practices or supporting providers change.']],
             ],
         ],
@@ -1096,7 +1106,7 @@ return [
             'metaTitle' => 'Subprocessors | Argusly',
             'metaDescription' => 'Up to date list of external services that may process data.',
             'heading' => 'Subprocessors',
-            'intro' => 'Overview of verified external services that may process data as part of Argusly service delivery.',
+            'intro' => 'Overview of verified external services that may process data as part of Argusly service delivery. Customer-connected publishing destinations are described separately in Privacy and Terms.',
             'sections' => [
                 ['title' => 'Includes', 'bullets' => ['AI model providers', 'Transactional email services', 'Payment processors', 'Error monitoring services']],
                 ['title' => 'Maintenance', 'bullets' => ['Full and up to date list maintained here.']],

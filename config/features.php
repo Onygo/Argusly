@@ -9,4 +9,5 @@ return [
     'brief_templates' => (bool) env('ARGUSLY_FEATURE_BRIEF_TEMPLATES', false),
     'content_network_analysis' => (bool) env('ARGUSLY_FEATURE_CONTENT_NETWORK_ANALYSIS', false),
     'agentic_marketing' => (bool) env('ARGUSLY_FEATURE_AGENTIC_MARKETING', true),
+    'signal_intelligence' => (bool) env('ARGUSLY_SIGNAL_INTELLIGENCE_ENABLED', true),
 ];

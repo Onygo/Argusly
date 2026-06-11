@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Jobs\RunOrganizationEnrichmentJob;
 use App\Jobs\RunTeamMemberEnrichmentJob;
+use App\Models\BrandVoice;
+use App\Models\CompanyIntelligenceProfile;
+use App\Models\CompanyProfile;
 use App\Models\EnrichmentRun;
 use App\Models\Organization;
 use App\Models\OrganizationProfile;
@@ -114,6 +117,52 @@ it('shows the workspace intelligence overview page', function () {
         ->assertSee('Team')
         ->assertSee('Insights / Runs')
         ->assertSee('This profile is used to generate');
+});
+
+it('shows workspace brand setup context when no organization intelligence profile exists', function () {
+    [$organization, $workspace, $owner] = makeWorkspaceIntelligenceContext();
+
+    CompanyProfile::query()->create([
+        'workspace_id' => $workspace->id,
+        'company_name' => 'Demo Organization',
+        'industry' => 'AI SEO',
+        'short_description' => 'Demo Organization helps B2B teams improve AI visibility.',
+        'value_propositions' => "Improve answer engine visibility\nGovern content operations",
+        'proof_points' => "Used by marketing teams\nBuilt for governed workflows",
+        'target_audience' => 'B2B marketers, founders, and SEO teams',
+    ]);
+
+    BrandVoice::query()->create([
+        'workspace_id' => $workspace->id,
+        'organization_id' => $organization->id,
+        'name' => 'Expert but practical',
+        'tone_of_voice' => 'Clear, expert, pragmatic',
+        'writing_style' => 'Short paragraphs with concrete guidance',
+        'is_default' => true,
+    ]);
+
+    CompanyIntelligenceProfile::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'brand_key' => 'primary',
+        'company_name' => 'Demo Organization',
+        'primary_topics' => ['AI visibility', 'answer engine optimization'],
+        'strategic_keywords' => ['LLM visibility', 'content governance'],
+        'brand_differentiators' => ['Evidence-led workflows'],
+        'status' => CompanyIntelligenceProfile::STATUS_ACTIVE,
+        'is_default' => true,
+    ]);
+
+    $this->actingAs($owner)
+        ->get(route('app.workspace-intelligence.index', ['tab' => 'brand-profile']))
+        ->assertOk()
+        ->assertSee('Demo Organization helps B2B teams improve AI visibility.')
+        ->assertSee('Clear')
+        ->assertSee('expert')
+        ->assertSee('pragmatic')
+        ->assertSee('Evidence-led workflows')
+        ->assertSee('AI visibility')
+        ->assertSee('LLM visibility');
 });
 
 it('translates the workspace intelligence overview when Dutch is selected', function () {
@@ -254,7 +303,7 @@ it('generates a team member persona from pasted profile text', function () {
 
     $run->refresh();
 
-    expect($run->status)->toBe(EnrichmentRun::STATUS_DRAFT)
+    expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED)
         ->and(data_get($run->ai_payload, 'profile_data.expert_summary'))->toBe('Operational editorial leader for regulated B2B teams.')
         ->and(data_get($run->extracted_payload, 'source_text'))->toContain('12 years');
 });
@@ -321,7 +370,7 @@ it('generates an organization proposal from a website url', function () {
 
     $run->refresh();
 
-    expect($run->status)->toBe(EnrichmentRun::STATUS_DRAFT)
+    expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED)
         ->and(data_get($run->ai_payload, 'brand_summary'))->toBe('Platform for governed B2B content operations.')
         ->and((string) data_get($run->extracted_payload, 'combined_text'))->toContain('Governed content operations for B2B teams');
 });

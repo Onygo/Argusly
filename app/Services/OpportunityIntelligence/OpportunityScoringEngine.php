@@ -69,6 +69,7 @@ class OpportunityScoringEngine
             OpportunityCategory::CONTENT_GAP => 84.0,
             OpportunityCategory::COMPETITOR_MOVEMENT => 82.0,
             OpportunityCategory::TREND_OPPORTUNITY => 78.0,
+            OpportunityCategory::BRAND_VISIBILITY => 76.0,
             OpportunityCategory::REFRESH_OPPORTUNITY => 72.0,
             OpportunityCategory::ENGAGEMENT_OPPORTUNITY => 68.0,
         };
@@ -85,6 +86,7 @@ class OpportunityScoringEngine
             OpportunityCategory::REFRESH_OPPORTUNITY, OpportunityCategory::ENGAGEMENT_OPPORTUNITY => $hasContent ? 34.0 : 52.0,
             OpportunityCategory::CONTENT_GAP, OpportunityCategory::TREND_OPPORTUNITY => 62.0,
             OpportunityCategory::COMPETITOR_MOVEMENT => 58.0,
+            OpportunityCategory::BRAND_VISIBILITY => 54.0,
             OpportunityCategory::AI_VISIBILITY_OPPORTUNITY => $hasContent ? 46.0 : 64.0,
         };
     }

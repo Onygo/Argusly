@@ -37,35 +37,37 @@
 
 <main class="bg-background">
     <section class="pl-public-hero">
-        <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 md:py-20">
-            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="inline-flex items-center gap-1 text-sm text-textSecondary hover:text-textPrimary">
-                <i data-lucide="arrow-left" class="h-4 w-4"></i>
-                {{ __('public.blog.back_to_blog') }}
-            </a>
-            @if(count($localeSwitchUrls ?? []) > 1)
-                <div class="mt-5 inline-flex items-center gap-1 rounded-full border border-border bg-white p-1 text-xs">
-                    @foreach(($localeSwitchUrls ?? []) as $switchLocale => $switchUrl)
-                        <a href="{{ $switchUrl }}" class="rounded-full px-3 py-1.5 font-medium {{ app()->getLocale() === $switchLocale ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}">{{ strtoupper($switchLocale) }}</a>
-                    @endforeach
-                </div>
-            @endif
-            <h1 class="mt-4 text-balance text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ $post['title'] ?? __('public.blog.meta_title') }}</h1>
-            <p class="mt-3 text-sm text-textSecondary">
-                {{ $post['published_date'] ?? '' }}
-                @if(($post['reading_time'] ?? 0) > 0)
-                    · {{ $post['reading_time'] }} {{ __('public.blog.min_read') }}
+        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
+            <div class="max-w-4xl">
+                <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="inline-flex items-center gap-1 text-sm text-textSecondary hover:text-textPrimary">
+                    <i data-lucide="arrow-left" class="h-4 w-4"></i>
+                    {{ __('public.blog.back_to_blog') }}
+                </a>
+                @if(count($localeSwitchUrls ?? []) > 1)
+                    <div class="mt-5 inline-flex items-center gap-1 rounded-md border border-border bg-white p-1 text-xs">
+                        @foreach(($localeSwitchUrls ?? []) as $switchLocale => $switchUrl)
+                            <a href="{{ $switchUrl }}" class="rounded-full px-3 py-1.5 font-medium {{ app()->getLocale() === $switchLocale ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}">{{ strtoupper($switchLocale) }}</a>
+                        @endforeach
+                    </div>
                 @endif
-                @if(($post['author'] ?? '') !== '')
-                    · {{ $post['author'] }}
-                @endif
-            </p>
+                <h1 class="mt-4 pl-public-heading pl-public-heading-h1">{{ $post['title'] ?? __('public.blog.meta_title') }}</h1>
+                <p class="mt-3 text-sm text-textSecondary">
+                    {{ $post['published_date'] ?? '' }}
+                    @if(($post['reading_time'] ?? 0) > 0)
+                        · {{ $post['reading_time'] }} {{ __('public.blog.min_read') }}
+                    @endif
+                    @if(($post['author'] ?? '') !== '')
+                        · {{ $post['author'] }}
+                    @endif
+                </p>
+            </div>
         </div>
     </section>
 
     <section class="bg-white">
         <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 md:py-16">
             @if(($post['featured_image'] ?? '') !== '')
-                <div class="mb-8 overflow-hidden rounded-lg border border-border">
+                <div class="mb-8 overflow-hidden rounded-md border border-border">
                     <img
                         src="{{ $post['featured_image'] }}"
                         alt="{{ $post['featured_image_alt'] ?? $post['title'] ?? __('public.blog.meta_title') }}"

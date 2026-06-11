@@ -29,7 +29,7 @@ class LlmTrackingAnalyzer
         $competitorTerms = (array) ($query->competitor_terms ?? []);
         $targetUrls = (array) ($query->target_urls ?? []);
 
-        $brandHits = $this->extractMentions($answer, $brandTerms);
+        $brandHits = $this->extractMentions($answer, $brandTerms, true);
         $competitorHits = $this->extractMentions($answer, $competitorTerms);
 
         $extractedUrls = collect([
@@ -74,7 +74,7 @@ class LlmTrackingAnalyzer
      * @param array<int,string> $terms
      * @return array<int,array<string,mixed>>
      */
-    public function extractMentions(string $answer, array $terms): array
+    public function extractMentions(string $answer, array $terms, bool $excludeNonVisibilityMentions = false): array
     {
         $sentenceOffsets = $this->sentenceOffsets($answer);
         $answerLength = max(1, strlen($answer));
@@ -96,6 +96,7 @@ class LlmTrackingAnalyzer
             $positions = collect($occurrences)
                 ->map(fn ($match) => (int) ($match[1] ?? -1))
                 ->filter(fn (int $position): bool => $position >= 0)
+                ->filter(fn (int $position): bool => ! $excludeNonVisibilityMentions || ! $this->isNonVisibilityMention($answer, $term, $position))
                 ->values();
 
             if ($positions->isEmpty()) {
@@ -649,6 +650,37 @@ class LlmTrackingAnalyzer
         }
 
         return collect($snippets)->unique()->values()->all();
+    }
+
+    private function isNonVisibilityMention(string $answer, string $term, int $position): bool
+    {
+        $window = $this->mentionWindow($answer, $term, $position);
+        $termPattern = preg_quote(Str::lower($term), '/');
+
+        $patterns = [
+            '/\b(no|not|without|lacks?|lacking|limited|little|insufficient|scarce)\b.{0,120}\b(data|evidence|mention(?:ed|ing|s)?|visibility|presence|citation(?:s)?|source(?:s)?|reference(?:s)?|recommendation(?:s)?|ranking(?:s)?|result(?:s)?)\b.{0,120}\b' . $termPattern . '\b/iu',
+            '/\b(data|evidence|mention(?:ed|ing|s)?|visibility|presence|citation(?:s)?|source(?:s)?|reference(?:s)?|recommendation(?:s)?|ranking(?:s)?|result(?:s)?)\b.{0,120}\b(no|not|without|limited|little|insufficient|scarce)\b.{0,120}\b' . $termPattern . '\b/iu',
+            '/\b' . $termPattern . '\b.{0,120}\b(is|are|was|were|does|do|did|has|have)\s+(not|no|never)\b.{0,120}\b(mentioned|visible|present|cited|referenced|recommended|ranked|found|included|known)\b/iu',
+            '/\b' . $termPattern . '\b.{0,120}\b(not|never)\s+(mentioned|visible|present|cited|referenced|recommended|ranked|found|included|known)\b/iu',
+            '/\b(like those addressed by|addressed by|target brand|tracked brand|brand being evaluated)\s+' . $termPattern . '\b/iu',
+            '/\b' . $termPattern . '\b.{0,80}\b(target brand|tracked brand|brand being evaluated)\b/iu',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $window) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function mentionWindow(string $answer, string $term, int $position): string
+    {
+        $start = max(0, $position - 180);
+        $length = strlen($term) + 360;
+
+        return Str::lower((string) substr($answer, $start, $length));
     }
 
     /**

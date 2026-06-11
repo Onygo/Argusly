@@ -166,6 +166,38 @@
         </div>
 
         <div class="space-y-6">
+            <x-settings.section-card title="Pilot Program" description="Add this existing account to pilot tracking and early-access override.">
+                @if ($managedUser->organization)
+                    <form method="POST" action="{{ route('admin.early-access.add-existing-user') }}" class="space-y-3" onsubmit="return confirm('Add this user to the Pilot Program?');">
+                        @csrf
+                        <input type="hidden" name="email" value="{{ $managedUser->email }}">
+                        <div>
+                            <label class="mb-1 block text-xs text-textSecondary">Workspace</label>
+                            <select name="workspace_id" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                                <option value="">Use first workspace</option>
+                                @foreach ($managedUser->organization?->workspaces ?? [] as $workspace)
+                                    <option value="{{ $workspace->id }}">{{ $workspace->display_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs text-textSecondary">Override ends at</label>
+                            <input type="datetime-local" name="ends_at" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs text-textSecondary">Internal notes</label>
+                            <textarea name="notes" rows="3" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">Existing user added from admin user detail.</textarea>
+                        </div>
+                        <button class="w-full inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium">
+                            <i data-lucide="user-plus" class="h-4 w-4"></i>
+                            Add to Pilot Program
+                        </button>
+                    </form>
+                @else
+                    <p class="text-sm text-textSecondary">Link this user to an organization before adding pilot participation.</p>
+                @endif
+            </x-settings.section-card>
+
             <x-settings.section-card title="Current Override" description="Live override state and stop control.">
                 @if ($activeAccessOverride)
                     <div class="rounded border border-border bg-background p-3">

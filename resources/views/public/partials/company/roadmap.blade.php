@@ -15,7 +15,7 @@
 <section class="pl-public-hero">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="max-w-3xl">
-            <h1 class="text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <h1 class="pl-public-heading pl-public-heading-hero">
                 {{ __('public.roadmap.hero_title') }}
             </h1>
             <p class="mt-4 max-w-2xl text-pretty text-sm leading-6 text-textSecondary md:text-base">
@@ -30,7 +30,7 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mb-10 max-w-3xl">
             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-publicPrimary">{{ __('public.roadmap.focus_eyebrow') }}</p>
-            <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.roadmap.focus_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.roadmap.focus_title') }}</h2>
             <p class="mt-3 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.roadmap.focus_text') }}</p>
         </div>
 
@@ -51,7 +51,7 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="grid gap-8 lg:grid-cols-2 lg:items-center">
             <div>
-                <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.roadmap.prioritization_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.roadmap.prioritization_title') }}</h2>
                 <p class="mt-4 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.roadmap.prioritization_text') }}</p>
             </div>
             <div class="pl-public-card p-6">
@@ -77,7 +77,7 @@
                     <x-public.icon name="message-circle" size="xs" class="bg-white/10 text-white" />
                     <span>{{ __('public.roadmap.feedback_badge') }}</span>
                 </div>
-                <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.roadmap.feedback_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.roadmap.feedback_title') }}</h2>
                 <p class="mt-3 text-sm leading-6 text-white/76 md:text-base">{{ __('public.roadmap.feedback_text') }}</p>
             </div>
 
@@ -85,7 +85,7 @@
             @if(is_array($feedbackPoints) && count($feedbackPoints) > 0)
                 <ul class="space-y-3 text-sm text-white/86">
                     @foreach($feedbackPoints as $point)
-                        <li class="flex gap-3 rounded-xl border border-white/10 bg-white/8 px-4 py-3">
+                        <li class="flex gap-3 rounded-md border border-white/10 bg-white/8 px-4 py-3">
                             <x-public.icon name="check" size="xs" class="mt-0.5 flex-none bg-white/10 text-white" />
                             <span>{{ $point }}</span>
                         </li>
@@ -100,7 +100,7 @@
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="pl-public-cta-panel">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            <h2 class="text-balance pl-public-heading pl-public-heading-h2 text-white">
                 {{ __('public.roadmap.cta_title') }}
             </h2>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">

@@ -514,6 +514,16 @@ class Content extends Model
         return $this->belongsTo(ContentDestination::class);
     }
 
+    public function publicationReadiness(): HasOne
+    {
+        return $this->hasOne(ProgrammaticPublicationReadiness::class);
+    }
+
+    public function publicationPlanItems(): HasMany
+    {
+        return $this->hasMany(ProgrammaticPublicationPlanItem::class);
+    }
+
     public function series()
     {
         return $this->belongsTo(ContentSeries::class, 'series_id');

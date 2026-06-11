@@ -50,14 +50,14 @@
 @endphp
 
 <main class="bg-background" data-page="pricing">
-    <section class="border-b border-border/70 bg-[#ffffff]">
+    <section class="pl-public-hero">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
             <div class="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-end">
                 <div class="max-w-3xl">
-                    <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">
+                    <span class="pl-public-hero-label">
                         {{ $hero['eyebrow'] ?? 'Premium content operations' }}
                     </span>
-                    <h1 class="mt-5 text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-6xl">
+                    <h1 class="mt-5 pl-public-heading pl-public-heading-hero">
                         {{ $hero['headline'] ?? __('public.landing.pricing_title') }}
                     </h1>
                     <p class="mt-5 max-w-2xl text-lg leading-8 text-textPrimary">
@@ -76,7 +76,7 @@
                     </div>
                 </div>
 
-                <div class="rounded-[28px] border border-border/80 bg-white p-6 sm:p-7">
+                <div class="rounded-md border border-border/80 bg-white p-6 sm:p-7">
                     <p class="text-sm font-semibold text-textPrimary">{{ $credits['title'] ?? 'Flexible AI credits' }}</p>
                     <p class="mt-3 text-sm leading-6 text-textSecondary">
                         {{ $credits['body'] ?? 'Credits are consumed by generation, translations, refreshes, answer blocks, research and AI visibility workflows.' }}
@@ -114,11 +114,11 @@
                     @endphp
                     <article
                         data-pricing-card
-                        class="relative flex h-full min-h-[620px] flex-col rounded-[28px] border p-8 sm:p-9 {{ $isPopular ? 'border-publicPrimary bg-[#f8fafc]' : 'border-border/80 bg-[#f8fafc]' }}"
+                        class="relative flex h-full min-h-[620px] flex-col rounded-md border p-8 sm:p-9 {{ $isPopular ? 'border-publicPrimary bg-[#f8fafc]' : 'border-border/80 bg-[#f8fafc]' }}"
                     >
                         @if($isPopular)
                             <div class="absolute right-6 top-6">
-                                <span class="inline-flex items-center rounded-full bg-publicPrimary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
+                                <span class="inline-flex items-center rounded-md bg-publicPrimary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
                                     {{ $plan['badge'] ?: 'Most popular' }}
                                 </span>
                             </div>
@@ -126,15 +126,15 @@
 
                         <div class="pr-20">
                             @if(! empty($plan['eyebrow']))
-                                <p class="text-xs font-semibold uppercase tracking-[0.16em] text-textMuted">{{ $plan['eyebrow'] }}</p>
+                                <p class="pl-public-eyebrow">{{ $plan['eyebrow'] }}</p>
                             @endif
-                            <h2 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $plan['name'] }}</h2>
+                            <h2 class="mt-3 pl-public-heading pl-public-heading-h3">{{ $plan['name'] }}</h2>
                             <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $plan['audience'] ?? $plan['description'] }}</p>
                         </div>
 
                         <div class="mt-8">
                             <div class="flex items-end gap-2">
-                                <span class="text-5xl font-semibold tracking-tight text-textPrimary">{{ $price }}</span>
+                                <span class="pl-public-heading text-5xl text-textPrimary">{{ $price }}</span>
                                 <span class="pb-1 text-sm text-textSecondary">/ month</span>
                             </div>
                             <p class="mt-4 text-sm font-medium text-textPrimary">
@@ -147,8 +147,8 @@
                             @endif
                         </div>
 
-                        <div class="mt-6 rounded-2xl border border-border/70 bg-white px-4 py-4">
-                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-textMuted">Platform access</p>
+                        <div class="mt-6 rounded-md border border-border/70 bg-white px-4 py-4">
+                            <p class="pl-public-eyebrow">Platform access</p>
                             <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-textSecondary">
                                 <div>
                                     <p class="font-medium text-textPrimary">{{ $plan['workspace_limit'] ?? 'Custom' }}</p>
@@ -171,7 +171,7 @@
                         </ul>
 
                         <div class="mt-auto pt-8">
-                            <a href="{{ $ctaHref }}" class="inline-flex w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition-colors {{ $isPopular ? 'bg-publicPrimary text-white hover:bg-publicPrimaryHover' : 'border border-border bg-white text-textPrimary hover:bg-surfaceMuted' }}">
+                            <a href="{{ $ctaHref }}" class="inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-colors {{ $isPopular ? 'bg-publicPrimary text-white hover:bg-publicPrimaryHover' : 'border border-border bg-white text-textPrimary hover:bg-surfaceMuted' }}">
                                 {{ $plan['cta_label'] ?: 'Choose plan' }}
                             </a>
                         </div>
@@ -181,24 +181,24 @@
 
             @if($enterprisePlan)
                 <section class="mt-10 lg:mt-14" data-enterprise-block>
-                    <article class="overflow-hidden rounded-[28px] border border-border/80 bg-textPrimary text-white">
+                    <article class="overflow-hidden rounded-md border border-border/80 bg-textPrimary text-white">
                         <div class="bg-gradient-to-r from-white/[0.04] via-transparent to-transparent px-8 py-8 sm:px-10 sm:py-10 xl:px-12">
                             <div class="flex flex-col gap-10 xl:flex-row xl:items-start xl:justify-between">
                                 <div class="max-w-2xl">
-                                    <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                                    <span class="inline-flex items-center rounded-md border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
                                         {{ $enterprisePlan['badge'] ?? 'Enterprise' }}
                                     </span>
-                                    <h2 class="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
+                                    <h2 class="mt-5 pl-public-heading pl-public-heading-h2 text-white">
                                         {{ $enterprisePlan['price_label'] ?? 'Custom pricing' }}
                                     </h2>
                                     <p class="mt-4 text-lg leading-8 text-white/88">
                                         {{ $enterprisePlan['audience'] ?? $enterprisePlan['description'] }}
                                     </p>
                                     <p class="mt-4 max-w-xl text-sm leading-7 text-white/72">
-                                        {{ $enterprisePlan['name'] }} is built for organizations that need tailored governance, custom workflows, shared team operations, and enterprise-grade support.
+                                        {{ $enterprisePlan['body'] ?? ($enterprisePlan['name'] . ' is built for organizations that want tailored governance, autonomy rules, shared team operations, and product extensions on request.') }}
                                     </p>
                                     <div class="mt-7">
-                                        <a href="{{ $enterprisePlan['cta_url'] }}" class="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-white/90">
+                                        <a href="{{ $enterprisePlan['cta_url'] }}" class="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-white/90">
                                             {{ $enterprisePlan['cta_label'] ?: 'Talk to sales' }}
                                         </a>
                                     </div>
@@ -225,7 +225,7 @@
     <section class="pl-public-warm">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="max-w-3xl">
-                <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">
+                <h2 class="pl-public-heading pl-public-heading-h2">
                     {{ $comparison['title'] ?? 'More than AI writing' }}
                 </h2>
                 <p class="mt-4 text-base leading-7 text-textSecondary">
@@ -233,7 +233,7 @@
                 </p>
             </div>
 
-            <div class="mt-10 overflow-hidden rounded-[28px] border border-border/80 bg-white">
+            <div class="mt-10 overflow-hidden rounded-md border border-border/80 bg-white">
                 <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] border-b border-border/70 bg-[#f8fafc] px-6 py-4 text-sm font-semibold text-textPrimary">
                     <div>Capabilities</div>
                     <div class="text-center">{{ $comparison['left_label'] ?? 'Argusly' }}</div>
@@ -257,7 +257,7 @@
     <section class="bg-white">
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] md:py-20">
             <div>
-                <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">
+                <h2 class="pl-public-heading pl-public-heading-h2">
                     {{ $credits['title'] ?? 'Flexible AI credits' }}
                 </h2>
                 <p class="mt-4 max-w-2xl text-base leading-7 text-textSecondary">
@@ -267,7 +267,7 @@
                     {{ $credits['note'] ?? 'A standard SEO article typically uses 10 to 14 credits depending on content depth, research and optimization workflows.' }}
                 </p>
             </div>
-            <div class="rounded-[28px] border border-border/80 bg-[#f8fafc] p-7">
+            <div class="rounded-md border border-border/80 bg-[#f8fafc] p-7">
                 <ul class="space-y-4 text-sm text-textSecondary">
                     @foreach((array) ($credits['points'] ?? []) as $point)
                         <li class="flex items-start gap-3">
@@ -283,7 +283,7 @@
     <section class="pl-public-warm">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="max-w-3xl">
-                <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">
+                <h2 class="pl-public-heading pl-public-heading-h2">
                     {{ $creditPacksSection['title'] ?? 'Scale usage when needed' }}
                 </h2>
                 <p class="mt-4 text-base leading-7 text-textSecondary">
@@ -295,12 +295,12 @@
                 @foreach($creditPacksCollection as $pack)
                     <article class="pl-public-card-compact p-6">
                         @if(! empty($pack['badge']))
-                            <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-publicPrimary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-publicPrimary">
+                            <span class="inline-flex items-center rounded-md border border-publicPrimary/15 bg-publicPrimary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-publicPrimary">
                                 {{ $pack['badge'] }}
                             </span>
                         @endif
-                        <h3 class="mt-4 text-2xl font-semibold tracking-tight text-textPrimary">{{ number_format((int) ($pack['credits'] ?? 0)) }} credits</h3>
-                        <p class="mt-2 text-3xl font-semibold tracking-tight text-textPrimary">{{ $formatCurrency($pack['price_cents'] ?? 0, (string) ($pack['currency'] ?? 'EUR')) }}</p>
+                        <h3 class="mt-4 pl-public-heading pl-public-heading-h3">{{ number_format((int) ($pack['credits'] ?? 0)) }} credits</h3>
+                        <p class="mt-2 pl-public-heading text-3xl text-textPrimary">{{ $formatCurrency($pack['price_cents'] ?? 0, (string) ($pack['currency'] ?? 'EUR')) }}</p>
                         <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $pack['description'] ?? '' }}</p>
                         @if(($pack['expires_in_months'] ?? null) !== null)
                             <p class="mt-4 text-xs text-textMuted">Valid for {{ $pack['expires_in_months'] }} months after purchase.</p>
@@ -323,8 +323,8 @@
 
     <section class="bg-white">
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-2 md:py-20">
-            <div class="rounded-[28px] border border-border/80 bg-[#f8fafc] p-7 sm:p-8">
-                <h2 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ $teamWorkflow['title'] ?? 'Built for teams, workflows and scale' }}</h2>
+            <div class="rounded-md border border-border/80 bg-[#f8fafc] p-7 sm:p-8">
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ $teamWorkflow['title'] ?? 'Built for teams, workflows and scale' }}</h2>
                 <p class="mt-4 text-base leading-7 text-textSecondary">{{ $teamWorkflow['subtitle'] ?? '' }}</p>
                 <ul class="mt-6 space-y-4 text-sm text-textSecondary">
                     @foreach((array) ($teamWorkflow['points'] ?? []) as $point)
@@ -336,11 +336,11 @@
                 </ul>
             </div>
 
-            <div class="rounded-[28px] border border-border/80 bg-textPrimary p-7 text-white sm:p-8">
-                <h2 class="text-3xl font-semibold tracking-tight">{{ $roi['title'] ?? 'Replace fragmented content workflows' }}</h2>
+            <div class="rounded-md border border-border/80 bg-textPrimary p-7 text-white sm:p-8">
+                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ $roi['title'] ?? 'Replace fragmented content workflows' }}</h2>
                 <ul class="mt-6 grid gap-4 sm:grid-cols-2">
                     @foreach((array) ($roi['items'] ?? []) as $item)
-                        <li class="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/82">
+                        <li class="rounded-md border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/82">
                             {{ $item }}
                         </li>
                     @endforeach
@@ -352,7 +352,7 @@
     <section class="pl-public-warm">
         <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 md:py-20">
             <div class="text-center">
-                <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">FAQ</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2">FAQ</h2>
             </div>
             <div class="mt-10 space-y-4">
                 @foreach($faqItems as $item)
@@ -372,17 +372,17 @@
 
     <section class="bg-publicPrimary">
         <div class="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
-            <h2 class="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+            <h2 class="pl-public-heading pl-public-heading-h2 text-white">
                 {{ $finalCta['title'] ?? 'Move content operations into one scalable system' }}
             </h2>
             <p class="mx-auto mt-4 max-w-3xl text-base leading-7 text-white/80">
                 {{ $finalCta['body'] ?? 'Run planning, AI-assisted production, localization, optimization and publishing from one operational platform.' }}
             </p>
             <div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <a href="{{ $registerHref }}" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">
+                <a href="{{ $registerHref }}" class="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">
                     {{ $finalCta['primary_label'] ?? 'Choose your plan' }}
                 </a>
-                <a href="{{ $contactHref }}" class="inline-flex items-center justify-center rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20">
+                <a href="{{ $contactHref }}" class="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20">
                     {{ $finalCta['secondary_label'] ?? 'Talk to sales' }}
                 </a>
             </div>

@@ -22,6 +22,7 @@ return [
     'footer' => [
         'tagline' => 'Content, governance, intelligence en publicatie in één platform voor B2B-teams die controle en bewijs nodig hebben.',
         'early_access_note' => 'Momenteel beschikbaar via onboarding voor het pilotprogramma.',
+        'product_by_parent' => ':product is een product van :parent.',
         'rights' => 'Alle rechten voorbehouden.',
         'product' => 'Product',
         'company' => 'Bedrijf',
@@ -254,7 +255,7 @@ return [
             'cta_text' => 'Gebouwd voor teams die governed planning, intelligence en publicatie in één plek nodig hebben.',
             'cta_points' => ['Eenmalige onboarding op betaalde plannen', 'WordPress- en Laravel-connectors', 'Insights, governance en billing in één app'],
             'agentic_title' => 'Voeg een agentic layer toe aan je contentoperaties.',
-            'agentic_text' => 'Argusly verbindt objectives, AI visibility, lifecycle intelligence en governed execution zodat teams verschuiven van handmatige contenttaken naar autonome verbeterloops.',
+            'agentic_text' => 'Argusly verbindt objectives, AI visibility, lifecycle intelligence, research en governed execution zodat teams zelf bepalen hoe ver autonome verbeterloops mogen gaan.',
             'agentic_points' => [
                 'AI visibility en answer readiness scoring',
                 'Content decay, refresh en interne link recommendations',
@@ -270,7 +271,7 @@ return [
         'pricing_meta_description' => 'Bekijk Argusly prijzen en credit packs voor enterprise contentoperaties.',
         'hero_badge' => 'Content, governance, intelligence en publicatie',
         'hero_title' => 'Één platform voor governed contentoperaties en AI-first zichtbaarheid.',
-        'hero_text' => 'Argusly brengt briefs, merkcontext, planning, SEO- en GEO-insights en gekoppelde publicatie samen voor teams die content over meerdere sites aansturen.',
+        'hero_text' => 'Argusly brengt briefs, merkcontext, systeemresearch, planning, SEO- en GEO-insights en gekoppelde publicatie samen voor teams die content over meerdere sites en LinkedIn aansturen.',
         'hero_primary' => 'Demo aanvragen',
         'hero_secondary' => 'Bekijk hoe het werkt',
         'problem_title' => 'De meeste teams runnen content nog steeds in losse delen',
@@ -298,7 +299,7 @@ return [
                 'description' => 'Van brief naar draft in een begeleid proces.',
                 'icon' => 'pen-tool',
                 'items' => [
-                    'Brief met context en research',
+                    'Briefs met systeemresearch en context',
                     'Draft- en revisie-workflow',
                     'Content calendar en planning',
                 ],
@@ -368,7 +369,7 @@ return [
                 'description' => 'Publiceer, verbind en bouw autoriteit op.',
                 'icon' => 'share-2',
                 'items' => [
-                    'Multi-channel publishing via connectors',
+                    'Multi-channel publishing via CMS-, API- en LinkedIn-connectors',
                     'Insights en analytics',
                     'Content chains en interne links',
                 ],
@@ -383,7 +384,7 @@ return [
                     'channels' => [
                         ['title' => 'Hoofdsite', 'meta' => 'Homepage + docs release', 'state' => 'Gepland'],
                         ['title' => 'Helpcenter', 'meta' => 'Kennisbank sync', 'state' => 'Klaar'],
-                        ['title' => 'LinkedIn-post', 'meta' => 'Afgeleid social asset', 'state' => 'In wachtrij'],
+                        ['title' => 'LinkedIn-post', 'meta' => 'Gegenereerd, gepland en klaar voor publicatie', 'state' => 'In wachtrij'],
                     ],
                     'chain_label' => 'Content chain',
                     'chain_nodes' => [
@@ -431,17 +432,17 @@ return [
             ['icon' => 'refresh-cw', 'title' => 'Meetbare iteratie', 'text' => 'Gebruik performance, learnings en verificatiesignalen in de volgende workflowcyclus.'],
         ],
         'agentic_badge' => 'Agentic Marketing',
-        'agentic_title' => 'Van contentproductie naar autonome AI visibility-operaties.',
-        'agentic_text' => 'Argusly groeit uit tot een agentic marketing layer: objectives bepalen het doel, intelligence agents vinden opportunity gaps en governed workflows vertalen signalen naar briefs, refreshes, answer blocks, interne links en publishing-acties.',
+        'agentic_title' => 'Van contentproductie naar klantgestuurde autonome marketingoperaties.',
+        'agentic_text' => 'Argusly groeit uit tot een agentic marketing layer: objectives bepalen het doel, intelligence agents doen marktresearch, vinden opportunity gaps en governed workflows vertalen signalen naar briefs, refreshes, answer blocks, interne links, LinkedIn-posts en publishing-acties.',
         'agentic_points' => [
             'Stel doelen in zoals AI visibility, topical authority, GEO performance, pipeline of locale-expansie',
             'Detecteer ontbrekende entities, zwakke pagina’s, topic gaps, refresh-kandidaten en interne linkkansen',
-            'Combineer menselijke goedkeuring met autonome recommendations en lifecycle optimization queues',
+            'Kies zelf tussen handmatige, approval-gated of autonome uitvoering van recommendations en lifecycle optimization queues',
         ],
         'agentic_visual_eyebrow' => 'Objective-driven loop',
         'agentic_visual_title' => 'Doel → intelligence → actie → learning',
         'agentic_visual_steps' => [
-            ['label' => 'Objective', 'text' => 'Definieer markt, taal, KPI, entities, competitors, kanalen en approval mode.'],
+            ['label' => 'Objective', 'text' => 'Definieer markt, taal, KPI, entities, competitors, kanalen, budgetten en autonomieniveau.'],
             ['label' => 'Opportunity map', 'text' => 'Vind ontbrekende pagina’s, zwakke answer coverage, entity gaps en content decay.'],
             ['label' => 'Optimization queue', 'text' => 'Prioriteer refreshes, briefs, links, schema, localization en distributietaken.'],
         ],
@@ -476,7 +477,7 @@ return [
         'ai_search_visual_title' => 'Eén workflow van draft naar vindbaarheid',
         'ai_search_visual_steps' => [
             ['label' => 'Plan', 'text' => 'Briefs en merkcontext voeden de contentworkflow.'],
-            ['label' => 'Publish', 'text' => 'Push naar gekoppelde WordPress- of Laravel-sites.'],
+            ['label' => 'Publish', 'text' => 'Push naar gekoppelde WordPress-, Laravel-, API- en LinkedIn-kanalen.'],
             ['label' => 'Verify', 'text' => 'Gebruik het verificatiescript en insights om performance te meten.'],
         ],
         'ai_search_visual_note' => 'SEO, GEO, connectors en learnings blijven gekoppeld in plaats van verspreid over losse tools.',
@@ -488,15 +489,15 @@ return [
         'pricing_title' => 'Publishing infrastructuur voor het AI-tijdperk',
         'pricing_badge' => 'Pakketten',
         'pricing_subline' => 'Schaal je autoriteit over zoekmachines en AI-platformen.',
-        'pricing_text_1' => 'Argusly combineert content orkestratie, multi-site publishing en AI visibility tracking in één platform.',
-        'pricing_text_2' => 'Bouw vindbaarheid voor zowel traditionele zoekmachines als generatieve AI met gestructureerde workflows, governed publishing en machine-leesbare outputs.',
+        'pricing_text_1' => 'Argusly combineert content orchestration, klantgestuurde automation, multi-site publishing, LinkedIn-distributie en AI visibility tracking in één platform.',
+        'pricing_text_2' => 'Bouw vindbaarheid voor zowel traditionele zoekmachines als generatieve AI met systeemresearch, gestructureerde workflows, governed publishing en machine-leesbare outputs.',
         'pricing_monthly_no_setup' => 'Maandelijks abonnement. Implementatie-ondersteuning inbegrepen.',
         'credits_usage_note' => 'Platform credits voeden contentgeneratie, optimalisatie en AI-analyseworkflows.',
         'pricing_credit_top_up_helper' => 'Platform credits inbegrepen. Schaal met extra capaciteit wanneer nodig.',
         'pricing_includes' => [
             'Content orkestratie en workflows',
             'GEO en AI visibility tracking',
-            'Multi-site publishing infrastructuur',
+            'CMS-, API- en LinkedIn-publishing infrastructuur',
         ],
         'pricing_plan_copy' => [
             'starter' => [
@@ -523,7 +524,7 @@ return [
             ],
             'scale' => [
                 'name' => 'Scale',
-                'audience' => 'Voor enterprise teams die grootschalige publishing operaties draaien.',
+                'audience' => 'Voor teams die grootschalige publishing en autonome marketingoperaties draaien.',
                 'features' => [
                     '5 workspaces, 15 sites',
                     'Geavanceerde AI visibility analytics',
@@ -570,7 +571,7 @@ return [
             'growth' => 'Team onboarding met brand voice setup, multi-site configuratie en workflow training.',
             'scale' => 'Volledige enterprise implementatie met custom workflows, API setup, geavanceerde governance en dedicated rollout support.',
         ],
-        'pricing_enterprise_label' => 'Custom infrastructuur nodig?',
+        'pricing_enterprise_label' => 'Custom rollout nodig?',
         'pricing_enterprise_cta' => 'Praat met sales',
         'compare_feature' => 'Mogelijkheid',
         'compare_rows' => [
@@ -594,8 +595,9 @@ return [
         'why_title' => 'Waarom teams kiezen voor Argusly',
         'why_points' => [
             'Eén platform voor SEO, GEO en AI visibility in plaats van losse tools',
-            'Gestructureerde publishing workflows gebouwd voor het AI-tijdperk',
+            'Klantgestuurde autonome workflows gebouwd voor het AI-tijdperk',
             'Multi-site content orkestratie met governance',
+            'LinkedIn publishing gekoppeld aan campagnes, approvals en planning',
             'Machine-leesbare outputs inclusief llms.txt voor AI vindbaarheid',
             'Van content operaties naar authoriteit bouwen op schaal',
         ],
@@ -608,15 +610,15 @@ return [
         ],
         'credit_failure_note' => 'Gebruik wordt transparant bijgehouden. Bekijk gedetailleerde logs en analytics in je workspace.',
         'popular_label' => 'Aanbevolen',
-        'enterprise_title' => 'Enterprise infrastructuur',
-        'enterprise_text' => 'Voor organisaties die custom compliance, dedicated infrastructuur, geavanceerde integraties of multi-regio deployment nodig hebben.',
+        'enterprise_title' => 'Enterprise en custom rollout',
+        'enterprise_text' => 'Voor organisaties die Argusly willen afstemmen op governance, autonomieregels, integratiediepte, compliance-eisen of dedicated operating models.',
         'enterprise_points' => [
-            'Custom infrastructuur en SLA',
+            'Custom rollout en SLA',
             'SSO en geavanceerde security',
             'Dedicated success manager',
             'Custom API integraties',
         ],
-        'custom_contact_note' => 'Custom infrastructuur nodig? Neem contact op voor enterprise deployments, compliance vereisten en dedicated support.',
+        'custom_contact_note' => 'Custom rollout nodig? Neem contact op voor enterprise deployments, compliance-eisen, dedicated support en productuitbreidingen op aanvraag.',
         'most_popular' => 'Aanbevolen',
         'custom' => 'Maatwerk',
         'per_month' => 'per maand',
@@ -681,9 +683,9 @@ return [
         'ownership_line' => ':product is een product dat is ontwikkeld en wordt beheerd door :parent.',
         'last_updated_label' => 'Laatst bijgewerkt',
         'last_updated' => [
-            'privacy' => '11 maart 2026',
-            'terms' => '21 februari 2026',
-            'security' => '11 maart 2026',
+            'privacy' => '10 juni 2026',
+            'terms' => '10 juni 2026',
+            'security' => '10 juni 2026',
             'cookies' => '11 maart 2026',
             'subprocessors' => '11 maart 2026',
         ],
@@ -740,15 +742,15 @@ return [
             'trust_title' => 'Beveiliging ingebouwd in platformontwerp',
             'trust_text' => 'Argusly is gebouwd met beveiliging en gegevensbescherming als fundamentele vereisten, niet als achteraf ingebouwde features. We passen consistente controls toe over infrastructuur, applicatiecode en operationele praktijken.',
             'trust_points' => [
-                'Versleutelde data in transit en at rest',
+                'Versleutelde verbindingen en opslagwaarborgen',
                 'Rolgebaseerde toegangscontroles',
-                'Regelmatige beveiligingsaudits',
-                'EU-gebaseerde infrastructuur',
+                'Security reviews terwijl het product evolueert',
+                'Transparantie over providers en datalocaties',
             ],
         ],
         'subprocessors' => [
             'table_title' => 'Geverifieerde subverwerkers',
-            'table_intro' => 'Onderstaande subverwerkers zijn momenteel geïntegreerd in de platformoperatie van Argusly en kunnen data verwerken als onderdeel van de dienstverlening.',
+            'table_intro' => 'Onderstaande providers zijn momenteel geïntegreerd in de platformoperatie van Argusly en kunnen data verwerken als onderdeel van de dienstverlening. Door Klant gekoppelde publicatiediensten zoals WordPress, LinkedIn, API-endpoints of andere klantsystemen vallen onder Privacy en Voorwaarden en kunnen eigen policies hebben.',
             'fields' => [
                 'legal_entity' => 'Juridische entiteit',
                 'service_category' => 'Dienstcategorie',
@@ -985,8 +987,8 @@ return [
                     'title' => 'Welke gegevens wij verwerken',
                     'points' => [
                         'Account- en contactgegevens zoals naam, e-mailadres, inlog- en verificatiegegevens en inzendingen via publieke contactformulieren.',
-                        'Organisatie- en workspacegegevens zoals bedrijfsgegevens, ledenrollen, workspacenamen, gekoppelde sites, API-destinations en integratieconfiguratie.',
-                        'Klantcontent en contentmetadata zoals briefs, drafts, revisies, gegenereerde content, publicatie-instellingen en bijbehorende usagegegevens.',
+                        'Organisatie- en workspacegegevens zoals bedrijfsgegevens, ledenrollen, workspacenamen, gekoppelde sites, social-accountreferenties, API-destinations en integratieconfiguratie.',
+                        'Klantcontent en contentmetadata zoals briefs, drafts, revisies, gegenereerde content, research-inputs en -outputs, publicatie-instellingen, planningsinstellingen en bijbehorende usagegegevens.',
                         'Facturatie- en operationele gegevens zoals factuurgegevens, factuuradressen, btw-gegevens, betaalstatus, API-key hashes, webhookinstellingen, notificaties, logs en foutmeldingen.',
                         'Analytics- en performancedata voor gekoppelde contentproperties worden waar geïmplementeerd in gepseudonimiseerde of gehashte vorm verwerkt, waaronder gehashte visitor-, session- en IP-afgeleide identifiers.',
                     ],
@@ -995,7 +997,7 @@ return [
                     'title' => 'Eigendom van gegevens',
                     'points' => [
                         'Klanten behouden eigendom van de content die zij via het platform creëren of beheren.',
-                        'Argusly slaat deze content op en verwerkt deze om generatie, bewerking, workflows, analytics en levering mogelijk te maken.',
+                        'Argusly slaat deze content op en verwerkt deze om research, generatie, bewerking, workflows, analytics, automation en levering mogelijk te maken.',
                     ],
                 ],
                 [
@@ -1008,9 +1010,17 @@ return [
                 [
                     'title' => 'AI-verwerking',
                     'points' => [
-                        'AI-functionaliteit kan prompts, instructies en relevante contentcontext doorsturen naar externe modelproviders die in het platform zijn geconfigureerd.',
+                        'AI-functionaliteit kan prompts, instructies, researchcontext en relevante contentcontext doorsturen naar externe modelproviders die in het platform zijn geconfigureerd.',
                         'De huidige AI-providers die door het platform worden gebruikt staan op de pagina Subverwerkers.',
                         'Deze pagina claimt geen aanvullende privacydocumentatie of contractuele artefacten die niet daadwerkelijk zijn gepubliceerd.',
+                    ],
+                ],
+                [
+                    'title' => 'Gekoppelde publicatiediensten',
+                    'points' => [
+                        'Wanneer Klant externe publicatiediensten koppelt of gebruikt, kan Argusly de content, metadata, accountidentifiers, toegangstokens of planningsinstructies versturen die nodig zijn om de gevraagde integratie uit te voeren.',
+                        'Gekoppelde diensten kunnen WordPress, Laravel- of API-destinations, LinkedIn en andere door Klant geconfigureerde systemen omvatten.',
+                        'Klant blijft verantwoordelijk voor de keuze welke diensten worden gekoppeld en voor de instellingen, permissies en content die voor die diensten worden goedgekeurd.',
                     ],
                 ],
                 [
@@ -1029,13 +1039,13 @@ return [
             'intro' => 'B2B SaaS Platform',
             'sections' => [],
             'articles' => [
-                ['title' => 'Artikel 1. Definities', 'points' => ['Argusly: de in Nederland gevestigde onderneming die het SaaS platform Argusly exploiteert.', 'Klant: iedere natuurlijke of rechtspersoon handelend in de uitoefening van beroep of bedrijf die een overeenkomst aangaat met Argusly.', 'Platform: de online SaaS applicatie Argusly inclusief AI functionaliteiten, credit systeem, API en integraties met externe systemen zoals WordPress.', 'Account: de toegang tot het Platform via unieke inloggegevens.', 'Abonnement: periodieke toegang tot het Platform tegen een vaste vergoeding.', 'Credits: vooraf aangeschafte tegoeden waarmee AI gebaseerde contentgeneratie kan worden uitgevoerd.', 'Content: alle door Klant ingevoerde data en alle door het Platform gegenereerde output.']],
+                ['title' => 'Artikel 1. Definities', 'points' => ['Argusly: de in Nederland gevestigde onderneming die het SaaS platform Argusly exploiteert.', 'Klant: iedere natuurlijke of rechtspersoon handelend in de uitoefening van beroep of bedrijf die een overeenkomst aangaat met Argusly.', 'Platform: de online SaaS applicatie Argusly inclusief AI functionaliteiten, credit systeem, API en integraties met externe systemen zoals WordPress, Laravel/API-destinations en LinkedIn.', 'Account: de toegang tot het Platform via unieke inloggegevens.', 'Abonnement: periodieke toegang tot het Platform tegen een vaste vergoeding.', 'Credits: vooraf aangeschafte tegoeden waarmee AI gebaseerde generatie, research, analyse, optimalisatie, vertaling en gerelateerde workflows kunnen worden uitgevoerd.', 'Content: alle door Klant ingevoerde data en alle door het Platform gegenereerde output.']],
                 ['title' => 'Artikel 2. Toepasselijkheid', 'points' => ['Deze voorwaarden zijn uitsluitend van toepassing op overeenkomsten met zakelijke klanten.', 'Argusly richt zich uitsluitend op B2B gebruik.', 'Algemene voorwaarden van Klant worden uitdrukkelijk uitgesloten.']],
-                ['title' => 'Artikel 3. Dienstverlening', 'points' => ['Argusly biedt een AI content en workflow platform waarmee Klant onder meer:', 'a. briefings kan opstellen', 'b. AI gegenereerde content kan genereren via credits', 'c. content kan beheren en reviseren', 'd. content kan exporteren of publiceren via WordPress integraties', 'Argusly heeft een inspanningsverplichting en geen resultaatsverplichting.', 'Functionaliteiten kunnen worden gewijzigd of uitgebreid.']],
-                ['title' => 'Artikel 4. Abonnementen en Credits', 'points' => ['Gebruik van het Platform vereist een actief abonnement.', 'Aanvullende AI functionaliteit wordt gefactureerd via credits.', 'Alle bedragen op de website en binnen het Platform worden weergegeven inclusief btw.', 'Credits worden vooraf betaald en zijn niet restitueerbaar.', 'Niet gebruikte credits vervallen niet tijdens een actieve abonnementsperiode tenzij anders vermeld.', 'Argusly mag prijzen aanpassen met redelijke aankondigingstermijn.']],
+                ['title' => 'Artikel 3. Dienstverlening', 'points' => ['Argusly biedt een AI content en workflow platform waarmee Klant onder meer:', 'a. briefings kan opstellen en research- of intelligence-workflows kan gebruiken', 'b. AI gegenereerde content kan genereren via credits', 'c. content kan beheren, reviseren, plannen en goedkeuren', 'd. content kan exporteren of publiceren via gekoppelde systemen zoals WordPress, Laravel/API-destinations en LinkedIn wanneer geconfigureerd', 'e. automation- of autonomie-instellingen kan configureren wanneer het Platform deze beschikbaar stelt', 'Argusly heeft een inspanningsverplichting en geen resultaatsverplichting.', 'Functionaliteiten kunnen worden gewijzigd of uitgebreid.']],
+                ['title' => 'Artikel 4. Abonnementen en Credits', 'points' => ['Gebruik van het Platform vereist een actief abonnement.', 'Aanvullende AI functionaliteit wordt gefactureerd via credits.', 'Credits kunnen worden gebruikt voor generatie, research, analyse, optimalisatie, vertalingen, visibility checks en gerelateerde AI-workflows.', 'Alle bedragen op de website en binnen het Platform worden weergegeven inclusief btw.', 'Credits worden vooraf betaald en zijn niet restitueerbaar.', 'Niet gebruikte credits vervallen niet tijdens een actieve abonnementsperiode tenzij anders vermeld.', 'Argusly mag prijzen aanpassen met redelijke aankondigingstermijn.']],
                 ['title' => 'Artikel 5. Betaling', 'points' => ['Betaling geschiedt vooraf via externe payment provider zoals Mollie.', 'Abonnementen worden automatisch verlengd tenzij tijdig opgezegd.', 'Bij uitblijven van betaling mag toegang tot het Platform worden opgeschort.']],
-                ['title' => 'Artikel 6. AI gegenereerde Content', 'points' => ['AI output wordt automatisch gegenereerd op basis van input van Klant.', 'Argusly garandeert niet dat output:', 'a. feitelijk correct is', 'b. juridisch juist is', 'c. vrij is van rechten van derden', 'Klant is volledig verantwoordelijk voor controle, redactie en publicatie van content.', 'Argusly is niet aansprakelijk voor schade voortvloeiend uit publicatie van AI gegenereerde content.']],
-                ['title' => 'Artikel 7. WordPress en Externe Integraties', 'points' => ['Het Platform kan koppelen met externe systemen zoals WordPress via API of plugin.', 'Argusly is niet verantwoordelijk voor:', 'a. wijzigingen in externe API’s', 'b. beveiligingslekken in externe systemen', 'c. onjuiste configuratie door Klant', 'Klant blijft verantwoordelijk voor de uiteindelijke publicatie op externe systemen.']],
+                ['title' => 'Artikel 6. AI gegenereerde Content en Automation', 'points' => ['AI output wordt automatisch gegenereerd op basis van input van Klant, gekoppelde context en geconfigureerde workflows.', 'Klant kan automation- of autonomie-instellingen inschakelen wanneer beschikbaar, waaronder workflows die content voorbereiden of publiceren na ingestelde approvals of regels.', 'Argusly garandeert niet dat output:', 'a. feitelijk correct is', 'b. juridisch juist is', 'c. vrij is van rechten van derden', 'Klant is verantwoordelijk voor configuratie, reviewproces, approvals, redactie en publicatie van content.', 'Argusly is niet aansprakelijk voor schade voortvloeiend uit publicatie of gebruik van AI gegenereerde content, tenzij dwingend recht anders bepaalt.']],
+                ['title' => 'Artikel 7. Externe Integraties en Publicatiekanalen', 'points' => ['Het Platform kan koppelen met externe systemen zoals WordPress, Laravel/API-destinations, LinkedIn en andere door Klant geconfigureerde diensten.', 'Argusly is niet verantwoordelijk voor:', 'a. wijzigingen in externe API’s', 'b. beveiligingslekken, storingen, beleidslimieten of rate limits in externe systemen', 'c. onjuiste configuratie, permissies, credentials of approval-instellingen door Klant', 'Klant blijft verantwoordelijk voor de content, accountpermissies en uiteindelijke publicatie-instellingen op externe systemen.']],
                 ['title' => 'Artikel 8. Intellectueel Eigendom', 'points' => ['Alle rechten op het Platform berusten bij Argusly.', 'Klant verkrijgt een niet overdraagbaar gebruiksrecht.', 'Door Klant ingevoerde content blijft eigendom van Klant.', 'AI output mag door Klant commercieel worden gebruikt onder eigen verantwoordelijkheid.']],
                 ['title' => 'Artikel 9. Aansprakelijkheid', 'points' => ['Totale aansprakelijkheid is beperkt tot het bedrag dat Klant in de 12 maanden voorafgaand aan het schadevoorval heeft betaald.', 'Aansprakelijkheid voor indirecte schade is uitgesloten.', 'Beperkingen gelden niet bij opzet of grove schuld.']],
                 ['title' => 'Artikel 10. Beëindiging', 'points' => ['Abonnementen lopen voor de gekozen termijn.', 'Opzegging dient plaats te vinden vóór verlenging.', 'Argusly mag accounts direct opschorten bij schending van de AUP.']],
@@ -1052,7 +1062,7 @@ return [
             'heading' => 'Beveiliging',
             'intro' => 'Beveiliging is meegenomen in het ontwerp en de ontwikkeling van het platform. Argusly past momenteel praktische technische en organisatorische maatregelen toe die passen bij de huidige fase van het product.',
             'sections' => [
-                ['title' => 'Beveiligingsmaatregelen', 'bullets' => ['Versleutelde verbindingen en beveiligde sessie-instellingen', 'Authenticatieflows met gehashte wachtwoorden en beschermde sessies', 'Rolgebaseerde rechten en afgeschermde admin-toegang', 'Workspace-gebonden toegangscontroles voor klantdata en integraties', 'Server-side validatie en frameworkbescherming zoals CSRF-verdediging', 'Rate limiting op publieke formulieren, analytics en API-endpoints', 'Applicatiemonitoring, logging en error tracking', 'Regelmatige framework- en dependency-updates terwijl het platform evolueert']],
+                ['title' => 'Beveiligingsmaatregelen', 'bullets' => ['Versleutelde verbindingen en beveiligde sessie-instellingen', 'Authenticatieflows met gehashte wachtwoorden en beschermde sessies', 'Rolgebaseerde rechten en afgeschermde admin-toegang', 'Workspace-gebonden toegangscontroles voor klantdata en integraties', 'Server-side validatie en frameworkbescherming zoals CSRF-verdediging', 'Rate limiting op publieke formulieren, analytics en API-endpoints', 'Applicatiemonitoring, logging en error tracking', 'Framework- en dependency-updates terwijl het platform evolueert']],
                 ['title' => 'Beveiligingsaanpak', 'bullets' => ['Argusly past praktische waarborgen toe die passen bij de huidige product- en infrastructuurfase.', 'Beveiligingsmaatregelen worden herzien en uitgebreid naarmate gebruik en infrastructuur verder groeien.', 'Deze pagina wordt bijgewerkt wanneer materiele beveiligingspraktijken of ondersteunende providers veranderen.']],
             ],
         ],
@@ -1096,7 +1106,7 @@ return [
             'metaTitle' => 'Subverwerkers | Argusly',
             'metaDescription' => 'Actuele lijst van externe diensten die gegevens kunnen verwerken.',
             'heading' => 'Subverwerkers',
-            'intro' => 'Overzicht van geverifieerde externe diensten die data kunnen verwerken als onderdeel van de dienstverlening van Argusly.',
+            'intro' => 'Overzicht van geverifieerde externe diensten die data kunnen verwerken als onderdeel van de dienstverlening van Argusly. Door Klant gekoppelde publicatiediensten worden apart beschreven in Privacy en Voorwaarden.',
             'sections' => [
                 ['title' => 'Omvat', 'bullets' => ['AI-modelproviders', 'Transactionele e-maildiensten', 'Betaalproviders', 'Foutmonitoringdiensten']],
                 ['title' => 'Onderhoud', 'bullets' => ['Volledige en actuele lijst wordt hier bijgehouden.']],

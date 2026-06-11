@@ -16,7 +16,7 @@
 <section class="pl-public-hero">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="max-w-3xl">
-            <h1 class="text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <h1 class="pl-public-heading pl-public-heading-hero">
                 {{ __('public.contact.hero_title') }}
             </h1>
             <p class="mt-4 max-w-2xl text-pretty text-sm leading-6 text-textSecondary md:text-base">
@@ -73,22 +73,22 @@
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.name') }}</label>
-                            <input type="text" name="name" value="{{ old('name') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="120">
+                            <input type="text" name="name" value="{{ old('name') }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="120">
                         </div>
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.email') }}</label>
-                            <input type="email" name="email" value="{{ old('email') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="190">
+                            <input type="email" name="email" value="{{ old('email') }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="190">
                         </div>
                     </div>
 
                     <div class="grid gap-4 md:grid-cols-2">
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.company') }}</label>
-                            <input type="text" name="company" value="{{ old('company') }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="190">
+                            <input type="text" name="company" value="{{ old('company') }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="190">
                         </div>
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.contact.request_type_label') }}</label>
-                            <select name="request_type" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary">
+                            <select name="request_type" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary">
                                 @foreach(__('public.contact.request_types') as $value => $label)
                                     <option value="{{ $value }}" @selected(old('request_type', $topic ?? '') === $value)>{{ $label }}</option>
                                 @endforeach
@@ -98,12 +98,12 @@
 
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.subject') }}</label>
-                        <input type="text" name="subject" value="{{ old('subject', filled($subject ?? null) ? $subject : ($topic ?? '')) }}" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="190">
+                        <input type="text" name="subject" value="{{ old('subject', filled($subject ?? null) ? $subject : ($topic ?? '')) }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="190">
                     </div>
 
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.message') }}</label>
-                        <textarea name="message" rows="5" class="w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="5000">{{ old('message') }}</textarea>
+                        <textarea name="message" rows="5" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" required maxlength="5000">{{ old('message') }}</textarea>
                     </div>
 
                     <x-forms.recaptcha action="contact" />
@@ -122,7 +122,7 @@
             {{-- Trust / Reassurance Block --}}
             <div class="space-y-4">
                 <div class="pl-public-card p-6">
-                    <h3 class="text-lg font-semibold text-textPrimary">{{ __('public.contact.trust_title') }}</h3>
+                    <h3 class="pl-public-heading pl-public-heading-h3">{{ __('public.contact.trust_title') }}</h3>
                     <ul class="mt-4 space-y-3">
                         @foreach(__('public.contact.trust_points') as $point)
                             <li class="flex items-start gap-3 text-sm text-textSecondary">

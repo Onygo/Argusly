@@ -23,7 +23,7 @@
 <main class="bg-background">
     <section class="pl-public-hero">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <h1 class="text-3xl font-semibold text-textPrimary md:text-4xl">{{ __('public.blog.unavailable_title') }}</h1>
+            <h1 class="pl-public-heading pl-public-heading-h1">{{ __('public.blog.unavailable_title') }}</h1>
             <p class="mt-3 max-w-2xl text-sm text-textSecondary md:text-base">{{ __('public.blog.unavailable_text') }}</p>
             <div class="mt-8 flex gap-3">
                 <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="pl-public-secondary-button">{{ __('public.blog.back_to_blog') }}</a>

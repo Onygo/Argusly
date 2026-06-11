@@ -52,6 +52,32 @@ it('captures first mention block context and detected domains from raw provider 
         ->and(collect($result->sources)->pluck('domain')->all())->toContain('argusly.com');
 });
 
+it('does not count prompt echoes or absence statements as brand visibility', function () {
+    $analyzer = app(LlmTrackingAnalyzer::class);
+
+    $query = new LlmTrackingQuery([
+        'name' => 'SEO Visibility',
+        'query_text' => 'SEO visibility for content platforms',
+        'target_brand' => 'Argusly',
+        'brand_terms' => ['Argusly'],
+        'competitor_terms' => ['MarketMuse'],
+        'target_urls' => ['https://argusly.com/features'],
+        'locale' => 'en',
+    ]);
+
+    $answer = implode(' ', [
+        'To raise AI visibility gaps like those addressed by Argusly, teams should improve SEO and content intelligence.',
+        'Currently, there is limited data specifically mentioning Argusly, so it does not appear as a recommended platform.',
+        'MarketMuse is a known content optimization platform in this category.',
+    ]);
+
+    $result = $analyzer->analyzeAnswer($answer, $query);
+
+    expect($result->brandHits)->toBeEmpty()
+        ->and($result->brandMentioned())->toBeFalse()
+        ->and(collect($result->competitorHits)->pluck('term')->all())->toContain('MarketMuse');
+});
+
 it('classifies sources with explainable heuristics', function () {
     $analyzer = app(LlmTrackingAnalyzer::class);
 

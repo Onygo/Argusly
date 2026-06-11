@@ -78,6 +78,20 @@
         </form>
     </x-settings.section-card>
 
+    <x-settings.section-card title="Add Existing User" description="Link an existing account to the Pilot Program without sending a new activation invite." class="mt-4">
+        <form method="POST" action="{{ route('admin.early-access.add-existing-user') }}" class="grid gap-3 lg:grid-cols-12">
+            @csrf
+            <input type="email" name="email" value="{{ old('email') }}" placeholder="Existing user email" class="pl-input lg:col-span-3" required>
+            <input type="text" name="workspace_id" value="{{ old('workspace_id') }}" placeholder="Workspace UUID (optional)" class="pl-input lg:col-span-3">
+            <input type="datetime-local" name="ends_at" value="{{ old('ends_at') }}" class="pl-input lg:col-span-2">
+            <input type="text" name="notes" value="{{ old('notes') }}" placeholder="Internal notes" class="pl-input lg:col-span-3">
+            <button class="pl-btn-secondary lg:col-span-1" onclick="return confirm('Add this existing user to the Pilot Program?');">
+                <i data-lucide="user-plus" class="h-4 w-4"></i>
+                Add
+            </button>
+        </form>
+    </x-settings.section-card>
+
     <div class="mb-6 mt-6 grid gap-3 md:grid-cols-3">
         <div class="rounded-lg border border-border bg-surface px-4 py-3">
             <p class="text-xs font-medium uppercase tracking-wide text-textSecondary">AI cost</p>

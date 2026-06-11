@@ -50,7 +50,7 @@ class OpenAiProvider implements LlmProvider
             throw new LlmException('OPENAI_API_KEY is not set.', provider: $this->name(), userMessage: 'LLM provider is not configured.');
         }
 
-        $baseUrl = rtrim((string) ($cfg['base_url'] ?? 'https://api.openai.com'), '/');
+        $baseUrl = $this->normalizeBaseUrl((string) ($cfg['base_url'] ?? 'https://api.openai.com'));
         $url = $baseUrl . '/v1/responses';
 
         $payload = [
@@ -180,6 +180,15 @@ class OpenAiProvider implements LlmProvider
     private function decodeJson(string $text): ?array
     {
         return $this->jsonNormalizer->decode($text, $this->name());
+    }
+
+    private function normalizeBaseUrl(string $baseUrl): string
+    {
+        $baseUrl = rtrim($baseUrl, '/');
+
+        return Str::of($baseUrl)->lower()->endsWith('/v1')
+            ? (string) Str::of($baseUrl)->substr(0, -3)
+            : $baseUrl;
     }
 
     /**

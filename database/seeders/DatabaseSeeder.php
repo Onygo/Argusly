@@ -60,6 +60,7 @@ class DatabaseSeeder extends Seeder
                 \Database\Seeders\DevelopmentContentSeriesSeeder::class,
                 \Database\Seeders\WriterProfileSeeder::class,
                 \Database\Seeders\MarketingPageSeeder::class,
+                \Database\Seeders\SignalIntelligenceSeeder::class,
             ]);
 
             if ($workspace) {

@@ -1,12 +1,14 @@
 @props([
-    'site',
+    'site' => null,
     'title',
     'description',
     'active' => 'overview',
+    'navItems' => null,
+    'metaItems' => [],
 ])
 
 @php
-    $navItems = [
+    $navItems = $navItems ?? ($site ? [
         [
             'id' => 'overview',
             'label' => 'Overview',
@@ -49,7 +51,7 @@
             'url' => route('app.sites.learnings.index', $site),
             'active' => $active === 'learnings',
         ],
-    ];
+    ] : []);
 
     $actions = trim((string) $slot);
 @endphp
@@ -62,9 +64,14 @@
                 <p class="mt-1 text-textSecondary">{{ $description }}</p>
             </div>
             <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Site: {{ $site->name }}</span>
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Workspace: {{ $site->workspace?->name ?? 'n/a' }}</span>
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">URL: {{ $site->base_url ?: $site->site_url }}</span>
+                @if ($site)
+                    <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Site: {{ $site->name }}</span>
+                    <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Workspace: {{ $site->workspace?->name ?? 'n/a' }}</span>
+                    <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">URL: {{ $site->base_url ?: $site->site_url }}</span>
+                @endif
+                @foreach ($metaItems as $item)
+                    <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">{{ $item }}</span>
+                @endforeach
             </div>
         </div>
 
@@ -75,5 +82,7 @@
         @endif
     </header>
 
-    <x-app.section-nav :items="$navItems" />
+    @if (! empty($navItems))
+        <x-app.section-nav :items="$navItems" />
+    @endif
 </div>

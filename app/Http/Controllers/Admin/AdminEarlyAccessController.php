@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\EarlyAccessSignupStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AddExistingPilotUserRequest;
 use App\Http\Requests\Admin\StoreEarlyAccessPilotCostRequest;
 use App\Http\Requests\Admin\StorePilotInvitationRequest;
 use App\Http\Requests\Admin\UpdateEarlyAccessInternalNotesRequest;
@@ -12,6 +13,7 @@ use App\Models\EarlyAccessPilotCost;
 use App\Models\EarlyAccessSignup;
 use App\Models\LlmRequest;
 use App\Models\User;
+use App\Services\ExistingPilotUserService;
 use App\Services\EarlyAccessInvitationService;
 use App\Services\EarlyAccessSignupService;
 use App\Services\PilotQualificationService;
@@ -138,6 +140,17 @@ class AdminEarlyAccessController extends Controller
             fn () => $invites->send($signup, $request->user(), $request),
             'Pilot invitation sent.'
         );
+    }
+
+    public function addExistingUser(
+        AddExistingPilotUserRequest $request,
+        ExistingPilotUserService $service
+    ): RedirectResponse {
+        $signup = $service->add($request->validated(), $request->user(), $request);
+
+        return redirect()
+            ->route('admin.early-access.show', $signup)
+            ->with('status', 'Existing user added to Pilot Program.');
     }
 
     public function markReviewed(

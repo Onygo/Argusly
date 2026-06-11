@@ -13,7 +13,7 @@
         <section class="flex min-h-screen bg-white">
             <div class="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-publicPrimary to-purple p-10 text-white lg:flex">
                 <a href="{{ $marketingUrl }}" class="inline-flex items-center gap-3">
-                    <x-brand-logo tone="inverse" text-class="text-[17px] font-bold tracking-tight text-white" />
+                    <x-brand-logo tone="inverse" text-class="pl-brand-logo-text text-[17px] text-white" />
                 </a>
 
                 <div>
@@ -45,7 +45,7 @@
             <div class="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2 lg:px-20">
                 <div class="mx-auto w-full max-w-md">
                     <a href="{{ $marketingUrl }}" class="mb-10 inline-flex items-center gap-3 lg:hidden">
-                        <x-brand-logo text-class="text-[17px] font-bold tracking-tight text-textPrimary" />
+                        <x-brand-logo text-class="pl-brand-logo-text text-[17px] text-textPrimary" />
                     </a>
 
                     <div>

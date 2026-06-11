@@ -133,6 +133,14 @@
                 ]
                 : null,
         ])->filter()->values();
+        $programmaticPublicationReadiness = \App\Models\ProgrammaticPublicationReadiness::query()
+            ->where('content_id', $content->id)
+            ->first();
+        $programmaticPublication = \App\Models\ContentPublication::query()
+            ->where('content_id', $content->id)
+            ->where('meta->source', 'programmatic_publication_scheduler')
+            ->latest()
+            ->first();
     @endphp
     <section class="mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-white via-surface to-surfaceSubtle">
         <div class="border-b border-border/70 px-4 py-4 sm:px-6">
@@ -180,6 +188,40 @@
                                     <li>{{ $warning['message'] }}</li>
                                 @endforeach
                             </ul>
+                        </div>
+                    @endif
+                    <div class="mt-4 rounded-lg border border-border bg-white px-4 py-3">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-semibold text-textPrimary">Publication Readiness</p>
+                                <p class="mt-1 text-xs text-textSecondary">
+                                    @if ($programmaticPublicationReadiness)
+                                        {{ str($programmaticPublicationReadiness->status)->headline() }} · {{ number_format((float) $programmaticPublicationReadiness->readiness_score, 1) }} readiness
+                                    @else
+                                        Not checked
+                                    @endif
+                                </p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                @if ($programmaticPublicationReadiness)
+                                    <a href="{{ route('app.programmatic-publication-readiness.show', $programmaticPublicationReadiness) }}" class="rounded-md border border-border bg-surface px-3 py-2 text-xs font-medium text-textPrimary">Open Gate</a>
+                                @endif
+                                <form method="POST" action="{{ route('app.programmatic-publication-readiness.run.content', $content) }}">
+                                    @csrf
+                                    <button class="rounded-md border border-border bg-surface px-3 py-2 text-xs font-medium text-textPrimary">Run Readiness Check</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    @if ($programmaticPublication)
+                        <div class="mt-3 rounded-lg border border-border bg-white px-4 py-3">
+                            <p class="text-sm font-semibold text-textPrimary">Programmatic Publication</p>
+                            <p class="mt-1 text-xs text-textSecondary">
+                                {{ $programmaticPublication->provider }} · {{ $programmaticPublication->remote_status ?: 'draft' }} · {{ $programmaticPublication->delivery_status }}
+                                @if (data_get($programmaticPublication->meta, 'planned_publish_at'))
+                                    · {{ \Illuminate\Support\Carbon::parse(data_get($programmaticPublication->meta, 'planned_publish_at'))->format('Y-m-d H:i') }}
+                                @endif
+                            </p>
                         </div>
                     @endif
                 </div>

@@ -27,6 +27,11 @@ class AppWorkspaceIntelligenceController extends Controller
             'organizationProfile',
             'personas' => fn ($query) => $query->orderBy('type')->orderBy('name'),
             'teamMembers' => fn ($query) => $query->orderBy('name'),
+            'workspaces.companyProfile',
+            'workspaces.defaultBrandVoice',
+            'workspaces.brandContexts',
+            'workspaces.defaultCompanyIntelligenceProfile',
+            'workspaces.companyIntelligenceProfiles',
         ]);
 
         abort_unless($organization, 403);
@@ -42,7 +47,8 @@ class AppWorkspaceIntelligenceController extends Controller
             $organization->organizationProfile,
             $organization->personas,
             $organization->teamMembers,
-            $runs
+            $runs,
+            $organization->workspaces,
         );
 
         return view('app.workspace-intelligence.index', [

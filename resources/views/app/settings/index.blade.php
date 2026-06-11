@@ -12,6 +12,13 @@
             'viewer' => 'Viewer',
             'member' => 'Member',
         ];
+        $rt = function (string $value): string {
+            $key = 'app.runtime.'.$value;
+
+            return app()->getLocale() === 'nl' && \Illuminate\Support\Facades\Lang::has($key)
+                ? __($key)
+                : $value;
+        };
     @endphp
 
     <script>
@@ -532,7 +539,7 @@
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <p class="text-sm font-semibold text-textPrimary">Brand voices</p>
-                            <p class="mt-1 text-xs text-textSecondary">Tone, terminology, and formatting rules for content generation.</p>
+                            <p class="mt-1 text-xs text-textSecondary">{{ $rt('Tone, terminology, and formatting rules for content generation.') }}</p>
                         </div>
                         <i data-lucide="mic-2" class="h-4 w-4 text-textSecondary group-hover:text-textPrimary"></i>
                     </div>
@@ -540,8 +547,8 @@
                 <a href="{{ route('app.workspace-intelligence.index') }}" class="group rounded-lg border border-border bg-background px-4 py-3 hover:border-primary/40 hover:bg-surfaceSubtle">
                     <div class="flex items-center justify-between gap-3">
                         <div>
-                            <p class="text-sm font-semibold text-textPrimary">Workspace Intelligence</p>
-                            <p class="mt-1 text-xs text-textSecondary">Review AI brand, SEO topic, persona, and team profile proposals.</p>
+                            <p class="text-sm font-semibold text-textPrimary">{{ $rt('Workspace Intelligence') }}</p>
+                            <p class="mt-1 text-xs text-textSecondary">{{ $rt('Review AI brand, SEO topic, persona, and team profile proposals.') }}</p>
                         </div>
                         <i data-lucide="sparkles" class="h-4 w-4 text-textSecondary group-hover:text-textPrimary"></i>
                     </div>

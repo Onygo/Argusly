@@ -27,7 +27,7 @@
         <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-20">
             <div class="max-w-3xl">
                 <span class="pl-public-pill">{{ __('public.blog.title') }}</span>
-                <h1 class="mt-4 text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">{{ __('public.blog.title') }}</h1>
+                <h1 class="mt-4 pl-public-heading pl-public-heading-hero">{{ __('public.blog.title') }}</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-textSecondary md:text-base">{{ __('public.blog.subtitle') }}</p>
             </div>
         </div>
@@ -43,16 +43,16 @@
             @else
                 <div class="mb-8 pl-public-card-compact p-4">
                     <div class="flex flex-wrap items-center gap-2">
-                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium {{ ($activeTag ?? '') === '' && ($activeCategory ?? '') === '' ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">{{ __('public.blog.filter_all') }}</a>
+                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium {{ ($activeTag ?? '') === '' && ($activeCategory ?? '') === '' ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">{{ __('public.blog.filter_all') }}</a>
                         @foreach(($categories ?? []) as $category)
                             @php($active = strtolower(trim((string) ($activeCategory ?? ''))) === strtolower(trim((string) $category)) )
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.category', ['category' => $category]) }}" class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium {{ $active ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">{{ $category }}</a>
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.category', ['category' => $category]) }}" class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium {{ $active ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">{{ $category }}</a>
                         @endforeach
                         @foreach(($tags ?? []) as $tag)
                             @php($active = strtolower(trim((string) ($activeTag ?? ''))) === strtolower(trim((string) $tag)) )
-                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.tag', ['tag' => $tag]) }}" class="inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-medium {{ $active ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">#{{ $tag }}</a>
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.tag', ['tag' => $tag]) }}" class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium {{ $active ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">#{{ $tag }}</a>
                         @endforeach
-                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.rss') }}" class="ml-auto inline-flex items-center rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-textSecondary hover:text-textPrimary">RSS</a>
+                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.rss') }}" class="ml-auto inline-flex items-center rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-textSecondary hover:text-textPrimary">RSS</a>
                     </div>
                 </div>
 
@@ -68,7 +68,7 @@
                         @foreach($posts as $post)
                             <article class="flex h-full flex-col pl-public-card-compact p-5">
                                 @if(($post['featured_image'] ?? '') !== '')
-                                    <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="mb-5 block overflow-hidden rounded-[18px] border border-border bg-[#f8fafc]">
+                                    <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="mb-5 block overflow-hidden rounded-md border border-border bg-[#f8fafc]">
                                         <img
                                             src="{{ $post['featured_image'] }}"
                                             alt="{{ $post['title'] }}"
@@ -82,21 +82,21 @@
                                 @endif
                                 <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
                                     @if(($post['category'] ?? '') !== '')
-                                        <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-[#f8fafc] px-2.5 py-1 font-medium text-publicPrimary">{{ $post['category'] }}</span>
+                                        <span class="inline-flex items-center rounded-md border border-publicPrimary/15 bg-[#f8fafc] px-2.5 py-1 font-medium text-publicPrimary">{{ $post['category'] }}</span>
                                     @endif
                                     <span>{{ $post['published_date'] }}</span>
                                     @if(($post['reading_time'] ?? 0) > 0)
                                         <span>· {{ $post['reading_time'] }} {{ __('public.blog.min_read') }}</span>
                                     @endif
                                 </div>
-                                <h2 class="mt-4 text-xl font-semibold tracking-tight text-textPrimary">
+                                <h2 class="mt-4 pl-public-heading pl-public-heading-h3">
                                     <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="hover:underline">{{ $post['title'] }}</a>
                                 </h2>
                                 <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $post['excerpt'] }}</p>
                                 @if(!empty($post['tags']))
                                     <div class="mt-4 flex flex-wrap gap-1.5 text-xs text-textSecondary">
                                         @foreach($post['tags'] as $tag)
-                                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.tag', ['tag' => $tag]) }}" class="rounded-full border border-border bg-[#f8fafc] px-2.5 py-1 hover:text-textPrimary">#{{ $tag }}</a>
+                                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.tag', ['tag' => $tag]) }}" class="rounded-md border border-border bg-[#f8fafc] px-2.5 py-1 hover:text-textPrimary">#{{ $tag }}</a>
                                         @endforeach
                                     </div>
                                 @endif

@@ -117,7 +117,15 @@ class BrandContextService
         $diagnostics = $this->buildDiagnostics($run, $workspace, $analysisResult, $sourceText, $sectionsCount);
 
         if (($analysisResult['parser_error'] ?? null) !== null) {
-            $this->failRun($run, 'parser_error', 'The AI response could not be parsed into editable brand sections.', $diagnostics);
+            $parserError = (string) $analysisResult['parser_error'];
+            $isJsonParserError = $parserError === 'json_decode_failed';
+
+            $this->failRun(
+                $run,
+                $isJsonParserError ? 'parser_error' : 'generation_exception',
+                $isJsonParserError ? 'The AI response could not be parsed into editable brand sections.' : $parserError,
+                $diagnostics
+            );
 
             return $run->fresh();
         }

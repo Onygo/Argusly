@@ -2,8 +2,8 @@
 <section class="pl-public-hero">
     <div class="mx-auto grid max-w-6xl gap-7 px-4 py-16 sm:px-6 md:grid-cols-2 md:items-center md:gap-10 md:py-20">
         <div class="max-w-xl">
-            <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">{{ __('public.page.product_badges.overview') }}</span>
-            <h1 class="mt-4 text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <span class="pl-public-hero-label">{{ __('public.page.product_badges.overview') }}</span>
+            <h1 class="mt-4 pl-public-heading pl-public-heading-hero">
                 {{ __('public.page.overview.hero_title') }}
             </h1>
             <p class="mt-3 text-lg font-medium text-textPrimary">
@@ -31,7 +31,7 @@
 <section class="border-y border-border bg-white">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto mb-12 max-w-2xl text-center">
-            <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.page.overview.what_you_get_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.page.overview.what_you_get_title') }}</h2>
             <p class="mt-3 text-sm text-textSecondary md:text-base">{{ __('public.page.overview.what_you_get_text') }}</p>
         </div>
 
@@ -40,14 +40,14 @@
                 @php
                     $isMiddle = $index === 1;
                     $cardClasses = $isMiddle
-                        ? 'rounded-2xl border-2 border-publicPrimary/20 bg-[#f8fafc] p-6 md:p-7'
+                        ? 'rounded-md border-2 border-publicPrimary/20 bg-[#f8fafc] p-6 md:p-7'
                         : 'pl-public-card-soft p-6 md:p-7';
                 @endphp
                 <article class="{{ $cardClasses }} flex flex-col">
                     <div class="flex items-start gap-4">
                         <x-public.icon :name="$card['icon']" size="md" />
                         <div class="flex-1">
-                            <h3 class="text-base font-semibold text-textPrimary md:text-lg">{{ $card['title'] }}</h3>
+                            <h3 class="pl-public-heading pl-public-heading-card md:text-lg">{{ $card['title'] }}</h3>
                             @if (!empty($card['intro']))
                                 <p class="mt-1 text-sm text-textSecondary">{{ $card['intro'] }}</p>
                             @endif
@@ -72,11 +72,11 @@
 <section class="border-y border-publicPrimary/10 bg-publicPrimary">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.page.overview.flow_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.page.overview.flow_title') }}</h2>
             <p class="mt-2 text-sm text-white/76 md:text-base">{{ __('public.page.overview.flow_text') }}</p>
         </div>
 
-        <div class="mt-10 rounded-2xl border border-white/12 bg-white/8 px-5 py-7 md:px-8">
+        <div class="mt-10 rounded-md border border-white/12 bg-white/8 px-5 py-7 md:px-8">
             <div class="grid items-center gap-6 md:grid-cols-4">
                 @php
                     $flowIcons = ['list-checks', 'sparkles', 'users', 'check-circle-2'];
@@ -98,11 +98,11 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-center">
             <div>
-                <span class="inline-flex items-center rounded-full border border-publicPrimary/15 bg-[#f8fafc] px-3 py-1 text-xs font-medium text-publicPrimary">Agentic Marketing</span>
-                <h2 class="mt-4 text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ __('public.page.overview.agentic_title') }}</h2>
+                <span class="inline-flex items-center rounded-md border border-publicPrimary/15 bg-[#f8fafc] px-3 py-1 text-xs font-medium text-publicPrimary">Agentic Marketing</span>
+                <h2 class="mt-4 pl-public-heading pl-public-heading-h2">{{ __('public.page.overview.agentic_title') }}</h2>
                 <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ __('public.page.overview.agentic_text') }}</p>
                 <div class="mt-7">
-                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
+                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.agentic-marketing') }}" class="inline-flex items-center justify-center gap-2 rounded-full border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
                         {{ __('public.page.overview.agentic_cta') }}
                         <x-public.icon name="arrow-right" size="xs" />
                     </a>
@@ -125,7 +125,7 @@
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="pl-public-cta-panel">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            <h2 class="text-balance pl-public-heading pl-public-heading-h2 text-white">
                 {{ __('public.page.overview.cta_title') }}
             </h2>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">

@@ -158,6 +158,7 @@ class MarketingPricingService
             'features' => array_values(array_filter((array) ($copy['features'] ?? []), fn ($value): bool => trim((string) $value) !== '')),
             'badge' => (string) ($copy['badge'] ?? ''),
             'price_label' => (string) ($copy['price_label'] ?? ''),
+            'body' => (string) ($copy['body'] ?? ''),
             'cta_label' => (string) ($copy['cta_label'] ?? $plan['cta_label']),
             'cta_url' => (string) ($plan['cta_url'] ?: LocalizedMarketingUrl::route('public.contact', ['subject' => 'enterprise-pricing'], $locale) . '#contact-form'),
         ]);

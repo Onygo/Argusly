@@ -16,7 +16,9 @@ describe('Branding render', function () {
             ->assertSee('name="application-name" content="'.e(Brand::product()).'"', false);
 
         if (config('brand.show_parent_branding', true)) {
-            $response->assertSee($ownershipLine);
+            $response->assertSee($ownershipLine)
+                ->assertSee('&copy; '.date('Y').' ', false)
+                ->assertSee(Brand::parent());
         } else {
             $response->assertDontSee($ownershipLine);
         }
@@ -27,7 +29,7 @@ describe('Branding render', function () {
 
         $response->assertOk()
             ->assertSee(Brand::product())
-            ->assertSee(Brand::full());
+            ->assertSee(Brand::parent());
     });
 
     it('renders ownership branding on privacy and terms pages', function () {

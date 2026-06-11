@@ -21,7 +21,7 @@ class AppOnboardingController extends Controller
         $wizardCompleted = count(array_intersect(['intent', 'company_profile', 'connect_site'], $completed)) === 3;
 
         if ($state->phase === OnboardingState::PHASE_ACTIVATED || $wizardCompleted) {
-            return redirect()->route('app.dashboard');
+            return redirect()->route('app.activation.index');
         }
 
         $workspace = $this->resolveOnboardingWorkspace($user, $state);

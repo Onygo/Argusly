@@ -38,6 +38,10 @@ class RecommendedActionBuilder
                 $this->action('improve_ai_citation_coverage', 'Improve AI citation coverage', 'Strengthen entity coverage, direct answers, and source clarity.', ['content_id' => $contentId, 'topic' => $topic]),
                 $this->action('track_queries', 'Track related AI queries', 'Monitor whether citation and answer inclusion improve after changes.', ['topic' => $topic]),
             ],
+            OpportunityCategory::BRAND_VISIBILITY => [
+                $this->action('review_brand_visibility_evidence', "Review brand visibility evidence for {$topic}", 'Promoted Signal Intelligence evidence indicates a brand visibility movement.', ['topic' => $topic]),
+                $this->action('strengthen_brand_entity_coverage', 'Strengthen brand entity coverage', 'Improve source clarity, owned references, and answer-ready brand positioning.', ['topic' => $topic]),
+            ],
             OpportunityCategory::ENGAGEMENT_OPPORTUNITY => [
                 $this->action('repurpose_high_engagement_topic', "Repurpose engagement around {$topic}", 'Engagement signals suggest audience interest worth extending.', ['topic' => $topic]),
                 $this->action('create_repost_suggestion', 'Prepare repost or follow-up', 'Turn social momentum into a governed distribution action.', ['platform' => 'linkedin']),

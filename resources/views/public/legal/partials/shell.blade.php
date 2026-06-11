@@ -11,7 +11,7 @@
                     <label for="legal-page-picker" class="mb-2 block text-xs font-semibold uppercase tracking-wide text-textMuted">{{ __('public.nav.legal') }}</label>
                     <select
                         id="legal-page-picker"
-                        class="w-full rounded-lg border border-border bg-white px-4 py-2.5 text-sm text-textPrimary focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary"
+                        class="w-full rounded-md border border-border bg-white px-4 py-2.5 text-sm text-textPrimary focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary"
                         onchange="if (this.value) window.location.href = this.value;"
                     >
                         @foreach($items as $item)
@@ -28,7 +28,7 @@
                             <li>
                                 <a
                                     href="{{ $item['url'] }}"
-                                    class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors {{ $activeLegal === $item['key'] ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}"
+                                    class="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition-colors {{ $activeLegal === $item['key'] ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}"
                                     @if($activeLegal === $item['key']) aria-current="page" @endif
                                 >
                                     @if($activeLegal === $item['key'])

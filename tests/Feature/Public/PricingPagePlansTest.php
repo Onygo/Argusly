@@ -34,7 +34,7 @@ it('uses credits as the primary pricing unit instead of article quotas', functio
     $response->assertOk()
         ->assertSee('100 credits / month', false)
         ->assertSee('500 credits / month', false)
-        ->assertSee('2000 credits / month', false)
+        ->assertSee('2,000 credits / month', false)
         ->assertDontSee('5 articles / month', false)
         ->assertDontSee('20 articles / month', false)
         ->assertDontSee('75 articles / month', false);

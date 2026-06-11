@@ -57,6 +57,42 @@ it('passes json schema to openai responses api when schema is provided', functio
     });
 });
 
+it('accepts an openai base url that already includes v1', function () {
+    config([
+        'llm.providers.openai.api_key' => 'test-openai-key',
+        'llm.providers.openai.base_url' => 'https://api.openai.com/v1',
+    ]);
+
+    Http::fake([
+        'https://api.openai.com/v1/responses' => Http::response([
+            'id' => 'resp_base_url_v1',
+            'model' => 'gpt-5.1',
+            'output' => [
+                [
+                    'content' => [
+                        ['text' => '{"ok":true}'],
+                    ],
+                ],
+            ],
+            'usage' => [
+                'input_tokens' => 12,
+                'output_tokens' => 4,
+                'total_tokens' => 16,
+            ],
+        ]),
+    ]);
+
+    $provider = new OpenAiProvider();
+    $response = $provider->generateJson(new LlmRequest(
+        messages: [new LlmMessage('user', 'Return JSON')],
+        model: 'gpt-5.1',
+    ));
+
+    expect($response->json)->toBe(['ok' => true]);
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://api.openai.com/v1/responses');
+});
+
 it('strips markdown fences before decoding json responses', function () {
     config([
         'llm.providers.openai.api_key' => 'test-openai-key',

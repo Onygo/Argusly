@@ -2,11 +2,14 @@
 
 use App\Enums\EarlyAccessSignupStatus;
 use App\Mail\EarlyAccessInvitationMail;
+use App\Models\AccessOverride;
 use App\Models\EarlyAccessInvite;
 use App\Models\EarlyAccessPilotCost;
 use App\Models\EarlyAccessSignup;
 use App\Models\LlmRequest;
 use App\Models\Organization;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -315,6 +318,88 @@ it('blocks invite creation when the signup email already belongs to an active or
 
     expect(EarlyAccessInvite::query()->count())->toBe(0);
     Mail::assertNothingSent();
+});
+
+it('adds an existing organization user to the pilot program without sending an invite', function (): void {
+    Mail::fake();
+
+    $admin = makeEarlyAccessAdmin('admin');
+    $user = makeEarlyAccessRegularUser();
+    $workspace = Workspace::query()->create([
+        'organization_id' => $user->organization_id,
+        'name' => 'Existing Pilot Workspace',
+        'display_name' => 'Existing Pilot Workspace',
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.add-existing-user'), [
+            'email' => $user->email,
+            'workspace_id' => $workspace->id,
+            'notes' => 'Add this customer to pilot tracking.',
+        ])
+        ->assertRedirect();
+
+    $signup = EarlyAccessSignup::query()->where('email', $user->email)->first();
+
+    expect($signup)->not->toBeNull()
+        ->and($signup->status)->toBe(EarlyAccessSignupStatus::ACTIVATED)
+        ->and($signup->activated_user_id)->toBe($user->id)
+        ->and((string) $signup->workspace_id)->toBe((string) $workspace->id)
+        ->and(AccessOverride::query()->where('user_id', $user->id)->where('type', 'early_access')->open()->exists())->toBeTrue()
+        ->and(Subscription::query()->where('organization_id', $user->organization_id)->where('status_reason', 'early_access_existing_user')->exists())->toBeTrue();
+
+    Mail::assertNothingSent();
+});
+
+it('does not replace an existing active subscription when adding an existing user to pilot', function (): void {
+    $admin = makeEarlyAccessAdmin('admin');
+    $user = makeEarlyAccessRegularUser();
+    $workspace = Workspace::query()->create([
+        'organization_id' => $user->organization_id,
+        'name' => 'Paid Customer Workspace',
+        'display_name' => 'Paid Customer Workspace',
+    ]);
+    $plan = Plan::query()->create([
+        'key' => 'paid-test',
+        'slug' => 'paid-test',
+        'name' => 'Paid Test',
+        'interval' => 'month',
+        'monthly_price_cents' => 4900,
+        'price_cents' => 4900,
+        'currency' => 'EUR',
+        'included_credits' => 300,
+        'included_credits_per_interval' => 300,
+        'seat_limit' => 3,
+        'limits' => ['users' => 3, 'sites' => 1, 'workspaces' => 1],
+        'is_active' => true,
+    ]);
+
+    $subscription = Subscription::query()->create([
+        'organization_id' => $user->organization_id,
+        'workspace_id' => $workspace->id,
+        'plan_id' => $plan->id,
+        'interval' => 'month',
+        'price_cents' => 4900,
+        'currency' => 'EUR',
+        'included_credits_per_interval' => 300,
+        'seat_limit' => 3,
+        'status' => 'active',
+        'status_reason' => 'paid',
+        'current_period_start' => now()->startOfDay(),
+        'current_period_end' => now()->addMonth()->endOfDay(),
+        'provider' => 'manual',
+    ]);
+
+    $this->actingAs($admin)
+        ->post(route('admin.early-access.add-existing-user'), [
+            'email' => $user->email,
+            'workspace_id' => $workspace->id,
+        ])
+        ->assertRedirect();
+
+    expect(Subscription::query()->where('organization_id', $user->organization_id)->count())->toBe(1)
+        ->and($subscription->refresh()->status_reason)->toBe('paid')
+        ->and(EarlyAccessSignup::query()->where('email', $user->email)->where('status', EarlyAccessSignupStatus::ACTIVATED)->exists())->toBeTrue();
 });
 
 function makeEarlyAccessAdmin(string $role): User

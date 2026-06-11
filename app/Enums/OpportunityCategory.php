@@ -9,6 +9,7 @@ enum OpportunityCategory: string
     case REFRESH_OPPORTUNITY = 'refresh_opportunity';
     case COMPETITOR_MOVEMENT = 'competitor_movement';
     case AI_VISIBILITY_OPPORTUNITY = 'ai_visibility_opportunity';
+    case BRAND_VISIBILITY = 'brand_visibility';
     case ENGAGEMENT_OPPORTUNITY = 'engagement_opportunity';
 
     /**

@@ -198,6 +198,8 @@ class WorkspaceIntelligenceService
             'status' => EnrichmentRun::STATUS_RUNNING,
             'progress' => 0.1,
             'error_message' => null,
+            'started_at' => $run->started_at ?: now(),
+            'last_heartbeat_at' => now(),
         ]);
 
         $source = (array) ($run->source_payload ?? []);
@@ -206,8 +208,10 @@ class WorkspaceIntelligenceService
         $run->update([
             'extracted_payload' => $result['extracted_payload'],
             'ai_payload' => $result['ai_payload'],
-            'status' => EnrichmentRun::STATUS_DRAFT,
+            'status' => EnrichmentRun::STATUS_COMPLETED,
             'progress' => 1,
+            'completed_at' => now(),
+            'last_heartbeat_at' => now(),
         ]);
 
         return $run->fresh();

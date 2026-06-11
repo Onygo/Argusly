@@ -8,6 +8,9 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\BrandContext\BrandContextService;
+use App\Services\Llm\Data\LlmResponse;
+use App\Services\Llm\Data\LlmUsage;
+use App\Services\Llm\LlmManager;
 use App\Services\WorkspaceIntelligence\AIAnalysisService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -306,6 +309,142 @@ it('marks the run completed empty when parsed sections are empty', function () {
     expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED_EMPTY)
         ->and($run->completed_at)->not->toBeNull()
         ->and($run->failure_reason)->toBe('no_sections_generated');
+});
+
+it('marks provider failures as generation exceptions instead of parser errors', function () {
+    $mock = Mockery::mock(AIAnalysisService::class);
+    $mock->shouldReceive('generateBrandContextDetailed')->once()->andReturn([
+        'payload' => [],
+        'provider' => null,
+        'model' => null,
+        'request_id' => null,
+        'raw_response_length' => 0,
+        'parser_error' => 'OpenAI request failed (404): model not found',
+    ]);
+    $mock->shouldReceive('generateBrandContext')->zeroOrMoreTimes();
+    $this->app->instance(AIAnalysisService::class, $mock);
+
+    $run = makeBrandRun($this->organization, [
+        'status' => EnrichmentRun::STATUS_QUEUED,
+        'progress' => 0,
+        'queued_at' => now()->subMinute(),
+    ]);
+
+    app(BrandContextService::class)->generateBrandContext($run);
+
+    $run->refresh();
+
+    expect($run->status)->toBe(EnrichmentRun::STATUS_FAILED)
+        ->and($run->failure_reason)->toBe('generation_exception')
+        ->and($run->error_message)->toBe('OpenAI request failed (404): model not found');
+});
+
+it('recovers brand setup json from fenced llm text when structured json is missing', function () {
+    $llm = Mockery::mock(LlmManager::class);
+    $llm->shouldReceive('generateJson')->once()->andReturn(new LlmResponse(
+        text: "Here is the brand setup:\n```json\n".json_encode(successfulBrandPayload(), JSON_PRETTY_PRINT)."\n```",
+        json: null,
+        usage: new LlmUsage(200, 300, 500),
+        modelUsed: 'gpt-test',
+        providerName: 'openai',
+        requestId: 'req-fenced-json',
+    ));
+    $this->app->instance(LlmManager::class, $llm);
+
+    $run = makeBrandRun($this->organization, [
+        'status' => EnrichmentRun::STATUS_QUEUED,
+        'progress' => 0,
+        'queued_at' => now()->subMinute(),
+    ]);
+
+    app(BrandContextService::class)->generateBrandContext($run);
+
+    $run->refresh();
+
+    expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED)
+        ->and($run->failure_reason)->toBeNull()
+        ->and($run->ai_payload['company_profile']['company_name'])->toBe('Acme Cloud');
+});
+
+it('recovers brand setup json embedded in surrounding llm text', function () {
+    $llm = Mockery::mock(LlmManager::class);
+    $llm->shouldReceive('generateJson')->once()->andReturn(new LlmResponse(
+        text: 'Generated setup follows: '.json_encode(successfulBrandPayload()).' End.',
+        json: null,
+        usage: new LlmUsage(200, 300, 500),
+        modelUsed: 'gpt-test',
+        providerName: 'openai',
+        requestId: 'req-embedded-json',
+    ));
+    $this->app->instance(LlmManager::class, $llm);
+
+    $run = makeBrandRun($this->organization, [
+        'status' => EnrichmentRun::STATUS_QUEUED,
+        'progress' => 0,
+        'queued_at' => now()->subMinute(),
+    ]);
+
+    app(BrandContextService::class)->generateBrandContext($run);
+
+    $run->refresh();
+
+    expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED)
+        ->and($run->failure_reason)->toBeNull()
+        ->and($run->ai_payload['brand_voices'][0]['name'])->toBe('Professional & Authoritative');
+});
+
+it('recovers brand setup json when the llm wraps it in a payload key', function () {
+    $llm = Mockery::mock(LlmManager::class);
+    $llm->shouldReceive('generateJson')->once()->andReturn(new LlmResponse(
+        text: '',
+        json: ['payload' => successfulBrandPayload()],
+        usage: new LlmUsage(200, 300, 500),
+        modelUsed: 'gpt-test',
+        providerName: 'openai',
+        requestId: 'req-wrapped-json',
+    ));
+    $this->app->instance(LlmManager::class, $llm);
+
+    $run = makeBrandRun($this->organization, [
+        'status' => EnrichmentRun::STATUS_QUEUED,
+        'progress' => 0,
+        'queued_at' => now()->subMinute(),
+    ]);
+
+    app(BrandContextService::class)->generateBrandContext($run);
+
+    $run->refresh();
+
+    expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED)
+        ->and($run->failure_reason)->toBeNull()
+        ->and($run->ai_payload['company_profile']['company_name'])->toBe('Acme Cloud');
+});
+
+it('recovers brand setup json when the llm returns json as an escaped string', function () {
+    $llm = Mockery::mock(LlmManager::class);
+    $llm->shouldReceive('generateJson')->once()->andReturn(new LlmResponse(
+        text: json_encode(json_encode(successfulBrandPayload())),
+        json: null,
+        usage: new LlmUsage(200, 300, 500),
+        modelUsed: 'gpt-test',
+        providerName: 'openai',
+        requestId: 'req-escaped-json',
+    ));
+    $this->app->instance(LlmManager::class, $llm);
+
+    $run = makeBrandRun($this->organization, [
+        'status' => EnrichmentRun::STATUS_QUEUED,
+        'progress' => 0,
+        'queued_at' => now()->subMinute(),
+    ]);
+
+    app(BrandContextService::class)->generateBrandContext($run);
+
+    $run->refresh();
+
+    expect($run->status)->toBe(EnrichmentRun::STATUS_COMPLETED)
+        ->and($run->failure_reason)->toBeNull()
+        ->and($run->ai_payload['team_personas'][0]['name'])->toBe('Founder');
 });
 
 it('retries safely by creating a new run and reuses active runs', function () {

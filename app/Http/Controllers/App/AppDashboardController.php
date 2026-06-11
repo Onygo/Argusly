@@ -12,6 +12,8 @@ use App\Models\SocialPostVariant;
 use App\Models\SocialPublication;
 use App\Services\Analytics\ContentPerformanceInsightService;
 use App\Services\CreditWalletService;
+use App\Services\Dashboard\DashboardActionFirstService;
+use App\Services\Onboarding\FirstValueActivationService;
 use App\View\Presenters\ContentIndexTreePresenter;
 use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +24,9 @@ class AppDashboardController extends Controller
 {
     public function index(
         CreditWalletService $creditWalletService,
-        ContentPerformanceInsightService $contentPerformanceInsightService
+        ContentPerformanceInsightService $contentPerformanceInsightService,
+        FirstValueActivationService $activationService,
+        DashboardActionFirstService $actionFirstService,
     ): View|RedirectResponse
     {
         $user = request()->user();
@@ -122,6 +126,10 @@ class AppDashboardController extends Controller
             ? $organization->workspaces()->pluck('workspaces.id')->all()
             : [];
 
+        $activationWorkspace = $organization
+            ? $organization->workspaces()->orderBy('created_at')->first()
+            : null;
+
         $distributionSummary = [
             'campaigns' => empty($workspaceIds) ? 0 : Campaign::query()->whereIn('workspace_id', $workspaceIds)->count(),
             'variants_pending' => empty($workspaceIds) ? 0 : SocialPostVariant::query()
@@ -159,6 +167,12 @@ class AppDashboardController extends Controller
             'performanceSummary' => $performanceSummary,
             'distributionSummary' => $distributionSummary,
             'opportunityIntelligenceSummary' => $opportunityIntelligenceSummary,
+            'activation' => $activationWorkspace ? $activationService->forWorkspace($activationWorkspace) : null,
+            'actionFirstDashboard' => $actionFirstService->forWorkspace($activationWorkspace),
+            'isEmptyDashboard' => $briefCount === 0
+                && $connectedSitesCount === 0
+                && (int) data_get($distributionSummary, 'scheduled_posts', 0) === 0
+                && (int) data_get($opportunityIntelligenceSummary, 'open', 0) === 0,
         ]);
     }
 }

@@ -34,12 +34,12 @@
 <section class="pl-public-hero">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">
-            <div class="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-publicPrimary/14 bg-publicPrimary/6 px-3 py-1 text-xs text-publicPrimary">
+            <div class="mx-auto mb-4 pl-public-hero-label">
                 <x-public.icon name="sparkles" size="xs" />
                 <span class="font-medium">{{ __('public.landing.hero_badge') }}</span>
             </div>
 
-            <h1 class="text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <h1 class="pl-public-heading pl-public-heading-hero">
                 {{ __('public.landing.hero_title') }}
             </h1>
 
@@ -57,13 +57,6 @@
             </div>
         </div>
 
-        <div class="mt-6 md:mt-12">
-            <x-public.hero-visual
-                variant="landing"
-                schematic="homepage-hero"
-                :show-chrome="true"
-            />
-        </div>
     </div>
 </section>
 
@@ -71,7 +64,7 @@
 <section class="bg-surface">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.landing.problem_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.landing.problem_title') }}</h2>
             <p class="mt-2 text-sm text-textSecondary md:text-base">{{ __('public.landing.problem_text') }}</p>
         </div>
 
@@ -91,14 +84,14 @@
 <section id="how" class="border-y border-publicPrimary/10 bg-publicPrimary">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.landing.how_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.landing.how_title') }}</h2>
             <p class="mt-2 text-sm text-white/76 md:text-base">{{ __('public.landing.how_text') }}</p>
         </div>
 
-        <div class="mt-10 rounded-2xl border border-white/12 bg-white/8 px-5 py-7 md:px-8">
+        <div class="mt-10 rounded-md border border-white/12 bg-white/8 px-5 py-7 md:px-8">
             <div class="grid items-center gap-6 md:grid-cols-4">
                 @foreach(trans('public.landing.steps') as $index => $step)
-                    <div class="pl-animate-step-{{ $index + 1 }} rounded-xl border border-white/10 bg-white/95 px-4 py-5 text-center">
+                    <div class="pl-animate-step-{{ $index + 1 }} rounded-md border border-white/10 bg-white/95 px-4 py-5 text-center">
                         <x-public.icon :name="$step['icon']" size="md" class="mx-auto bg-accentYellow-100 text-accentYellow-900" />
                         <p class="mt-2 text-xs font-semibold text-textPrimary">{{ $step['title'] }}</p>
                         <p class="mt-1 text-xs text-textSecondary">{{ $step['text'] }}</p>
@@ -121,7 +114,7 @@
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="grid gap-10 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:items-start lg:gap-12 xl:gap-16">
                 <div class="max-w-[26rem]">
-                    <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ $createNarrative['title'] }}</h2>
+                    <h2 class="pl-public-heading pl-public-heading-h2">{{ $createNarrative['title'] }}</h2>
                     <p class="mt-4 max-w-[22rem] text-base leading-relaxed text-textSecondary md:text-[1.0625rem]">{{ $createNarrative['description'] }}</p>
 
                     <ul class="mt-8 max-w-[22rem] space-y-4">
@@ -283,7 +276,7 @@
                 </div>
 
                 <div class="order-1 max-w-[26rem] lg:order-2 lg:justify-self-end">
-                    <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ $enrichNarrative['title'] }}</h2>
+                    <h2 class="pl-public-heading pl-public-heading-h2">{{ $enrichNarrative['title'] }}</h2>
                     <p class="mt-4 max-w-[22rem] text-base leading-relaxed text-textSecondary md:text-[1.0625rem]">{{ $enrichNarrative['description'] }}</p>
 
                     <ul class="mt-8 max-w-[22rem] space-y-4">
@@ -306,7 +299,7 @@
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="grid gap-10 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] lg:items-start lg:gap-12 xl:gap-16">
                 <div class="max-w-[26rem]">
-                    <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ $distributeNarrative['title'] }}</h2>
+                    <h2 class="pl-public-heading pl-public-heading-h2">{{ $distributeNarrative['title'] }}</h2>
                     <p class="mt-4 max-w-[22rem] text-base leading-relaxed text-textSecondary md:text-[1.0625rem]">{{ $distributeNarrative['description'] }}</p>
 
                     <ul class="mt-8 max-w-[22rem] space-y-4">
@@ -411,7 +404,7 @@
                     <span>{{ __('public.landing.gov_badge') }}</span>
                 </div>
 
-                <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.landing.gov_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.landing.gov_title') }}</h2>
                 <p class="mt-3 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.landing.gov_text') }}</p>
 
                 <ul class="mt-6 space-y-3 text-sm text-textSecondary">
@@ -424,7 +417,7 @@
                 </ul>
 
                 <div class="mt-7">
-                    <a href="#capabilities" class="inline-flex items-center justify-center gap-2 rounded-xl border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
+                    <a href="#capabilities" class="inline-flex items-center justify-center gap-2 rounded-full border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-[#f8fafc]">
                         {{ __('public.landing.gov_explore') }}
                         <x-public.icon name="arrow-right" size="xs" />
                     </a>
@@ -434,7 +427,7 @@
             <div class="pl-public-card-soft p-5 md:p-6">
                 <div class="flex items-center justify-between">
                     <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.workflow_title') }}</p>
-                    <span class="inline-flex items-center rounded-full border border-publicPrimary/12 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">{{ __('public.landing.workflow_active') }}</span>
+                    <span class="inline-flex items-center rounded-md border border-publicPrimary/12 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">{{ __('public.landing.workflow_active') }}</span>
                 </div>
 
                 <div class="mt-5 space-y-3">
@@ -449,7 +442,7 @@
                     <div class="rounded-md border border-border bg-white p-4">
                         <div class="flex items-center justify-between">
                             <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.workflow_review') }}</p>
-                            <span class="inline-flex items-center rounded-full border border-publicPrimary/12 bg-publicPrimary/8 px-3 py-1 text-xs font-medium text-publicPrimary">{{ __('public.landing.workflow_progress') }}</span>
+                            <span class="inline-flex items-center rounded-md border border-publicPrimary/12 bg-publicPrimary/8 px-3 py-1 text-xs font-medium text-publicPrimary">{{ __('public.landing.workflow_progress') }}</span>
                         </div>
                         <div class="mt-3 flex items-center gap-2">
                             <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-publicPrimary text-xs font-semibold text-textInverse">S</span>
@@ -463,7 +456,7 @@
                     <div class="rounded-md border border-border bg-white p-4">
                         <div class="flex items-center justify-between">
                             <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.workflow_final') }}</p>
-                            <span class="inline-flex items-center rounded-full border border-border bg-[#f8fafc] px-3 py-1 text-xs font-medium text-textSecondary">{{ __('public.landing.workflow_queued') }}</span>
+                            <span class="inline-flex items-center rounded-md border border-border bg-[#f8fafc] px-3 py-1 text-xs font-medium text-textSecondary">{{ __('public.landing.workflow_queued') }}</span>
                         </div>
                         <p class="mt-1 text-xs text-textSecondary">{{ __('public.landing.workflow_signoff') }}</p>
                     </div>
@@ -478,12 +471,12 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="grid gap-8 md:grid-cols-2 md:items-center">
             <div>
-                <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.landing.trust_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.landing.trust_title') }}</h2>
                 <p class="mt-3 text-sm leading-6 text-white/76 md:text-base">{{ __('public.landing.trust_text') }}</p>
             </div>
             <ul class="space-y-3 text-sm text-white/86">
                 @foreach(trans('public.landing.trust_points') as $point)
-                    <li class="flex gap-3 rounded-xl border border-white/10 bg-white/8 px-4 py-3">
+                    <li class="flex gap-3 rounded-md border border-white/10 bg-white/8 px-4 py-3">
                         <x-public.icon name="check" size="xs" class="mt-0.5 flex-none bg-white/10 text-white" />
                         <span>{{ $point }}</span>
                     </li>
@@ -502,7 +495,7 @@
                 <span>{{ __('public.landing.intel_badge') }}</span>
             </div>
 
-            <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.landing.intel_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.landing.intel_title') }}</h2>
             <p class="mt-3 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.landing.intel_text') }}</p>
 
             <div class="mt-8 grid gap-4 md:grid-cols-2">
@@ -536,7 +529,7 @@
                     <span>{{ __('public.landing.agentic_badge') }}</span>
                 </div>
 
-                <h2 class="text-3xl font-semibold tracking-tight text-textPrimary md:text-4xl">{{ __('public.landing.agentic_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.landing.agentic_title') }}</h2>
                 <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ __('public.landing.agentic_text') }}</p>
 
                 <ul class="mt-6 space-y-3 text-sm text-textSecondary">
@@ -557,17 +550,17 @@
             </div>
 
             <div class="pl-public-card-soft p-5 md:p-6">
-                <div class="rounded-2xl border border-publicPrimary/12 bg-white p-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-textMuted">{{ __('public.landing.agentic_visual_eyebrow') }}</p>
-                    <h3 class="mt-3 text-xl font-semibold text-textPrimary">{{ __('public.landing.agentic_visual_title') }}</h3>
+                <div class="rounded-md border border-publicPrimary/12 bg-white p-5">
+                    <p class="pl-public-eyebrow">{{ __('public.landing.agentic_visual_eyebrow') }}</p>
+                    <h3 class="mt-3 pl-public-heading pl-public-heading-h3">{{ __('public.landing.agentic_visual_title') }}</h3>
 
                     <div class="mt-5 space-y-3">
                         @foreach (__('public.landing.agentic_visual_steps') as $step)
-                            <div class="rounded-xl border border-border bg-[#fbfaf7] px-4 py-3">
+                            <div class="rounded-md border border-border bg-[#fbfaf7] px-4 py-3">
                                 <div class="flex items-start gap-3">
-                                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-publicPrimary text-xs font-semibold text-white">{{ $loop->iteration }}</span>
+                                    <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-publicPrimary text-xs font-semibold text-white">{{ $loop->iteration }}</span>
                                     <div>
-                                        <p class="text-sm font-semibold text-textPrimary">{{ $step['label'] }}</p>
+                                        <p class="pl-public-heading pl-public-heading-card text-sm">{{ $step['label'] }}</p>
                                         <p class="mt-1 text-sm leading-6 text-textSecondary">{{ $step['text'] }}</p>
                                     </div>
                                 </div>
@@ -586,11 +579,11 @@
         <div class="pl-public-cta-panel pl-public-cta-panel--split py-8 md:py-10">
             <div class="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,0.85fr)] lg:items-center">
                 <div class="text-white">
-                    <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium tracking-wide text-white">
+                    <span class="inline-flex items-center rounded-md border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium tracking-wide text-white">
                         {{ __('public.landing.ai_search_badge') }}
                     </span>
 
-                    <h2 class="mt-4 text-balance text-3xl font-semibold tracking-tight text-white md:text-4xl lg:text-5xl">
+                    <h2 class="mt-4 text-balance pl-public-heading pl-public-heading-h2 text-white lg:text-5xl">
                         {{ __('public.landing.ai_search_title') }}
                     </h2>
 
@@ -629,14 +622,14 @@
                     </div>
                 </div>
 
-                <div class="rounded-2xl border border-white/12 bg-white/8 p-5">
-                    <div class="rounded-2xl bg-[#f8fafc] p-5 text-publicPrimary">
+                <div class="rounded-md border border-white/12 bg-white/8 p-5">
+                    <div class="rounded-md bg-[#f8fafc] p-5 text-publicPrimary">
                         <p class="text-xs font-semibold uppercase tracking-[0.16em] text-publicPrimary/72">{{ __('public.landing.ai_search_visual_eyebrow') }}</p>
                         <h3 class="mt-3 text-xl font-semibold leading-tight text-publicPrimary">{{ __('public.landing.ai_search_visual_title') }}</h3>
 
                         <div class="mt-5 space-y-3">
                             @foreach (__('public.landing.ai_search_visual_steps') as $step)
-                                <div class="rounded-xl border border-publicPrimary/12 bg-white px-4 py-3">
+                                <div class="rounded-md border border-publicPrimary/12 bg-white px-4 py-3">
                                     <div class="flex items-start gap-3">
                                         <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-publicPrimary text-xs font-semibold text-white">{{ $loop->iteration }}</span>
                                         <div>
@@ -662,7 +655,7 @@
 <section class="pl-public-canvas">
     @php($integrationTargets = array_values(__('public.landing.integration_targets')))
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-        <h2 class="text-center text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.landing.integration_title') }}</h2>
+        <h2 class="text-center pl-public-heading pl-public-heading-h2">{{ __('public.landing.integration_title') }}</h2>
 
         <div class="pl-integration-visual">
             <div class="pl-integration-flow-layer hidden md:block" aria-hidden="true">
@@ -731,7 +724,7 @@
 <section id="cta" class="bg-surface">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="pl-public-cta-panel">
-            <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.landing.cta_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.landing.cta_title') }}</h2>
             <p class="mx-auto mt-3 max-w-2xl text-sm text-white/76 md:text-base">{{ __('public.landing.cta_text') }}</p>
 
             <div class="mt-7 flex flex-col justify-center gap-3 sm:flex-row">

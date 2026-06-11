@@ -7,10 +7,10 @@
 <section class="pl-public-hero-brand">
     <div class="mx-auto grid max-w-6xl gap-7 px-4 py-16 sm:px-6 md:grid-cols-[1.1fr_0.9fr] md:items-center md:gap-10 md:py-20">
         <div class="max-w-xl">
-            <span class="inline-flex items-center rounded-full border border-white/16 bg-white/10 px-3 py-1 text-xs font-medium text-white">
+            <span class="pl-public-hero-label">
                 {{ __('public.page.product_badges.platform') }}
             </span>
-            <h1 class="mt-4 text-balance text-4xl font-semibold tracking-tight text-white md:text-5xl">
+            <h1 class="mt-4 pl-public-heading pl-public-heading-hero text-white">
                 {{ $heading }}
             </h1>
             <p class="mt-4 max-w-lg text-pretty text-sm leading-7 text-white/80 md:text-base">
@@ -30,7 +30,7 @@
         <x-public.hero-visual
             variant="product-overview"
             schematic="product-overview"
-            desktop-wrapper-class="hidden rounded-2xl border border-white/16 bg-white/10 p-6 shadow-sm md:block"
+            desktop-wrapper-class="hidden rounded-md border border-white/16 bg-white/10 p-6 md:block"
             desktop-inner-class=""
         />
     </div>
@@ -48,7 +48,7 @@
                 <span class="pl-public-pill-soft">
                     {{ $capSection['eyebrow'] }}
                 </span>
-                <h2 class="mt-4 text-3xl font-semibold tracking-tight text-textPrimary">
+                <h2 class="mt-4 pl-public-heading pl-public-heading-h2">
                     {{ $capSection['title'] }}
                 </h2>
                 <p class="mt-3 text-sm leading-7 text-textSecondary md:text-base">
@@ -60,7 +60,7 @@
                 @foreach (($capSection['cards'] ?? []) as $index => $card)
                     <article class="pl-public-card-soft p-6">
                         <x-public.icon :name="$capIcons[$index] ?? 'sparkles'" size="md" />
-                        <h3 class="mt-4 text-base font-semibold text-textPrimary">{{ $card['title'] }}</h3>
+                        <h3 class="mt-4 pl-public-heading pl-public-heading-card">{{ $card['title'] }}</h3>
                         <ul class="mt-4 space-y-3 text-sm text-textSecondary">
                             @foreach($card['bullets'] as $bullet)
                                 <li class="flex items-start gap-3">
@@ -85,10 +85,10 @@
     <section id="governance" class="scroll-mt-24 border-y border-publicPrimary/10 bg-publicPrimary">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="mb-10 max-w-2xl">
-                <span class="inline-flex items-center rounded-full border border-white/16 bg-white/10 px-3 py-1 text-xs font-medium text-white">
+                <span class="pl-public-hero-label">
                     {{ $govSection['eyebrow'] }}
                 </span>
-                <h2 class="mt-4 text-3xl font-semibold tracking-tight text-white">
+                <h2 class="mt-4 pl-public-heading pl-public-heading-h2 text-white">
                     {{ $govSection['title'] }}
                 </h2>
                 <p class="mt-3 text-sm leading-7 text-white/78 md:text-base">
@@ -98,7 +98,7 @@
 
             <div class="grid gap-4 md:grid-cols-3">
                 @foreach (($govSection['cards'] ?? []) as $index => $card)
-                    <article class="rounded-2xl border border-white/12 bg-white/8 p-6">
+                    <article class="rounded-md border border-white/12 bg-white/8 p-6">
                         <x-public.icon :name="$govIcons[$index] ?? 'shield'" size="md" class="bg-white/12 text-white" />
                         <h3 class="mt-4 text-base font-semibold text-white">{{ $card['title'] }}</h3>
                         <ul class="mt-4 space-y-3 text-sm text-white/85">
@@ -129,7 +129,7 @@
                     <span class="pl-public-pill">
                         {{ $intelSection['eyebrow'] }}
                     </span>
-                    <h2 class="mt-4 text-3xl font-semibold tracking-tight text-textPrimary">
+                    <h2 class="mt-4 pl-public-heading pl-public-heading-h2">
                         {{ $intelSection['title'] }}
                     </h2>
                     <p class="mt-3 text-sm leading-7 text-textSecondary md:text-base">
@@ -146,7 +146,7 @@
                     @foreach (($intelSection['cards'] ?? []) as $index => $card)
                         <article class="pl-public-card p-6">
                             <x-public.icon :name="$intelIcons[$index] ?? 'sparkles'" size="md" />
-                            <h3 class="mt-4 text-base font-semibold text-textPrimary">{{ $card['title'] }}</h3>
+                            <h3 class="mt-4 pl-public-heading pl-public-heading-card">{{ $card['title'] }}</h3>
                             <ul class="mt-4 space-y-3 text-sm text-textSecondary">
                                 @foreach($card['bullets'] as $bullet)
                                     <li class="flex items-start gap-3">
@@ -167,7 +167,7 @@
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="pl-public-cta-panel">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            <h2 class="text-balance pl-public-heading pl-public-heading-h2 text-white">
                 {{ $ctaHeading ?? __('public.page.platform.cta_title') }}
             </h2>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">

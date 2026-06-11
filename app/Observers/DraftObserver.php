@@ -46,6 +46,10 @@ class DraftObserver
             DraftGenerated::dispatch((string) $draft->id);
         }
 
+        if ($this->isOpportunityGovernanceOnlyChange($draft)) {
+            return;
+        }
+
         if (! $draft->content_html) {
             return;
         }
@@ -76,5 +80,27 @@ class DraftObserver
         }
 
         return $draft->wasChanged('status') && in_array($status, $generatedStates, true);
+    }
+
+    private function isOpportunityGovernanceOnlyChange(Draft $draft): bool
+    {
+        $status = (string) $draft->status;
+        $governanceStatuses = [
+            Draft::STATUS_READY_FOR_REVIEW,
+            Draft::STATUS_CHANGES_REQUESTED,
+            Draft::STATUS_APPROVED_FOR_PUBLISHING,
+            Draft::STATUS_ARCHIVED,
+        ];
+
+        if (! in_array($status, $governanceStatuses, true) || ! $draft->isOpportunityExecutionDraft()) {
+            return false;
+        }
+
+        return ($draft->wasChanged('status') || $draft->wasChanged('meta'))
+            && ! $draft->wasChanged('content_html')
+            && ! $draft->wasChanged('title')
+            && ! $draft->wasChanged('seo_title')
+            && ! $draft->wasChanged('seo_meta_description')
+            && ! $draft->wasChanged('seo_h1');
     }
 }

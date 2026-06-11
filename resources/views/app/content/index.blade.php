@@ -77,7 +77,7 @@
                     <i data-lucide="plus" class="h-4 w-4"></i>
                     <span>New Content</span>
                 </summary>
-                <div class="absolute left-0 right-0 z-30 mt-2 rounded-lg bg-surface p-4 shadow-xl ring-1 ring-border sm:left-auto sm:w-[28rem]">
+                <div class="absolute left-0 right-0 z-30 mt-2 rounded-lg bg-surface p-4 ring-1 ring-border sm:left-auto sm:w-[28rem]">
                     <div class="mb-4 flex flex-wrap gap-2">
                         <a href="{{ route('app.content.batches.create') }}" class="pl-btn-secondary h-9 text-xs">
                             <i data-lucide="layers-3" class="h-4 w-4"></i>
@@ -348,7 +348,7 @@
         </x-filter-bar>
     </form>
 
-    <form id="bulk-schedule-form" method="POST" action="{{ route('app.content.schedule-bulk') }}" class="sticky top-4 z-20 mt-6 mb-4 hidden rounded-lg bg-textPrimary px-4 py-3 text-textInverse shadow-xl" data-bulk-action-bar>
+    <form id="bulk-schedule-form" method="POST" action="{{ route('app.content.schedule-bulk') }}" class="sticky top-4 z-20 mt-6 mb-4 hidden rounded-lg bg-textPrimary px-4 py-3 text-textInverse" data-bulk-action-bar>
         @csrf
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div class="text-sm font-medium"><span data-bulk-selected-count>0</span> selected</div>
@@ -689,7 +689,7 @@
                                     @endforeach
                                     <details class="relative">
                                         <summary class="cursor-pointer rounded border border-border px-2 py-1 text-xs text-textPrimary hover:bg-surfaceSubtle list-none [&::-webkit-details-marker]:hidden">...</summary>
-                                        <div class="absolute right-0 z-20 mt-2 w-52 rounded-md border border-border bg-surface p-2 shadow-lg">
+                                        <div class="absolute right-0 z-20 mt-2 w-52 rounded-md border border-border bg-surface p-2">
                                             @if ($canonical->trashed())
                                                 <form method="POST" action="{{ route('app.content.restore', $canonical->id) }}">
                                                     @csrf
@@ -731,26 +731,28 @@
                         <tr
                             id="content-tree-children-{{ $article['key'] }}"
                             data-content-tree-children="{{ $article['key'] }}"
-                            class="hidden"
+                            class="hidden bg-surfaceSubtle/40"
                         >
-                            <td colspan="9" class="pb-4 pl-8 pr-0">
+                            <td colspan="9" class="px-0 py-0">
                                 <div
                                     data-content-tree-panel
-                                    class="overflow-hidden rounded-md border border-border bg-background/80 px-3 py-3 opacity-0 transition-all duration-150 ease-out"
+                                    class="overflow-hidden border-t border-divider bg-surfaceSubtle/50 opacity-0 transition-all duration-150 ease-out"
                                     style="max-height: 0; transform: translateY(-4px);"
                                     aria-hidden="true"
                                 >
-                                    <div class="space-y-2">
+                                    <div class="divide-y divide-divider">
                                         @foreach ($variants as $variant)
                                             @php
                                                 $variantContent = $variant['content'];
                                                 $variantPresenter = $variant['presenter'];
                                                 $variantInsight = $contentInsights[$variantContent->id] ?? [];
                                             @endphp
-                                            <div class="grid gap-3 rounded-md border border-border/70 bg-surface px-3 py-3 shadow-sm md:ml-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                                            <div class="grid min-h-16 items-start gap-4 px-4 py-3 md:grid-cols-[3rem_minmax(28rem,1fr)_minmax(13rem,0.46fr)_minmax(9rem,0.3fr)_minmax(7rem,0.22fr)]">
+                                                <div class="flex justify-center pt-1">
+                                                    <input form="bulk-schedule-form" type="checkbox" name="content_ids[]" value="{{ $variantContent->id }}" data-bulk-checkbox>
+                                                </div>
                                                 <div class="min-w-0">
                                                     <div class="flex flex-wrap items-center gap-2">
-                                                        <input form="bulk-schedule-form" type="checkbox" name="content_ids[]" value="{{ $variantContent->id }}" data-bulk-checkbox>
                                                         <span class="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium {{ ($variant['is_source'] ?? false) ? $localeBadgeClasses['source'] : $localeBadgeClasses['variant'] }}">
                                                             <span>{{ $variant['locale'] }}</span>
                                                         </span>
@@ -771,45 +773,40 @@
                                                     @else
                                                         <div class="mt-2 block min-w-0 truncate text-sm font-medium text-textPrimary">{{ $variantContent->title }}</div>
                                                     @endif
-                                                    <div class="mt-1 text-xs text-textSecondary">{{ $variant['site_label'] }} · {{ $variant['destination_label'] }}</div>
+                                                    <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-textSecondary">
+                                                        <span>{{ $variant['site_label'] }} · {{ $variant['destination_label'] }}</span>
+                                                        @if (is_numeric(data_get($variantInsight, 'roi_score')))
+                                                            <span>ROI {{ number_format((float) data_get($variantInsight, 'roi_score'), 1) }}</span>
+                                                        @endif
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div class="text-[11px] uppercase tracking-wide text-textSecondary">Draft</div>
-                                                    <div class="mt-1"><x-content-status :content="$variantContent" :show-remote="false" /></div>
-                                                </div>
-                                                <div>
-                                                    <div class="text-[11px] uppercase tracking-wide text-textSecondary">Publish</div>
-                                                    <div class="mt-1">
+                                                <div class="space-y-2">
+                                                    <div>
+                                                        <div class="text-[11px] font-medium uppercase text-textFaint">Status</div>
+                                                        <div class="mt-1"><x-content-status :content="$variantContent" :show-remote="false" /></div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-[11px] font-medium uppercase text-textFaint">Publish</div>
                                                         <x-status-badge
                                                             :status="$variantPresenter->deliveryStatus()"
                                                             :tooltip="$variantPresenter->lastErrorMessage()"
                                                         />
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <div class="text-[11px] uppercase tracking-wide text-textSecondary">Performance</div>
-                                                    <div class="mt-1 text-xs text-textPrimary">
-                                                        @if (is_numeric(data_get($variantInsight, 'roi_score')))
-                                                            ROI {{ number_format((float) data_get($variantInsight, 'roi_score'), 1) }}
-                                                        @else
-                                                            {{ (string) data_get($variant, 'performance.message', data_get($variantInsight, 'status_message', 'Waiting for data.')) }}
-                                                        @endif
-                                                    </div>
-                                                </div>
                                                 <div class="text-xs text-textSecondary">
-                                                    <div>{{ $variantContent->updated_at?->format('Y-m-d H:i') ?? 'n/a' }}</div>
-                                                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                                                    <div class="font-medium text-textPrimary">{{ $variantContent->updated_at?->format('Y-m-d H:i') ?? 'n/a' }}</div>
+                                                    @if ($variantContent->scheduled_publish_at)
+                                                        <div class="mt-1">Scheduled {{ $variantContent->scheduled_publish_at->format('Y-m-d H:i') }}</div>
+                                                    @endif
+                                                </div>
+                                                <div>
+                                                    <div class="flex flex-wrap items-center gap-2">
                                                         @if (! $variantContent->trashed())
                                                             <a class="text-link underline hover:text-linkHover" href="{{ route('app.content.show', $variantContent) }}">Open</a>
-                                                            <form method="POST" action="{{ route('app.content.schedule', $variantContent) }}" class="flex items-center gap-1">
-                                                                @csrf
-                                                                <input type="datetime-local" name="scheduled_publish_at" value="{{ optional($variantContent->scheduled_publish_at)->format('Y-m-d\\TH:i') }}" class="w-[10rem] rounded border border-border bg-background px-2 py-1 text-[11px]">
-                                                                <button class="rounded border border-border px-2 py-1 text-[11px] text-textPrimary">Save</button>
-                                                            </form>
                                                         @endif
                                                         <details class="relative">
                                                             <summary class="cursor-pointer rounded border border-border px-2 py-1 text-[11px] text-textPrimary hover:bg-surfaceSubtle list-none [&::-webkit-details-marker]:hidden">...</summary>
-                                                            <div class="absolute right-0 z-20 mt-2 w-52 rounded-md border border-border bg-surface p-2 shadow-lg">
+                                                            <div class="absolute right-0 z-20 mt-2 w-52 rounded-md border border-border bg-surface p-2">
                                                                 @if ($variantContent->trashed())
                                                                     <form method="POST" action="{{ route('app.content.restore', $variantContent->id) }}">
                                                                         @csrf
@@ -895,7 +892,7 @@
 
     <div class="mt-4">{{ $contents->links() }}</div>
 
-    <dialog id="content-delete-dialog" class="rounded-lg border border-border bg-surface p-0 text-textPrimary shadow-xl backdrop:bg-black/40">
+    <dialog id="content-delete-dialog" class="rounded-lg border border-border bg-surface p-0 text-textPrimary backdrop:bg-black/40">
         <div class="w-full max-w-lg p-0">
             <div class="border-b border-border px-5 py-4">
                 <h2 class="text-base font-semibold">Confirm delete</h2>

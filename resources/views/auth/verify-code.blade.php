@@ -3,7 +3,7 @@
 @section('content')
     <div class="flex flex-col items-center gap-3">
         <a href="{{ route('landing') }}" class="rounded-md px-2 py-1 hover:bg-surfaceMuted">
-            <x-brand-logo size="lg" text-class="text-lg font-bold tracking-tight text-textPrimary" />
+            <x-brand-logo size="lg" text-class="pl-brand-logo-text text-lg text-textPrimary" />
         </a>
         <p class="text-sm text-textSecondary">Enter the one-time code sent to {{ $email }}</p>
     </div>

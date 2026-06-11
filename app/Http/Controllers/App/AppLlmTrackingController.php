@@ -6,10 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Jobs\LlmTracking\RescoreLlmTrackingQueryJob;
 use App\Jobs\LlmTracking\RunLlmTrackingQueryJob;
 use App\Models\ClientSite;
+use App\Models\CompanyIntelligenceProfile;
+use App\Models\CompanyProfile;
 use App\Models\LlmTrackingQuery;
 use App\Models\LlmTrackingQueryRun;
 use App\Models\LlmTrackingQuerySet;
+use App\Models\SiteCompetitor;
+use App\Services\AiVisibility\AiVisibilityStarterQueryService;
+use App\Services\AiVisibility\SuggestedQuery;
 use App\Services\Entitlements\FeatureGate;
+use App\Services\Journey\FirstValueExperienceService;
 use App\Services\LlmTracking\AiAttentionDashboardBuilder;
 use App\Services\LlmTracking\ArguslyTrackingDefaults;
 use App\View\Presenters\TrackingQueryDetailPresenter;
@@ -18,6 +24,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -29,6 +36,7 @@ class AppLlmTrackingController extends Controller
         FeatureGate $featureGate,
         ArguslyTrackingDefaults $defaults,
         AiAttentionDashboardBuilder $dashboardBuilder,
+        FirstValueExperienceService $firstValue,
     ): View {
         $this->assertSiteInOrganization($request, $site);
         $this->assertFeature($featureGate, $site);
@@ -38,11 +46,27 @@ class AppLlmTrackingController extends Controller
         $queries = $dashboardBuilder->loadQueriesForSite($site, $filters);
         $querySets = $this->querySetsForSite($site);
         $indexSummary = $dashboardBuilder->buildIndexSummary($queries, $filters);
+        $totalQueryCount = LlmTrackingQuery::query()->where('client_site_id', $site->id)->count();
+        $runCount = LlmTrackingQueryRun::query()
+            ->whereHas('trackingQuery', fn ($query) => $query->where('client_site_id', $site->id))
+            ->count();
+        $firstRunnableQuery = LlmTrackingQuery::query()
+            ->where('client_site_id', $site->id)
+            ->where('is_active', true)
+            ->orderByDesc('priority')
+            ->orderBy('name')
+            ->first();
 
         return view('app.sites.llm-tracking.index', [
             'site' => $site,
             'queries' => $queries,
             'querySets' => $querySets,
+            'totalQueryCount' => $totalQueryCount,
+            'runCount' => $runCount,
+            'firstRunnableQuery' => $firstRunnableQuery,
+            'estimatedFirstRunCredits' => $firstRunnableQuery ? 1 : 0,
+            'estimatedAllRunCredits' => LlmTrackingQuery::query()->where('client_site_id', $site->id)->where('is_active', true)->count(),
+            'firstValueCelebrations' => $firstValue->celebrations($site->workspace),
             'indexSummary' => $indexSummary,
             'siteTrend' => $dashboardBuilder->buildSiteTrend($site, 'week', 8, $filters),
             'queryPerformanceRows' => $dashboardBuilder->buildQueryPerformance($queries),
@@ -123,6 +147,107 @@ class AppLlmTrackingController extends Controller
         LlmTrackingQuery::query()->create($this->queryPayload($site, $data));
 
         return redirect()->route('app.sites.llm-tracking.index', $site)->with('status', 'Tracking query created.');
+    }
+
+    public function starterPreview(
+        Request $request,
+        ClientSite $site,
+        FeatureGate $featureGate,
+        AiVisibilityStarterQueryService $starterQueries,
+    ): View {
+        Gate::authorize('manage-organization');
+        $this->assertSiteInOrganization($request, $site);
+        $this->assertFeature($featureGate, $site);
+
+        return view('app.sites.llm-tracking.starter-preview', [
+            'site' => $site,
+            'suggestions' => $this->starterSuggestions($site, $starterQueries),
+            'existingQueryCount' => LlmTrackingQuery::query()->where('client_site_id', $site->id)->count(),
+        ]);
+    }
+
+    public function createStarterQueries(
+        Request $request,
+        ClientSite $site,
+        FeatureGate $featureGate,
+        AiVisibilityStarterQueryService $starterQueries,
+    ): RedirectResponse {
+        Gate::authorize('manage-organization');
+        $this->assertSiteInOrganization($request, $site);
+        $this->assertFeature($featureGate, $site);
+
+        $data = $request->validate([
+            'selected' => ['required', 'array', 'min:1', 'max:10'],
+            'selected.*' => ['required', 'string', 'max:80'],
+        ]);
+
+        $suggestions = $this->starterSuggestions($site, $starterQueries);
+        $selected = collect($data['selected'])->map(fn ($key): string => (string) $key)->unique()->values();
+
+        $querySet = LlmTrackingQuerySet::query()->firstOrCreate(
+            [
+                'workspace_id' => $site->workspace_id,
+                'client_site_id' => $site->id,
+                'name' => 'Starter Queries',
+            ],
+            [
+                'description' => 'Generated starter prompts for first AI Visibility activation.',
+                'locale' => 'en',
+                'is_active' => true,
+            ],
+        );
+
+        $targeting = $this->starterTargeting($site);
+        $existing = LlmTrackingQuery::query()
+            ->where('client_site_id', $site->id)
+            ->pluck('query_text')
+            ->map(fn ($value): string => Str::lower(trim((string) $value)))
+            ->flip();
+
+        $created = 0;
+
+        foreach ($selected as $key) {
+            $suggestion = $suggestions->find($key);
+
+            if (! $suggestion instanceof SuggestedQuery) {
+                continue;
+            }
+
+            $fingerprint = Str::lower(trim($suggestion->queryText));
+            if ($existing->has($fingerprint)) {
+                continue;
+            }
+
+            LlmTrackingQuery::query()->create([
+                'workspace_id' => $site->workspace_id,
+                'client_site_id' => $site->id,
+                'llm_tracking_query_set_id' => $querySet->id,
+                'name' => Str::limit(Str::headline($suggestion->category).' - '.$suggestion->intent, 120, ''),
+                'query_text' => $suggestion->queryText,
+                'query_variants' => $this->queryVariantsPayload($suggestion->queryText, ''),
+                'target_brand' => $targeting['target_brand'],
+                'target_domain' => $targeting['target_domain'],
+                'brand_terms' => $targeting['brand_terms'],
+                'competitor_terms' => $targeting['competitor_terms'],
+                'target_urls' => $targeting['target_urls'],
+                'tags' => ['starter', $suggestion->category, $suggestion->intent],
+                'locale' => 'en',
+                'frequency' => 'daily',
+                'priority' => $suggestion->confidenceScore,
+                'is_active' => true,
+            ]);
+
+            $existing->put($fingerprint, true);
+            $created++;
+        }
+
+        if ($created === 0) {
+            return back()->withErrors(['starter_queries' => 'No new starter queries were created. The selected prompts may already exist.']);
+        }
+
+        return redirect()
+            ->route('app.sites.llm-tracking.index', $site)
+            ->with('status', sprintf('%d starter AI Visibility %s created. Your AI Visibility workspace is ready.', $created, $created === 1 ? 'query' : 'queries'));
     }
 
     public function update(Request $request, ClientSite $site, LlmTrackingQuery $query, FeatureGate $featureGate): RedirectResponse
@@ -420,6 +545,75 @@ class AppLlmTrackingController extends Controller
         }
 
         return '';
+    }
+
+    private function starterSuggestions(ClientSite $site, AiVisibilityStarterQueryService $starterQueries)
+    {
+        return $starterQueries->suggest(
+            workspace: $site->workspace,
+            site: $site,
+            companyProfile: CompanyProfile::query()->where('workspace_id', $site->workspace_id)->latest()->first(),
+            companyIntelligence: CompanyIntelligenceProfile::query()
+                ->where('workspace_id', $site->workspace_id)
+                ->where('status', CompanyIntelligenceProfile::STATUS_ACTIVE)
+                ->orderByDesc('is_default')
+                ->latest()
+                ->first(),
+            competitors: SiteCompetitor::query()
+                ->where('workspace_id', $site->workspace_id)
+                ->where('client_site_id', $site->id)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(),
+        );
+    }
+
+    /**
+     * @return array{target_brand:?string,target_domain:?string,brand_terms:array<int,string>,competitor_terms:array<int,string>,target_urls:array<int,string>}
+     */
+    private function starterTargeting(ClientSite $site): array
+    {
+        $companyProfile = CompanyProfile::query()->where('workspace_id', $site->workspace_id)->latest()->first();
+        $companyIntelligence = CompanyIntelligenceProfile::query()
+            ->where('workspace_id', $site->workspace_id)
+            ->where('status', CompanyIntelligenceProfile::STATUS_ACTIVE)
+            ->orderByDesc('is_default')
+            ->latest()
+            ->first();
+
+        $brandTerms = collect([
+            $companyIntelligence?->company_name,
+            $companyProfile?->company_name,
+            $site->workspace?->display_name,
+            $site->workspace?->name,
+        ])->merge((array) ($companyIntelligence?->target_entities ?? []))
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->unique(fn (string $value): string => Str::lower($value))
+            ->values()
+            ->all();
+
+        $siteUrl = trim((string) ($site->base_url ?: $site->site_url));
+        $targetUrls = $siteUrl !== '' ? [$siteUrl] : [];
+
+        return [
+            'target_brand' => $brandTerms[0] ?? null,
+            'target_domain' => $this->inferDomainFromUrls($targetUrls) ?: null,
+            'brand_terms' => $brandTerms,
+            'competitor_terms' => SiteCompetitor::query()
+                ->where('workspace_id', $site->workspace_id)
+                ->where('client_site_id', $site->id)
+                ->where('is_active', true)
+                ->get()
+                ->flatMap(fn (SiteCompetitor $competitor): array => [$competitor->name, $competitor->domain])
+                ->merge((array) ($companyIntelligence?->direct_competitors ?? []))
+                ->map(fn ($value): string => trim((string) $value))
+                ->filter()
+                ->unique(fn (string $value): string => Str::lower($value))
+                ->values()
+                ->all(),
+            'target_urls' => $targetUrls,
+        ];
     }
 
     /**

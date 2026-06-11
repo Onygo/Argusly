@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Opportunity extends Model
@@ -106,5 +107,15 @@ class Opportunity extends Model
         return $this->belongsToMany(OpportunitySignal::class, 'opportunity_signal_links')
             ->withPivot(['weight', 'contribution'])
             ->withTimestamps();
+    }
+
+    public function executionPlans(): HasMany
+    {
+        return $this->hasMany(OpportunityExecutionPlan::class);
+    }
+
+    public function activeExecutionPlans(): HasMany
+    {
+        return $this->executionPlans()->active();
     }
 }

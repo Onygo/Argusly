@@ -16,7 +16,7 @@
         <div class="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
             <div>
                 <a href="{{ LocalizedMarketingUrl::route('landing') }}" class="inline-flex items-center gap-3">
-                    <x-brand-logo text-class="text-[17px] font-bold tracking-tight text-textPrimary" />
+                    <x-brand-logo text-class="pl-brand-logo-text text-[17px] text-textPrimary" />
                 </a>
                 <p class="mt-3 max-w-xs text-sm text-textSecondary">
                     {{ $tagline }}
@@ -30,7 +30,7 @@
                     class="mt-4"
                     align="left"
                     :statement="config('brand.show_parent_branding', true)
-                        ? \App\Support\Brand::product().' is a product by '.\App\Support\Brand::parent()
+                        ? __('public.footer.product_by_parent', ['product' => \App\Support\Brand::product(), 'parent' => \App\Support\Brand::parent()])
                         : \App\Support\Brand::product()"
                 />
             </div>

@@ -25,7 +25,7 @@
             <div class="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-800">{{ $errors->first() }}</div>
         @endif
 
-        <div class="sticky top-4 z-20 rounded-lg border border-border bg-surface/95 shadow-sm backdrop-blur">
+        <div class="sticky top-4 z-20 rounded-lg border border-border bg-surface/95 backdrop-blur">
             <div class="grid gap-6 px-6 py-5 lg:grid-cols-[minmax(0,1.25fr),minmax(320px,0.75fr)]">
                 <div class="space-y-4">
                     <div class="flex flex-wrap items-center gap-3">
@@ -227,7 +227,7 @@
                                 tabindex="{{ $isActive ? '0' : '-1' }}"
                                 aria-selected="{{ $isActive ? 'true' : 'false' }}"
                                 data-llm-tracking-tab-trigger="{{ $tab['id'] }}"
-                                class="{{ $isActive ? 'bg-background text-textPrimary shadow-sm' : 'text-textSecondary hover:bg-background/70 hover:text-textPrimary' }} inline-flex items-center rounded-lg px-4 py-3 text-sm font-medium transition"
+                                class="{{ $isActive ? 'bg-background text-textPrimary' : 'text-textSecondary hover:bg-background/70 hover:text-textPrimary' }} inline-flex items-center rounded-lg px-4 py-3 text-sm font-medium transition"
                             >
                                 {{ $tab['label'] }}
                             </a>

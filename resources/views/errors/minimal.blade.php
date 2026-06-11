@@ -45,7 +45,7 @@
             <div class="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)] lg:py-16">
                 <div class="max-w-2xl">
                     <a href="{{ $homeUrl }}" class="rounded-md px-1 py-1 hover:bg-white/70">
-                        <x-brand-logo text-class="text-sm font-bold tracking-tight text-textPrimary" />
+                        <x-brand-logo text-class="pl-brand-logo-text text-sm text-textPrimary" />
                     </a>
 
                     <div class="mt-10 inline-flex items-center gap-2 rounded-full border border-publicPrimary/15 bg-white px-3 py-1 text-xs font-medium text-publicPrimary">

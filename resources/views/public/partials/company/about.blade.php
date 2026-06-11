@@ -15,7 +15,7 @@
 <section class="pl-public-hero">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="max-w-3xl">
-            <h1 class="text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <h1 class="pl-public-heading pl-public-heading-hero">
                 {{ __('public.about.hero_title') }}
             </h1>
             <p class="mt-4 max-w-2xl text-pretty text-sm leading-6 text-textSecondary md:text-base">
@@ -30,7 +30,7 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="grid gap-8 lg:grid-cols-2 lg:items-start">
             <div>
-                <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.about.problem_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.about.problem_title') }}</h2>
                 <p class="mt-4 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.about.problem_text') }}</p>
             </div>
             <div class="pl-public-card-soft p-6">
@@ -53,7 +53,7 @@
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">
             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-publicPrimary">{{ __('public.about.why_eyebrow') }}</p>
-            <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.about.why_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.about.why_title') }}</h2>
             <p class="mt-4 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.about.why_text') }}</p>
         </div>
 
@@ -61,7 +61,7 @@
             @foreach(__('public.about.approach_blocks') as $block)
                 <div class="pl-public-card p-6">
                     <x-public.icon :name="$block['icon']" size="md" />
-                    <h3 class="mt-4 text-lg font-semibold text-textPrimary">{{ $block['title'] }}</h3>
+                    <h3 class="mt-4 pl-public-heading pl-public-heading-h3">{{ $block['title'] }}</h3>
                     <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $block['text'] }}</p>
                 </div>
             @endforeach
@@ -73,7 +73,7 @@
 <section class="border-y border-border bg-surface">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto mb-10 max-w-3xl text-center">
-            <h2 class="text-2xl font-semibold text-textPrimary md:text-3xl">{{ __('public.about.principles_title') }}</h2>
+            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.about.principles_title') }}</h2>
             <p class="mt-2 text-sm text-textSecondary md:text-base">{{ __('public.about.principles_text') }}</p>
         </div>
 
@@ -105,7 +105,7 @@
                     <x-public.icon name="shield" size="xs" class="bg-white/10 text-white" />
                     <span>{{ __('public.about.trust_badge') }}</span>
                 </div>
-                <h2 class="text-2xl font-semibold text-white md:text-3xl">{{ __('public.about.trust_title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.about.trust_title') }}</h2>
                 <p class="mt-3 text-sm leading-6 text-white/76 md:text-base">{{ __('public.about.trust_text') }}</p>
             </div>
 
@@ -113,7 +113,7 @@
             @if(is_array($trustPoints) && count($trustPoints) > 0)
                 <ul class="space-y-3 text-sm text-white/86">
                     @foreach($trustPoints as $point)
-                        <li class="flex gap-3 rounded-xl border border-white/10 bg-white/8 px-4 py-3">
+                        <li class="flex gap-3 rounded-md border border-white/10 bg-white/8 px-4 py-3">
                             <x-public.icon name="check" size="xs" class="mt-0.5 flex-none bg-white/10 text-white" />
                             <span>{{ $point }}</span>
                         </li>
@@ -128,7 +128,7 @@
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="pl-public-cta-panel">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            <h2 class="text-balance pl-public-heading pl-public-heading-h2 text-white">
                 {{ __('public.about.cta_title') }}
             </h2>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/76 md:text-base">

@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Models\OrganizationProfile;
 use App\Models\Persona;
 use App\Models\TeamMember;
+use App\Models\Workspace;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -17,6 +18,7 @@ class WorkspaceIntelligencePresenter
      * @param  Collection<int,Persona>  $personas
      * @param  Collection<int,TeamMember>  $teamMembers
      * @param  Collection<int,EnrichmentRun>  $runs
+     * @param  Collection<int,Workspace>  $workspaces
      * @return array<string,mixed>
      */
     public static function make(
@@ -24,17 +26,20 @@ class WorkspaceIntelligencePresenter
         ?OrganizationProfile $organizationProfile,
         Collection $personas,
         Collection $teamMembers,
-        Collection $runs
+        Collection $runs,
+        ?Collection $workspaces = null,
     ): array {
+        $workspaceBrandContext = self::workspaceBrandContext($workspaces ?? collect());
         $pendingRuns = $runs->filter(fn (EnrichmentRun $run): bool => in_array($run->status, [
             EnrichmentRun::STATUS_QUEUED,
             EnrichmentRun::STATUS_RUNNING,
+            EnrichmentRun::STATUS_COMPLETED,
             EnrichmentRun::STATUS_DRAFT,
             EnrichmentRun::STATUS_REVIEWED,
         ], true))->values();
 
         $status = self::workspaceStatus($organizationProfile, $personas, $teamMembers, $pendingRuns, $runs->first());
-        $completion = self::completionMetrics($organizationProfile);
+        $completion = self::completionMetrics($organizationProfile, $workspaceBrandContext);
         $presentedPersonas = $personas->map(fn (Persona $persona): array => self::presentPersona($persona))->values();
         $teamMemberLookup = $teamMembers->keyBy(fn (TeamMember $member): string => (string) $member->id);
         $presentedTeamMembers = $teamMembers->map(fn (TeamMember $member): array => self::presentTeamMember($member))->values();
@@ -82,7 +87,7 @@ class WorkspaceIntelligencePresenter
                 ['id' => 'insights', 'label' => 'Insights / Runs', 'count' => $presentedRuns->count()],
             ],
             'brand_profile' => [
-                'cards' => self::presentBrandProfile($organization, $organizationProfile),
+                'cards' => self::presentBrandProfile($organization, $organizationProfile, $workspaceBrandContext),
             ],
             'personas' => [
                 'count' => $presentedPersonas->count(),
@@ -103,7 +108,7 @@ class WorkspaceIntelligencePresenter
     /**
      * @return array{count:int,total:int}
      */
-    private static function completionMetrics(?OrganizationProfile $profile): array
+    private static function completionMetrics(?OrganizationProfile $profile, array $workspaceContext = []): array
     {
         $count = collect(OrganizationProfile::SECTION_KEYS)
             ->filter(function (string $section) use ($profile): bool {
@@ -112,6 +117,12 @@ class WorkspaceIntelligencePresenter
                 return self::hasMeaningfulValue($value);
             })
             ->count();
+
+        if ($count === 0 && $workspaceContext !== []) {
+            $count = collect(OrganizationProfile::SECTION_KEYS)
+                ->filter(fn (string $section): bool => self::hasMeaningfulValue($workspaceContext[$section] ?? null))
+                ->count();
+        }
 
         return [
             'count' => $count,
@@ -162,10 +173,23 @@ class WorkspaceIntelligencePresenter
     /**
      * @return array<int,array<string,mixed>>
      */
-    private static function presentBrandProfile(Organization $organization, ?OrganizationProfile $profile): array
+    private static function presentBrandProfile(Organization $organization, ?OrganizationProfile $profile, array $workspaceContext = []): array
     {
-        $audiences = collect((array) ($profile?->audience_profiles ?? []))
+        $brandSummary = self::firstMeaningful($profile?->brand_summary, $workspaceContext['brand_summary'] ?? null);
+        $toneOfVoice = self::firstMeaningful($profile?->tone_of_voice, $workspaceContext['tone_of_voice'] ?? null);
+        $differentiators = self::firstMeaningful($profile?->differentiators, $workspaceContext['differentiators'] ?? []);
+        $offerings = self::firstMeaningful($profile?->offerings, $workspaceContext['offerings'] ?? []);
+        $strategicTopics = self::firstMeaningful($profile?->strategic_topics, $workspaceContext['strategic_topics'] ?? []);
+        $seoTopics = self::firstMeaningful($profile?->seo_topics, $workspaceContext['seo_topics'] ?? []);
+        $visualDirectionPayload = self::firstMeaningful($profile?->visual_direction, $workspaceContext['visual_direction'] ?? []);
+        $audienceProfiles = self::firstMeaningful($profile?->audience_profiles, $workspaceContext['audience_profiles'] ?? []);
+
+        $audiences = collect((array) $audienceProfiles)
             ->map(function ($audience): string {
+                if (is_string($audience)) {
+                    return trim($audience);
+                }
+
                 $name = trim((string) data_get($audience, 'name', ''));
                 $summary = trim((string) data_get($audience, 'summary', ''));
                 $goals = self::normalizeList(data_get($audience, 'goals', []));
@@ -182,33 +206,33 @@ class WorkspaceIntelligencePresenter
             ->all();
 
         $visualDirection = array_values(array_filter([
-            trim((string) data_get($profile?->visual_direction, 'style_summary', '')),
-            ...array_map(fn (string $color): string => 'Color: ' . $color, self::normalizeList(data_get($profile?->visual_direction, 'colors', []))),
-            ...array_map(fn (string $cue): string => 'Design cue: ' . $cue, self::normalizeList(data_get($profile?->visual_direction, 'design_cues', []))),
+            trim((string) data_get($visualDirectionPayload, 'style_summary', '')),
+            ...array_map(fn (string $color): string => 'Color: ' . $color, self::normalizeList(data_get($visualDirectionPayload, 'colors', []))),
+            ...array_map(fn (string $cue): string => 'Design cue: ' . $cue, self::normalizeList(data_get($visualDirectionPayload, 'design_cues', []))),
         ]));
 
         return [
             [
                 'title' => 'Summary',
                 'icon' => 'file-text',
-                'text' => trim((string) ($profile?->brand_summary ?: 'No approved summary yet. Run enrichment or edit the profile to define a core positioning statement.')),
+                'text' => trim((string) ($brandSummary ?: 'No approved summary yet. Run enrichment or edit the profile to define a core positioning statement.')),
             ],
             [
                 'title' => 'Tone of Voice',
                 'icon' => 'message-square',
-                'items' => self::splitTextToBullets((string) ($profile?->tone_of_voice ?? '')),
+                'items' => self::splitTextToBullets((string) $toneOfVoice),
                 'empty' => 'No approved tone guidance yet.',
             ],
             [
                 'title' => 'Differentiation',
                 'icon' => 'scan-search',
-                'items' => self::normalizeList($profile?->differentiators ?? []),
+                'items' => self::normalizeList($differentiators),
                 'empty' => 'No differentiators approved yet.',
             ],
             [
                 'title' => 'Value Proposition',
                 'icon' => 'target',
-                'items' => self::normalizeList($profile?->offerings ?? []),
+                'items' => self::normalizeList($offerings),
                 'empty' => 'No approved value propositions yet.',
             ],
             [
@@ -221,8 +245,8 @@ class WorkspaceIntelligencePresenter
                 'title' => 'Search Positioning',
                 'icon' => 'search',
                 'groups' => array_values(array_filter([
-                    self::makeGroup('Strategic topics', self::normalizeList($profile?->strategic_topics ?? [])),
-                    self::makeGroup('SEO topics', self::normalizeList($profile?->seo_topics ?? [])),
+                    self::makeGroup('Strategic topics', self::normalizeList($strategicTopics)),
+                    self::makeGroup('SEO topics', self::normalizeList($seoTopics)),
                 ])),
                 'empty' => 'No search or SEO topics approved yet.',
             ],
@@ -326,7 +350,7 @@ class WorkspaceIntelligencePresenter
             'approved_at_label' => $run->approved_at ? self::formatTimestamp($run->approved_at) : null,
             'progress_label' => round(((float) $run->progress) * 100) . '%',
             'error_message' => trim((string) ($run->error_message ?? '')),
-            'is_actionable' => in_array($run->status, [EnrichmentRun::STATUS_DRAFT, EnrichmentRun::STATUS_REVIEWED], true),
+            'is_actionable' => in_array($run->status, [EnrichmentRun::STATUS_COMPLETED, EnrichmentRun::STATUS_DRAFT, EnrichmentRun::STATUS_REVIEWED], true),
             'proposal' => $proposal,
         ];
     }
@@ -356,6 +380,92 @@ class WorkspaceIntelligencePresenter
                 Str::limit(trim((string) ($payload['manual_text'] ?? $payload['input_text'] ?? '')), 180),
             ],
         }));
+    }
+
+    /**
+     * @param  Collection<int,Workspace>  $workspaces
+     * @return array<string,mixed>
+     */
+    private static function workspaceBrandContext(Collection $workspaces): array
+    {
+        $workspace = $workspaces
+            ->first(fn (Workspace $workspace): bool => $workspace->companyProfile || $workspace->defaultCompanyIntelligenceProfile || $workspace->brandContexts->isNotEmpty());
+
+        if (! $workspace) {
+            return [];
+        }
+
+        $company = $workspace->companyProfile;
+        $intelligence = $workspace->defaultCompanyIntelligenceProfile
+            ?? $workspace->companyIntelligenceProfiles?->first();
+        $contextPayload = (array) ($workspace->brandContexts->sortByDesc('created_at')->first()?->structured_json ?? []);
+        $voice = $workspace->defaultBrandVoice;
+
+        return [
+            'brand_summary' => self::firstMeaningful(
+                $company?->long_description,
+                $company?->short_description,
+                $intelligence?->company_description,
+                data_get($contextPayload, 'company_profile.description'),
+                data_get($contextPayload, 'company_profile.company_description'),
+                data_get($contextPayload, 'brand_summary'),
+            ),
+            'tone_of_voice' => self::firstMeaningful(
+                $voice?->tone_of_voice,
+                $voice?->writing_style,
+                $intelligence?->tone_of_voice,
+                data_get($contextPayload, 'tone_of_voice'),
+            ),
+            'audience_profiles' => self::firstMeaningful(
+                $intelligence?->icps,
+                $intelligence?->personas,
+                $company?->target_audience,
+                data_get($contextPayload, 'audience_profiles'),
+                data_get($contextPayload, 'buyer_personas'),
+            ),
+            'offerings' => self::firstMeaningful(
+                $company?->valuePropositionsArray(),
+                $company?->keyServicesArray(),
+                $intelligence?->products_services,
+                data_get($contextPayload, 'company_profile.products_services'),
+                data_get($contextPayload, 'products_services'),
+            ),
+            'differentiators' => self::firstMeaningful(
+                $intelligence?->brand_differentiators,
+                $company?->proofPointsArray(),
+                data_get($contextPayload, 'brand_differentiators'),
+                data_get($contextPayload, 'differentiators'),
+            ),
+            'strategic_topics' => self::firstMeaningful(
+                $intelligence?->primary_topics,
+                $intelligence?->authority_areas,
+                data_get($contextPayload, 'primary_topics'),
+                data_get($contextPayload, 'authority_areas'),
+            ),
+            'seo_topics' => self::firstMeaningful(
+                $intelligence?->strategic_keywords,
+                $intelligence?->target_entities,
+                $intelligence?->query_intents,
+                data_get($contextPayload, 'strategic_keywords'),
+                data_get($contextPayload, 'target_entities'),
+                data_get($contextPayload, 'query_intents'),
+            ),
+            'visual_direction' => self::firstMeaningful(
+                data_get($contextPayload, 'visual_direction'),
+                [],
+            ),
+        ];
+    }
+
+    private static function firstMeaningful(mixed ...$values): mixed
+    {
+        foreach ($values as $value) {
+            if (self::hasMeaningfulValue($value)) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -462,7 +572,8 @@ class WorkspaceIntelligencePresenter
     {
         return match ($status) {
             EnrichmentRun::STATUS_APPROVED, Persona::STATUS_APPROVED, TeamMember::STATUS_APPROVED => ['label' => 'Approved', 'tone' => 'emerald', 'icon' => 'badge-check'],
-            EnrichmentRun::STATUS_DRAFT, Persona::STATUS_DRAFT, TeamMember::STATUS_DRAFT => ['label' => 'Draft', 'tone' => 'slate', 'icon' => 'file-pen'],
+            EnrichmentRun::STATUS_COMPLETED, EnrichmentRun::STATUS_DRAFT => ['label' => 'Ready for review', 'tone' => 'amber', 'icon' => 'sparkles'],
+            Persona::STATUS_DRAFT, TeamMember::STATUS_DRAFT => ['label' => 'Draft', 'tone' => 'slate', 'icon' => 'file-pen'],
             EnrichmentRun::STATUS_REVIEWED, Persona::STATUS_REVIEWED, TeamMember::STATUS_REVIEWED => ['label' => 'Needs review', 'tone' => 'amber', 'icon' => 'sparkles'],
             EnrichmentRun::STATUS_QUEUED => ['label' => 'Queued', 'tone' => 'slate', 'icon' => 'clock-3'],
             EnrichmentRun::STATUS_RUNNING => ['label' => 'Running', 'tone' => 'blue', 'icon' => 'loader-circle'],

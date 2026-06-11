@@ -2,7 +2,7 @@
 <section class="pl-public-hero">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="max-w-3xl">
-            <h1 class="text-balance text-4xl font-semibold tracking-tight text-textPrimary md:text-5xl">
+            <h1 class="pl-public-heading pl-public-heading-hero">
                 {{ $heading }}
             </h1>
             <p class="mt-4 max-w-2xl text-pretty text-sm leading-6 text-textSecondary md:text-base">
@@ -19,7 +19,7 @@
             <div class="space-y-4">
                 @foreach($articles as $article)
                     <article class="pl-public-card p-6">
-                        <h2 class="text-lg font-semibold text-textPrimary">{{ $article['title'] }}</h2>
+                        <h2 class="pl-public-heading pl-public-heading-h3">{{ $article['title'] }}</h2>
                         <ul class="mt-4 space-y-2 text-sm leading-6 text-textSecondary">
                             @foreach($article['points'] as $point)
                                 <li>{{ $point }}</li>
@@ -32,7 +32,7 @@
             <div class="grid gap-4 md:grid-cols-2">
                 @foreach($sections as $section)
                     <article class="pl-public-card p-6">
-                        <h2 class="text-lg font-semibold text-textPrimary">{{ $section['title'] }}</h2>
+                        <h2 class="pl-public-heading pl-public-heading-h3">{{ $section['title'] }}</h2>
                         @if(!empty($section['bullets']) && is_array($section['bullets']))
                             <ul class="mt-4 space-y-3 text-sm text-textSecondary">
                                 @foreach($section['bullets'] as $bullet)
@@ -50,7 +50,7 @@
 
         @if (($pageKey ?? '') === 'company.contact')
             <div id="contact-form" class="mt-8 pl-public-card p-6">
-                <h2 class="text-lg font-semibold text-textPrimary">{{ __('public.page.contact_form.title') }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h3">{{ __('public.page.contact_form.title') }}</h2>
                 <p class="mt-2 text-sm text-textSecondary">{{ __('public.page.contact_form.subtitle') }}</p>
 
                 @if (session('contact_status'))
@@ -111,7 +111,7 @@
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mx-auto max-w-3xl text-center">
-            <h2 class="text-balance text-2xl font-semibold tracking-tight text-textPrimary md:text-3xl">
+            <h2 class="pl-public-heading pl-public-heading-h2">
                 {{ $ctaHeading ?? __('public.cta.title') }}
             </h2>
             <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-textSecondary md:text-base">
