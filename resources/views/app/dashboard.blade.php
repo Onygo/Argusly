@@ -43,7 +43,7 @@
         <p class="mt-1 text-sm text-textSecondary">{{ __('app.dashboard_action_first.supporting_metrics_hint') }}</p>
     </div>
 
-    <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
                 <div>
@@ -54,6 +54,24 @@
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
                     <i data-lucide="file-text" class="h-5 w-5 text-accentYellow-900"></i>
                 </div>
+            </div>
+        </div>
+        <div class="bg-surface rounded-lg border border-border p-5">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-sm text-textSecondary">Programmatic Growth</p>
+                    <p class="text-3xl font-semibold text-textPrimary mt-1">{{ (int) data_get($programmaticGrowthSummary, 'active_growth_programs', 0) }}</p>
+                    <a href="{{ route('app.growth-programs.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">Open Growth Programs</a>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
+                    <i data-lucide="workflow" class="h-5 w-5 text-accentYellow-900"></i>
+                </div>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-textSecondary">
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'opportunities_ready_for_scaling', 0) }} scaling opportunities</span>
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'content_assets_ready', 0) }} ready assets</span>
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'scheduled_publication_records', 0) }} scheduled records</span>
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'blocked_items', 0) }} blocked</span>
             </div>
         </div>
         <div class="bg-surface rounded-lg border border-border p-5">

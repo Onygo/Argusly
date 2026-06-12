@@ -1,9 +1,14 @@
 @extends('layouts.admin', ['title' => 'Organizations'])
 
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Organizations</h1>
-        <p class="text-textSecondary mt-1">All organizations and status.</p>
+    <div class="mb-6 flex items-center justify-between gap-3">
+        <div>
+            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Organizations</h1>
+            <p class="text-textSecondary mt-1">All organizations and status.</p>
+        </div>
+        @can('admin-area-superadmin')
+            <a href="{{ route('admin.organizations.create') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Create organization</a>
+        @endcan
     </div>
 
     @if (session('status'))

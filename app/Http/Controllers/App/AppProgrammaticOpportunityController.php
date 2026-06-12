@@ -92,7 +92,7 @@ class AppProgrammaticOpportunityController extends Controller
 
     public function validateOpportunity(ProgrammaticOpportunity $programmaticOpportunity): RedirectResponse
     {
-        $this->authorize('update', $programmaticOpportunity);
+        $this->authorize('approve', $programmaticOpportunity);
         $programmaticOpportunity->validate();
 
         return back()->with('status', 'Programmatic opportunity validated.');
@@ -100,7 +100,7 @@ class AppProgrammaticOpportunityController extends Controller
 
     public function reject(ProgrammaticOpportunity $programmaticOpportunity): RedirectResponse
     {
-        $this->authorize('update', $programmaticOpportunity);
+        $this->authorize('approve', $programmaticOpportunity);
         $programmaticOpportunity->reject();
 
         return back()->with('status', 'Programmatic opportunity rejected.');
@@ -108,7 +108,7 @@ class AppProgrammaticOpportunityController extends Controller
 
     public function attach(Request $request, ProgrammaticOpportunity $programmaticOpportunity, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $programmaticOpportunity);
+        $this->authorize('approve', $programmaticOpportunity);
         $request->validate(['growth_program_id' => ['required', 'uuid', 'exists:growth_programs,id']]);
 
         $program = GrowthProgram::query()->findOrFail((string) $request->input('growth_program_id'));

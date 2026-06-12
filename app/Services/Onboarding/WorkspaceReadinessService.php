@@ -76,6 +76,14 @@ class WorkspaceReadinessService
             return [];
         }
 
+        return $this->emptyStateFromResult($result);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function emptyStateFromResult(ModuleReadinessResult $result): array
+    {
         return [
             'title' => match ($result->status) {
                 'active' => $result->label.' is active',

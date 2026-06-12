@@ -23,6 +23,17 @@ class ProgrammaticPublicationReadinessPolicy
     public function update(User $user, ProgrammaticPublicationReadiness $readiness): bool
     {
         return $this->view($user, $readiness)
-            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'reviewer'], true));
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true));
+    }
+
+    public function approve(User $user, ProgrammaticPublicationReadiness $readiness): bool
+    {
+        return $this->view($user, $readiness)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
+    }
+
+    public function prepare(User $user, ProgrammaticPublicationReadiness $readiness): bool
+    {
+        return $this->update($user, $readiness);
     }
 }

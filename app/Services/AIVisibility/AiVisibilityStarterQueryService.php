@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\AiVisibility;
+namespace App\Services\AIVisibility;
 
 use App\Models\BrandContext;
 use App\Models\ClientSite;

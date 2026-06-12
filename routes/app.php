@@ -202,6 +202,8 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
             Route::post('/opportunity-intelligence/execution-plans/{plan}/planned', [AppOpportunityIntelligenceController::class, 'plannedExecutionPlan'])->name('app.opportunity-intelligence.execution-plans.planned');
             Route::post('/opportunity-intelligence/execution-plans/{plan}/archive', [AppOpportunityIntelligenceController::class, 'archiveExecutionPlan'])->name('app.opportunity-intelligence.execution-plans.archive');
             Route::post('/opportunity-intelligence/execution-plans/{plan}/create-brief', [AppOpportunityIntelligenceController::class, 'createBrief'])->name('app.opportunity-intelligence.execution-plans.create-brief');
+            Route::get('/programmatic-growth/beta-report', [AppGrowthProgramController::class, 'betaReport'])->name('app.programmatic-growth.beta-report');
+            Route::post('/programmatic-growth/internal-beta-mode', [AppGrowthProgramController::class, 'toggleInternalBetaMode'])->name('app.programmatic-growth.internal-beta-mode');
             Route::get('/growth-programs', [AppGrowthProgramController::class, 'index'])->name('app.growth-programs.index');
             Route::post('/growth-programs/from-opportunity/{opportunity}', [AppGrowthProgramController::class, 'storeFromOpportunity'])->name('app.growth-programs.from-opportunity');
             Route::post('/growth-programs/from-execution-plan/{plan}', [AppGrowthProgramController::class, 'storeFromExecutionPlan'])->name('app.growth-programs.from-execution-plan');
@@ -212,7 +214,11 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
             Route::post('/growth-programs/attach/brief/{brief}', [AppGrowthProgramController::class, 'attachBrief'])->name('app.growth-programs.attach.brief');
             Route::post('/growth-programs/attach/draft/{draft}', [AppGrowthProgramController::class, 'attachDraft'])->name('app.growth-programs.attach.draft');
             Route::get('/growth-programs/{program}', [AppGrowthProgramController::class, 'show'])->name('app.growth-programs.show');
+            Route::post('/growth-programs/{program}/feedback', [AppGrowthProgramController::class, 'storeFeedback'])->name('app.growth-programs.feedback');
             Route::post('/growth-programs/{program}/transition', [AppGrowthProgramController::class, 'transition'])->name('app.growth-programs.transition');
+            Route::post('/growth-programs/{program}/detect-programmatic-opportunities', [AppGrowthProgramController::class, 'detectProgrammaticOpportunities'])->name('app.growth-programs.detect-programmatic-opportunities');
+            Route::post('/growth-programs/{program}/build-cluster-previews', [AppGrowthProgramController::class, 'buildClusterPreviews'])->name('app.growth-programs.build-cluster-previews');
+            Route::post('/growth-programs/{program}/build-brief-blueprints', [AppGrowthProgramController::class, 'buildBriefBlueprints'])->name('app.growth-programs.build-brief-blueprints');
             Route::post('/growth-programs/{program}/convert-approved-blueprints', [AppGrowthProgramController::class, 'convertApprovedBlueprints'])->name('app.growth-programs.convert-approved-blueprints');
             Route::post('/growth-programs/{program}/prepare-draft-requests', [AppGrowthProgramController::class, 'prepareDraftRequests'])->name('app.growth-programs.prepare-draft-requests');
             Route::post('/growth-programs/{program}/generate-approved-draft-requests', [AppGrowthProgramController::class, 'generateApprovedDraftRequests'])->name('app.growth-programs.generate-approved-draft-requests');

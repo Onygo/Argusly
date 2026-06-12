@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\Schema;
 
 class FeatureFlags
 {
+    private ?bool $hasFeatureFlagsTable = null;
+
+    /**
+     * @var array<string,bool|null>
+     */
+    private array $enabledByKey = [];
+
     public function isEnabled(string $key, ?bool $default = null): bool
     {
         $resolvedKey = trim($key);
@@ -15,19 +22,52 @@ class FeatureFlags
             return (bool) ($default ?? false);
         }
 
-        if (Schema::hasTable('feature_flags')) {
+        if ($this->usesRequestCache() && array_key_exists($resolvedKey, $this->enabledByKey)) {
+            $enabled = $this->enabledByKey[$resolvedKey];
+
+            return $enabled ?? (bool) ($default ?? false);
+        }
+
+        $requestKey = 'feature_flags.enabled.'.$resolvedKey;
+        if ($this->usesRequestCache() && request()->attributes->has($requestKey)) {
+            $enabled = request()->attributes->get($requestKey);
+            $this->rememberEnabled($resolvedKey, $enabled);
+
+            return $enabled ?? (bool) ($default ?? false);
+        }
+
+        if ($this->hasFeatureFlagsTable()) {
             $flag = FeatureFlag::query()
                 ->where('key', $resolvedKey)
                 ->first(['enabled']);
 
             if ($flag) {
-                return (bool) $flag->enabled;
+                $enabled = (bool) $flag->enabled;
+                if ($this->usesRequestCache()) {
+                    request()->attributes->set($requestKey, $enabled);
+                }
+
+                $this->rememberEnabled($resolvedKey, $enabled);
+
+                return $enabled;
             }
         }
 
         $configured = config('features.' . $resolvedKey);
         if ($configured !== null) {
-            return (bool) $configured;
+            $enabled = (bool) $configured;
+            if ($this->usesRequestCache()) {
+                request()->attributes->set($requestKey, $enabled);
+            }
+
+            $this->rememberEnabled($resolvedKey, $enabled);
+
+            return $enabled;
+        }
+
+        $this->rememberEnabled($resolvedKey, null);
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($requestKey, null);
         }
 
         return (bool) ($default ?? false);
@@ -44,7 +84,7 @@ class FeatureFlags
             ])
             ->keyBy('key');
 
-        if (! Schema::hasTable('feature_flags')) {
+        if (! $this->hasFeatureFlagsTable()) {
             return $configFlags->sortKeys()->values();
         }
 
@@ -63,5 +103,39 @@ class FeatureFlags
         }
 
         return $configFlags->sortKeys()->values();
+    }
+
+    private function hasFeatureFlagsTable(): bool
+    {
+        if ($this->usesRequestCache() && $this->hasFeatureFlagsTable !== null) {
+            return $this->hasFeatureFlagsTable;
+        }
+
+        if ($this->usesRequestCache() && request()->attributes->has('feature_flags.has_table')) {
+            return $this->hasFeatureFlagsTable = (bool) request()->attributes->get('feature_flags.has_table');
+        }
+
+        $exists = Schema::hasTable('feature_flags');
+        if ($this->usesRequestCache()) {
+            request()->attributes->set('feature_flags.has_table', $exists);
+        }
+
+        if ($this->usesRequestCache()) {
+            $this->hasFeatureFlagsTable = $exists;
+        }
+
+        return $exists;
+    }
+
+    private function rememberEnabled(string $key, ?bool $enabled): void
+    {
+        if ($this->usesRequestCache()) {
+            $this->enabledByKey[$key] = $enabled;
+        }
+    }
+
+    private function usesRequestCache(): bool
+    {
+        return request()->route() !== null;
     }
 }

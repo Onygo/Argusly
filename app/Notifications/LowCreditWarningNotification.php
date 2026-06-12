@@ -41,26 +41,30 @@ class LowCreditWarningNotification extends Notification
             'next_run' => (string) ($this->payload['next_automation_run_label'] ?? ''),
         ], $locale);
 
-        $mail = (new MailMessage)
-            ->subject(trans('app.credits.low_warning.email_subject', [], $locale))
-            ->greeting(trans('app.credits.low_warning.email_greeting', [], $locale))
-            ->line($title)
-            ->line($body)
-            ->line(trans('app.credits.low_warning.email_balance', [
-                'available' => number_format((int) ($this->payload['available_credits'] ?? 0)),
-            ], $locale));
+        $automationHint = null;
 
         if ((bool) ($this->payload['has_active_automations'] ?? false)) {
-            $mail->line(trans('app.credits.low_warning.email_automation_hint', [
+            $automationHint = trans('app.credits.low_warning.email_automation_hint', [
                 'count' => (int) ($this->payload['active_automation_count'] ?? 0),
                 'next_run' => (string) ($this->payload['next_automation_run_label'] ?? trans('app.common.na', [], $locale)),
-            ], $locale));
+            ], $locale);
         }
 
-        if ($ctaUrl !== '') {
-            $mail->action(trans('app.credits.low_warning.cta', [], $locale), $ctaUrl);
-        }
+        $payload = [
+            'subjectLine' => trans('app.credits.low_warning.email_subject', [], $locale),
+            'preheader' => $title,
+            'headline' => trans('app.credits.low_warning.email_greeting', [], $locale),
+            'intro' => $title,
+            'body' => $body,
+            'availableCredits' => number_format((int) ($this->payload['available_credits'] ?? 0)),
+            'automationHint' => $automationHint,
+            'cta_label' => trans('app.credits.low_warning.cta', [], $locale),
+            'cta_url' => $ctaUrl,
+        ];
 
-        return $mail->line(trans('app.credits.low_warning.email_footer', [], $locale));
+        return (new MailMessage)
+            ->subject(trans('app.credits.low_warning.email_subject', [], $locale))
+            ->view('emails.notifications.low-credit-warning', $payload)
+            ->text('emails.notifications.low-credit-warning-text', $payload);
     }
 }

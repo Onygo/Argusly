@@ -45,7 +45,7 @@ class AppProgrammaticPublicationPlanController extends Controller
         $this->authorize('view', $plan);
         $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
         $this->assertWorkspaceId($plan->workspace_id, $workspace);
-        $plan->load(['growthProgram', 'destination', 'items.content', 'items.readiness']);
+        $plan->load(['growthProgram', 'destination', 'items.content', 'items.readiness', 'items.contentPublication']);
 
         return view('app.programmatic-publication-plans.show', [
             'workspace' => $workspace,
@@ -56,7 +56,7 @@ class AppProgrammaticPublicationPlanController extends Controller
 
     public function createFromReadiness(Request $request, ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator, ProgrammaticPublicationPlanBuilder $builder): RedirectResponse
     {
-        $this->authorize('update', $readiness);
+        $this->authorize('approve', $readiness);
         $attributes = $this->validatedPlanInput($request);
         $readiness->loadMissing('growthProgram');
 
@@ -73,7 +73,7 @@ class AppProgrammaticPublicationPlanController extends Controller
 
     public function createFromCluster(Request $request, ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('approve', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {
@@ -91,7 +91,7 @@ class AppProgrammaticPublicationPlanController extends Controller
 
     public function createFromProgram(Request $request, GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('approve', $program);
 
         try {
             $plan = $orchestrator->createPublicationPlanForProgram($program, $this->validatedPlanInput($request));
@@ -104,7 +104,7 @@ class AppProgrammaticPublicationPlanController extends Controller
 
     public function approve(ProgrammaticPublicationPlan $plan, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $plan);
+        $this->authorize('approve', $plan);
 
         try {
             $plan->approve();
@@ -118,7 +118,7 @@ class AppProgrammaticPublicationPlanController extends Controller
 
     public function schedule(ProgrammaticPublicationPlan $plan, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $plan);
+        $this->authorize('schedule', $plan);
         $plan->loadMissing('growthProgram');
 
         if (! $plan->growthProgram instanceof GrowthProgram) {
@@ -131,12 +131,12 @@ class AppProgrammaticPublicationPlanController extends Controller
             return back()->withErrors(['publication_plan' => $exception->getMessage()]);
         }
 
-        return back()->with('status', $count.' publication plan items converted to scheduled publications.');
+        return back()->with('status', $count.' scheduled publication records prepared.');
     }
 
     public function scheduleForProgram(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('approve', $program);
 
         try {
             $count = $orchestrator->scheduleApprovedPlansForProgram($program);
@@ -144,15 +144,15 @@ class AppProgrammaticPublicationPlanController extends Controller
             return back()->withErrors(['publication_plan' => $exception->getMessage()]);
         }
 
-        return back()->with('status', $count.' approved publication plan items converted to scheduled publications.');
+        return back()->with('status', $count.' scheduled publication records prepared.');
     }
 
-    public function cancel(ProgrammaticPublicationPlan $plan, GrowthProgramOrchestrator $orchestrator): RedirectResponse
+    public function cancel(Request $request, ProgrammaticPublicationPlan $plan, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $plan);
+        $this->authorize('cancel', $plan);
 
         try {
-            $plan->cancel();
+            $plan->cancel($request->user());
         } catch (\InvalidArgumentException $exception) {
             return back()->withErrors(['publication_plan' => $exception->getMessage()]);
         }
@@ -163,7 +163,7 @@ class AppProgrammaticPublicationPlanController extends Controller
 
     public function recalculate(ProgrammaticPublicationPlan $plan, ProgrammaticPublicationPlanBuilder $builder, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $plan);
+        $this->authorize('prepare', $plan);
         $builder->recalculateCadence($plan);
         $this->refreshProgramMetrics($plan, $orchestrator);
 

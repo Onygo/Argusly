@@ -21,6 +21,11 @@ class FirstValueActivationService
      */
     public function forWorkspace(Workspace $workspace): array
     {
+        $cacheKey = 'first_value_activation.'.(string) $workspace->id;
+        if ($this->usesRequestCache() && request()->attributes->has($cacheKey)) {
+            return request()->attributes->get($cacheKey);
+        }
+
         $site = ClientSite::query()
             ->where('workspace_id', $workspace->id)
             ->orderBy('created_at')
@@ -128,7 +133,7 @@ class FirstValueActivationService
             'first_run',
         ])->values();
 
-        return [
+        $activation = [
             'workspace' => $workspace,
             'score' => $score,
             'is_active' => $steps->every(fn (array $step): bool => (bool) $step['completed']),
@@ -145,6 +150,12 @@ class FirstValueActivationService
             ],
             'quick_actions' => $this->quickActions($workspace, $site, $next, $candidateCount),
         ];
+
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($cacheKey, $activation);
+        }
+
+        return $activation;
     }
 
     /**
@@ -204,6 +215,11 @@ class FirstValueActivationService
     private function route(string $name, mixed $parameters = []): ?string
     {
         return Route::has($name) ? route($name, $parameters) : null;
+    }
+
+    private function usesRequestCache(): bool
+    {
+        return request()->route() !== null;
     }
 
     private function runtime(string $key): string

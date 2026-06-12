@@ -105,7 +105,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function validateCluster(ProgrammaticCluster $cluster): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('approve', $cluster);
         $cluster->validate();
 
         return back()->with('status', 'Programmatic cluster validated.');
@@ -113,7 +113,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function reject(ProgrammaticCluster $cluster): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('approve', $cluster);
         $cluster->reject();
 
         return back()->with('status', 'Programmatic cluster rejected.');
@@ -121,7 +121,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function attach(Request $request, ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('approve', $cluster);
         $request->validate(['growth_program_id' => ['required', 'uuid', 'exists:growth_programs,id']]);
 
         $program = GrowthProgram::query()->findOrFail((string) $request->input('growth_program_id'));
@@ -136,7 +136,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function convertApprovedBlueprints(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('convert', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {
@@ -150,7 +150,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function prepareDraftRequests(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('prepare', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {
@@ -164,7 +164,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function generateApprovedRequests(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('prepare', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {
@@ -182,7 +182,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function reviewGeneratedDrafts(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('prepare', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {
@@ -196,7 +196,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function convertApprovedReviewsToContent(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('convert', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {
@@ -210,7 +210,7 @@ class AppProgrammaticClusterController extends Controller
 
     public function runPublicationReadiness(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('prepare', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if (! $cluster->growthProgram) {

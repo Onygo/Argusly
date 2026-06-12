@@ -31,6 +31,23 @@
         <x-first-value-card class="mb-6" :card="$firstOpportunityCard" />
     @endif
 
+    <div class="mb-6 rounded-lg border border-border bg-surface p-4">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Programmatic Growth</p>
+                <h2 class="mt-1 text-base font-semibold text-textPrimary">Scale approved opportunities into controlled content flows</h2>
+            </div>
+            <a href="{{ route('app.growth-programs.index', ['workspace_id' => $workspace->id]) }}" class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Open Growth Programs</a>
+        </div>
+        <div class="mt-4 grid gap-3 text-sm sm:grid-cols-5">
+            <div><p class="text-xs text-textSecondary">Active growth programs</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) data_get($programmaticGrowthSummary, 'active_growth_programs', 0) }}</p></div>
+            <div><p class="text-xs text-textSecondary">Opportunities ready for scaling</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) data_get($programmaticGrowthSummary, 'opportunities_ready_for_scaling', 0) }}</p></div>
+            <div><p class="text-xs text-textSecondary">Content assets ready</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) data_get($programmaticGrowthSummary, 'content_assets_ready', 0) }}</p></div>
+            <div><p class="text-xs text-textSecondary">Scheduled publication records</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) data_get($programmaticGrowthSummary, 'scheduled_publication_records', 0) }}</p></div>
+            <div><p class="text-xs text-textSecondary">Blocked items</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) data_get($programmaticGrowthSummary, 'blocked_items', 0) }}</p></div>
+        </div>
+    </div>
+
     <div class="mb-6 grid gap-4 md:grid-cols-4">
         <div class="rounded-lg border border-border bg-surface p-4">
             <p class="text-xs uppercase tracking-wide text-textFaint">{{ __('app.runtime.Open opportunities') }}</p>

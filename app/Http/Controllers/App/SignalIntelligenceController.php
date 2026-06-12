@@ -50,7 +50,7 @@ class SignalIntelligenceController extends Controller
             'workspaces' => $this->availableWorkspaces($request),
             'filters' => $filters,
             'readiness' => $moduleReadiness,
-            'emptyStateGuide' => $readiness->getEmptyState($workspace, 'signal_intelligence'),
+            'emptyStateGuide' => $moduleReadiness ? $readiness->emptyStateFromResult($moduleReadiness) : [],
             'activation' => $activation->forWorkspace($workspace),
             'firstSignalCard' => $firstValue->firstSignalCard($workspace),
             'firstDetectionCard' => $firstValue->firstDetectionCard($workspace),

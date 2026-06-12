@@ -3,6 +3,8 @@
 @section('content')
     @php($type = $readiness->growth_asset_type instanceof \App\Enums\GrowthAssetType ? $readiness->growth_asset_type : \App\Enums\GrowthAssetType::tryFrom((string) $readiness->growth_asset_type))
 
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -11,12 +13,16 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ str($readiness->status)->headline() }} · {{ $type?->label() ?? 'Programmatic asset' }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-publication-readiness.approve', $readiness) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
-                <form method="POST" action="{{ route('app.programmatic-publication-readiness.needs-work', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Needs Work</button></form>
-                <form method="POST" action="{{ route('app.programmatic-publication-readiness.block', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Block</button></form>
-                <form method="POST" action="{{ route('app.programmatic-publication-readiness.reject', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @can('approve', $readiness)
+                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.approve', $readiness) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.needs-work', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Needs Work</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.block', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Block</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.reject', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @endcan
                 @if ($readiness->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_APPROVED)
-                    <form method="POST" action="{{ route('app.programmatic-publication-plans.create.readiness', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Plan from Content</button></form>
+                    @can('approve', $readiness)
+                        <form method="POST" action="{{ route('app.programmatic-publication-plans.create.readiness', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Plan from Content</button></form>
+                    @endcan
                 @endif
             </div>
         </div>
@@ -116,7 +122,7 @@
                             <p class="text-textMuted">No publication plan item yet.</p>
                         @endforelse
                     </div>
-                    @if ($readiness->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_APPROVED)
+                    @if ($readiness->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_APPROVED && auth()->user()?->can('approve', $readiness))
                         <form method="POST" action="{{ route('app.programmatic-publication-plans.create.readiness', $readiness) }}" class="mt-4 space-y-2">
                             @csrf
                             <select name="cadence" class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">

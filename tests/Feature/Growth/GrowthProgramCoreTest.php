@@ -12,12 +12,14 @@ use App\Models\Brief;
 use App\Models\CampaignCluster;
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Models\ContentDestination;
 use App\Models\ContentOpportunity;
 use App\Models\ContentPublication;
 use App\Models\CompetitorContentOpportunity;
 use App\Models\Draft;
 use App\Models\GrowthAsset;
 use App\Models\GrowthProgram;
+use App\Models\GrowthProgramBetaEvent;
 use App\Models\GrowthRun;
 use App\Models\Opportunity;
 use App\Models\OpportunityExecutionPlan;
@@ -38,6 +40,8 @@ use App\Http\Middleware\EnsureBillingOnboardingCompleted;
 use App\Jobs\GenerateDraftJob;
 use App\Services\Growth\GrowthProgramOrchestrator;
 use App\Services\Growth\GrowthAssetTypeResolver;
+use App\Services\Growth\GrowthProgramNextActionResolver;
+use App\Services\Growth\GrowthProgramBetaMetrics;
 use App\Services\Growth\ProgrammaticBriefBlueprintBuilder;
 use App\Services\Growth\ProgrammaticBriefConverter;
 use App\Services\Growth\ProgrammaticContentConverter;
@@ -51,6 +55,7 @@ use App\Services\Growth\ProgrammaticClusterBuilder;
 use App\Services\Growth\ProgrammaticOpportunityDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
@@ -254,7 +259,277 @@ it('renders growth program pages and creates programs from opportunity intellige
         ->get(route('app.growth-programs.show', $program))
         ->assertOk()
         ->assertSee('Timeline')
-        ->assertSee('Opportunities');
+        ->assertSee('Opportunities')
+        ->assertSee('Command Center')
+        ->assertSee('Health')
+        ->assertSee('Programmatic Opportunity')
+        ->assertSee('Draft Request')
+        ->assertSee('Publication Readiness');
+});
+
+it('resolves command center next action for an empty growth program', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Empty command center'], $user);
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Detect Programmatic Opportunities')
+        ->and($state['primary_action']['blocked'])->toBeTrue()
+        ->and($state['primary_action']['missing'][0])->toBe('Attach an opportunity or signal first.');
+});
+
+it('resolves command center next action when programmatic opportunities are present', function (): void {
+    [$organization, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Opportunity command center'], $user);
+    $opportunity = Opportunity::factory()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'title' => 'Best AI visibility tools',
+    ]);
+    app(GrowthProgramOrchestrator::class)->attachProgrammaticOpportunity($program, makeProgrammaticOpportunity($organization, $workspace, $opportunity, ProgrammaticPatternType::COMPARISON_PAGE));
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Build Cluster Preview');
+});
+
+it('resolves command center next action when clusters have no blueprints', function (): void {
+    [$organization, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Cluster command center'], $user);
+    $cluster = createCommandCenterCluster($organization, $workspace, $program);
+    app(GrowthProgramOrchestrator::class)->attachProgrammaticCluster($program, $cluster);
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Build Brief Blueprints');
+});
+
+it('resolves command center next action for approved blueprints', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Blueprint command center'], $user);
+    $blueprint = createCommandCenterBlueprint($workspace, $program, ProgrammaticBriefBlueprint::STATUS_APPROVED);
+    app(GrowthProgramOrchestrator::class)->attachBriefBlueprint($program, $blueprint);
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Convert Approved Blueprints to Briefs');
+});
+
+it('resolves command center next action for converted briefs', function (): void {
+    [, $workspace, $user, $site] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Brief command center'], $user);
+    $blueprint = createCommandCenterBlueprint($workspace, $program, ProgrammaticBriefBlueprint::STATUS_CONVERTED);
+    app(GrowthProgramOrchestrator::class)->attachBriefBlueprint($program, $blueprint);
+    app(GrowthProgramOrchestrator::class)->attachBrief($program, Brief::query()->create([
+        'client_site_id' => $site->id,
+        'status' => 'ready',
+        'title' => 'Converted command center brief',
+        'primary_keyword' => 'command center',
+    ]));
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Prepare Draft Requests');
+});
+
+it('resolves command center next action for approved draft requests', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Draft request command center'], $user);
+    app(GrowthProgramOrchestrator::class)->attachDraftRequest($program, createCommandCenterDraftRequest($workspace, $program, ProgrammaticDraftRequest::STATUS_APPROVED));
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Create Approved Drafts');
+});
+
+it('resolves command center next action for generated drafts', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Generated draft command center'], $user);
+    app(GrowthProgramOrchestrator::class)->attachDraftRequest($program, createCommandCenterDraftRequest($workspace, $program, ProgrammaticDraftRequest::STATUS_GENERATED));
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Run Draft Quality Checks');
+});
+
+it('resolves command center next action for approved reviews', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Review command center'], $user);
+    app(GrowthProgramOrchestrator::class)->attachDraftReview($program, createCommandCenterDraftReview($workspace, $program, ProgrammaticDraftReview::STATUS_APPROVED));
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Convert Approved Reviews to Content');
+});
+
+it('resolves command center next action for approved readiness', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Readiness command center'], $user);
+    app(GrowthProgramOrchestrator::class)->attachPublicationReadiness($program, createCommandCenterReadiness($workspace, $program, ProgrammaticPublicationReadiness::STATUS_APPROVED));
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Create Publication Plan');
+});
+
+it('resolves command center next action for approved plans', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Plan command center'], $user);
+    $readiness = createCommandCenterReadiness($workspace, $program, ProgrammaticPublicationReadiness::STATUS_APPROVED);
+    app(GrowthProgramOrchestrator::class)->attachPublicationReadiness($program, $readiness);
+    $plan = createCommandCenterPlan($workspace, $program, $readiness, ProgrammaticPublicationPlan::STATUS_APPROVED);
+    app(GrowthProgramOrchestrator::class)->attachPublicationPlan($program, $plan);
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect($state['primary_action']['label'])->toBe('Prepare Scheduled Publications');
+});
+
+it('shows command center blocked state for missing destinations', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Missing destination command center'], $user);
+    $readiness = createCommandCenterReadiness($workspace, $program, ProgrammaticPublicationReadiness::STATUS_APPROVED);
+    $plan = createCommandCenterPlan($workspace, $program, $readiness, ProgrammaticPublicationPlan::STATUS_SCHEDULING, 'missing_destination');
+    app(GrowthProgramOrchestrator::class)->attachPublicationPlan($program, $plan);
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect(collect($state['steps'])->firstWhere('label', 'Plan')['blocked_reason'])->toBe('Choose a destination before preparing scheduled publications.')
+        ->and(collect($state['health'])->firstWhere('label', 'Destination status')['status'])->toBe('blocked');
+});
+
+it('shows command center blocked state for publication conflicts', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Publication conflict command center'], $user);
+    $readiness = createCommandCenterReadiness($workspace, $program, ProgrammaticPublicationReadiness::STATUS_APPROVED);
+    $plan = createCommandCenterPlan($workspace, $program, $readiness, ProgrammaticPublicationPlan::STATUS_SCHEDULING, 'existing_publication_terminal');
+    app(GrowthProgramOrchestrator::class)->attachPublicationPlan($program, $plan);
+
+    $state = resolveGrowthProgramCommandCenter($program);
+
+    expect(collect($state['steps'])->firstWhere('label', 'Plan')['blocked_reason'])->toBe('A terminal publication already exists and will not be changed.')
+        ->and(collect($state['health'])->firstWhere('label', 'Duplicate/conflict status')['status'])->toBe('blocked');
+});
+
+it('shows programmatic growth navigation links to read-enabled workspace users', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $this->actingAs($user)
+        ->get(route('app.growth-programs.index', ['workspace_id' => $workspace->id]))
+        ->assertOk()
+        ->assertSee('Programmatic Growth')
+        ->assertSee('Growth Programs')
+        ->assertSee('Programmatic Opportunities')
+        ->assertSee('Programmatic Clusters')
+        ->assertSee('Brief Blueprints')
+        ->assertSee('Draft Requests')
+        ->assertSee('Draft Reviews')
+        ->assertSee('Publication Readiness')
+        ->assertSee('Publication Plans');
+});
+
+it('shows the controlled beta banner on programmatic growth screens', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $this->actingAs($user)
+        ->get(route('app.programmatic-opportunities.index', ['workspace_id' => $workspace->id]))
+        ->assertOk()
+        ->assertSee('Programmatic Growth is in controlled beta')
+        ->assertSee('It does not publish live content automatically');
+});
+
+it('loads the dashboard programmatic growth entry card', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Dashboard beta program'], $user);
+
+    $this->actingAs($user)
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('Programmatic Growth')
+        ->assertSee('Open Growth Programs')
+        ->assertSee('scheduled records')
+        ->assertSee('blocked');
+});
+
+it('seeds a safe programmatic growth demo flow without live publishing', function (): void {
+    [, $workspace, $user] = growthProgramFixture();
+
+    $program = app(\App\Services\Growth\ProgrammaticGrowthDemoSeeder::class)->seed($workspace, $user);
+
+    expect($program->name)->toBe('Demo Programmatic Growth Flow')
+        ->and(ProgrammaticOpportunity::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ProgrammaticCluster::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ProgrammaticBriefBlueprint::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ProgrammaticDraftRequest::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ProgrammaticDraftReview::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ProgrammaticPublicationReadiness::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ProgrammaticPublicationPlan::query()->where('growth_program_id', $program->id)->exists())->toBeTrue()
+        ->and(ContentPublication::query()->where('delivery_status', ContentPublication::STATUS_DELIVERED)->count())->toBe(0)
+        ->and(ContentPublication::query()->where('remote_status', ContentPublication::REMOTE_PUBLISHED)->count())->toBe(0);
+});
+
+it('hides programmatic mutation actions from viewers', function (): void {
+    [$organization, $workspace, ,] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $viewer = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'viewer',
+        'active' => true,
+        'approved_at' => now(),
+        'email_code_verified_at' => now(),
+    ]);
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Viewer command center'], $viewer);
+    $blueprint = createCommandCenterBlueprint($workspace, $program, ProgrammaticBriefBlueprint::STATUS_CONVERTED);
+    app(GrowthProgramOrchestrator::class)->attachBriefBlueprint($program, $blueprint);
+
+    $this->actingAs($viewer)
+        ->get(route('app.programmatic-brief-blueprints.show', $blueprint))
+        ->assertOk()
+        ->assertDontSee('Approve')
+        ->assertDontSee('Convert to Brief')
+        ->assertDontSee('Prepare Draft Request');
+});
+
+it('runs the programmatic growth smoke command without mutations by default', function (): void {
+    growthProgramFixture();
+
+    $before = [
+        GrowthProgram::class => GrowthProgram::query()->count(),
+        ProgrammaticOpportunity::class => ProgrammaticOpportunity::query()->count(),
+        ContentPublication::class => ContentPublication::query()->count(),
+    ];
+
+    $exitCode = Artisan::call('argusly:programmatic-growth-smoke-test');
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain('Programmatic Growth smoke checks passed')
+        ->and(GrowthProgram::query()->count())->toBe($before[GrowthProgram::class])
+        ->and(ProgrammaticOpportunity::query()->count())->toBe($before[ProgrammaticOpportunity::class])
+        ->and(ContentPublication::query()->count())->toBe($before[ContentPublication::class]);
+});
+
+it('creates a safe demo flow from the programmatic growth smoke command when requested', function (): void {
+    [, $workspace] = growthProgramFixture();
+
+    $exitCode = Artisan::call('argusly:programmatic-growth-smoke-test', [
+        '--create-demo' => true,
+        '--workspace-id' => $workspace->id,
+    ]);
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain('Safe demo flow is ready')
+        ->and(GrowthProgram::query()->where('name', 'Demo Programmatic Growth Flow')->exists())->toBeTrue()
+        ->and(ContentPublication::query()->where('delivery_status', ContentPublication::STATUS_DELIVERED)->count())->toBe(0)
+        ->and(ContentPublication::query()->where('remote_status', ContentPublication::REMOTE_PUBLISHED)->count())->toBe(0);
 });
 
 it('attaches opportunity variants and signals without duplicates', function (): void {
@@ -1019,7 +1294,7 @@ it('loads conversion UI actions and shows linked briefs on blueprint detail', fu
     $this->actingAs($user)
         ->get(route('app.growth-programs.show', $program))
         ->assertOk()
-        ->assertSee('Convert Approved Blueprints')
+        ->assertSee('Convert Approved Blueprints to Briefs')
         ->assertSee('Programmatic briefs');
 });
 
@@ -1258,7 +1533,7 @@ it('loads controlled generation UI and linked draft state', function (): void {
     $this->actingAs($user)
         ->get(route('app.growth-programs.show', $program))
         ->assertOk()
-        ->assertSee('Generate Approved Draft Requests')
+        ->assertSee('Create Approved Drafts')
         ->assertSee('Generation safety');
 });
 
@@ -1358,8 +1633,8 @@ it('loads draft review routes and review integrations', function (): void {
     $this->actingAs($user)
         ->get(route('app.growth-programs.show', $program))
         ->assertOk()
-        ->assertSee('Draft Quality')
-        ->assertSee('Review Generated Drafts');
+        ->assertSee('Draft Quality Checks')
+        ->assertSee('Run Draft Quality Checks');
 });
 
 it('converts an approved programmatic draft review to content', function (): void {
@@ -1454,7 +1729,7 @@ it('loads content conversion UI and linked content state', function (): void {
     $this->actingAs($user)
         ->get(route('app.growth-programs.show', $program))
         ->assertOk()
-        ->assertSee('Convert Approved Drafts to Content')
+        ->assertSee('Convert Approved Reviews to Content')
         ->assertSee('Converted content');
 
     $this->actingAs($user)
@@ -1591,7 +1866,7 @@ it('loads publication readiness routes and integrations', function (): void {
         ->get(route('app.growth-programs.show', $program))
         ->assertOk()
         ->assertSee('Publication Readiness')
-        ->assertSee('Run Readiness Checks');
+        ->assertSee('Run Publication Readiness');
 
     $this->actingAs($user)
         ->get(route('app.content.show', $content))
@@ -1744,6 +2019,63 @@ it('loads publication plan routes and integrations', function (): void {
     expect(ContentPublication::query()->count())->toBe(0);
 });
 
+it('enforces publication plan post action authorization by role', function (): void {
+    [$program, , , $owner, , , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::ALTERNATIVE_PAGE, approvePlan: false);
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $viewer = User::factory()->create([
+        'organization_id' => $owner->organization_id,
+        'role' => 'viewer',
+        'active' => true,
+        'approved_at' => now(),
+        'email_code_verified_at' => now(),
+    ]);
+    $member = User::factory()->create([
+        'organization_id' => $owner->organization_id,
+        'role' => 'member',
+        'active' => true,
+        'approved_at' => now(),
+        'email_code_verified_at' => now(),
+    ]);
+    $admin = User::factory()->create([
+        'organization_id' => $owner->organization_id,
+        'role' => 'admin',
+        'is_admin' => true,
+        'active' => true,
+        'approved_at' => now(),
+        'email_code_verified_at' => now(),
+    ]);
+
+    foreach ([$viewer, $member] as $blockedUser) {
+        $this->actingAs($blockedUser)
+            ->post(route('app.programmatic-publication-plans.approve', $plan))
+            ->assertForbidden();
+
+        $this->actingAs($blockedUser)
+            ->post(route('app.programmatic-publication-plans.schedule', $plan))
+            ->assertForbidden();
+
+        $this->actingAs($blockedUser)
+            ->post(route('app.programmatic-publication-plans.cancel', $plan))
+            ->assertForbidden();
+    }
+
+    $this->actingAs($admin)
+        ->post(route('app.programmatic-publication-plans.approve', $plan))
+        ->assertRedirect();
+
+    $this->actingAs($owner)
+        ->post(route('app.programmatic-publication-plans.schedule', $plan->refresh()))
+        ->assertRedirect();
+
+    $this->actingAs($owner)
+        ->post(route('app.programmatic-publication-plans.cancel', $plan->refresh()))
+        ->assertRedirect();
+
+    expect($plan->refresh()->status)->toBe(ProgrammaticPublicationPlan::STATUS_CANCELLED);
+});
+
 it('schedules an approved publication plan into content publications without dispatching publish jobs', function (): void {
     Queue::fake();
     [$program, , , , , , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::INDUSTRY_PAGE);
@@ -1756,14 +2088,161 @@ it('schedules an approved publication plan into content publications without dis
         ->and($publication->content_id)->toBe($item->content_id)
         ->and($publication->delivery_status)->toBe(ContentPublication::STATUS_PENDING)
         ->and($publication->remote_status)->toBe(ContentPublication::REMOTE_SCHEDULED)
+        ->and($publication->scheduled_publish_at?->format('Y-m-d H:i:s'))->toBe($item->planned_publish_at?->format('Y-m-d H:i:s'))
         ->and(data_get($publication->meta, 'programmatic_publication_plan_id'))->toBe($plan->id)
         ->and(data_get($publication->meta, 'programmatic_publication_plan_item_id'))->toBe($item->id)
+        ->and($item->refresh()->content_publication_id)->toBe($publication->id)
         ->and($item->refresh()->status)->toBe(ProgrammaticPublicationPlanItem::STATUS_SCHEDULED)
         ->and($plan->refresh()->status)->toBe(ProgrammaticPublicationPlan::STATUS_SCHEDULED)
         ->and($program->refresh()->status->value ?? $program->refresh()->status)->toBe(GrowthProgramStatus::SCHEDULED->value)
         ->and($program->assets()->where('role', GrowthAsset::ROLE_PUBLICATION)->count())->toBe(1);
 
     Queue::assertNotPushed(PublishContentJob::class);
+});
+
+it('keeps scheduled publish dates queryable on content publications', function (): void {
+    [$program, , , , , , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::INDUSTRY_PAGE);
+    $item = $plan->items()->firstOrFail();
+
+    app(GrowthProgramOrchestrator::class)->schedulePublicationPlan($program, $plan);
+
+    expect(ContentPublication::query()
+        ->scheduledForPublication()
+        ->where('scheduled_publish_at', $item->planned_publish_at)
+        ->count())->toBe(1);
+});
+
+it('does not downgrade delivered publications when scheduling finds an existing terminal record', function (): void {
+    [$program, , , , $workspace, , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::COMPARISON_PAGE);
+    $item = $plan->items()->firstOrFail();
+    $destination = ContentDestination::query()->where('workspace_id', $workspace->id)->firstOrFail();
+    $publication = ContentPublication::query()->create([
+        'content_id' => $item->content_id,
+        'destination_id' => $destination->id,
+        'client_site_id' => null,
+        'provider' => ContentPublication::PROVIDER_LARAVEL,
+        'remote_id' => 'terminal-remote-id',
+        'remote_type' => 'post',
+        'remote_url' => 'https://growth.example.test/terminal',
+        'remote_status' => ContentPublication::REMOTE_PUBLISHED,
+        'delivery_status' => ContentPublication::STATUS_DELIVERED,
+        'last_delivered_at' => now(),
+        'meta' => [],
+    ]);
+
+    $count = app(GrowthProgramOrchestrator::class)->schedulePublicationPlan($program, $plan);
+    $item->refresh();
+
+    expect($count)->toBe(0)
+        ->and($publication->fresh()->delivery_status)->toBe(ContentPublication::STATUS_DELIVERED)
+        ->and($publication->fresh()->remote_status)->toBe(ContentPublication::REMOTE_PUBLISHED)
+        ->and($publication->fresh()->scheduled_publish_at)->toBeNull()
+        ->and($item->status)->toBe(ProgrammaticPublicationPlanItem::STATUS_CONFLICT)
+        ->and(data_get($item->metadata, 'conflict.reason'))->toBe('existing_publication_terminal');
+});
+
+it('blocks scheduling without an explicit destination in multi destination workspaces', function (): void {
+    [$program, , , , $workspace, , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::FAQ_LIBRARY);
+    $plan->forceFill(['destination_id' => null])->save();
+    $plan->items()->update(['destination_id' => null]);
+
+    ContentDestination::query()->create([
+        'workspace_id' => $workspace->id,
+        'name' => 'Second Destination',
+        'type' => 'api',
+        'status' => 'active',
+        'environment' => 'production',
+        'default_language' => 'en',
+    ]);
+
+    $count = app(GrowthProgramOrchestrator::class)->schedulePublicationPlan($program, $plan);
+    $item = $plan->items()->firstOrFail()->refresh();
+
+    expect($count)->toBe(0)
+        ->and(ContentPublication::query()->count())->toBe(0)
+        ->and($item->status)->toBe(ProgrammaticPublicationPlanItem::STATUS_NEEDS_ATTENTION)
+        ->and(data_get($item->metadata, 'conflict.reason'))->toBe('missing_destination')
+        ->and(data_get($item->metadata, 'conflict.message'))->toBe('Choose a destination before scheduling this plan.');
+});
+
+it('allows exact one active destination as a safe fallback', function (): void {
+    [$program, , , , , , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::ALTERNATIVE_PAGE);
+
+    $count = app(GrowthProgramOrchestrator::class)->schedulePublicationPlan($program, $plan);
+
+    expect($count)->toBe(1)
+        ->and(ContentPublication::query()->whereNotNull('destination_id')->count())->toBe(1);
+});
+
+it('restores metadata only publication links onto the plan item foreign key', function (): void {
+    [$program, , , , , , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::INDUSTRY_PAGE);
+    $orchestrator = app(GrowthProgramOrchestrator::class);
+
+    $orchestrator->schedulePublicationPlan($program, $plan);
+    $item = $plan->items()->firstOrFail();
+    $publicationId = $item->content_publication_id;
+    $item->forceFill(['content_publication_id' => null])->save();
+
+    $orchestrator->schedulePublicationPlan($program->refresh(), $plan->refresh());
+
+    expect($item->fresh()->content_publication_id)->toBe($publicationId)
+        ->and(data_get($item->fresh()->metadata, 'link_restored_at'))->not->toBeNull();
+});
+
+it('prevents the same content from being scheduled in another active plan for the same destination', function (): void {
+    [$program, , , , , , , $readiness, $firstPlan] = approvedPublicationPlanFixture(ProgrammaticPatternType::COMPARISON_PAGE);
+    $orchestrator = app(GrowthProgramOrchestrator::class);
+    $orchestrator->schedulePublicationPlan($program, $firstPlan);
+
+    $secondPlan = $orchestrator->createPublicationPlanFromReadiness($program->refresh(), $readiness->refresh(), [
+        'planned_start_at' => '2026-07-02 09:00:00',
+        'cadence' => ProgrammaticPublicationPlan::CADENCE_DAILY,
+    ]);
+    $secondPlan->approve();
+    $orchestrator->attachPublicationPlan($program->refresh(), $secondPlan->refresh());
+
+    $count = $orchestrator->schedulePublicationPlan($program->refresh(), $secondPlan->refresh());
+    $conflicted = $secondPlan->items()->firstOrFail()->refresh();
+
+    expect($count)->toBe(0)
+        ->and($conflicted->status)->toBe(ProgrammaticPublicationPlanItem::STATUS_CONFLICT)
+        ->and(data_get($conflicted->metadata, 'conflict.reason'))->toBe('content_already_scheduled_in_active_plan')
+        ->and(data_get($conflicted->metadata, 'conflict.conflicting_plan_id'))->toBe($firstPlan->id);
+});
+
+it('cancels pending scheduled publications without touching delivered publications', function (): void {
+    [$program, , , $user, $workspace, , , , $plan] = approvedPublicationPlanFixture(ProgrammaticPatternType::ALTERNATIVE_PAGE);
+    app(GrowthProgramOrchestrator::class)->schedulePublicationPlan($program, $plan);
+    $pending = ContentPublication::query()->firstOrFail();
+
+    $deliveredContent = Content::query()->create([
+        'workspace_id' => $workspace->id,
+        'title' => 'Delivered content',
+        'status' => 'published',
+        'publish_status' => 'published',
+    ]);
+    $delivered = ContentPublication::query()->create([
+        'content_id' => $deliveredContent->id,
+        'destination_id' => ContentDestination::query()->where('workspace_id', $workspace->id)->firstOrFail()->id,
+        'client_site_id' => null,
+        'provider' => ContentPublication::PROVIDER_LARAVEL,
+        'remote_id' => 'delivered-remote-id',
+        'remote_type' => 'post',
+        'remote_url' => 'https://growth.example.test/delivered',
+        'remote_status' => ContentPublication::REMOTE_PUBLISHED,
+        'delivery_status' => ContentPublication::STATUS_DELIVERED,
+        'last_delivered_at' => now(),
+        'meta' => [],
+    ]);
+
+    $plan->cancel($user);
+
+    expect($plan->fresh()->status)->toBe(ProgrammaticPublicationPlan::STATUS_CANCELLED)
+        ->and(data_get($plan->fresh()->metadata, 'cancelled_by'))->toBe((string) $user->id)
+        ->and($plan->items()->firstOrFail()->status)->toBe(ProgrammaticPublicationPlanItem::STATUS_CANCELLED)
+        ->and($pending->fresh()->delivery_status)->toBe(ContentPublication::STATUS_CANCELLED)
+        ->and($delivered->fresh()->delivery_status)->toBe(ContentPublication::STATUS_DELIVERED)
+        ->and($delivered->fresh()->remote_status)->toBe(ContentPublication::REMOTE_PUBLISHED);
 });
 
 it('refuses scheduling for non approved publication plans', function (): void {
@@ -1828,8 +2307,8 @@ it('loads scheduled publication UI routes and linked publication state', functio
     $this->actingAs($user)
         ->get(route('app.growth-programs.show', $program->refresh()))
         ->assertOk()
-        ->assertSee('Schedule Approved Plans')
-        ->assertSee('Scheduled pubs');
+        ->assertSee('Prepare Scheduled Publications')
+        ->assertSee('Scheduled assets');
 
     $this->actingAs($user)
         ->get(route('app.content.show', $content))
@@ -1888,6 +2367,194 @@ it('supports programmatic cluster validate reject lifecycle and app routes', fun
         ->and(ContentPublication::query()->count())->toBe(0);
 });
 
+it('calculates programmatic growth time to value metrics', function (): void {
+    [$organization, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Time to value'], $user);
+    $program->forceFill(['created_at' => now()->subHours(3)])->save();
+
+    foreach ([
+        GrowthAsset::ROLE_PROGRAMMATIC_CLUSTER => now()->subMinutes(150),
+        GrowthAsset::ROLE_BRIEF_BLUEPRINT => now()->subMinutes(120),
+        GrowthAsset::ROLE_BRIEF => now()->subMinutes(90),
+        GrowthAsset::ROLE_DRAFT => now()->subMinutes(60),
+        GrowthAsset::ROLE_CONTENT => now()->subMinutes(30),
+        GrowthAsset::ROLE_PUBLICATION => now()->subMinutes(15),
+    ] as $role => $createdAt) {
+        $asset = GrowthAsset::query()->create([
+            'organization_id' => $organization->id,
+            'workspace_id' => $workspace->id,
+            'growth_program_id' => $program->id,
+            'role' => $role,
+            'assetable_type' => GrowthProgram::class,
+            'assetable_id' => $program->id,
+            'status_at_link' => 'linked',
+            'source_type' => 'beta_test',
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+        ]);
+        $asset->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->save();
+    }
+
+    $metrics = app(GrowthProgramBetaMetrics::class)->forProgram($program->refresh());
+
+    expect($metrics['time_to_value']['first_cluster_minutes'])->toBe(30)
+        ->and($metrics['time_to_value']['first_blueprint_minutes'])->toBe(60)
+        ->and($metrics['time_to_value']['first_brief_minutes'])->toBe(90)
+        ->and($metrics['time_to_value']['first_draft_minutes'])->toBe(120)
+        ->and($metrics['time_to_value']['first_content_asset_minutes'])->toBe(150)
+        ->and($metrics['time_to_value']['first_scheduled_publication_record_minutes'])->toBe(165);
+});
+
+it('calculates a growth program success score without live publishing', function (): void {
+    [$organization, $workspace, $user] = growthProgramFixture();
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Success score'], $user);
+    $program->forceFill([
+        'metrics' => [
+            'programmatic_opportunities_count' => 1,
+            'programmatic_clusters_count' => 1,
+            'brief_blueprints_count' => 5,
+            'programmatic_briefs_count' => 1,
+            'generated_programmatic_drafts_count' => 1,
+            'converted_content_count' => 1,
+            'publication_readiness_count' => 1,
+            'approved_publication_readiness_count' => 1,
+            'publication_plans_count' => 1,
+            'approved_publication_plan_items_count' => 1,
+            'scheduled_programmatic_publications_count' => 1,
+        ],
+    ])->save();
+
+    GrowthAsset::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'role' => GrowthAsset::ROLE_CONTENT,
+        'assetable_type' => GrowthProgram::class,
+        'assetable_id' => $program->id,
+        'status_at_link' => 'linked',
+        'source_type' => 'beta_test',
+    ]);
+
+    $metrics = app(GrowthProgramBetaMetrics::class)->forProgram($program->refresh());
+
+    expect($metrics['success_score'])->toBe(100)
+        ->and(ContentPublication::query()->count())->toBe(0);
+});
+
+it('stores growth program beta feedback', function (): void {
+    [$organization, $workspace, $user] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Feedback program'], $user);
+
+    $this->actingAs($user)
+        ->post(route('app.growth-programs.feedback', $program), [
+            'clarity' => 'somewhat',
+            'step' => 'Blueprint',
+            'message' => 'The next step needs clearer context.',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('growth_program_beta_events', [
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'user_id' => $user->id,
+        'event_type' => GrowthProgramBetaEvent::TYPE_FEEDBACK,
+        'clarity' => 'somewhat',
+        'step' => 'Blueprint',
+    ]);
+});
+
+it('shows internal beta tester mode only to admin roles', function (): void {
+    [$organization, $workspace, $owner] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $viewer = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'viewer',
+        'active' => true,
+        'approved_at' => now(),
+        'email_code_verified_at' => now(),
+    ]);
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Beta mode program'], $owner);
+
+    $this->actingAs($owner)
+        ->post(route('app.programmatic-growth.internal-beta-mode'), ['enabled' => true])
+        ->assertRedirect();
+
+    $this->actingAs($owner)
+        ->get(route('app.growth-programs.show', $program))
+        ->assertOk()
+        ->assertSee('Internal Beta Tester Mode')
+        ->assertSee('docs/programmatic-growth-beta-test-checklist.md');
+
+    $this->actingAs($viewer)
+        ->get(route('app.growth-programs.show', $program))
+        ->assertOk()
+        ->assertDontSee('Internal Beta Tester Mode');
+
+    $this->actingAs($viewer)
+        ->post(route('app.programmatic-growth.internal-beta-mode'), ['enabled' => true])
+        ->assertForbidden();
+});
+
+it('loads the programmatic growth beta report', function (): void {
+    [$organization, $workspace, $user] = growthProgramFixture();
+    config(['features.agentic_marketing' => true]);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $program = app(GrowthProgramOrchestrator::class)->create($workspace, ['name' => 'Reportable program'], $user);
+    $program->forceFill([
+        'metrics' => [
+            'programmatic_opportunities_count' => 1,
+            'programmatic_clusters_count' => 1,
+            'brief_blueprints_count' => 1,
+        ],
+    ])->save();
+
+    GrowthProgramBetaEvent::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'user_id' => $user->id,
+        'event_type' => GrowthProgramBetaEvent::TYPE_BLOCKED,
+        'step' => 'Readiness',
+        'message' => 'missing_destination',
+        'metadata' => ['reason' => 'missing_destination'],
+    ]);
+    GrowthProgramBetaEvent::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'user_id' => $user->id,
+        'event_type' => GrowthProgramBetaEvent::TYPE_CONFLICT,
+        'step' => 'Plan',
+        'message' => 'active_plan_conflict',
+        'metadata' => ['reason' => 'active_plan_conflict'],
+    ]);
+    GrowthProgramBetaEvent::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'user_id' => $user->id,
+        'event_type' => GrowthProgramBetaEvent::TYPE_FEEDBACK,
+        'step' => 'Cluster',
+        'clarity' => 'yes',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.programmatic-growth.beta-report'))
+        ->assertOk()
+        ->assertSee('Programmatic Growth Beta Report')
+        ->assertSee('Average Time To Value')
+        ->assertSee('Missing Destination')
+        ->assertSee('Active Plan Conflict')
+        ->assertSee('Reportable program');
+});
+
 function growthProgramFixture(): array
 {
     $organization = Organization::query()->create([
@@ -1920,7 +2587,204 @@ function growthProgramFixture(): array
         'is_active' => true,
     ]);
 
+    ContentDestination::query()->create([
+        'workspace_id' => $workspace->id,
+        'name' => 'Growth Laravel Destination',
+        'type' => 'laravel',
+        'status' => 'active',
+        'environment' => 'production',
+        'default_language' => 'en',
+    ]);
+
     return [$organization, $workspace, $user, $site];
+}
+
+function resolveGrowthProgramCommandCenter(GrowthProgram $program): array
+{
+    $program = app(GrowthProgramOrchestrator::class)->refreshMetrics($program->refresh());
+    $program->load(['assets.assetable']);
+    $program->assets
+        ->where('role', GrowthAsset::ROLE_PUBLICATION_PLAN)
+        ->each(fn ($asset) => $asset->assetable instanceof ProgrammaticPublicationPlan ? $asset->assetable->loadMissing('items.contentPublication') : null);
+
+    return app(GrowthProgramNextActionResolver::class)->resolve($program);
+}
+
+function createCommandCenterCluster(Organization $organization, Workspace $workspace, GrowthProgram $program): ProgrammaticCluster
+{
+    $opportunity = Opportunity::factory()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'title' => 'Command center opportunity',
+    ]);
+    $programmatic = makeProgrammaticOpportunity($organization, $workspace, $opportunity, ProgrammaticPatternType::COMPARISON_PAGE);
+    app(GrowthProgramOrchestrator::class)->attachProgrammaticOpportunity($program, $programmatic);
+
+    $cluster = ProgrammaticCluster::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'programmatic_opportunity_id' => $programmatic->id,
+        'name' => 'Command center cluster',
+        'pattern_type' => ProgrammaticPatternType::COMPARISON_PAGE->value,
+        'base_topic' => 'Command center',
+        'variable_axis' => 'competitor',
+        'status' => ProgrammaticCluster::STATUS_PREVIEW,
+        'estimated_assets_count' => 1,
+        'estimated_reach' => 1200,
+        'estimated_ai_visibility' => 70,
+        'estimated_business_impact' => 65,
+    ]);
+
+    ProgrammaticClusterItem::query()->create([
+        'workspace_id' => $workspace->id,
+        'programmatic_cluster_id' => $cluster->id,
+        'variable_value' => 'Alternative',
+        'title' => 'Command center alternative',
+        'slug' => 'command-center-alternative',
+        'asset_type' => 'comparison_page',
+        'growth_asset_type' => GrowthAssetType::COMPARISON_PAGE->value,
+        'intent' => 'comparison',
+        'priority_score' => 80,
+        'status' => ProgrammaticClusterItem::STATUS_ACCEPTED,
+    ]);
+
+    return $cluster->refresh();
+}
+
+function createCommandCenterBlueprint(Workspace $workspace, GrowthProgram $program, string $status): ProgrammaticBriefBlueprint
+{
+    $organization = Organization::query()->findOrFail($workspace->organization_id);
+    $cluster = createCommandCenterCluster($organization, $workspace, $program);
+    $item = $cluster->items()->firstOrFail();
+
+    return ProgrammaticBriefBlueprint::query()->create([
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'programmatic_cluster_id' => $cluster->id,
+        'programmatic_cluster_item_id' => $item->id,
+        'growth_asset_type' => GrowthAssetType::COMPARISON_PAGE->value,
+        'title' => 'Command center blueprint',
+        'slug' => 'command-center-blueprint',
+        'intent' => 'comparison',
+        'primary_keyword' => 'command center blueprint',
+        'outline' => ['Intro', 'Comparison'],
+        'required_sections' => ['Overview'],
+        'schema_recommendations' => ['FAQPage'],
+        'seo_requirements' => ['title'],
+        'ai_visibility_requirements' => ['answer block'],
+        'quality_requirements' => ['specificity'],
+        'status' => $status,
+    ]);
+}
+
+function createCommandCenterBrief(Workspace $workspace, string $title = 'Command center brief'): Brief
+{
+    $site = ClientSite::query()->where('workspace_id', $workspace->id)->firstOrFail();
+
+    return Brief::query()->create([
+        'client_site_id' => $site->id,
+        'status' => 'ready',
+        'title' => $title,
+        'primary_keyword' => Str::slug($title),
+    ]);
+}
+
+function createCommandCenterDraftRequest(Workspace $workspace, GrowthProgram $program, string $status): ProgrammaticDraftRequest
+{
+    $brief = createCommandCenterBrief($workspace, 'Command center draft request brief '.Str::random(6));
+
+    return ProgrammaticDraftRequest::query()->create([
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'brief_id' => $brief->id,
+        'growth_asset_type' => GrowthAssetType::COMPARISON_PAGE->value,
+        'title' => 'Command center draft request '.Str::random(6),
+        'slug' => 'command-center-draft-request-'.Str::random(6),
+        'priority_score' => 80,
+        'estimated_cost' => 0.25,
+        'estimated_tokens' => 2500,
+        'status' => $status,
+        'generation_mode' => ProgrammaticDraftRequest::MODE_SUPERVISED,
+    ]);
+}
+
+function createCommandCenterDraftReview(Workspace $workspace, GrowthProgram $program, string $status): ProgrammaticDraftReview
+{
+    $site = ClientSite::query()->where('workspace_id', $workspace->id)->firstOrFail();
+    $request = createCommandCenterDraftRequest($workspace, $program, ProgrammaticDraftRequest::STATUS_GENERATED);
+    $draft = Draft::query()->create([
+        'brief_id' => $request->brief_id,
+        'client_site_id' => $site->id,
+        'status' => Draft::STATUS_READY_FOR_REVIEW,
+        'title' => 'Command center draft',
+    ]);
+
+    return ProgrammaticDraftReview::query()->create([
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'programmatic_draft_request_id' => $request->id,
+        'draft_id' => $draft->id,
+        'brief_id' => $request->brief_id,
+        'growth_asset_type' => GrowthAssetType::COMPARISON_PAGE->value,
+        'status' => $status,
+        'overall_score' => 82,
+        'risk_score' => $status === ProgrammaticDraftReview::STATUS_BLOCKED ? 90 : 20,
+        'blocking_issues' => $status === ProgrammaticDraftReview::STATUS_BLOCKED ? ['Missing source evidence.'] : [],
+    ]);
+}
+
+function createCommandCenterReadiness(Workspace $workspace, GrowthProgram $program, string $status): ProgrammaticPublicationReadiness
+{
+    $content = Content::query()->create([
+        'workspace_id' => $workspace->id,
+        'title' => 'Command center content '.Str::random(6),
+        'status' => 'review',
+        'publish_status' => 'draft',
+    ]);
+
+    return ProgrammaticPublicationReadiness::query()->create([
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'content_id' => $content->id,
+        'growth_asset_type' => GrowthAssetType::COMPARISON_PAGE->value,
+        'status' => $status,
+        'readiness_score' => $status === ProgrammaticPublicationReadiness::STATUS_BLOCKED ? 35 : 88,
+        'publication_risk_score' => $status === ProgrammaticPublicationReadiness::STATUS_BLOCKED ? 80 : 15,
+        'missing_requirements' => $status === ProgrammaticPublicationReadiness::STATUS_BLOCKED ? ['Destination is missing.'] : [],
+    ]);
+}
+
+function createCommandCenterPlan(Workspace $workspace, GrowthProgram $program, ProgrammaticPublicationReadiness $readiness, string $status, ?string $conflictReason = null): ProgrammaticPublicationPlan
+{
+    $destination = ContentDestination::query()->where('workspace_id', $workspace->id)->first();
+    $plan = ProgrammaticPublicationPlan::query()->create([
+        'workspace_id' => $workspace->id,
+        'growth_program_id' => $program->id,
+        'name' => 'Command center publication plan',
+        'status' => $status,
+        'planned_start_at' => '2026-07-01 09:00:00',
+        'planned_end_at' => '2026-07-01 09:00:00',
+        'cadence' => ProgrammaticPublicationPlan::CADENCE_DAILY,
+        'destination_id' => $destination?->id,
+        'metadata' => [],
+    ]);
+
+    ProgrammaticPublicationPlanItem::query()->create([
+        'workspace_id' => $workspace->id,
+        'programmatic_publication_plan_id' => $plan->id,
+        'content_id' => $readiness->content_id,
+        'publication_readiness_id' => $readiness->id,
+        'growth_asset_type' => GrowthAssetType::COMPARISON_PAGE->value,
+        'title' => 'Command center plan item',
+        'slug' => 'command-center-plan-item',
+        'destination_id' => $destination?->id,
+        'planned_publish_at' => '2026-07-01 09:00:00',
+        'status' => $conflictReason ? ProgrammaticPublicationPlanItem::STATUS_CONFLICT : ProgrammaticPublicationPlanItem::STATUS_APPROVED,
+        'metadata' => $conflictReason ? ['conflict' => ['reason' => $conflictReason]] : [],
+    ]);
+
+    return $plan->refreshCounters();
 }
 
 function makeProgrammaticOpportunity(

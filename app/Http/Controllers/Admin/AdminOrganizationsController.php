@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClientSite;
 use App\Models\Organization;
 use App\Http\Requests\Admin\ActivateOrganizationRequest;
 use App\Http\Requests\Admin\ApproveOrganizationRequest;
@@ -11,6 +12,7 @@ use App\Http\Requests\Admin\DeactivateOrganizationRequest;
 use App\Http\Requests\Admin\DeleteOrganizationRequest;
 use App\Http\Requests\Admin\HoldOrganizationRequest;
 use App\Http\Requests\Admin\RegenerateOrganizationApiKeyRequest;
+use App\Http\Requests\Admin\StoreOrganizationRequest;
 use App\Http\Requests\Admin\UnarchiveOrganizationRequest;
 use App\Http\Requests\Admin\UpdateOrganizationLegalProfileRequest;
 use App\Http\Requests\Admin\UpdateOrganizationRequest;
@@ -24,7 +26,9 @@ use App\Services\OrganizationAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -56,6 +60,95 @@ class AdminOrganizationsController extends Controller
                 'is_early_bird_expired' => $access->isEarlyBirdExpired($organization),
             ],
         ]);
+    }
+
+    public function create(): View
+    {
+        Gate::authorize('admin-area-superadmin');
+
+        return view('admin.organizations.create');
+    }
+
+    public function store(StoreOrganizationRequest $request, AuditLogService $auditLogs): RedirectResponse
+    {
+        $data = $request->validated();
+
+        $organization = DB::transaction(function () use ($request, $data, $auditLogs): Organization {
+            $status = (string) $data['status'];
+            $ownerIsActive = (bool) ($data['owner_active'] ?? false);
+
+            $organization = Organization::query()->create([
+                'name' => $data['name'],
+                'slug' => strtolower(trim((string) $data['slug'])),
+                'status' => $status,
+                'access_tier' => $data['access_tier'],
+                'billing_email' => $data['billing_email'] ?? null,
+                'approved_at' => $status === Organization::STATUS_ACTIVE ? now() : null,
+                'approved_by' => $status === Organization::STATUS_ACTIVE ? $request->user()?->id : null,
+            ]);
+
+            $owner = User::query()->create([
+                'name' => $data['owner_name'],
+                'email' => $data['owner_email'],
+                'password' => Hash::make((string) $data['owner_password']),
+                'organization_id' => $organization->id,
+                'role' => 'owner',
+                'active' => $ownerIsActive,
+                'approved_at' => $ownerIsActive ? now() : null,
+                'is_admin' => false,
+            ]);
+
+            $organization->forceFill([
+                'primary_user_id' => $owner->id,
+            ])->save();
+
+            $workspace = null;
+            if ((bool) ($data['create_workspace'] ?? false)) {
+                $workspace = Workspace::query()->create([
+                    'organization_id' => $organization->id,
+                    'name' => $data['workspace_name'],
+                    'display_name' => $data['workspace_name'],
+                    'default_content_language' => $data['default_content_language'] ?? 'en',
+                    'enabled_content_languages' => ['en', 'nl'],
+                ]);
+            }
+
+            if ($workspace && (bool) ($data['create_site'] ?? false)) {
+                ClientSite::query()->create([
+                    'workspace_id' => $workspace->id,
+                    'type' => $data['site_type'] ?? ClientSite::TYPE_LARAVEL,
+                    'name' => $data['site_name'],
+                    'site_url' => $data['site_url'],
+                    'allowed_domains' => $this->allowedDomainsFromInput(
+                        (string) ($data['allowed_domains'] ?? ''),
+                        (string) $data['site_url']
+                    ),
+                    'is_active' => true,
+                    'status' => 'active',
+                    'created_by_user_id' => $request->user()?->id,
+                ]);
+            }
+
+            $auditLogs->log(
+                actor: $request->user(),
+                subject: $organization,
+                action: 'organization.created_by_admin',
+                before: null,
+                after: [
+                    'organization_id' => $organization->id,
+                    'organization_name' => $organization->name,
+                    'owner_user_id' => $owner->id,
+                    'workspace_id' => $workspace?->id,
+                ],
+                request: $request
+            );
+
+            return $organization;
+        });
+
+        return redirect()
+            ->route('admin.organizations.show', $organization)
+            ->with('status', 'Organization created.');
     }
 
     public function grantEarlyBirdAccess(
@@ -530,6 +623,34 @@ class AdminOrganizationsController extends Controller
 
         return redirect()->route('app.dashboard')
             ->with('status', 'Impersonating workspace through user ' . $user->email . '.');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedDomainsFromInput(string $input, string $siteUrl): array
+    {
+        $domains = preg_split('/[\s,]+/', $input) ?: [];
+        $siteHost = strtolower(trim((string) parse_url($siteUrl, PHP_URL_HOST)));
+
+        if ($siteHost !== '') {
+            $domains[] = $siteHost;
+        }
+
+        return collect($domains)
+            ->map(function ($domain): string {
+                $domain = strtolower(trim((string) $domain));
+
+                if (str_contains($domain, '://')) {
+                    $domain = strtolower(trim((string) parse_url($domain, PHP_URL_HOST)));
+                }
+
+                return trim($domain, " \t\n\r\0\x0B/");
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

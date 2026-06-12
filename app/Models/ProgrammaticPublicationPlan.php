@@ -68,6 +68,17 @@ class ProgrammaticPublicationPlan extends Model
         ];
     }
 
+    public static function activeSchedulingStatuses(): array
+    {
+        return [
+            self::STATUS_DRAFT,
+            self::STATUS_APPROVED,
+            self::STATUS_SCHEDULING,
+            self::STATUS_SCHEDULED,
+            self::STATUS_PUBLISHING,
+        ];
+    }
+
     public static function cadences(): array
     {
         return [
@@ -111,17 +122,59 @@ class ProgrammaticPublicationPlan extends Model
         return $this->refreshCounters();
     }
 
-    public function cancel(): self
+    public function cancel(?User $user = null): self
     {
         if (in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_CANCELLED], true)) {
             throw new InvalidArgumentException('Completed or cancelled publication plans cannot be cancelled again.');
         }
 
-        $this->forceFill(['status' => self::STATUS_CANCELLED])->save();
-        $this->items()->whereNotIn('status', [
-            ProgrammaticPublicationPlanItem::STATUS_PUBLISHED,
-            ProgrammaticPublicationPlanItem::STATUS_CANCELLED,
-        ])->update(['status' => ProgrammaticPublicationPlanItem::STATUS_CANCELLED]);
+        $cancelledAt = now();
+
+        $this->forceFill([
+            'status' => self::STATUS_CANCELLED,
+            'metadata' => array_replace_recursive((array) $this->metadata, [
+                'cancelled_by' => $user?->id ? (string) $user->id : null,
+                'cancelled_at' => $cancelledAt->toIso8601String(),
+            ]),
+        ])->save();
+
+        $this->items()
+            ->with('contentPublication')
+            ->whereNotIn('status', [
+                ProgrammaticPublicationPlanItem::STATUS_PUBLISHED,
+                ProgrammaticPublicationPlanItem::STATUS_CANCELLED,
+            ])
+            ->get()
+            ->each(function (ProgrammaticPublicationPlanItem $item) use ($user, $cancelledAt): void {
+                $publication = $item->linkedPublication();
+
+                $item->forceFill([
+                    'status' => ProgrammaticPublicationPlanItem::STATUS_CANCELLED,
+                    'metadata' => array_replace_recursive((array) $item->metadata, [
+                        'cancelled_by' => $user?->id ? (string) $user->id : null,
+                        'cancelled_at' => $cancelledAt->toIso8601String(),
+                    ]),
+                ])->save();
+
+                if (! $publication instanceof ContentPublication || $publication->isTerminalForProgrammaticScheduling()) {
+                    return;
+                }
+
+                if (
+                    (string) $publication->delivery_status === ContentPublication::STATUS_PENDING
+                    && in_array((string) $publication->remote_status, [ContentPublication::REMOTE_SCHEDULED, ContentPublication::REMOTE_DRAFT, ''], true)
+                ) {
+                    $publication->forceFill([
+                        'delivery_status' => ContentPublication::STATUS_CANCELLED,
+                        'remote_status' => ContentPublication::REMOTE_DRAFT,
+                        'meta' => array_replace_recursive((array) $publication->meta, [
+                            'cancelled_by' => $user?->id ? (string) $user->id : null,
+                            'cancelled_at' => $cancelledAt->toIso8601String(),
+                            'cancelled_from_plan_id' => (string) $this->id,
+                        ]),
+                    ])->save();
+                }
+            });
 
         return $this->refresh();
     }

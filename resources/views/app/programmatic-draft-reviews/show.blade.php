@@ -1,6 +1,8 @@
 @extends('layouts.app', ['title' => 'Draft Review'])
 
 @section('content')
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -9,16 +11,24 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ str($review->status)->headline() }} · overall {{ number_format((float) $review->overall_score, 1) }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-draft-reviews.approve', $review) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve Review</button></form>
+                @can('approve', $review)
+                    <form method="POST" action="{{ route('app.programmatic-draft-reviews.approve', $review) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve Review</button></form>
+                @endcan
                 @if (in_array($review->status, [\App\Models\ProgrammaticDraftReview::STATUS_APPROVED], true))
-                    <form method="POST" action="{{ route('app.programmatic-draft-reviews.convert-to-content', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert to Content</button></form>
+                    @can('convert', $review)
+                        <form method="POST" action="{{ route('app.programmatic-draft-reviews.convert-to-content', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert to Content</button></form>
+                    @endcan
                 @endif
                 @if ($content = $review->linkedContent())
-                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.run.content', $content) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Run Publication Readiness</button></form>
+                    @can('update', $content)
+                        <form method="POST" action="{{ route('app.programmatic-publication-readiness.run.content', $content) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Run Publication Readiness</button></form>
+                    @endcan
                 @endif
-                <form method="POST" action="{{ route('app.programmatic-draft-reviews.needs-work', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Mark Needs Work</button></form>
-                <form method="POST" action="{{ route('app.programmatic-draft-reviews.block', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Block</button></form>
-                <form method="POST" action="{{ route('app.programmatic-draft-reviews.reject', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @can('approve', $review)
+                    <form method="POST" action="{{ route('app.programmatic-draft-reviews.needs-work', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Mark Needs Work</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-draft-reviews.block', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Block</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-draft-reviews.reject', $review) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @endcan
             </div>
         </div>
 

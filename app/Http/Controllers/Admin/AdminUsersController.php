@@ -17,6 +17,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AdminUsersController extends Controller
@@ -83,7 +85,7 @@ class AdminUsersController extends Controller
 
     public function show(User $user, AccessOverrideResolver $resolver): View
     {
-        if ($user->is_admin && ! request()->user()?->isSuperadmin()) {
+        if ($user->is_admin && ! request()->user()?->isSuperadmin() && ! $user->is(request()->user())) {
             abort(404);
         }
 
@@ -133,6 +135,26 @@ class AdminUsersController extends Controller
         ]);
 
         return redirect()->to(url()->previous())->with('status', 'User activated.');
+    }
+
+    public function updateOwnPassword(Request $request, User $user): RedirectResponse
+    {
+        if (! $user->is($request->user())) {
+            abort(403);
+        }
+
+        $data = $request->validate([
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', 'confirmed', Password::defaults()],
+        ]);
+
+        $user->forceFill([
+            'password' => Hash::make($data['password']),
+        ])->save();
+
+        return redirect()
+            ->route('admin.users.show', $user)
+            ->with('status', 'Password updated.');
     }
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse

@@ -10,6 +10,8 @@
         };
     @endphp
 
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -18,9 +20,11 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ $pattern?->label() ?? $opportunity->pattern_type }} · {{ str($opportunity->status)->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-opportunities.validate', $opportunity) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Validate</button></form>
-                <form method="POST" action="{{ route('app.programmatic-opportunities.reject', $opportunity) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
-                <form method="POST" action="{{ route('app.programmatic-opportunities.growth-program', $opportunity) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Growth Program</button></form>
+                @can('approve', $opportunity)
+                    <form method="POST" action="{{ route('app.programmatic-opportunities.validate', $opportunity) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Validate</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-opportunities.reject', $opportunity) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-opportunities.growth-program', $opportunity) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Growth Program</button></form>
+                @endcan
             </div>
         </div>
 
@@ -67,10 +71,12 @@
                                 <p class="mt-2 text-sm text-textSecondary">No cluster preview built yet.</p>
                             @endif
                         </div>
-                        <form method="POST" action="{{ route('app.programmatic-clusters.build', $opportunity) }}">
-                            @csrf
-                            <button class="rounded-md border border-border bg-surfaceSubtle px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Build</button>
-                        </form>
+                        @can('update', $opportunity)
+                            <form method="POST" action="{{ route('app.programmatic-clusters.build', $opportunity) }}">
+                                @csrf
+                                <button class="rounded-md border border-border bg-surfaceSubtle px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Build</button>
+                            </form>
+                        @endcan
                     </div>
                 </section>
 
@@ -95,6 +101,7 @@
                     @if ($opportunity->growthProgram)
                         <a href="{{ route('app.growth-programs.show', $opportunity->growthProgram) }}" class="mt-3 block text-sm font-medium text-primary hover:underline">{{ $opportunity->growthProgram->name }}</a>
                     @else
+                        @can('update', $opportunity)
                         <form method="POST" action="{{ route('app.programmatic-opportunities.attach', $opportunity) }}" class="mt-4 space-y-2">
                             @csrf
                             <select name="growth_program_id" class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
@@ -104,6 +111,7 @@
                             </select>
                             <button class="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Attach</button>
                         </form>
+                        @endcan
                     @endif
                 </section>
 

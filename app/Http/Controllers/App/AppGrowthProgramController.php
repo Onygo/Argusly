@@ -7,12 +7,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Brief;
 use App\Models\Draft;
 use App\Models\GrowthAsset;
+use App\Models\GrowthProgramBetaEvent;
 use App\Models\GrowthProgram;
 use App\Models\Opportunity;
 use App\Models\OpportunityExecutionPlan;
 use App\Models\ProgrammaticCluster;
 use App\Models\Workspace;
+use App\Services\Growth\GrowthProgramBetaMetrics;
 use App\Services\Growth\GrowthProgramOrchestrator;
+use App\Services\Growth\GrowthProgramNextActionResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,7 +56,13 @@ class AppGrowthProgramController extends Controller
         ]);
     }
 
-    public function show(Request $request, GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): View
+    public function show(
+        Request $request,
+        GrowthProgram $program,
+        GrowthProgramOrchestrator $orchestrator,
+        GrowthProgramNextActionResolver $nextActionResolver,
+        GrowthProgramBetaMetrics $betaMetrics,
+    ): View
     {
         $this->authorize('view', $program);
         $workspace = $this->resolveWorkspace($request, $program->workspace_id);
@@ -80,7 +89,7 @@ class AppGrowthProgramController extends Controller
             ->each(fn ($asset) => $asset->assetable instanceof \App\Models\ProgrammaticPublicationReadiness ? $asset->assetable->loadMissing(['content', 'review']) : null);
         $program->assets
             ->where('role', GrowthAsset::ROLE_PUBLICATION_PLAN)
-            ->each(fn ($asset) => $asset->assetable instanceof \App\Models\ProgrammaticPublicationPlan ? $asset->assetable->loadMissing(['items', 'destination']) : null);
+            ->each(fn ($asset) => $asset->assetable instanceof \App\Models\ProgrammaticPublicationPlan ? $asset->assetable->loadMissing(['items.contentPublication', 'destination']) : null);
         $program->assets
             ->where('role', GrowthAsset::ROLE_PROGRAMMATIC_CLUSTER)
             ->each(fn ($asset) => $asset->assetable instanceof ProgrammaticCluster ? $asset->assetable->loadMissing('items') : null);
@@ -91,7 +100,68 @@ class AppGrowthProgramController extends Controller
             'assetsByRole' => $program->assets->groupBy('role'),
             'timeline' => $this->timeline($program),
             'metrics' => $program->metrics ?? [],
+            'betaMetrics' => $betaMetrics->forProgram($program),
+            'internalBetaMode' => (bool) $request->session()->get('programmatic_growth_internal_beta_mode', false),
+            'canUseInternalBetaMode' => $this->canUseInternalBetaMode($request),
+            'commandCenter' => $nextActionResolver->resolve($program),
         ]);
+    }
+
+    public function betaReport(Request $request, GrowthProgramBetaMetrics $betaMetrics): View
+    {
+        $this->authorize('viewAny', GrowthProgram::class);
+        abort_unless($this->canUseInternalBetaMode($request), 403);
+
+        $workspace = $this->resolveWorkspace($request);
+
+        return view('app.programmatic-growth.beta-report', [
+            'workspace' => $workspace,
+            'report' => $betaMetrics->reportForWorkspace($workspace),
+            'internalBetaMode' => (bool) $request->session()->get('programmatic_growth_internal_beta_mode', false),
+            'canUseInternalBetaMode' => true,
+        ]);
+    }
+
+    public function storeFeedback(Request $request, GrowthProgram $program): RedirectResponse
+    {
+        $this->authorize('view', $program);
+        $workspace = $this->resolveWorkspace($request, $program->workspace_id);
+        $this->assertProgramWorkspace($program, $workspace);
+
+        $data = $request->validate([
+            'clarity' => ['required', 'in:yes,somewhat,no'],
+            'step' => ['nullable', 'string', 'max:120'],
+            'message' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        GrowthProgramBetaEvent::query()->create([
+            'organization_id' => $program->organization_id,
+            'workspace_id' => $workspace->id,
+            'growth_program_id' => $program->id,
+            'user_id' => $request->user()?->id,
+            'event_type' => GrowthProgramBetaEvent::TYPE_FEEDBACK,
+            'step' => $data['step'] ?? null,
+            'clarity' => $data['clarity'],
+            'message' => $data['message'] ?? null,
+            'metadata' => [
+                'route' => optional($request->route())->getName(),
+            ],
+        ]);
+
+        return back()->with('status', 'Thanks. Your beta feedback was saved.');
+    }
+
+    public function toggleInternalBetaMode(Request $request): RedirectResponse
+    {
+        abort_unless($this->canUseInternalBetaMode($request), 403);
+
+        $request->validate([
+            'enabled' => ['nullable', 'boolean'],
+        ]);
+
+        $request->session()->put('programmatic_growth_internal_beta_mode', $request->boolean('enabled'));
+
+        return back()->with('status', $request->boolean('enabled') ? 'Internal beta tester mode enabled.' : 'Internal beta tester mode disabled.');
     }
 
     public function storeFromOpportunity(Request $request, Opportunity $opportunity, GrowthProgramOrchestrator $orchestrator): RedirectResponse
@@ -215,7 +285,7 @@ class AppGrowthProgramController extends Controller
 
     public function transition(Request $request, GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('prepare', $program);
         $request->validate([
             'status' => ['required', 'in:'.implode(',', GrowthProgramStatus::values())],
         ]);
@@ -227,9 +297,33 @@ class AppGrowthProgramController extends Controller
             ->with('status', 'Growth program updated.');
     }
 
+    public function detectProgrammaticOpportunities(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
+    {
+        $this->authorize('prepare', $program);
+        $count = $orchestrator->detectProgrammaticOpportunitiesForProgram($program);
+
+        return back()->with('status', $count.' programmatic opportunities detected.');
+    }
+
+    public function buildClusterPreviews(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
+    {
+        $this->authorize('prepare', $program);
+        $count = $orchestrator->syncProgrammaticClustersForProgram($program);
+
+        return back()->with('status', $count.' cluster previews built.');
+    }
+
+    public function buildBriefBlueprints(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
+    {
+        $this->authorize('prepare', $program);
+        $count = $orchestrator->syncBriefBlueprintsForProgram($program);
+
+        return back()->with('status', $count.' brief blueprints built.');
+    }
+
     public function convertApprovedBlueprints(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('approve', $program);
         $count = $orchestrator->convertApprovedBlueprintsForProgram($program);
 
         return back()->with('status', $count.' approved blueprints converted to briefs.');
@@ -237,7 +331,7 @@ class AppGrowthProgramController extends Controller
 
     public function prepareDraftRequests(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('prepare', $program);
         $count = $orchestrator->prepareDraftRequestsForProgram($program);
 
         return back()->with('status', $count.' draft requests prepared.');
@@ -245,7 +339,7 @@ class AppGrowthProgramController extends Controller
 
     public function generateApprovedDraftRequests(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('prepare', $program);
 
         try {
             $count = $orchestrator->generateApprovedDraftsForProgram($program);
@@ -258,7 +352,7 @@ class AppGrowthProgramController extends Controller
 
     public function reviewGeneratedDrafts(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('prepare', $program);
         $count = $orchestrator->reviewGeneratedDraftsForProgram($program);
 
         return back()->with('status', $count.' generated drafts reviewed.');
@@ -266,7 +360,7 @@ class AppGrowthProgramController extends Controller
 
     public function convertApprovedReviewsToContent(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('approve', $program);
         $count = $orchestrator->convertApprovedReviewsForProgram($program, createdByUserId: request()->user()?->id);
 
         return back()->with('status', $count.' approved reviews converted to content.');
@@ -274,7 +368,7 @@ class AppGrowthProgramController extends Controller
 
     public function runPublicationReadiness(GrowthProgram $program, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $program);
+        $this->authorize('prepare', $program);
         $count = $orchestrator->runPublicationReadinessForProgram($program);
 
         return back()->with('status', $count.' publication readiness checks completed.');
@@ -318,12 +412,19 @@ class AppGrowthProgramController extends Controller
         ]);
 
         $program = GrowthProgram::query()->findOrFail((string) $request->input('growth_program_id'));
-        $this->authorize('update', $program);
+        $this->authorize('prepare', $program);
         if ((string) $program->workspace_id !== (string) $workspaceId) {
             throw new AuthorizationException('Growth program is not available for this workspace.');
         }
 
         return $program;
+    }
+
+    private function canUseInternalBetaMode(Request $request): bool
+    {
+        $user = $request->user();
+
+        return (bool) $user && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
     }
 
     /**

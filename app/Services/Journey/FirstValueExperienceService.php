@@ -23,34 +23,36 @@ class FirstValueExperienceService
      */
     public function celebrations(Workspace $workspace): Collection
     {
+        $counts = $this->journey->countsForWorkspace($workspace);
+
         return collect([
             $this->celebration(
-                LlmTrackingQuery::query()->where('workspace_id', $workspace->id)->count() === 1,
+                $counts['queries'] === 1,
                 $this->runtime('First Query Created'),
                 $this->runtime('Your first AI Visibility question is ready to run.')
             ),
             $this->celebration(
-                LlmTrackingQueryRun::query()->whereHas('trackingQuery', fn ($query) => $query->where('workspace_id', $workspace->id))->count() === 1,
+                $counts['runs'] === 1,
                 $this->runtime('First Run Completed'),
                 $this->runtime('Argusly now has AI answer evidence to analyze.')
             ),
             $this->celebration(
-                SignalEvent::query()->where('workspace_id', $workspace->id)->count() === 1,
+                $counts['signal_events'] === 1,
                 $this->runtime('First Signal Found'),
                 $this->runtime('The first piece of intelligence evidence has been captured.')
             ),
             $this->celebration(
-                SignalDetection::query()->where('workspace_id', $workspace->id)->count() === 1,
+                $counts['detections'] === 1,
                 $this->runtime('First Detection Created'),
                 $this->runtime('Related evidence has been grouped into something reviewable.')
             ),
             $this->celebration(
-                Opportunity::query()->where('workspace_id', $workspace->id)->count() === 1,
+                $counts['opportunities'] === 1,
                 $this->runtime('First Opportunity Created'),
                 $this->runtime('A signal has become an actionable opportunity.')
             ),
             $this->celebration(
-                OpportunityExecutionPlan::query()->where('workspace_id', $workspace->id)->active()->count() === 1,
+                $counts['execution_plans'] === 1,
                 $this->runtime('First Execution Plan Created'),
                 $this->runtime('The opportunity now has a concrete plan.')
             ),
@@ -62,7 +64,7 @@ class FirstValueExperienceService
      */
     public function firstSignalCard(Workspace $workspace): ?array
     {
-        if (SignalEvent::query()->where('workspace_id', $workspace->id)->count() !== 1) {
+        if ($this->journey->countsForWorkspace($workspace)['signal_events'] !== 1) {
             return null;
         }
 
@@ -101,7 +103,7 @@ class FirstValueExperienceService
      */
     public function detectionCard(SignalDetection $detection): ?array
     {
-        if (SignalDetection::query()->where('workspace_id', $detection->workspace_id)->count() !== 1) {
+        if ($this->journey->countsForWorkspace($detection->workspace)['detections'] !== 1) {
             return null;
         }
 
@@ -141,7 +143,7 @@ class FirstValueExperienceService
      */
     public function opportunityCard(Opportunity $opportunity): ?array
     {
-        if (Opportunity::query()->where('workspace_id', $opportunity->workspace_id)->count() !== 1) {
+        if ($this->journey->countsForWorkspace($opportunity->workspace)['opportunities'] !== 1) {
             return null;
         }
 

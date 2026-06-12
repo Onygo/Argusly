@@ -1,6 +1,8 @@
 @extends('layouts.app', ['title' => 'Growth Programs'])
 
 @section('content')
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>

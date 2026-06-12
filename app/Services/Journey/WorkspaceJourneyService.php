@@ -21,6 +21,31 @@ class WorkspaceJourneyService
 {
     private const MINIMUM_SETUP_SCORE = 38;
 
+    /**
+     * @var array<string,ClientSite|null>
+     */
+    private array $firstSites = [];
+
+    /**
+     * @var array<string,array<string,int>>
+     */
+    private array $countsByWorkspace = [];
+
+    /**
+     * @var array<string,array<string,mixed>>
+     */
+    private array $activationsByWorkspace = [];
+
+    /**
+     * @var array<string,Collection<int,string>>
+     */
+    private array $siteIdsByWorkspace = [];
+
+    /**
+     * @var array<string,mixed>
+     */
+    private array $routeModels = [];
+
     public function __construct(private readonly FirstValueActivationService $activation)
     {
     }
@@ -32,7 +57,7 @@ class WorkspaceJourneyService
     {
         $site = $this->firstSite($workspace);
         $counts = $this->counts($workspace);
-        $activation = $this->activation->forWorkspace($workspace);
+        $activation = $this->activationForWorkspace($workspace);
         $setupCompleted = (int) $activation['score'] >= self::MINIMUM_SETUP_SCORE;
 
         $steps = collect([
@@ -61,7 +86,7 @@ class WorkspaceJourneyService
     {
         $site = $this->firstSite($workspace);
         $counts = $this->counts($workspace);
-        $activation = $this->activation->forWorkspace($workspace);
+        $activation = $this->activationForWorkspace($workspace);
 
         if ((int) $activation['score'] < self::MINIMUM_SETUP_SCORE) {
             $next = $activation['next_action'] ?? null;
@@ -130,11 +155,30 @@ class WorkspaceJourneyService
     /**
      * @return array<string,int>
      */
+    public function countsForWorkspace(Workspace $workspace): array
+    {
+        return $this->counts($workspace);
+    }
+
+    /**
+     * @return array<string,int>
+     */
     private function counts(Workspace $workspace): array
     {
-        $siteIds = ClientSite::query()->where('workspace_id', $workspace->id)->pluck('id');
+        $workspaceId = (string) $workspace->id;
 
-        return [
+        if ($this->usesRequestCache() && array_key_exists($workspaceId, $this->countsByWorkspace)) {
+            return $this->countsByWorkspace[$workspaceId];
+        }
+
+        $requestKey = $this->cacheKey($workspace, 'counts');
+        if ($this->usesRequestCache() && request()->attributes->has($requestKey)) {
+            return $this->countsByWorkspace[$workspaceId] = request()->attributes->get($requestKey);
+        }
+
+        $siteIds = $this->siteIds($workspace);
+
+        $counts = [
             'queries' => LlmTrackingQuery::query()->where('workspace_id', $workspace->id)->count(),
             'runs' => LlmTrackingQueryRun::query()->whereHas('trackingQuery', fn ($query) => $query->where('workspace_id', $workspace->id))->count(),
             'signal_events' => SignalEvent::query()->where('workspace_id', $workspace->id)->count(),
@@ -154,6 +198,16 @@ class WorkspaceJourneyService
             'drafts' => Draft::query()->whereIn('client_site_id', $siteIds)->count(),
             'approved_drafts' => Draft::query()->whereIn('client_site_id', $siteIds)->where('status', Draft::STATUS_APPROVED_FOR_PUBLISHING)->count(),
         ];
+
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($requestKey, $counts);
+        }
+
+        if ($this->usesRequestCache()) {
+            $this->countsByWorkspace[$workspaceId] = $counts;
+        }
+
+        return $counts;
     }
 
     private function aiVisibilityStatus(bool $setupCompleted, array $counts): string
@@ -294,51 +348,177 @@ class WorkspaceJourneyService
 
     private function firstSite(Workspace $workspace): ?ClientSite
     {
-        return ClientSite::query()->where('workspace_id', $workspace->id)->orderBy('created_at')->first();
+        $workspaceId = (string) $workspace->id;
+
+        if ($this->usesRequestCache() && array_key_exists($workspaceId, $this->firstSites)) {
+            return $this->firstSites[$workspaceId];
+        }
+
+        $requestKey = $this->cacheKey($workspace, 'first_site');
+        if ($this->usesRequestCache() && request()->attributes->has($requestKey)) {
+            return $this->firstSites[$workspaceId] = request()->attributes->get($requestKey);
+        }
+
+        $site = ClientSite::query()
+            ->where('workspace_id', $workspace->id)
+            ->orderBy('created_at')
+            ->first();
+
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($requestKey, $site);
+        }
+
+        if ($this->usesRequestCache()) {
+            $this->firstSites[$workspaceId] = $site;
+        }
+
+        return $site;
     }
 
     private function approvedOpportunityRoute(Workspace $workspace): ?string
     {
-        $opportunity = Opportunity::query()
+        $opportunity = $this->routeModel($workspace, 'approved_opportunity', fn (): ?Opportunity => Opportunity::query()
             ->where('workspace_id', $workspace->id)
             ->where('status', OpportunityStatus::APPROVED->value)
             ->latest('created_at')
-            ->first();
+            ->first());
 
         return $opportunity ? $this->route('app.opportunity-intelligence.opportunities.show', $opportunity) : null;
     }
 
     private function latestOpportunityRoute(Workspace $workspace): ?string
     {
-        $opportunity = Opportunity::query()
+        $opportunity = $this->routeModel($workspace, 'latest_opportunity', fn (): ?Opportunity => Opportunity::query()
             ->where('workspace_id', $workspace->id)
             ->latest('created_at')
-            ->first();
+            ->first());
 
         return $opportunity ? $this->route('app.opportunity-intelligence.opportunities.show', $opportunity) : $this->route('app.agentic-marketing.intelligence.index');
     }
 
     private function executionRoute(Workspace $workspace): ?string
     {
-        $plan = OpportunityExecutionPlan::query()->where('workspace_id', $workspace->id)->active()->latest('created_at')->first();
+        $plan = $this->routeModel($workspace, 'active_execution_plan', fn (): ?OpportunityExecutionPlan => OpportunityExecutionPlan::query()
+            ->where('workspace_id', $workspace->id)
+            ->active()
+            ->latest('created_at')
+            ->first());
 
         return $plan ? $this->route('app.opportunity-intelligence.execution-plans.show', $plan) : $this->approvedOpportunityRoute($workspace);
     }
 
     private function briefRoute(Workspace $workspace): ?string
     {
-        $siteIds = ClientSite::query()->where('workspace_id', $workspace->id)->pluck('id');
-        $brief = Brief::query()->whereIn('client_site_id', $siteIds)->latest('created_at')->first();
+        $brief = $this->routeModel($workspace, 'latest_brief', fn (): ?Brief => Brief::query()
+            ->whereIn('client_site_id', $this->siteIds($workspace))
+            ->latest('created_at')
+            ->first());
 
         return $brief ? $this->route('app.content.workspace.show', $brief) : $this->executionRoute($workspace);
     }
 
     private function draftRoute(Workspace $workspace): ?string
     {
-        $siteIds = ClientSite::query()->where('workspace_id', $workspace->id)->pluck('id');
-        $draft = Draft::query()->whereIn('client_site_id', $siteIds)->latest('created_at')->first();
+        $draft = $this->routeModel($workspace, 'latest_draft', fn (): ?Draft => Draft::query()
+            ->whereIn('client_site_id', $this->siteIds($workspace))
+            ->latest('created_at')
+            ->first());
 
         return $draft ? $this->route('app.drafts.show', $draft) : $this->briefRoute($workspace);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function activationForWorkspace(Workspace $workspace): array
+    {
+        $workspaceId = (string) $workspace->id;
+
+        if ($this->usesRequestCache() && array_key_exists($workspaceId, $this->activationsByWorkspace)) {
+            return $this->activationsByWorkspace[$workspaceId];
+        }
+
+        $requestKey = $this->cacheKey($workspace, 'activation');
+        if ($this->usesRequestCache() && request()->attributes->has($requestKey)) {
+            return $this->activationsByWorkspace[$workspaceId] = request()->attributes->get($requestKey);
+        }
+
+        $activation = $this->activation->forWorkspace($workspace);
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($requestKey, $activation);
+        }
+
+        if ($this->usesRequestCache()) {
+            $this->activationsByWorkspace[$workspaceId] = $activation;
+        }
+
+        return $activation;
+    }
+
+    /**
+     * @return Collection<int,string>
+     */
+    private function siteIds(Workspace $workspace): Collection
+    {
+        $workspaceId = (string) $workspace->id;
+
+        if ($this->usesRequestCache() && array_key_exists($workspaceId, $this->siteIdsByWorkspace)) {
+            return $this->siteIdsByWorkspace[$workspaceId];
+        }
+
+        $requestKey = $this->cacheKey($workspace, 'site_ids');
+        if ($this->usesRequestCache() && request()->attributes->has($requestKey)) {
+            return $this->siteIdsByWorkspace[$workspaceId] = request()->attributes->get($requestKey);
+        }
+
+        $siteIds = ClientSite::query()
+            ->where('workspace_id', $workspace->id)
+            ->pluck('id');
+
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($requestKey, $siteIds);
+        }
+
+        if ($this->usesRequestCache()) {
+            $this->siteIdsByWorkspace[$workspaceId] = $siteIds;
+        }
+
+        return $siteIds;
+    }
+
+    private function routeModel(Workspace $workspace, string $key, callable $callback): mixed
+    {
+        $cacheKey = (string) $workspace->id.'|'.$key;
+
+        if ($this->usesRequestCache() && array_key_exists($cacheKey, $this->routeModels)) {
+            return $this->routeModels[$cacheKey];
+        }
+
+        $requestKey = 'workspace_journey.'.$cacheKey;
+        if ($this->usesRequestCache() && request()->attributes->has($requestKey)) {
+            return $this->routeModels[$cacheKey] = request()->attributes->get($requestKey);
+        }
+
+        $model = $callback();
+        if ($this->usesRequestCache()) {
+            request()->attributes->set($requestKey, $model);
+        }
+
+        if ($this->usesRequestCache()) {
+            $this->routeModels[$cacheKey] = $model;
+        }
+
+        return $model;
+    }
+
+    private function cacheKey(Workspace $workspace, string $key): string
+    {
+        return 'workspace_journey.'.(string) $workspace->id.'|'.$key;
+    }
+
+    private function usesRequestCache(): bool
+    {
+        return request()->route() !== null;
     }
 
     private function route(string $name, mixed $parameters = []): ?string

@@ -71,6 +71,7 @@ class ContentPublication extends Model
     public const STATUS_DELIVERED = 'delivered';
     public const STATUS_FAILED = 'failed';
     public const STATUS_MISSING_REMOTE = 'missing_remote';
+    public const STATUS_CANCELLED = 'cancelled';
 
     // Legacy remote statuses (use RemotePublishStatus enum for new code)
     public const REMOTE_DRAFT = 'draft';
@@ -92,6 +93,7 @@ class ContentPublication extends Model
         'payload_checksum',
         'last_verified_at',
         'last_delivered_at',
+        'scheduled_publish_at',
         'last_error_at',
         'last_error_code',
         'last_error_message',
@@ -102,6 +104,7 @@ class ContentPublication extends Model
         'meta' => 'array',
         'last_verified_at' => 'datetime',
         'last_delivered_at' => 'datetime',
+        'scheduled_publish_at' => 'datetime',
         'last_error_at' => 'datetime',
         'locale' => SupportedLanguage::class,
     ];
@@ -170,6 +173,11 @@ class ContentPublication extends Model
         return $query->where('delivery_status', self::STATUS_MISSING_REMOTE);
     }
 
+    public function scopeScheduledForPublication($query)
+    {
+        return $query->whereNotNull('scheduled_publish_at');
+    }
+
     // Status helpers
 
     public function isDelivered(): bool
@@ -190,6 +198,21 @@ class ContentPublication extends Model
     public function isPending(): bool
     {
         return $this->delivery_status === self::STATUS_PENDING;
+    }
+
+    public function isTerminalForProgrammaticScheduling(): bool
+    {
+        return in_array((string) $this->delivery_status, [
+            self::STATUS_DELIVERED,
+            self::STATUS_FAILED,
+            self::STATUS_MISSING_REMOTE,
+            'failed_delivered',
+            'partial_success',
+            'out_of_sync',
+        ], true) || in_array((string) $this->remote_status, [
+            self::REMOTE_PUBLISHED,
+            'live',
+        ], true);
     }
 
     public function hasRemoteId(): bool

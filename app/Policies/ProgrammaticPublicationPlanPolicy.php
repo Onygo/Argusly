@@ -23,6 +23,27 @@ class ProgrammaticPublicationPlanPolicy
     public function update(User $user, ProgrammaticPublicationPlan $plan): bool
     {
         return $this->view($user, $plan)
-            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'reviewer'], true));
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true));
+    }
+
+    public function approve(User $user, ProgrammaticPublicationPlan $plan): bool
+    {
+        return $this->view($user, $plan)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
+    }
+
+    public function schedule(User $user, ProgrammaticPublicationPlan $plan): bool
+    {
+        return $this->approve($user, $plan);
+    }
+
+    public function cancel(User $user, ProgrammaticPublicationPlan $plan): bool
+    {
+        return $this->approve($user, $plan);
+    }
+
+    public function prepare(User $user, ProgrammaticPublicationPlan $plan): bool
+    {
+        return $this->update($user, $plan);
     }
 }

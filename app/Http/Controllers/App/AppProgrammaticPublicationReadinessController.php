@@ -68,7 +68,7 @@ class AppProgrammaticPublicationReadinessController extends Controller
 
     public function approve(ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $readiness);
+        $this->authorize('approve', $readiness);
 
         try {
             $readiness->approve(request()->user());
@@ -82,7 +82,7 @@ class AppProgrammaticPublicationReadinessController extends Controller
 
     public function needsWork(ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $readiness);
+        $this->authorize('approve', $readiness);
         $readiness->needsWork();
         $this->refreshProgramMetrics($readiness, $orchestrator);
 
@@ -91,7 +91,7 @@ class AppProgrammaticPublicationReadinessController extends Controller
 
     public function block(ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $readiness);
+        $this->authorize('approve', $readiness);
         $readiness->block();
         $this->refreshProgramMetrics($readiness, $orchestrator);
 
@@ -100,7 +100,7 @@ class AppProgrammaticPublicationReadinessController extends Controller
 
     public function reject(ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $readiness);
+        $this->authorize('approve', $readiness);
         $readiness->reject();
         $this->refreshProgramMetrics($readiness, $orchestrator);
 

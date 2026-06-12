@@ -32,11 +32,15 @@ class ProgrammaticPublicationScheduler
                 ProgrammaticPublicationPlanItem::STATUS_PLANNED,
                 ProgrammaticPublicationPlanItem::STATUS_APPROVED,
                 ProgrammaticPublicationPlanItem::STATUS_SCHEDULED,
+                ProgrammaticPublicationPlanItem::STATUS_NEEDS_ATTENTION,
             ])
             ->get()
             ->each(function (ProgrammaticPublicationPlanItem $item) use (&$count): void {
                 $this->scheduleItem($item);
-                $count++;
+
+                if ($item->refresh()->status === ProgrammaticPublicationPlanItem::STATUS_SCHEDULED) {
+                    $count++;
+                }
             });
 
         $this->refreshPlanStatus($plan);
@@ -44,7 +48,7 @@ class ProgrammaticPublicationScheduler
         return $count;
     }
 
-    public function scheduleItem(ProgrammaticPublicationPlanItem $item): ContentPublication
+    public function scheduleItem(ProgrammaticPublicationPlanItem $item): ?ContentPublication
     {
         $item->loadMissing(['plan', 'content', 'readiness', 'destination']);
         $plan = $item->plan;
@@ -61,6 +65,7 @@ class ProgrammaticPublicationScheduler
             ProgrammaticPublicationPlanItem::STATUS_PLANNED,
             ProgrammaticPublicationPlanItem::STATUS_APPROVED,
             ProgrammaticPublicationPlanItem::STATUS_SCHEDULED,
+            ProgrammaticPublicationPlanItem::STATUS_NEEDS_ATTENTION,
         ], true)) {
             throw new InvalidArgumentException('Only planned or approved publication plan items can be scheduled.');
         }
@@ -78,26 +83,64 @@ class ProgrammaticPublicationScheduler
         }
 
         $destination = $this->destinationFor($item);
-        if (! $destination instanceof ContentDestination && ! $item->content->client_site_id) {
-            throw new InvalidArgumentException('Publication plan item requires a destination before scheduling.');
+        if (! $destination instanceof ContentDestination) {
+            $this->markItemConflict($item, 'missing_destination', [
+                'message' => 'Choose a destination before scheduling this plan.',
+            ]);
+            $this->refreshPlanStatus($plan);
+
+            return null;
         }
 
-        return DB::transaction(function () use ($item, $plan, $destination): ContentPublication {
+        return DB::transaction(function () use ($item, $plan, $destination): ?ContentPublication {
             if ($existing = $this->existingPublicationForItem($item)) {
+                if ($existing->isTerminalForProgrammaticScheduling()) {
+                    $this->markItemConflict($item, 'existing_publication_terminal', [
+                        'content_publication_id' => (string) $existing->id,
+                        'delivery_status' => (string) $existing->delivery_status,
+                        'remote_status' => (string) $existing->remote_status,
+                    ]);
+                    $this->refreshPlanStatus($plan);
+
+                    return $existing->refresh();
+                }
+
+                $this->syncPublicationForSchedule($existing, $item, $plan, $destination);
                 $this->markItemScheduled($item, $existing);
                 $this->refreshPlanStatus($plan);
 
                 return $existing->refresh();
             }
 
+            if ($conflict = $this->conflictingActivePlanItem($item, $destination)) {
+                $this->markItemConflict($item, 'content_already_scheduled_in_active_plan', [
+                    'conflicting_plan_id' => (string) $conflict->programmatic_publication_plan_id,
+                    'conflicting_plan_item_id' => (string) $conflict->id,
+                ]);
+                $this->refreshPlanStatus($plan);
+
+                return ContentPublication::query()->whereKey($conflict->content_publication_id)->first();
+            }
+
             $provider = $this->providerFor($destination, $item->content);
             $publication = ContentPublication::resolveForDelivery(
                 (string) $item->content_id,
-                $destination?->id ? (string) $destination->id : null,
-                $destination ? null : ($item->content->client_site_id ? (string) $item->content->client_site_id : null),
+                (string) $destination->id,
+                null,
                 $provider,
                 $item->content->language,
             );
+
+            if ($publication->exists && $publication->isTerminalForProgrammaticScheduling()) {
+                $this->markItemConflict($item, 'existing_publication_terminal', [
+                    'content_publication_id' => (string) $publication->id,
+                    'delivery_status' => (string) $publication->delivery_status,
+                    'remote_status' => (string) $publication->remote_status,
+                ]);
+                $this->refreshPlanStatus($plan);
+
+                return $publication->refresh();
+            }
 
             $meta = array_replace_recursive((array) $publication->meta, [
                 'source' => 'programmatic_publication_scheduler',
@@ -111,12 +154,13 @@ class ProgrammaticPublicationScheduler
             ]);
 
             $publication->forceFill([
-                'destination_id' => $destination?->id,
-                'client_site_id' => $destination ? null : $item->content->client_site_id,
+                'destination_id' => $destination->id,
+                'client_site_id' => null,
                 'provider' => $provider,
                 'remote_type' => $this->remoteTypeFor($item->content),
                 'remote_status' => $item->planned_publish_at ? ContentPublication::REMOTE_SCHEDULED : ContentPublication::REMOTE_DRAFT,
                 'delivery_status' => ContentPublication::STATUS_PENDING,
+                'scheduled_publish_at' => $item->planned_publish_at,
                 'meta' => $meta,
             ])->save();
 
@@ -130,16 +174,31 @@ class ProgrammaticPublicationScheduler
     public function existingPublicationForItem(ProgrammaticPublicationPlanItem $item): ?ContentPublication
     {
         $publicationId = (string) data_get($item->metadata, 'content_publication_id', '');
-        if ($publicationId !== '') {
-            $publication = ContentPublication::query()->whereKey($publicationId)->first();
+        if ($item->content_publication_id) {
+            $publication = ContentPublication::query()->whereKey($item->content_publication_id)->first();
             if ($publication) {
                 return $publication;
             }
         }
 
-        return ContentPublication::query()
+        if ($publicationId !== '') {
+            $publication = ContentPublication::query()->whereKey($publicationId)->first();
+            if ($publication) {
+                $this->restorePublicationLink($item, $publication);
+
+                return $publication;
+            }
+        }
+
+        $publication = ContentPublication::query()
             ->where('meta->programmatic_publication_plan_item_id', (string) $item->id)
             ->first();
+
+        if ($publication) {
+            $this->restorePublicationLink($item, $publication);
+        }
+
+        return $publication;
     }
 
     private function markItemScheduled(ProgrammaticPublicationPlanItem $item, ContentPublication $publication): void
@@ -147,10 +206,12 @@ class ProgrammaticPublicationScheduler
         $item->forceFill([
             'status' => ProgrammaticPublicationPlanItem::STATUS_SCHEDULED,
             'destination_id' => $publication->destination_id ?: $item->destination_id,
+            'content_publication_id' => $publication->id,
             'metadata' => array_replace_recursive((array) $item->metadata, [
                 'content_publication_id' => (string) $publication->id,
                 'scheduled_at' => now()->toIso8601String(),
                 'publishes_live' => false,
+                'conflict' => null,
             ]),
         ])->save();
     }
@@ -160,9 +221,13 @@ class ProgrammaticPublicationScheduler
         $plan->refreshCounters();
         $total = $plan->items()->count();
         $scheduled = $plan->items()->where('status', ProgrammaticPublicationPlanItem::STATUS_SCHEDULED)->count();
+        $blocked = $plan->items()->whereIn('status', [
+            ProgrammaticPublicationPlanItem::STATUS_CONFLICT,
+            ProgrammaticPublicationPlanItem::STATUS_NEEDS_ATTENTION,
+        ])->count();
 
         $plan->forceFill([
-            'status' => $total > 0 && $scheduled >= $total
+            'status' => $total > 0 && $blocked === 0 && $scheduled >= $total
                 ? ProgrammaticPublicationPlan::STATUS_SCHEDULED
                 : ProgrammaticPublicationPlan::STATUS_SCHEDULING,
         ])->save();
@@ -179,14 +244,88 @@ class ProgrammaticPublicationScheduler
             return $item->plan->destination;
         }
 
-        if ($item->content?->contentDestination instanceof ContentDestination) {
-            return $item->content->contentDestination;
-        }
-
-        return ContentDestination::query()
+        $activeDestinations = ContentDestination::query()
             ->where('workspace_id', $item->workspace_id)
             ->where('status', 'active')
+            ->orderBy('created_at')
+            ->limit(2)
+            ->get();
+
+        return $activeDestinations->count() === 1 ? $activeDestinations->first() : null;
+    }
+
+    private function syncPublicationForSchedule(
+        ContentPublication $publication,
+        ProgrammaticPublicationPlanItem $item,
+        ProgrammaticPublicationPlan $plan,
+        ContentDestination $destination,
+    ): void {
+        $provider = $this->providerFor($destination, $item->content);
+        $publication->forceFill([
+            'destination_id' => $destination->id,
+            'client_site_id' => null,
+            'provider' => $provider,
+            'remote_type' => $this->remoteTypeFor($item->content),
+            'remote_status' => $item->planned_publish_at ? ContentPublication::REMOTE_SCHEDULED : ContentPublication::REMOTE_DRAFT,
+            'delivery_status' => ContentPublication::STATUS_PENDING,
+            'scheduled_publish_at' => $item->planned_publish_at,
+            'meta' => array_replace_recursive((array) $publication->meta, [
+                'source' => 'programmatic_publication_scheduler',
+                'programmatic_publication_plan_id' => (string) $plan->id,
+                'programmatic_publication_plan_item_id' => (string) $item->id,
+                'programmatic_publication_readiness_id' => (string) $item->publication_readiness_id,
+                'planned_publish_at' => $item->planned_publish_at?->toIso8601String(),
+                'publishes_live' => false,
+            ]),
+        ])->save();
+    }
+
+    private function conflictingActivePlanItem(ProgrammaticPublicationPlanItem $item, ContentDestination $destination): ?ProgrammaticPublicationPlanItem
+    {
+        return ProgrammaticPublicationPlanItem::query()
+            ->where('workspace_id', $item->workspace_id)
+            ->where('content_id', $item->content_id)
+            ->where('id', '!=', $item->id)
+            ->where('destination_id', $destination->id)
+            ->whereIn('status', [
+                ProgrammaticPublicationPlanItem::STATUS_PLANNED,
+                ProgrammaticPublicationPlanItem::STATUS_APPROVED,
+                ProgrammaticPublicationPlanItem::STATUS_SCHEDULED,
+            ])
+            ->whereHas('plan', function ($query): void {
+                $query->whereIn('status', ProgrammaticPublicationPlan::activeSchedulingStatuses());
+            })
             ->first();
+    }
+
+    private function markItemConflict(ProgrammaticPublicationPlanItem $item, string $reason, array $context = []): void
+    {
+        $item->forceFill([
+            'status' => $reason === 'missing_destination'
+                ? ProgrammaticPublicationPlanItem::STATUS_NEEDS_ATTENTION
+                : ProgrammaticPublicationPlanItem::STATUS_CONFLICT,
+            'metadata' => array_replace_recursive((array) $item->metadata, [
+                'conflict' => array_merge([
+                    'reason' => $reason,
+                    'recorded_at' => now()->toIso8601String(),
+                ], $context),
+            ]),
+        ])->save();
+    }
+
+    private function restorePublicationLink(ProgrammaticPublicationPlanItem $item, ContentPublication $publication): void
+    {
+        if ((string) $item->content_publication_id === (string) $publication->id) {
+            return;
+        }
+
+        $item->forceFill([
+            'content_publication_id' => $publication->id,
+            'metadata' => array_replace_recursive((array) $item->metadata, [
+                'content_publication_id' => (string) $publication->id,
+                'link_restored_at' => now()->toIso8601String(),
+            ]),
+        ])->save();
     }
 
     private function providerFor(?ContentDestination $destination, Content $content): string

@@ -20,12 +20,15 @@ class ProgrammaticPublicationPlanItem extends Model
     public const STATUS_SKIPPED = 'skipped';
     public const STATUS_FAILED = 'failed';
     public const STATUS_CANCELLED = 'cancelled';
+    public const STATUS_CONFLICT = 'conflict';
+    public const STATUS_NEEDS_ATTENTION = 'needs_attention';
 
     protected $fillable = [
         'workspace_id',
         'programmatic_publication_plan_id',
         'content_id',
         'publication_readiness_id',
+        'content_publication_id',
         'growth_asset_type',
         'title',
         'slug',
@@ -55,6 +58,8 @@ class ProgrammaticPublicationPlanItem extends Model
             self::STATUS_SKIPPED,
             self::STATUS_FAILED,
             self::STATUS_CANCELLED,
+            self::STATUS_CONFLICT,
+            self::STATUS_NEEDS_ATTENTION,
         ];
     }
 
@@ -83,8 +88,20 @@ class ProgrammaticPublicationPlanItem extends Model
         return $this->belongsTo(ContentDestination::class, 'destination_id');
     }
 
+    public function contentPublication(): BelongsTo
+    {
+        return $this->belongsTo(ContentPublication::class, 'content_publication_id');
+    }
+
     public function linkedPublication(): ?ContentPublication
     {
+        if ($this->content_publication_id) {
+            $publication = ContentPublication::query()->whereKey($this->content_publication_id)->first();
+            if ($publication) {
+                return $publication;
+            }
+        }
+
         $publicationId = (string) data_get($this->metadata, 'content_publication_id', '');
         if ($publicationId !== '') {
             $publication = ContentPublication::query()->whereKey($publicationId)->first();

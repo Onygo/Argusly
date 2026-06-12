@@ -13,6 +13,15 @@
     $researchLayerFlag = app(\App\Support\FeatureFlags::class)->isEnabled('research_layer', false);
     $agenticMarketingFlag = app(\App\Support\FeatureFlags::class)->isEnabled('agentic_marketing', false);
     $signalIntelligenceFlag = app(\App\Support\FeatureFlags::class)->isEnabled('signal_intelligence', false);
+    $programmaticGrowthNavActive = request()->routeIs('app.growth-programs.*')
+        || request()->routeIs('app.programmatic-growth.*')
+        || request()->routeIs('app.programmatic-opportunities.*')
+        || request()->routeIs('app.programmatic-clusters.*')
+        || request()->routeIs('app.programmatic-brief-blueprints.*')
+        || request()->routeIs('app.programmatic-draft-requests.*')
+        || request()->routeIs('app.programmatic-draft-reviews.*')
+        || request()->routeIs('app.programmatic-publication-readiness.*')
+        || request()->routeIs('app.programmatic-publication-plans.*');
     $sitesNavActive = request()->routeIs('app.sites') || request()->routeIs('app.sites.show') || request()->routeIs('app.sites.wordpress-plugin.download');
     $insightsNavActive = request()->routeIs('app.insights*')
         || request()->routeIs('app.sites.insights*')
@@ -110,6 +119,27 @@
                             <span data-sidebar-label class="truncate">Intelligence</span>
                             <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Opportunity Intelligence</span>
                         </a>
+                        <details data-sidebar-label class="rounded-md" @if($programmaticGrowthNavActive) open @endif>
+                            <summary class="group relative flex h-9 cursor-pointer list-none items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $programmaticGrowthNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                                <span class="flex h-5 w-5 shrink-0 items-center justify-center">
+                                    <i data-lucide="network" class="h-4 w-4"></i>
+                                </span>
+                                <span class="truncate">Programmatic Growth</span>
+                            </summary>
+                            <div class="ml-8 mt-1 space-y-1 border-l border-border pl-2 text-xs">
+                                <a href="{{ route('app.growth-programs.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.growth-programs.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Growth Programs</a>
+                                <a href="{{ route('app.programmatic-opportunities.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-opportunities.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Programmatic Opportunities</a>
+                                <a href="{{ route('app.programmatic-clusters.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-clusters.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Programmatic Clusters</a>
+                                <a href="{{ route('app.programmatic-brief-blueprints.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-brief-blueprints.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Brief Blueprints</a>
+                                <a href="{{ route('app.programmatic-draft-requests.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-draft-requests.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Draft Requests</a>
+                                <a href="{{ route('app.programmatic-draft-reviews.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-draft-reviews.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Draft Reviews</a>
+                                <a href="{{ route('app.programmatic-publication-readiness.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-publication-readiness.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Publication Readiness</a>
+                                <a href="{{ route('app.programmatic-publication-plans.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-publication-plans.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Publication Plans</a>
+                                @if (auth()->user()?->is_admin || in_array((string) auth()->user()?->role, ['owner', 'admin'], true))
+                                    <a href="{{ route('app.programmatic-growth.beta-report') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-growth.beta-report') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Beta Report</a>
+                                @endif
+                            </div>
+                        </details>
                         <a href="{{ route('app.agentic-marketing.campaign-planner.index') }}" data-sidebar-item data-sidebar-title="Campaign Planner" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.campaign-planner.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
                             <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
                                 <i data-lucide="map" class="h-4 w-4"></i>

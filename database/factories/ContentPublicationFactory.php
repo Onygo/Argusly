@@ -30,6 +30,7 @@ class ContentPublicationFactory extends Factory
             'payload_checksum' => null,
             'last_verified_at' => null,
             'last_delivered_at' => null,
+            'scheduled_publish_at' => null,
             'last_error_at' => null,
             'last_error_code' => null,
             'last_error_message' => null,

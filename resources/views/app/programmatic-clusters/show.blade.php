@@ -3,6 +3,8 @@
 @section('content')
     @php($pattern = $cluster->pattern_type instanceof \App\Enums\ProgrammaticPatternType ? $cluster->pattern_type : \App\Enums\ProgrammaticPatternType::tryFrom((string) $cluster->pattern_type))
 
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -11,16 +13,22 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ $pattern?->label() ?? $cluster->pattern_type }} · {{ str($cluster->status)->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-clusters.validate', $cluster) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Validate</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.reject', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.brief-blueprints.build', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Build Blueprints</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.convert-approved-blueprints', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert Approved</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.prepare-draft-requests', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Prepare Draft Requests</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.generate-approved-requests', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Generate Approved Requests</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.review-generated-drafts', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Review Generated Drafts</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.convert-approved-reviews-to-content', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert Approved Reviews</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.publication-readiness', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Run Publication Readiness</button></form>
-                <form method="POST" action="{{ route('app.programmatic-clusters.publication-plans.create', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Publication Plan</button></form>
+                @can('approve', $cluster)
+                    <form method="POST" action="{{ route('app.programmatic-clusters.validate', $cluster) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Validate</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.reject', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @endcan
+                @can('prepare', $cluster)
+                    <form method="POST" action="{{ route('app.programmatic-clusters.brief-blueprints.build', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Build Blueprints</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.prepare-draft-requests', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Prepare Draft Requests</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.generate-approved-requests', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Generate Approved Requests</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.review-generated-drafts', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Review Generated Drafts</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.publication-readiness', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Run Publication Readiness</button></form>
+                @endcan
+                @can('convert', $cluster)
+                    <form method="POST" action="{{ route('app.programmatic-clusters.convert-approved-blueprints', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert Approved</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.convert-approved-reviews-to-content', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert Approved Reviews</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-clusters.publication-plans.create', $cluster) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Publication Plan</button></form>
+                @endcan
             </div>
         </div>
 
@@ -122,10 +130,12 @@
                                                     <div class="mt-1 text-xs"><a href="{{ route('app.content.workspace.show', $linkedBrief) }}" class="text-primary hover:underline">Brief</a></div>
                                                 @endif
                                             @else
+                                                @can('prepare', $cluster)
                                                 <form method="POST" action="{{ route('app.programmatic-brief-blueprints.build.item', $item) }}">
                                                     @csrf
                                                     <button class="text-xs font-medium text-primary hover:underline">Build</button>
                                                 </form>
+                                                @endcan
                                             @endif
                                         </td>
                                         <td class="py-2 pr-4 text-textSecondary">
@@ -189,6 +199,7 @@
                     @if ($cluster->growthProgram)
                         <a href="{{ route('app.growth-programs.show', $cluster->growthProgram) }}" class="mt-3 block text-sm font-medium text-primary hover:underline">{{ $cluster->growthProgram->name }}</a>
                     @else
+                        @can('approve', $cluster)
                         <form method="POST" action="{{ route('app.programmatic-clusters.attach', $cluster) }}" class="mt-4 space-y-2">
                             @csrf
                             <select name="growth_program_id" class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
@@ -198,6 +209,7 @@
                             </select>
                             <button class="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Attach</button>
                         </form>
+                        @endcan
                     @endif
                 </section>
 

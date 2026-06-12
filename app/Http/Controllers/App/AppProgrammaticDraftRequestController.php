@@ -57,7 +57,7 @@ class AppProgrammaticDraftRequestController extends Controller
         ProgrammaticDraftRequestBuilder $builder,
         GrowthProgramOrchestrator $orchestrator,
     ): RedirectResponse {
-        $this->authorize('update', $blueprint);
+        $this->authorize('prepare', $blueprint);
 
         try {
             if ($blueprint->growthProgram instanceof GrowthProgram) {
@@ -76,7 +76,7 @@ class AppProgrammaticDraftRequestController extends Controller
 
     public function approve(ProgrammaticDraftRequest $draftRequest, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $draftRequest);
+        $this->authorize('approve', $draftRequest);
         $draftRequest->approve();
         $this->refreshProgramMetrics($draftRequest, $orchestrator);
 
@@ -85,7 +85,7 @@ class AppProgrammaticDraftRequestController extends Controller
 
     public function reject(ProgrammaticDraftRequest $draftRequest, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $draftRequest);
+        $this->authorize('approve', $draftRequest);
         $draftRequest->reject();
         $this->refreshProgramMetrics($draftRequest, $orchestrator);
 
@@ -94,7 +94,7 @@ class AppProgrammaticDraftRequestController extends Controller
 
     public function cancel(ProgrammaticDraftRequest $draftRequest, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $draftRequest);
+        $this->authorize('cancel', $draftRequest);
         $draftRequest->cancel();
         $this->refreshProgramMetrics($draftRequest, $orchestrator);
 
@@ -103,7 +103,7 @@ class AppProgrammaticDraftRequestController extends Controller
 
     public function generate(ProgrammaticDraftRequest $draftRequest, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $draftRequest);
+        $this->authorize('prepare', $draftRequest);
         $draftRequest->loadMissing('growthProgram');
 
         if (! $draftRequest->growthProgram) {

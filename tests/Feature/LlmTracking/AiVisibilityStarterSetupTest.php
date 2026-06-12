@@ -11,7 +11,7 @@ use App\Models\Organization;
 use App\Models\SiteCompetitor;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Services\AiVisibility\AiVisibilityStarterQueryService;
+use App\Services\AIVisibility\AiVisibilityStarterQueryService;
 use App\Services\Onboarding\FirstValueActivationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;

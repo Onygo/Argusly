@@ -32,7 +32,7 @@ class GrowthProgramPolicy
             return true;
         }
 
-        return in_array((string) $user->role, ['owner', 'admin', 'editor'], true);
+        return in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true);
     }
 
     public function update(User $user, GrowthProgram $program): bool
@@ -45,6 +45,17 @@ class GrowthProgramPolicy
             return true;
         }
 
-        return in_array((string) $user->role, ['owner', 'admin', 'editor'], true);
+        return in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true);
+    }
+
+    public function approve(User $user, GrowthProgram $program): bool
+    {
+        return $this->view($user, $program)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
+    }
+
+    public function prepare(User $user, GrowthProgram $program): bool
+    {
+        return $this->update($user, $program);
     }
 }

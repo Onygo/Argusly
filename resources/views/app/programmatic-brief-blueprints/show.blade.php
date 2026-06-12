@@ -5,6 +5,8 @@
     @php($linkedBrief = $blueprint->linkedBrief())
     @php($draftRequest = $blueprint->draftRequest)
 
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -13,14 +15,22 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ $type?->label() ?? $blueprint->growth_asset_type }} · {{ str($blueprint->status)->headline() }} · {{ $blueprint->readinessPercentage() }}% readiness</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-brief-blueprints.review', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Review</button></form>
-                <form method="POST" action="{{ route('app.programmatic-brief-blueprints.approve', $blueprint) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
-                <form method="POST" action="{{ route('app.programmatic-brief-blueprints.reject', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @can('prepare', $blueprint)
+                    <form method="POST" action="{{ route('app.programmatic-brief-blueprints.review', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Review</button></form>
+                @endcan
+                @can('approve', $blueprint)
+                    <form method="POST" action="{{ route('app.programmatic-brief-blueprints.approve', $blueprint) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-brief-blueprints.reject', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                @endcan
                 @if (in_array($blueprint->status, [\App\Models\ProgrammaticBriefBlueprint::STATUS_APPROVED, \App\Models\ProgrammaticBriefBlueprint::STATUS_CONVERTED], true))
-                    <form method="POST" action="{{ route('app.programmatic-brief-blueprints.convert', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert to Brief</button></form>
+                    @can('convert', $blueprint)
+                        <form method="POST" action="{{ route('app.programmatic-brief-blueprints.convert', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Convert to Brief</button></form>
+                    @endcan
                 @endif
                 @if ($blueprint->status === \App\Models\ProgrammaticBriefBlueprint::STATUS_CONVERTED)
-                    <form method="POST" action="{{ route('app.programmatic-draft-requests.prepare.blueprint', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Prepare Draft Request</button></form>
+                    @can('prepare', $blueprint)
+                        <form method="POST" action="{{ route('app.programmatic-draft-requests.prepare.blueprint', $blueprint) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Prepare Draft Request</button></form>
+                    @endcan
                 @endif
             </div>
         </div>

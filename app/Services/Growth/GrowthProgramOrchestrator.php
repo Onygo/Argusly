@@ -947,6 +947,10 @@ class GrowthProgramOrchestrator
 
         $count = app(ProgrammaticPublicationScheduler::class)->schedulePlan($plan);
         $plan->items()->get()->each(function (ProgrammaticPublicationPlanItem $item) use ($program, $run): void {
+            if ($item->status !== ProgrammaticPublicationPlanItem::STATUS_SCHEDULED) {
+                return;
+            }
+
             $publication = $item->linkedPublication();
             if ($publication) {
                 $this->attachScheduledPublication($program, $publication, $run);
@@ -1378,6 +1382,10 @@ class GrowthProgramOrchestrator
                 'brief_blueprints_count' => $briefBlueprints->count(),
                 'briefs_count' => $briefs->count(),
                 'drafts_count' => $drafts->count(),
+                'publication_readiness_count' => $publicationReadiness->count(),
+                'publication_plans_count' => $publicationPlans->count(),
+                'approved_publication_plan_items_count' => $approvedPublicationPlanItemsCount,
+                'scheduled_programmatic_publications_count' => $scheduledProgrammaticPublications->count(),
                 'publications_count' => $publications->count(),
                 'published_count' => $publishedCount,
             ]),
@@ -1549,7 +1557,19 @@ class GrowthProgramOrchestrator
         }
 
         if (($counts['publications_count'] ?? 0) < 1) {
-            return 'Schedule or attach a publication record.';
+            if (($counts['publication_readiness_count'] ?? 0) < 1) {
+                return 'Run publication readiness checks.';
+            }
+
+            if (($counts['publication_plans_count'] ?? 0) < 1) {
+                return 'Create a publication plan.';
+            }
+
+            if (($counts['approved_publication_plan_items_count'] ?? 0) > 0 && ($counts['scheduled_programmatic_publications_count'] ?? 0) < 1) {
+                return 'Prepare scheduled publication records.';
+            }
+
+            return 'Prepare or attach a publication record.';
         }
 
         if (($counts['published_count'] ?? 0) < 1 && $status->progress() < GrowthProgramStatus::PUBLISHED->progress()) {

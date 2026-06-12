@@ -10,6 +10,7 @@ use App\Models\OnboardingState;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Notifications\LowCreditWarningNotification;
 use App\Notifications\OrganizationApprovalRequested;
 use App\Notifications\UserApprovalRequested;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,8 +27,8 @@ it('renders onboarding email in html and text with system footer', function () {
 
     $mail->assertHasSubject('Confirm your email address');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
+    $mail->assertSeeInHtml('argusly-logo.png');
     $mail->assertSeeInText('This is a system email from Argusly.');
-    $mail->assertDontSeeInHtml('<img', escape: false);
 });
 
 it('renders contact submission email in html and text with system footer', function () {
@@ -49,8 +50,8 @@ it('renders contact submission email in html and text with system footer', funct
 
     $mail->assertHasSubject('Argusly contact: Enterprise pricing');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
+    $mail->assertSeeInHtml('argusly-logo.png');
     $mail->assertSeeInText('This is a system email from Argusly.');
-    $mail->assertDontSeeInHtml('<img', escape: false);
 });
 
 it('renders early access invitation email in html and text with system footer', function () {
@@ -78,8 +79,8 @@ it('renders early access invitation email in html and text with system footer', 
 
     $mail->assertHasSubject('Your Argusly Pilot Program invite');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
+    $mail->assertSeeInHtml('argusly-logo.png');
     $mail->assertSeeInText('This is a system email from Argusly.');
-    $mail->assertDontSeeInHtml('<img', escape: false);
 });
 
 it('renders organization approval notification with html and text views', function () {
@@ -98,8 +99,9 @@ it('renders organization approval notification with html and text views', functi
     $text = view((string) $message->view['text'], $message->data())->render();
 
     expect($html)->toContain('This is a system email from Argusly.')
+        ->and($html)->toContain('argusly-logo.png')
         ->and($text)->toContain('This is a system email from Argusly.')
-        ->and($html)->not->toContain('<img');
+        ->and($text)->toContain('Argusly is a product by Onygo.');
 });
 
 it('renders user approval notification with html and text views', function () {
@@ -118,8 +120,45 @@ it('renders user approval notification with html and text views', function () {
     $text = view((string) $message->view['text'], $message->data())->render();
 
     expect($html)->toContain('This is a system email from Argusly.')
+        ->and($html)->toContain('argusly-logo.png')
         ->and($text)->toContain('This is a system email from Argusly.')
-        ->and($html)->not->toContain('<img');
+        ->and($text)->toContain('Argusly is a product by Onygo.');
+});
+
+it('renders low credit warning notification with Argusly mail layout', function () {
+    $admin = User::query()->create([
+        'name' => 'Admin',
+        'email' => 'admin-' . Str::random(6) . '@example.com',
+        'password' => bcrypt('password'),
+        'is_admin' => true,
+        'approved_at' => now(),
+        'active' => true,
+    ]);
+
+    $notification = new LowCreditWarningNotification([
+        'available_credits' => 8,
+        'has_active_automations' => true,
+        'active_automation_count' => 2,
+        'next_automation_run_label' => 'tomorrow',
+        'cta_url' => 'https://argusly.test/app/billing',
+    ], 'en');
+
+    $message = $notification->toMail($admin);
+
+    expect($message)->toBeInstanceOf(MailMessage::class)
+        ->and($message->subject)->toBe('Credits are running low')
+        ->and($message->view)->toBeArray()
+        ->and($message->view['html'] ?? null)->toBe('emails.notifications.low-credit-warning')
+        ->and($message->view['text'] ?? null)->toBe('emails.notifications.low-credit-warning-text');
+
+    $html = view((string) $message->view['html'], $message->data())->render();
+    $text = view((string) $message->view['text'], $message->data())->render();
+
+    expect($html)->toContain('argusly-logo.png')
+        ->and($html)->toContain('Available credits')
+        ->and($html)->toContain('8')
+        ->and($text)->toContain('This is a system email from Argusly.')
+        ->and($text)->toContain('Available credits: 8');
 });
 
 /**

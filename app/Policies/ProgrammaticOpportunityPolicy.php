@@ -23,6 +23,12 @@ class ProgrammaticOpportunityPolicy
     public function update(User $user, ProgrammaticOpportunity $opportunity): bool
     {
         return $this->view($user, $opportunity)
-            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor'], true));
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true));
+    }
+
+    public function approve(User $user, ProgrammaticOpportunity $opportunity): bool
+    {
+        return $this->view($user, $opportunity)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
     }
 }

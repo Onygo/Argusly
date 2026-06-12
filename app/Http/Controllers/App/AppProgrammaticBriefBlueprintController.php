@@ -62,7 +62,7 @@ class AppProgrammaticBriefBlueprintController extends Controller
         GrowthProgramOrchestrator $orchestrator,
     ): RedirectResponse {
         $item->loadMissing('cluster.growthProgram');
-        $this->authorize('update', $item->cluster);
+        $this->authorize('prepare', $item->cluster);
 
         if ($item->cluster?->growthProgram) {
             $blueprint = $orchestrator->buildBriefBlueprintForClusterItem($item->cluster->growthProgram, $item);
@@ -77,7 +77,7 @@ class AppProgrammaticBriefBlueprintController extends Controller
 
     public function buildForCluster(ProgrammaticCluster $cluster, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $cluster);
+        $this->authorize('prepare', $cluster);
         $cluster->loadMissing('growthProgram');
 
         if ($cluster->growthProgram) {
@@ -108,7 +108,7 @@ class AppProgrammaticBriefBlueprintController extends Controller
 
     public function approve(ProgrammaticBriefBlueprint $blueprint, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $blueprint);
+        $this->authorize('approve', $blueprint);
         $blueprint->approve();
         $this->refreshProgramMetrics($blueprint, $orchestrator);
 
@@ -117,7 +117,7 @@ class AppProgrammaticBriefBlueprintController extends Controller
 
     public function reject(ProgrammaticBriefBlueprint $blueprint, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $blueprint);
+        $this->authorize('approve', $blueprint);
         $blueprint->reject();
         $this->refreshProgramMetrics($blueprint, $orchestrator);
 
@@ -129,7 +129,7 @@ class AppProgrammaticBriefBlueprintController extends Controller
         ProgrammaticBriefConverter $converter,
         GrowthProgramOrchestrator $orchestrator,
     ): RedirectResponse {
-        $this->authorize('update', $blueprint);
+        $this->authorize('convert', $blueprint);
 
         try {
             $brief = $converter->convertBlueprint($blueprint);

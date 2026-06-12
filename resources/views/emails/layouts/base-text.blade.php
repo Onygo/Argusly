@@ -23,5 +23,4 @@ Link: {{ $cta_url }}
 
 @endif
 This is a system email from Argusly.
-If you did not expect this message, you can safely ignore it.
-
+Argusly is a product by Onygo. If you did not expect this message, you can safely ignore it.

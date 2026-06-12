@@ -5,6 +5,8 @@
     @php($linkedDraft = $draftRequest->linkedDraft())
     @php($review = $draftRequest->review)
 
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -13,14 +15,20 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ $type?->label() ?? $draftRequest->growth_asset_type }} · {{ str($draftRequest->status)->headline() }} · {{ str($draftRequest->generation_mode)->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-draft-requests.approve', $draftRequest) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
-                <form method="POST" action="{{ route('app.programmatic-draft-requests.reject', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
-                <form method="POST" action="{{ route('app.programmatic-draft-requests.cancel', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Cancel</button></form>
+                @can('approve', $draftRequest)
+                    <form method="POST" action="{{ route('app.programmatic-draft-requests.approve', $draftRequest) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-draft-requests.reject', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-draft-requests.cancel', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Cancel</button></form>
+                @endcan
                 @if ($draftRequest->status === \App\Models\ProgrammaticDraftRequest::STATUS_APPROVED)
-                    <form method="POST" action="{{ route('app.programmatic-draft-requests.generate', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Generate Draft</button></form>
+                    @can('prepare', $draftRequest)
+                        <form method="POST" action="{{ route('app.programmatic-draft-requests.generate', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Generate Draft</button></form>
+                    @endcan
                 @endif
                 @if ($draftRequest->status === \App\Models\ProgrammaticDraftRequest::STATUS_GENERATED)
-                    <form method="POST" action="{{ route('app.programmatic-draft-reviews.run.request', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Run Review</button></form>
+                    @can('prepare', $draftRequest)
+                        <form method="POST" action="{{ route('app.programmatic-draft-reviews.run.request', $draftRequest) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Run Review</button></form>
+                    @endcan
                 @endif
             </div>
         </div>

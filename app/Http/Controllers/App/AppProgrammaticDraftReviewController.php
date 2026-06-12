@@ -53,7 +53,7 @@ class AppProgrammaticDraftReviewController extends Controller
 
     public function runForRequest(ProgrammaticDraftRequest $draftRequest, GrowthProgramOrchestrator $orchestrator, ProgrammaticDraftReviewService $service): RedirectResponse
     {
-        $this->authorize('update', $draftRequest);
+        $this->authorize('prepare', $draftRequest);
 
         try {
             if ($draftRequest->growthProgram instanceof GrowthProgram) {
@@ -70,7 +70,7 @@ class AppProgrammaticDraftReviewController extends Controller
 
     public function approve(ProgrammaticDraftReview $review, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $review);
+        $this->authorize('approve', $review);
         try {
             $review->approve(request()->user());
         } catch (\InvalidArgumentException $exception) {
@@ -83,7 +83,7 @@ class AppProgrammaticDraftReviewController extends Controller
 
     public function needsWork(ProgrammaticDraftReview $review, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $review);
+        $this->authorize('approve', $review);
         $review->needsWork(request()->user());
         $this->refreshProgramMetrics($review, $orchestrator);
 
@@ -92,7 +92,7 @@ class AppProgrammaticDraftReviewController extends Controller
 
     public function block(ProgrammaticDraftReview $review, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $review);
+        $this->authorize('approve', $review);
         $review->block(request()->user());
         $this->refreshProgramMetrics($review, $orchestrator);
 
@@ -101,7 +101,7 @@ class AppProgrammaticDraftReviewController extends Controller
 
     public function reject(ProgrammaticDraftReview $review, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $review);
+        $this->authorize('approve', $review);
         $review->reject(request()->user());
         $this->refreshProgramMetrics($review, $orchestrator);
 
@@ -110,7 +110,7 @@ class AppProgrammaticDraftReviewController extends Controller
 
     public function convertToContent(ProgrammaticDraftReview $review, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
-        $this->authorize('update', $review);
+        $this->authorize('convert', $review);
         $review->loadMissing('growthProgram');
 
         if (! $review->growthProgram instanceof GrowthProgram) {

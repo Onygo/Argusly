@@ -4,6 +4,7 @@ use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
@@ -68,6 +69,46 @@ it('allows admin into dashboard but blocks billing endpoints', function () {
     $this->actingAs($admin)
         ->get(route('admin.billing.index'))
         ->assertStatus(403);
+});
+
+it('allows admin users to view their own admin profile', function () {
+    $admin = makeAdminAreaUser('admin');
+    $otherAdmin = makeAdminAreaUser('admin');
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.show', $admin))
+        ->assertOk()
+        ->assertSee($admin->email);
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.show', $otherAdmin))
+        ->assertNotFound();
+});
+
+it('allows admin users to update only their own password from their profile', function () {
+    $admin = makeAdminAreaUser('admin');
+    $otherAdmin = makeAdminAreaUser('admin');
+
+    $this->actingAs($admin)
+        ->post(route('admin.users.password.update', $admin), [
+            'current_password' => 'secret',
+            'password' => 'NewSecurePass123!',
+            'password_confirmation' => 'NewSecurePass123!',
+        ])
+        ->assertRedirect(route('admin.users.show', $admin))
+        ->assertSessionHas('status', 'Password updated.');
+
+    expect(Hash::check('NewSecurePass123!', (string) $admin->fresh()->password))->toBeTrue();
+
+    $this->actingAs($admin)
+        ->post(route('admin.users.password.update', $otherAdmin), [
+            'current_password' => 'NewSecurePass123!',
+            'password' => 'OtherSecurePass123!',
+            'password_confirmation' => 'OtherSecurePass123!',
+        ])
+        ->assertStatus(403);
+
+    expect(Hash::check('OtherSecurePass123!', (string) $otherAdmin->fresh()->password))->toBeFalse();
 });
 
 it('allows superadmin access to protected admin routes', function () {

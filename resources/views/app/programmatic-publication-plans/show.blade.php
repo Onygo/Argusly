@@ -1,6 +1,8 @@
 @extends('layouts.app', ['title' => 'Publication Plan'])
 
 @section('content')
+    @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
+
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -9,12 +11,20 @@
                 <p class="mt-1 text-sm text-textSecondary">{{ str($plan->status)->headline() }} · {{ str($plan->cadence)->replace('_', ' ')->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.programmatic-publication-plans.approve', $plan) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve Plan</button></form>
+                @can('approve', $plan)
+                    <form method="POST" action="{{ route('app.programmatic-publication-plans.approve', $plan) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve Plan</button></form>
+                @endcan
                 @if ($plan->status === \App\Models\ProgrammaticPublicationPlan::STATUS_APPROVED)
-                    <form method="POST" action="{{ route('app.programmatic-publication-plans.schedule', $plan) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Schedule Approved Plan</button></form>
+                    @can('schedule', $plan)
+                        <form method="POST" action="{{ route('app.programmatic-publication-plans.schedule', $plan) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Create Scheduled Publication Records</button></form>
+                    @endcan
                 @endif
-                <form method="POST" action="{{ route('app.programmatic-publication-plans.recalculate', $plan) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Recalculate Cadence</button></form>
-                <form method="POST" action="{{ route('app.programmatic-publication-plans.cancel', $plan) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Cancel Plan</button></form>
+                @can('prepare', $plan)
+                    <form method="POST" action="{{ route('app.programmatic-publication-plans.recalculate', $plan) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Recalculate Cadence</button></form>
+                @endcan
+                @can('cancel', $plan)
+                    <form method="POST" action="{{ route('app.programmatic-publication-plans.cancel', $plan) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Cancel Scheduled Plan</button></form>
+                @endcan
             </div>
         </div>
 
@@ -35,6 +45,10 @@
             </dl>
             @if ($plan->description)
                 <p class="mt-4 text-sm leading-6 text-textSecondary">{{ $plan->description }}</p>
+            @endif
+            <p class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">This prepares scheduled publication records. It does not publish content live.</p>
+            @if (! $plan->destination_id)
+                <p class="mt-3 rounded-md border border-border bg-background px-3 py-2 text-xs text-textSecondary">Choose a destination before scheduling this plan.</p>
             @endif
         </section>
 
@@ -58,6 +72,7 @@
                     <tbody class="divide-y divide-border">
                         @forelse ($plan->items as $item)
                             @php($publication = $item->linkedPublication())
+                            @php($conflict = data_get($item->metadata, 'conflict'))
                             <tr>
                                 <td class="px-4 py-3">
                                     <a href="{{ route('app.content.show', $item->content) }}" class="font-medium text-textPrimary hover:text-primary">{{ $item->title }}</a>
@@ -74,8 +89,16 @@
                                     @if ($publication)
                                         <span class="font-medium text-textPrimary">{{ $publication->provider }}</span>
                                         <div class="mt-1 text-xs">{{ $publication->remote_status ?: 'draft' }} · {{ $publication->delivery_status }}</div>
+                                        @if ($publication->scheduled_publish_at)
+                                            <div class="mt-1 text-xs">Scheduled {{ $publication->scheduled_publish_at->format('Y-m-d H:i') }}</div>
+                                        @endif
                                     @else
                                         not scheduled
+                                    @endif
+                                    @if ($conflict)
+                                        <div class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-900">
+                                            {{ data_get($conflict, 'message') ?: str(data_get($conflict, 'reason', 'conflict'))->replace('_', ' ')->headline() }}
+                                        </div>
                                     @endif
                                 </td>
                             </tr>

@@ -111,6 +111,37 @@
                 </div>
             </x-settings.section-card>
 
+            @if ($managedUser->is(auth()->user()))
+                <x-settings.section-card title="Password" description="Update the password for your own administrator account.">
+                    <form method="POST" action="{{ route('admin.users.password.update', $managedUser) }}" class="grid gap-4 md:grid-cols-2">
+                        @csrf
+                        <div class="md:col-span-2">
+                            <label for="current_password" class="mb-1 block text-xs text-textSecondary">Current password</label>
+                            <input id="current_password" name="current_password" type="password" autocomplete="current-password" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" required>
+                            @error('current_password')
+                                <p class="mt-1 text-xs text-danger">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="password" class="mb-1 block text-xs text-textSecondary">New password</label>
+                            <input id="password" name="password" type="password" autocomplete="new-password" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" required>
+                            @error('password')
+                                <p class="mt-1 text-xs text-danger">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label for="password_confirmation" class="mb-1 block text-xs text-textSecondary">Confirm new password</label>
+                            <input id="password_confirmation" name="password_confirmation" type="password" autocomplete="new-password" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" required>
+                        </div>
+                        <div class="md:col-span-2">
+                            <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-background">
+                                Update password
+                            </button>
+                        </div>
+                    </form>
+                </x-settings.section-card>
+            @endif
+
             <x-settings.section-card title="Access Override History" description="Audit-friendly history of manual billing bypass periods.">
                 <div class="space-y-3">
                     @forelse ($managedUser->accessOverrides as $override)

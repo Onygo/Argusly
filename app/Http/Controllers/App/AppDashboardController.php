@@ -13,6 +13,7 @@ use App\Models\SocialPublication;
 use App\Services\Analytics\ContentPerformanceInsightService;
 use App\Services\CreditWalletService;
 use App\Services\Dashboard\DashboardActionFirstService;
+use App\Services\Growth\ProgrammaticGrowthBetaSummary;
 use App\Services\Onboarding\FirstValueActivationService;
 use App\View\Presenters\ContentIndexTreePresenter;
 use Illuminate\Support\Collection;
@@ -27,6 +28,7 @@ class AppDashboardController extends Controller
         ContentPerformanceInsightService $contentPerformanceInsightService,
         FirstValueActivationService $activationService,
         DashboardActionFirstService $actionFirstService,
+        ProgrammaticGrowthBetaSummary $programmaticGrowthBetaSummary,
     ): View|RedirectResponse
     {
         $user = request()->user();
@@ -167,6 +169,7 @@ class AppDashboardController extends Controller
             'performanceSummary' => $performanceSummary,
             'distributionSummary' => $distributionSummary,
             'opportunityIntelligenceSummary' => $opportunityIntelligenceSummary,
+            'programmaticGrowthSummary' => $activationWorkspace ? $programmaticGrowthBetaSummary->forWorkspace($activationWorkspace) : [],
             'activation' => $activationWorkspace ? $activationService->forWorkspace($activationWorkspace) : null,
             'actionFirstDashboard' => $actionFirstService->forWorkspace($activationWorkspace),
             'isEmptyDashboard' => $briefCount === 0

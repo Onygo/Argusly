@@ -23,6 +23,22 @@ class ProgrammaticClusterPolicy
     public function update(User $user, ProgrammaticCluster $cluster): bool
     {
         return $this->view($user, $cluster)
-            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor'], true));
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true));
+    }
+
+    public function approve(User $user, ProgrammaticCluster $cluster): bool
+    {
+        return $this->view($user, $cluster)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
+    }
+
+    public function convert(User $user, ProgrammaticCluster $cluster): bool
+    {
+        return $this->approve($user, $cluster);
+    }
+
+    public function prepare(User $user, ProgrammaticCluster $cluster): bool
+    {
+        return $this->update($user, $cluster);
     }
 }

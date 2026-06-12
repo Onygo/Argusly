@@ -15,6 +15,7 @@ use App\Services\OpportunityIntelligence\ExecutionPlanBriefService;
 use App\Services\OpportunityIntelligence\OpportunityExecutionPlanBuilder;
 use App\Services\OpportunityIntelligence\OpportunityIntelligenceEngine;
 use App\Services\Journey\FirstValueExperienceService;
+use App\Services\Growth\ProgrammaticGrowthBetaSummary;
 use App\Services\Onboarding\FirstValueActivationService;
 use App\Services\Onboarding\WorkspaceReadinessService;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -31,6 +32,7 @@ class AppOpportunityIntelligenceController extends Controller
         WorkspaceReadinessService $readiness,
         FirstValueActivationService $activation,
         FirstValueExperienceService $firstValue,
+        ProgrammaticGrowthBetaSummary $programmaticGrowthBetaSummary,
     ): View
     {
         $workspace = $this->resolveWorkspace($request);
@@ -82,6 +84,7 @@ class AppOpportunityIntelligenceController extends Controller
             'firstValueCelebrations' => $firstValue->celebrations($workspace),
             'canRunOpportunityEngine' => $promotedSignalCount > 0,
             'promotedSignalCount' => $promotedSignalCount,
+            'programmaticGrowthSummary' => $programmaticGrowthBetaSummary->forWorkspace($workspace),
             'summary' => [
                 'open' => Opportunity::query()->where('workspace_id', $workspace->id)->whereIn('status', [OpportunityStatus::OPEN->value, OpportunityStatus::REVIEWING->value, OpportunityStatus::APPROVED->value, OpportunityStatus::PLANNED->value])->count(),
                 'avg_priority' => (float) Opportunity::query()->where('workspace_id', $workspace->id)->avg('priority_score'),

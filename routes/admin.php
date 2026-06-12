@@ -75,6 +75,11 @@ Route::middleware('admin.locale')->group(function () {
         Route::get('/search', [SearchController::class, 'adminIndex'])->middleware('protect.heavy:search')->name('admin.search');
         Route::get('/search/suggest', [SearchController::class, 'adminSuggest'])->middleware('protect.heavy:search')->name('admin.search.suggest');
 
+        Route::middleware('can:admin-area-superadmin')->group(function () {
+            Route::get('/organizations/create', [AdminOrganizationsController::class, 'create'])->name('admin.organizations.create');
+            Route::post('/organizations', [AdminOrganizationsController::class, 'store'])->name('admin.organizations.store');
+        });
+
         Route::middleware('can:admin-area-manage-approvals')->group(function () {
             Route::get('/organizations', [AdminOrganizationsController::class, 'index'])->name('admin.organizations');
             Route::get('/organizations/{organization}', [AdminOrganizationsController::class, 'show'])->name('admin.organizations.show');
@@ -95,6 +100,7 @@ Route::middleware('admin.locale')->group(function () {
             Route::post('/users/{user}/approve', [AdminUsersController::class, 'approve'])->name('admin.users.approve');
             Route::post('/users/{user}/disable', [AdminUsersController::class, 'disable'])->name('admin.users.disable');
             Route::post('/users/{user}/activate', [AdminUsersController::class, 'activate'])->name('admin.users.activate');
+            Route::post('/users/{user}/password', [AdminUsersController::class, 'updateOwnPassword'])->name('admin.users.password.update');
             Route::post('/users/{user}/access-overrides', [AdminUserAccessOverrideController::class, 'store'])->name('admin.users.access-overrides.store');
             Route::post('/users/{user}/access-overrides/{accessOverride}/extend', [AdminUserAccessOverrideController::class, 'extend'])->name('admin.users.access-overrides.extend');
             Route::post('/users/{user}/access-overrides/{accessOverride}/stop', [AdminUserAccessOverrideController::class, 'stop'])->name('admin.users.access-overrides.stop');

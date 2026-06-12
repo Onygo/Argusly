@@ -96,9 +96,52 @@
             })
             ->countBy()
             ->sortDesc();
+        $primaryAction = $commandCenter['primary_action'] ?? null;
+        $secondaryActions = collect($commandCenter['secondary_actions'] ?? []);
+        $lifecycleSteps = $commandCenter['steps'] ?? [];
+        $healthItems = $commandCenter['health'] ?? [];
+        $timeToValue = $betaMetrics['time_to_value'] ?? [];
+        $productMetrics = $betaMetrics['product_metrics'] ?? [];
+        $frictionMetrics = $betaMetrics['friction'] ?? [];
+        $feedbackMetrics = $betaMetrics['feedback'] ?? [];
+        $successScore = (int) ($betaMetrics['success_score'] ?? 0);
+        $formatMinutes = function ($minutes) {
+            if ($minutes === null) {
+                return 'Pending';
+            }
+
+            if ((int) $minutes < 60) {
+                return (int) $minutes.'m';
+            }
+
+            return floor(((int) $minutes) / 60).'h '.(((int) $minutes) % 60).'m';
+        };
     @endphp
 
     <div class="space-y-6">
+        @include('app.programmatic-growth._beta-banner')
+
+        @if ($canUseInternalBetaMode)
+            <section class="rounded-lg border border-border bg-surface p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-textPrimary">Internal Beta Tester Mode</p>
+                        <p class="mt-1 text-xs text-textSecondary">Shows extra context, tester prompts and beta report access.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('app.programmatic-growth.beta-report') }}" class="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-textPrimary">Open Beta Report</a>
+                        <form method="POST" action="{{ route('app.programmatic-growth.internal-beta-mode') }}">
+                            @csrf
+                            <input type="hidden" name="enabled" value="{{ $internalBetaMode ? 0 : 1 }}">
+                            <button class="rounded-md {{ $internalBetaMode ? 'border border-border bg-background text-textPrimary' : 'bg-primary text-white' }} px-3 py-2 text-xs font-semibold">
+                                {{ $internalBetaMode ? 'Disable' : 'Enable' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        @endif
+
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
@@ -114,48 +157,52 @@
                     <p class="mt-2 max-w-3xl text-textSecondary">{{ $program->description }}</p>
                 @endif
             </div>
-            <form method="POST" action="{{ route('app.growth-programs.transition', $program) }}" class="flex flex-wrap items-center gap-2">
-                @csrf
-                <select name="status" class="pl-select bg-background">
-                    @foreach (\App\Enums\GrowthProgramStatus::cases() as $item)
-                        <option value="{{ $item->value }}" @selected($status === $item)>{{ $item->label() }}</option>
-                    @endforeach
-                </select>
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Update</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.convert-approved-blueprints', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Convert Approved Blueprints</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.prepare-draft-requests', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Prepare Draft Requests</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.generate-approved-draft-requests', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Generate Approved Draft Requests</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.review-generated-drafts', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Review Generated Drafts</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.convert-approved-reviews-to-content', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Convert Approved Drafts to Content</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.publication-readiness', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Run Publication Readiness</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.publication-plans.create', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Create Publication Plan</button>
-            </form>
-            <form method="POST" action="{{ route('app.growth-programs.publication-plans.schedule', $program) }}">
-                @csrf
-                <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Schedule Approved Plans</button>
-            </form>
         </div>
+
+        <section class="rounded-lg border border-border bg-surface p-5">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Command Center</p>
+                    <h2 class="mt-1 text-lg font-semibold text-textPrimary">{{ $primaryAction['label'] ?? 'No action available' }}</h2>
+                    <p class="mt-2 max-w-3xl text-sm text-textSecondary">{{ $primaryAction['helper'] ?? 'This program is ready for monitoring.' }}</p>
+                    @if ($internalBetaMode)
+                        <p class="mt-2 max-w-3xl rounded-md border border-border bg-background px-3 py-2 text-xs text-textSecondary">Checklist: docs/programmatic-growth-beta-test-checklist.md · Validate whether the next action is obvious before clicking.</p>
+                    @endif
+                    @if (! empty($primaryAction['missing']))
+                        <p class="mt-2 text-xs text-amber-800">{{ implode(' ', $primaryAction['missing']) }}</p>
+                    @endif
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    @if ($primaryAction && ! empty($primaryAction['route']) && auth()->user()?->can($primaryAction['ability'] ?? 'prepare', $program))
+                        <form method="{{ $primaryAction['method'] ?? 'POST' }}" action="{{ $primaryAction['route'] }}">
+                            @csrf
+                            <button class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">{{ $primaryAction['label'] }}</button>
+                        </form>
+                    @endif
+                    @can('prepare', $program)
+                        <form method="POST" action="{{ route('app.growth-programs.transition', $program) }}" class="flex flex-wrap items-center gap-2">
+                            @csrf
+                            <select name="status" class="pl-select bg-background">
+                                @foreach (\App\Enums\GrowthProgramStatus::cases() as $item)
+                                    <option value="{{ $item->value }}" @selected($status === $item)>{{ $item->label() }}</option>
+                                @endforeach
+                            </select>
+                            <button class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">Update</button>
+                        </form>
+                    @endcan
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+                @foreach ($secondaryActions as $action)
+                    @if (auth()->user()?->can($action['ability'] ?? 'prepare', $program))
+                        <form method="POST" action="{{ $action['route'] }}">
+                            @csrf
+                            <button class="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-textPrimary">{{ $action['label'] }}</button>
+                        </form>
+                    @endif
+                @endforeach
+            </div>
+        </section>
 
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
@@ -170,16 +217,38 @@
             {{ number_format((int) ($metrics['estimated_generation_tokens'] ?? 0)) }} estimated tokens ·
             €{{ number_format((float) ($metrics['estimated_generation_cost'] ?? 0), 4) }} estimated cost ·
             batch generation {{ config('argusly_programmatic.allow_batch_generation') ? 'allowed' : 'disabled' }} ·
-            {{ (int) ($metrics['approved_draft_reviews_count'] ?? 0) }} approved reviews ·
+            {{ (int) ($metrics['approved_draft_reviews_count'] ?? 0) }} approved quality checks ·
             {{ (int) ($metrics['converted_content_count'] ?? 0) }} converted content ·
             {{ (int) ($metrics['publication_ready_content_count'] ?? 0) }} publication ready ·
-            {{ (int) ($metrics['scheduled_programmatic_publications_count'] ?? 0) }} scheduled records.
+            {{ (int) ($metrics['scheduled_programmatic_publications_count'] ?? 0) }} scheduled assets.
         </div>
+
+        <section class="rounded-lg border border-border bg-surface p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-sm font-semibold text-textPrimary">Health</h2>
+                <span class="text-xs text-textSecondary">Safety and traceability</span>
+            </div>
+            <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                @foreach ($healthItems as $item)
+                    <div class="rounded-md border {{ in_array($item['status'], ['blocked', 'incomplete'], true) ? 'border-amber-200 bg-amber-50' : 'border-border bg-background' }} p-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-textSecondary">{{ $item['label'] }}</p>
+                            <span class="text-xs font-medium {{ in_array($item['status'], ['blocked', 'incomplete'], true) ? 'text-amber-900' : 'text-textPrimary' }}">{{ str($item['status'])->headline() }}</span>
+                        </div>
+                        <p class="mt-2 text-xs text-textSecondary">{{ $item['detail'] }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </section>
 
         <div class="grid gap-4 md:grid-cols-4">
             <div class="rounded-lg border border-border bg-surface p-4">
                 <p class="text-xs text-textSecondary">Impact score</p>
                 <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((float) $program->score, 1) }}</p>
+            </div>
+            <div class="rounded-lg border border-border bg-surface p-4">
+                <p class="text-xs text-textSecondary">Success score</p>
+                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ $successScore }}%</p>
             </div>
             <div class="rounded-lg border border-border bg-surface p-4">
                 <p class="text-xs text-textSecondary">Estimated reach</p>
@@ -189,11 +258,29 @@
                 <p class="text-xs text-textSecondary">Estimated traffic</p>
                 <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((float) ($metrics['estimated_traffic'] ?? 0), 0) }}</p>
             </div>
-            <div class="rounded-lg border border-border bg-surface p-4">
-                <p class="text-xs text-textSecondary">AI visibility</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((float) ($metrics['estimated_ai_visibility'] ?? 0), 1) }}</p>
-            </div>
         </div>
+
+        <section class="rounded-lg border border-border bg-surface p-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-sm font-semibold text-textPrimary">Time To Value</h2>
+                <span class="text-xs text-textSecondary">Measured from Growth Program creation</span>
+            </div>
+            <div class="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+                @foreach ([
+                    'first_cluster_minutes' => 'First cluster',
+                    'first_blueprint_minutes' => 'First blueprint',
+                    'first_brief_minutes' => 'First brief',
+                    'first_draft_minutes' => 'First draft',
+                    'first_content_asset_minutes' => 'First content asset',
+                    'first_scheduled_publication_record_minutes' => 'First scheduled publication record',
+                ] as $key => $label)
+                    <div class="rounded-md border border-border bg-background p-3">
+                        <p class="text-xs text-textSecondary">{{ $label }}</p>
+                        <p class="mt-1 text-lg font-semibold text-textPrimary">{{ $formatMinutes($timeToValue[$key] ?? null) }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </section>
 
         <div class="rounded-lg border border-border bg-surface p-5">
             <div class="mb-3 flex items-center justify-between gap-3">
@@ -202,6 +289,21 @@
             </div>
             <div class="h-2 overflow-hidden rounded-full bg-background">
                 <div class="h-full rounded-full bg-primary" style="width: {{ $program->progress() }}%"></div>
+            </div>
+            <div class="mt-4 grid gap-2 md:grid-cols-3 xl:grid-cols-6">
+                @foreach ($lifecycleSteps as $step)
+                    <div class="rounded-md border {{ $step['status'] === 'blocked' ? 'border-amber-200 bg-amber-50' : ($step['status'] === 'complete' ? 'border-primary/40 bg-primary/5' : 'border-border bg-background') }} p-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-semibold text-textPrimary">{{ $step['label'] }}</p>
+                            <span class="text-xs text-textSecondary">{{ $step['count'] }}</span>
+                        </div>
+                        <p class="mt-1 text-xs {{ $step['status'] === 'blocked' ? 'text-amber-900' : 'text-textSecondary' }}">{{ str($step['status'])->headline() }}</p>
+                        <p class="mt-2 text-xs text-textMuted">{{ $step['next_action'] }}</p>
+                        @if ($step['blocked_reason'])
+                            <p class="mt-2 rounded border border-amber-200 bg-amber-100/60 px-2 py-1 text-xs text-amber-900">{{ $step['blocked_reason'] }}</p>
+                        @endif
+                    </div>
+                @endforeach
             </div>
         </div>
 
@@ -243,9 +345,9 @@
                 </section>
 
                 <section class="rounded-lg border border-border bg-surface p-5">
-                    <h2 class="text-sm font-semibold text-textPrimary">Draft Quality</h2>
+                    <h2 class="text-sm font-semibold text-textPrimary">Draft Quality Checks</h2>
                     <div class="mt-4 grid gap-3 md:grid-cols-4 text-sm">
-                        <div><p class="text-xs text-textSecondary">Reviews</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['draft_reviews_count'] ?? 0) }}</p></div>
+                        <div><p class="text-xs text-textSecondary">Quality checks</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['draft_reviews_count'] ?? 0) }}</p></div>
                         <div><p class="text-xs text-textSecondary">Approved</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['approved_draft_reviews_count'] ?? 0) }}</p></div>
                         <div><p class="text-xs text-textSecondary">Blocked</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['blocked_draft_reviews_count'] ?? 0) }}</p></div>
                         <div><p class="text-xs text-textSecondary">Avg quality</p><p class="mt-1 font-semibold text-textPrimary">{{ number_format((float) ($metrics['average_draft_quality_score'] ?? 0), 1) }}</p></div>
@@ -253,14 +355,17 @@
                     <div class="mt-4 space-y-2">
                         @forelse ($assetsByRole->get(\App\Models\GrowthAsset::ROLE_DRAFT_REVIEW, collect()) as $asset)
                             @php($review = $asset->assetable)
-                            <a href="{{ route('app.programmatic-draft-reviews.show', $review) }}" class="block rounded-md border border-border bg-background p-3 hover:bg-surfaceMuted">
+                            <a href="{{ route('app.programmatic-draft-reviews.show', $review) }}" class="block rounded-md border {{ $review?->status === \App\Models\ProgrammaticDraftReview::STATUS_BLOCKED ? 'border-amber-200 bg-amber-50' : 'border-border bg-background' }} p-3 hover:bg-surfaceMuted">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <p class="text-sm font-medium text-textPrimary">{{ $review?->draft?->title }}</p>
                                     <p class="text-xs text-textSecondary">{{ str($review?->status)->headline() }} · {{ number_format((float) ($review?->overall_score ?? 0), 1) }}</p>
                                 </div>
+                                @if ($review?->status === \App\Models\ProgrammaticDraftReview::STATUS_BLOCKED)
+                                    <p class="mt-2 text-xs text-amber-900">{{ data_get($review->blocking_issues, '0.message') ?: data_get($review->blocking_issues, '0') ?: 'Blocked quality check needs attention.' }}</p>
+                                @endif
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No draft reviews created for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No quality checks yet. Create approved drafts, then run draft quality checks.</p>
                         @endforelse
                     </div>
                 </section>
@@ -270,7 +375,7 @@
                         <h2 class="text-sm font-semibold text-textPrimary">Publication Readiness</h2>
                         <form method="POST" action="{{ route('app.growth-programs.publication-readiness', $program) }}">
                             @csrf
-                            <button class="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-textPrimary">Run Readiness Checks</button>
+                            <button class="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-textPrimary">Run Publication Readiness</button>
                         </form>
                     </div>
                     <div class="mt-4 grid gap-3 md:grid-cols-4 text-sm">
@@ -282,14 +387,17 @@
                     <div class="mt-4 space-y-2">
                         @forelse ($assetsByRole->get(\App\Models\GrowthAsset::ROLE_PUBLICATION_READINESS, collect()) as $asset)
                             @php($readiness = $asset->assetable)
-                            <a href="{{ route('app.programmatic-publication-readiness.show', $readiness) }}" class="block rounded-md border border-border bg-background p-3 hover:bg-surfaceMuted">
+                            <a href="{{ route('app.programmatic-publication-readiness.show', $readiness) }}" class="block rounded-md border {{ $readiness?->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_BLOCKED ? 'border-amber-200 bg-amber-50' : 'border-border bg-background' }} p-3 hover:bg-surfaceMuted">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <p class="text-sm font-medium text-textPrimary">{{ $readiness?->content?->title }}</p>
                                     <p class="text-xs text-textSecondary">{{ str($readiness?->status)->headline() }} · {{ number_format((float) ($readiness?->readiness_score ?? 0), 1) }}</p>
                                 </div>
+                                @if ($readiness?->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_BLOCKED)
+                                    <p class="mt-2 text-xs text-amber-900">{{ data_get($readiness->missing_requirements, '0.message') ?: data_get($readiness->missing_requirements, '0') ?: 'Blocked publication readiness needs attention.' }}</p>
+                                @endif
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No publication readiness checks created for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No publication readiness yet. Convert approved quality checks to content first.</p>
                         @endforelse
                     </div>
                 </section>
@@ -303,28 +411,43 @@
                         </form>
                         <form method="POST" action="{{ route('app.growth-programs.publication-plans.schedule', $program) }}">
                             @csrf
-                            <button class="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-textPrimary">Schedule Approved Plans</button>
+                            <button class="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium text-textPrimary">Prepare Scheduled Publications</button>
                         </form>
                     </div>
-                    <p class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">Scheduling creates pending ContentPublication records only. It does not publish live or dispatch publishing jobs.</p>
+                    <p class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">This prepares scheduled publication assets. It does not publish content live.</p>
                     <div class="mt-4 grid gap-3 md:grid-cols-5 text-sm">
                         <div><p class="text-xs text-textSecondary">Plans</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['publication_plans_count'] ?? 0) }}</p></div>
                         <div><p class="text-xs text-textSecondary">Plan items</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['publication_plan_items_count'] ?? 0) }}</p></div>
                         <div><p class="text-xs text-textSecondary">Approved items</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['approved_publication_plan_items_count'] ?? 0) }}</p></div>
-                        <div><p class="text-xs text-textSecondary">Scheduled pubs</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['scheduled_programmatic_publications_count'] ?? 0) }}</p></div>
-                        <div><p class="text-xs text-textSecondary">Pending pubs</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['pending_programmatic_publications_count'] ?? 0) }}</p></div>
+                        <div><p class="text-xs text-textSecondary">Scheduled assets</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['scheduled_programmatic_publications_count'] ?? 0) }}</p></div>
+                        <div><p class="text-xs text-textSecondary">Pending assets</p><p class="mt-1 font-semibold text-textPrimary">{{ (int) ($metrics['pending_programmatic_publications_count'] ?? 0) }}</p></div>
                     </div>
                     <div class="mt-4 space-y-2">
                         @forelse ($assetsByRole->get(\App\Models\GrowthAsset::ROLE_PUBLICATION_PLAN, collect()) as $asset)
                             @php($plan = $asset->assetable)
-                            <a href="{{ route('app.programmatic-publication-plans.show', $plan) }}" class="block rounded-md border border-border bg-background p-3 hover:bg-surfaceMuted">
+                            @php($conflicts = $plan?->items?->filter(fn ($item) => data_get($item->metadata, 'conflict.reason')) ?? collect())
+                            <a href="{{ route('app.programmatic-publication-plans.show', $plan) }}" class="block rounded-md border {{ $conflicts->isNotEmpty() ? 'border-amber-200 bg-amber-50' : 'border-border bg-background' }} p-3 hover:bg-surfaceMuted">
                                 <div class="flex flex-wrap items-center justify-between gap-3">
                                     <p class="text-sm font-medium text-textPrimary">{{ $plan?->name }}</p>
                                     <p class="text-xs text-textSecondary">{{ str($plan?->status)->headline() }} · {{ $plan?->items?->count() ?? 0 }} items</p>
                                 </div>
+                                @if ($conflicts->isNotEmpty())
+                                    <div class="mt-2 space-y-1">
+                                        @foreach ($conflicts->take(3) as $item)
+                                            <p class="text-xs text-amber-900">
+                                                {{ match (data_get($item->metadata, 'conflict.reason')) {
+                                                    'missing_destination' => 'Missing destination: choose a destination before preparing scheduled publications.',
+                                                    'existing_publication_terminal' => 'Terminal publication conflict: existing delivered or published asset will not be changed.',
+                                                    'content_already_scheduled_in_active_plan' => 'Active plan conflict: this content is already scheduled in another active plan.',
+                                                    default => str(data_get($item->metadata, 'conflict.reason', 'conflict'))->replace('_', ' ')->headline(),
+                                                } }}
+                                            </p>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No publication plans created for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No publication plan yet. Run publication readiness first, then create a plan from approved readiness.</p>
                         @endforelse
                     </div>
                 </section>
@@ -348,7 +471,7 @@
                                 </div>
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No draft requests prepared for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No draft requests yet. Prepare draft requests from converted briefs.</p>
                         @endforelse
                     </div>
                 </section>
@@ -374,7 +497,7 @@
                                 </div>
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No programmatic opportunities detected for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No programmatic opportunities yet. Detect programmatic opportunities from attached opportunities or signals.</p>
                         @endforelse
                     </div>
                 </section>
@@ -409,7 +532,7 @@
                                 </div>
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No programmatic clusters built for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No cluster preview yet. Build a cluster preview from a programmatic opportunity.</p>
                         @endforelse
                     </div>
                 </section>
@@ -434,7 +557,7 @@
                                 </div>
                             </a>
                         @empty
-                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No brief blueprints prepared for this program.</p>
+                            <p class="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-textMuted">No approved blueprints yet. Build, review and approve blueprints before creating briefs.</p>
                         @endforelse
                     </div>
                 </section>
@@ -461,11 +584,31 @@
                 <section class="rounded-lg border border-border bg-surface p-5">
                     <h2 class="text-sm font-semibold text-textPrimary">Metrics</h2>
                     <dl class="mt-4 space-y-3 text-sm">
+                        <div class="flex justify-between gap-3">
+                            <dt class="text-textSecondary">Growth Program Success Score</dt>
+                            <dd class="font-medium text-textPrimary">{{ $successScore }}%</dd>
+                        </div>
+                        @foreach ([
+                            'opportunities_detected' => 'Opportunities detected',
+                            'opportunities_converted' => 'Opportunities converted',
+                            'clusters_created' => 'Clusters created',
+                            'blueprints_created' => 'Blueprints created',
+                            'briefs_created' => 'Briefs created',
+                            'drafts_generated' => 'Drafts created',
+                            'content_created' => 'Content assets created',
+                            'readiness_approved' => 'Publication readiness approved',
+                            'publication_plans_created' => 'Publication plans created',
+                        ] as $key => $label)
+                            <div class="flex justify-between gap-3">
+                                <dt class="text-textSecondary">{{ $label }}</dt>
+                                <dd class="font-medium text-textPrimary">{{ (int) ($productMetrics[$key] ?? 0) }}</dd>
+                            </div>
+                        @endforeach
                         @foreach ([
                             'opportunities_count' => 'Opportunities',
                             'signals_count' => 'Signals',
                             'execution_plans_count' => 'Execution plans',
-                            'programmatic_opportunities_count' => 'Programmatic',
+                            'programmatic_opportunities_count' => 'Programmatic opportunities',
                             'programmatic_clusters_count' => 'Programmatic clusters',
                             'programmatic_cluster_items_count' => 'Cluster items',
                             'accepted_cluster_items_count' => 'Accepted cluster items',
@@ -479,17 +622,17 @@
                             'draft_requests_count' => 'Draft requests',
                             'approved_draft_requests_count' => 'Approved draft requests',
                             'queued_draft_requests_count' => 'Queued draft requests',
-                            'generated_draft_requests_count' => 'Generated draft requests',
-                            'generated_programmatic_drafts_count' => 'Generated drafts',
+                            'generated_draft_requests_count' => 'Created draft requests',
+                            'generated_programmatic_drafts_count' => 'Created drafts',
                             'failed_programmatic_drafts_count' => 'Failed draft requests',
                             'queued_programmatic_drafts_count' => 'Queued programmatic drafts',
                             'estimated_generation_tokens' => 'Estimated tokens',
                             'estimated_generation_cost' => 'Estimated cost',
                             'actual_generation_tokens' => 'Actual tokens',
                             'actual_generation_cost' => 'Actual cost',
-                            'draft_reviews_count' => 'Draft reviews',
-                            'approved_draft_reviews_count' => 'Approved reviews',
-                            'blocked_draft_reviews_count' => 'Blocked reviews',
+                            'draft_reviews_count' => 'Quality checks',
+                            'approved_draft_reviews_count' => 'Approved checks',
+                            'blocked_draft_reviews_count' => 'Blocked checks',
                             'average_draft_quality_score' => 'Avg quality',
                             'average_seo_score' => 'Avg SEO',
                             'average_ai_visibility_score' => 'Avg AI',
@@ -505,8 +648,8 @@
                             'publication_plans_count' => 'Publication plans',
                             'publication_plan_items_count' => 'Plan items',
                             'approved_publication_plan_items_count' => 'Approved plan items',
-                            'scheduled_programmatic_publications_count' => 'Scheduled pubs',
-                            'pending_programmatic_publications_count' => 'Pending pubs',
+                            'scheduled_programmatic_publications_count' => 'Scheduled assets',
+                            'pending_programmatic_publications_count' => 'Pending assets',
                             'briefs_count' => 'Briefs',
                             'drafts_count' => 'Drafts',
                             'publications_count' => 'Publications',
@@ -533,6 +676,44 @@
                     <h2 class="text-sm font-semibold text-textPrimary">Recommended Next Action</h2>
                     <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $metrics['next_recommended_action'] ?? 'No next action currently recommended.' }}</p>
                     <p class="mt-2 text-xs text-textMuted">Current stage: {{ $metrics['current_stage_label'] ?? ($status?->label() ?? $program->status) }}</p>
+                </section>
+
+                <section class="rounded-lg border border-border bg-surface p-5">
+                    <h2 class="text-sm font-semibold text-textPrimary">Beta Friction</h2>
+                    <dl class="mt-4 space-y-3 text-sm">
+                        @foreach ([
+                            'workflow_abandoned' => 'Abandoned workflows',
+                            'back_navigation' => 'Back actions',
+                            'action_failed' => 'Failed actions',
+                            'conflict' => 'Conflicts',
+                            'blocked' => 'Blockers',
+                            'cancel' => 'Cancel actions',
+                        ] as $key => $label)
+                            <div class="flex justify-between gap-3">
+                                <dt class="text-textSecondary">{{ $label }}</dt>
+                                <dd class="font-medium text-textPrimary">{{ (int) ($frictionMetrics[$key] ?? 0) }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                </section>
+
+                <section class="rounded-lg border border-border bg-surface p-5">
+                    <h2 class="text-sm font-semibold text-textPrimary">Was this step clear?</h2>
+                    <form method="POST" action="{{ route('app.growth-programs.feedback', $program) }}" class="mt-4 space-y-3">
+                        @csrf
+                        <input type="hidden" name="step" value="{{ $commandCenter['current_stage']['label'] ?? ($metrics['current_stage_label'] ?? '') }}">
+                        <div class="grid grid-cols-3 gap-2">
+                            @foreach (['yes' => 'Yes', 'somewhat' => 'Somewhat', 'no' => 'No'] as $value => $label)
+                                <label class="flex items-center justify-center rounded-md border border-border bg-background px-2 py-2 text-xs font-medium text-textPrimary">
+                                    <input type="radio" name="clarity" value="{{ $value }}" class="sr-only" @checked($loop->first)>
+                                    {{ $label }}
+                                </label>
+                            @endforeach
+                        </div>
+                        <textarea name="message" rows="3" class="pl-input w-full bg-background text-sm" placeholder="Optional note"></textarea>
+                        <button class="w-full rounded-md bg-primary px-3 py-2 text-xs font-semibold text-white">Save Feedback</button>
+                    </form>
+                    <p class="mt-3 text-xs text-textSecondary">{{ (int) ($feedbackMetrics['total'] ?? 0) }} responses · {{ (int) ($feedbackMetrics['yes'] ?? 0) }} yes · {{ (int) ($feedbackMetrics['somewhat'] ?? 0) }} somewhat · {{ (int) ($feedbackMetrics['no'] ?? 0) }} no</p>
                 </section>
 
                 <section class="rounded-lg border border-border bg-surface p-5">

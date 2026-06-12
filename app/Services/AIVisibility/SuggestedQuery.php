@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\AiVisibility;
+namespace App\Services\AIVisibility;
 
 class SuggestedQuery
 {

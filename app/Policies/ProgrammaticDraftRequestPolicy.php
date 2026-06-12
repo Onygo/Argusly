@@ -23,6 +23,22 @@ class ProgrammaticDraftRequestPolicy
     public function update(User $user, ProgrammaticDraftRequest $request): bool
     {
         return $this->view($user, $request)
-            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'reviewer'], true));
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin', 'editor', 'member'], true));
+    }
+
+    public function approve(User $user, ProgrammaticDraftRequest $request): bool
+    {
+        return $this->view($user, $request)
+            && ($user->is_admin || in_array((string) $user->role, ['owner', 'admin'], true));
+    }
+
+    public function prepare(User $user, ProgrammaticDraftRequest $request): bool
+    {
+        return $this->update($user, $request);
+    }
+
+    public function cancel(User $user, ProgrammaticDraftRequest $request): bool
+    {
+        return $this->approve($user, $request);
     }
 }
