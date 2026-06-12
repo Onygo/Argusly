@@ -2,8 +2,8 @@
 
 return [
     'http_insecure_local' => (bool) env('PUBLISHLAYER_HTTP_INSECURE_LOCAL', false),
-    'tracking_url' => env('PUBLISHLAYER_TRACKING_URL', 'https://track.argusly.local'),
-    'tracking_script_version' => env('PUBLISHLAYER_TRACKING_SCRIPT_VERSION', '1.1.0'),
+    'tracking_url' => env('PUBLISHLAYER_TRACKING_URL', 'https://track.argusly.com'),
+    'tracking_script_version' => env('PUBLISHLAYER_TRACKING_SCRIPT_VERSION', '1.2.1'),
 
     /*
     |--------------------------------------------------------------------------

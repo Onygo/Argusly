@@ -109,7 +109,7 @@
                     @if (!$analyticsSite->verified_at)
                         <form method="POST" action="{{ route('app.sites.analytics.verify', $site) }}">
                             @csrf
-                            <button class="rounded border border-primary bg-primary px-3 py-1.5 text-xs text-white">Verify Domain</button>
+                            <button class="rounded border border-primary bg-primary px-3 py-1.5 text-xs text-white">{{ $isFirstPartyDomain ? 'Verify First-Party Domain' : 'Verify Domain' }}</button>
                         </form>
                     @endif
                     <form method="POST" action="{{ route('app.sites.analytics.regenerate-token', $site) }}">
@@ -135,6 +135,17 @@
                         <p class="mt-2 text-xs text-textSecondary">
                             Internal domain: <span class="font-mono">{{ $analyticsSite->flags['internal_domain'] ?? 'Unknown' }}</span>
                         </p>
+                    </div>
+                @elseif ($isFirstPartyDomain)
+                    <div class="rounded-lg border border-primary/30 bg-primary/5 p-6">
+                        <h2 class="text-sm font-semibold text-primary">First-Party Domain Ready</h2>
+                        <p class="mt-2 text-sm text-textSecondary">
+                            This is an Argusly-owned marketing domain. Verify it here and Argusly will inject tracking from this app automatically.
+                        </p>
+                        <form method="POST" action="{{ route('app.sites.analytics.verify', $site) }}" class="mt-4">
+                            @csrf
+                            <button class="rounded border border-primary bg-primary px-3 py-1.5 text-xs font-medium text-white">Verify first-party domain</button>
+                        </form>
                     </div>
                 @elseif (!$analyticsSite->verified_at)
                     <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-6">
@@ -165,6 +176,13 @@
                             <pre id="pl-tracking-snippet" class="mt-2 overflow-x-auto rounded border border-border bg-background px-3 py-2 font-mono text-xs text-textPrimary"><code>{{ $trackingSnippet }}</code></pre>
                         </div>
                     </details>
+                @elseif ($isFirstPartyDomain)
+                    <p class="mt-2 text-sm text-textSecondary">
+                        No code snippet is needed for Argusly.com. After first-party verification, the marketing layout in this app injects the tracking script automatically.
+                    </p>
+                    <p class="mt-3 text-xs text-textSecondary">
+                        Script host: <span class="font-mono text-xs">{{ $trackingBaseUrl }}/argusly.js?v={{ $scriptVersion }}</span>
+                    </p>
                 @else
                     <p class="mt-2 text-sm text-textSecondary">
                         Add this script to your website to track Argusly article performance.

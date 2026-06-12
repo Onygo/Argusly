@@ -92,6 +92,11 @@ describe('Internal Domain Verification', function () {
 });
 
 describe('ArguslyTrackingSiteResolver', function () {
+    it('uses production tracking host by default', function () {
+        expect(config('argusly.tracking_url'))->toBe('https://track.argusly.com');
+        expect(config('argusly.tracking_script_version'))->toBe('1.2.1');
+    });
+
     it('resolves internal domain to analytics site', function () {
         config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
 
@@ -261,6 +266,24 @@ describe('Analytics UI for Internal Verification', function () {
         $response->assertSee('Domain Verification Required');
         $response->assertSee('Add the following meta tag');
         $response->assertSee($analyticsSite->verification_token);
+    });
+
+    it('shows first-party setup instead of meta tag instructions for unverified internal site', function () {
+        config()->set('argusly.analytics.internal_verified_domains', ['argusly.com']);
+        config()->set('argusly.tracking_url', 'https://track.argusly.com');
+
+        [$user, $site, $analyticsSite] = createInternalVerificationContext(siteUrl: 'https://argusly.com');
+
+        $response = $this->actingAs($user)
+            ->get(route('app.sites.analytics.show', $site));
+
+        $response->assertOk();
+        $response->assertSee('First-Party Domain Ready');
+        $response->assertSee('Verify first-party domain');
+        $response->assertSee('No code snippet is needed for Argusly.com');
+        $response->assertSee('https://track.argusly.com/argusly.js');
+        $response->assertDontSee('Domain Verification Required');
+        $response->assertDontSee($analyticsSite->verification_token);
     });
 
     it('shows simplified tracking section for internally verified site', function () {

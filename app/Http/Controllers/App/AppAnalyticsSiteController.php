@@ -26,6 +26,7 @@ class AppAnalyticsSiteController extends Controller
         $this->authorizeSiteAccess($site, $user);
 
         $analyticsSite = $site->analyticsSite;
+        $isFirstPartyDomain = $this->isFirstPartyDomain($site);
         $trackingBaseUrl = $this->getTrackingBaseUrl();
         $scriptVersion = (string) config('argusly.tracking_script_version', config('analytics.script.version', '1.1.0'));
         $trackingSnippet = $this->buildTrackingSnippet($analyticsSite, $trackingBaseUrl, $scriptVersion);
@@ -37,6 +38,7 @@ class AppAnalyticsSiteController extends Controller
         return view('app.sites.analytics.show', [
             'site' => $site,
             'analyticsSite' => $analyticsSite,
+            'isFirstPartyDomain' => $isFirstPartyDomain,
             'trackingBaseUrl' => $trackingBaseUrl,
             'scriptVersion' => $scriptVersion,
             'trackingSnippet' => $trackingSnippet,
@@ -230,6 +232,13 @@ class AppAnalyticsSiteController extends Controller
         }
 
         return $this->getTrackHost();
+    }
+
+    private function isFirstPartyDomain(ClientSite $site): bool
+    {
+        $host = strtolower((string) parse_url((string) $site->site_url, PHP_URL_HOST));
+
+        return $this->verificationService->isInternalVerifiedDomain($host);
     }
 
     private function getTrackHost(): string

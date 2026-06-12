@@ -291,7 +291,7 @@ class DraftGenerationService
         $meta = is_array($draft->meta) ? $draft->meta : [];
         $links = is_array($draft->links) ? $draft->links : [];
 
-        $language = (string)($meta['language'] ?? 'nl');
+        $language = $this->stringValue($meta['language'] ?? 'nl');
         $tone = (string)($meta['tone'] ?? '');
         $content = null;
         if ($draft->content_id) {
@@ -323,7 +323,7 @@ class DraftGenerationService
             );
         }
         if ($language === '') {
-            $language = (string) ($brandVoice?->default_language ?? 'en');
+            $language = $this->stringValue($brandVoice?->default_language ?? 'en');
         }
 
         $context = $content ? $this->buildGenerationContext($content, $draft) : $this->defaultSystemContext();
@@ -1168,9 +1168,20 @@ class DraftGenerationService
     private function draftLanguage(Draft $draft): string
     {
         $meta = is_array($draft->meta) ? $draft->meta : [];
-        $language = strtolower(str_replace('_', '-', trim((string) ($draft->language ?: data_get($meta, 'language', '')))));
+        $language = strtolower(str_replace('_', '-', trim($this->stringValue(
+            $draft->language ?: data_get($meta, 'language', '')
+        ))));
 
         return str_starts_with($language, 'nl') ? 'nl' : $language;
+    }
+
+    private function stringValue(mixed $value): string
+    {
+        if ($value instanceof \BackedEnum) {
+            return (string) $value->value;
+        }
+
+        return (string) $value;
     }
 
     private function dutchCasingInstruction(string $language): ?string
