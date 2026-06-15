@@ -27,6 +27,8 @@ it('renders the settings workspace hub sections without legacy api controls', fu
         ->assertOk()
         ->assertSee('Settings')
         ->assertSee('Workspace')
+        ->assertSee('Experience')
+        ->assertSee('Advanced Mode')
         ->assertSee('Notifications')
         ->assertSee('API access moved')
         ->assertSee('Open Developer settings')
@@ -36,6 +38,92 @@ it('renders the settings workspace hub sections without legacy api controls', fu
         ->assertDontSee('Save API settings')
         ->assertDontSee('Regenerate API key')
         ->assertSee('Workspace: '.$workspaceName);
+});
+
+it('toggles advanced mode visibility through settings without changing permissions', function () {
+    [$user] = makeSettingsHubContext();
+
+    $this->actingAs($user)
+        ->post(route('app.settings.advanced-mode.update'), [
+            'advanced_mode' => '1',
+        ])
+        ->assertRedirect();
+
+    $this->assertTrue((bool) session('app_advanced_mode_enabled'));
+
+    $this->actingAs($user)
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('data-sidebar-title="Developer"', false)
+        ->assertSee('data-sidebar-title="Billing"', false);
+
+    $this->actingAs($user)
+        ->post(route('app.settings.advanced-mode.update'), [
+            'advanced_mode' => '0',
+        ])
+        ->assertRedirect();
+
+    $this->assertFalse((bool) session('app_advanced_mode_enabled'));
+
+    $this->actingAs($user)
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertDontSee('data-sidebar-title="Developer"', false)
+        ->assertDontSee('data-sidebar-title="Billing"', false);
+});
+
+it('prevents non-advanced roles from enabling advanced mode', function () {
+    [$user] = makeSettingsHubContext();
+    $user->forceFill(['role' => 'viewer'])->save();
+
+    $this->actingAs($user)
+        ->post(route('app.settings.advanced-mode.update'), [
+            'advanced_mode' => '1',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasErrors('advanced_mode');
+
+    $this->assertFalse((bool) session('app_advanced_mode_enabled'));
+
+    $this->actingAs($user)
+        ->get(route('app.settings'))
+        ->assertOk()
+        ->assertSee('Advanced Mode unavailable')
+        ->assertDontSee(route('app.developer.api'), false);
+
+    $this->actingAs($user)
+        ->withSession(['app_advanced_mode_enabled' => true])
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertDontSee('>ADVANCED<', false)
+        ->assertDontSee('data-sidebar-title="Developer"', false)
+        ->assertDontSee('data-sidebar-title="Billing"', false)
+        ->assertDontSee('data-sidebar-title="Lifecycle"', false);
+});
+
+it('keeps developer settings hidden from editors even in advanced mode', function () {
+    [$user] = makeSettingsHubContext();
+    $user->forceFill(['role' => 'editor'])->save();
+
+    $this->actingAs($user)
+        ->post(route('app.settings.advanced-mode.update'), [
+            'advanced_mode' => '1',
+        ])
+        ->assertRedirect()
+        ->assertSessionDoesntHaveErrors();
+
+    $this->actingAs($user)
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('>ADVANCED<', false)
+        ->assertSee('data-sidebar-title="Lifecycle"', false)
+        ->assertDontSee('data-sidebar-title="Developer"', false)
+        ->assertDontSee('data-sidebar-title="Billing"', false);
+
+    $this->actingAs($user)
+        ->get(route('app.settings'))
+        ->assertOk()
+        ->assertDontSee(route('app.developer.api'), false);
 });
 
 it('keeps workspace and organization updates working', function () {

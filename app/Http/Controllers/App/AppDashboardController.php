@@ -11,10 +11,12 @@ use App\Models\Opportunity;
 use App\Models\SocialPostVariant;
 use App\Models\SocialPublication;
 use App\Services\Analytics\ContentPerformanceInsightService;
+use App\Services\Assistant\AssistantFeedService;
 use App\Services\CreditWalletService;
 use App\Services\Dashboard\DashboardActionFirstService;
 use App\Services\Growth\ProgrammaticGrowthBetaSummary;
 use App\Services\Onboarding\FirstValueActivationService;
+use App\Services\RecommendedActions\RecommendedActionEngine;
 use App\View\Presenters\ContentIndexTreePresenter;
 use Illuminate\Support\Collection;
 use Illuminate\Http\RedirectResponse;
@@ -29,6 +31,8 @@ class AppDashboardController extends Controller
         FirstValueActivationService $activationService,
         DashboardActionFirstService $actionFirstService,
         ProgrammaticGrowthBetaSummary $programmaticGrowthBetaSummary,
+        AssistantFeedService $assistantFeedService,
+        RecommendedActionEngine $recommendedActionEngine,
     ): View|RedirectResponse
     {
         $user = request()->user();
@@ -172,6 +176,12 @@ class AppDashboardController extends Controller
             'programmaticGrowthSummary' => $activationWorkspace ? $programmaticGrowthBetaSummary->forWorkspace($activationWorkspace) : [],
             'activation' => $activationWorkspace ? $activationService->forWorkspace($activationWorkspace) : null,
             'actionFirstDashboard' => $actionFirstService->forWorkspace($activationWorkspace),
+            'recommendedActionsSummary' => $activationWorkspace
+                ? $recommendedActionEngine->dashboardSummary($activationWorkspace)
+                : ['count' => 0, 'high_priority_count' => 0, 'approval_required_count' => 0, 'items' => collect()],
+            'assistantFeed' => $activationWorkspace
+                ? $assistantFeedService->hydrateWorkspace($activationWorkspace, 5, false)->take(6)
+                : collect(),
             'isEmptyDashboard' => $briefCount === 0
                 && $connectedSitesCount === 0
                 && (int) data_get($distributionSummary, 'scheduled_posts', 0) === 0

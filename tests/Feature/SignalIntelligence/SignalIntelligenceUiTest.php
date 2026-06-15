@@ -149,7 +149,8 @@ it('does not present processed detections as open review work', function (): voi
         ->assertOk()
         ->assertSee('All detections in this view are processed')
         ->assertSee('No open high priority detections.')
-        ->assertSee('No open opportunity candidates.')
+        ->assertSee('There is no user action waiting in this view.')
+        ->assertSee('All detections shown here are already processed')
         ->assertDontSee('Review next detection');
 });
 
@@ -222,6 +223,30 @@ it('shows a detection detail page', function (): void {
         ->assertSee('Linked Signal Events');
 });
 
+it('hides unavailable detection lifecycle actions', function (): void {
+    $context = signalUiContext('hidden-actions');
+    $detection = signalUiDetection($context['workspace'], [
+        'status' => SignalStatus::DISMISSED->value,
+        'title' => 'Dismissed lifecycle signal',
+    ]);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.signal-intelligence.detections.show', $detection))
+        ->assertOk()
+        ->assertSee('Dismissed lifecycle signal')
+        ->assertDontSee(route('app.signal-intelligence.detections.review', $detection), false)
+        ->assertDontSee(route('app.signal-intelligence.detections.dismiss', $detection), false)
+        ->assertDontSee(route('app.signal-intelligence.detections.resolve', $detection), false);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.signal-intelligence.index', ['workspace' => $context['workspace']->id]))
+        ->assertOk()
+        ->assertSee('Dismissed lifecycle signal')
+        ->assertDontSee(route('app.signal-intelligence.detections.review', $detection), false)
+        ->assertDontSee(route('app.signal-intelligence.detections.dismiss', $detection), false)
+        ->assertDontSee(route('app.signal-intelligence.detections.resolve', $detection), false);
+});
+
 it('blocks cross workspace detection access', function (): void {
     $context = signalUiContext('cross-a');
     $other = signalUiContext('cross-b');
@@ -264,6 +289,22 @@ it('resolves a detection', function (): void {
 
     expect($detection->refresh()->status)->toBe(SignalStatus::RESOLVED)
         ->and($detection->resolved_at)->not->toBeNull();
+});
+
+it('rejects unavailable detection lifecycle transitions', function (): void {
+    $context = signalUiContext('reject-actions');
+    $detection = signalUiDetection($context['workspace'], [
+        'status' => SignalStatus::DISMISSED->value,
+    ]);
+
+    $this->actingAs($context['user'])
+        ->from(route('app.signal-intelligence.detections.show', $detection))
+        ->post(route('app.signal-intelligence.detections.resolve', $detection))
+        ->assertRedirect(route('app.signal-intelligence.detections.show', $detection))
+        ->assertSessionHasErrors('signal_intelligence');
+
+    expect($detection->refresh()->status)->toBe(SignalStatus::DISMISSED)
+        ->and($detection->resolved_at)->toBeNull();
 });
 
 it('starts detection services during a manual run', function (): void {

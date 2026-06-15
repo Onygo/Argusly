@@ -111,10 +111,13 @@ class InlineLinkCandidateMatcher
 
         $usedInlineIds = $inline->map(fn (array $row): string => (string) $row['target']->id)->all();
 
-        $footer = $targets
+        $maxFooterLinks = max(0, (int) config('content_chain.suggestions.max_footer_links_per_content', 0));
+        $footer = $maxFooterLinks === 0
+            ? collect()
+            : $targets
             ->reject(fn (Content $target): bool => in_array((string) $target->id, $usedInlineIds, true))
             ->filter(fn (Content $target): bool => $this->targetUrl($target) !== '')
-            ->take((int) config('content_chain.suggestions.max_footer_links_per_content', 3))
+            ->take($maxFooterLinks)
             ->map(function (Content $target): array {
                 return [
                     'target' => $target,

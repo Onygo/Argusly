@@ -36,7 +36,9 @@ it('lists approval required Agentic Action runs with proposal details', function
     $this->actingAs($this->user)
         ->get(route('app.agentic-marketing.approvals.index'))
         ->assertOk()
-        ->assertSee('Approval Inbox')
+        ->assertSee('Approval Conversations')
+        ->assertSee('Approval Summary')
+        ->assertSee('I recommend approving these 1 low-risk action.')
         ->assertSee('create article')
         ->assertSee('Create draft content')
         ->assertSee('Primary Site')
@@ -127,6 +129,49 @@ it('bulk approves only low risk approval runs', function () {
 
     expect($lowRisk->fresh()->status)->toBe(AgenticActionRun::STATUS_APPROVED)
         ->and($highRisk->fresh()->status)->toBe(AgenticActionRun::STATUS_APPROVAL_REQUIRED);
+});
+
+it('approves recommended low-risk actions from the conversation summary', function () {
+    [, $lowRisk] = makeAgenticApprovalInboxRun($this->organization, $this->workspace, $this->site, [
+        'estimated_credits' => 5,
+    ]);
+    [, $highRisk] = makeAgenticApprovalInboxRun($this->organization, $this->workspace, $this->site, [
+        'estimated_credits' => 24,
+        'input_snapshot' => ['payload' => ['planning' => ['risk_level' => 'high']]],
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('app.agentic-marketing.approvals.index'))
+        ->assertOk()
+        ->assertSee('Approve Recommended Actions')
+        ->assertSee('I need your judgment on these 1 action.');
+
+    $this->actingAs($this->user)
+        ->post(route('app.agentic-marketing.approvals.approve-recommended'), [
+            'run_ids' => [(string) $lowRisk->id, (string) $highRisk->id],
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Approved 1 recommended action(s).');
+
+    expect($lowRisk->fresh()->status)->toBe(AgenticActionRun::STATUS_APPROVED)
+        ->and($highRisk->fresh()->status)->toBe(AgenticActionRun::STATUS_APPROVAL_REQUIRED);
+});
+
+it('explains blocked actions as conversations instead of approval candidates', function () {
+    [, $run] = makeAgenticApprovalInboxRun($this->organization, $this->workspace, $this->site, [
+        'status' => AgenticActionRun::STATUS_BLOCKED,
+        'reason' => 'Destination missing.',
+        'input_snapshot' => ['payload' => ['planning' => ['risk_level' => 'low']]],
+    ]);
+
+    $run->goal?->forceFill(['client_site_id' => null])->save();
+    $run->action?->objective?->forceFill(['client_site_id' => null])->save();
+
+    $this->actingAs($this->user)
+        ->get(route('app.agentic-marketing.approvals.index'))
+        ->assertOk()
+        ->assertSee('This action is blocked because no destination site exists.')
+        ->assertSee('I need a destination site before I can safely run this.');
 });
 
 it('allows platform admins to view but not approve customer content', function () {

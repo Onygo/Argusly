@@ -654,28 +654,45 @@
 {{-- Integrations --}}
 <section class="pl-public-canvas">
     @php($integrationTargets = array_values(__('public.landing.integration_targets')))
+    @php($integrationInputs = array_values(__('public.landing.integration_inputs')))
+    @php($integrationProcesses = array_values(__('public.landing.integration_processes')))
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <h2 class="text-center pl-public-heading pl-public-heading-h2">{{ __('public.landing.integration_title') }}</h2>
 
         <div class="pl-integration-visual">
             <div class="pl-integration-flow-layer hidden md:block" aria-hidden="true">
-                <span class="pl-integration-flow-line pl-integration-flow-line-left"></span>
-                <span class="pl-integration-flow-line pl-integration-flow-line-right"></span>
-                <span class="pl-integration-flow-packet pl-integration-flow-packet-left pl-integration-flow-packet-1"></span>
-                <span class="pl-integration-flow-packet pl-integration-flow-packet-right pl-integration-flow-packet-2"></span>
-                <span class="pl-integration-flow-packet pl-integration-flow-packet-left pl-integration-flow-packet-3"></span>
+                <span class="pl-integration-flow-line"></span>
+                <span class="pl-integration-flow-packet pl-integration-flow-packet-1"></span>
+                <span class="pl-integration-flow-packet pl-integration-flow-packet-2"></span>
+                <span class="pl-integration-flow-packet pl-integration-flow-packet-3"></span>
+                <span class="pl-integration-flow-packet pl-integration-flow-packet-return pl-integration-flow-packet-4"></span>
             </div>
 
-            <div class="pl-integration-stack grid gap-8 md:grid-cols-3 md:gap-6">
+            <div class="pl-integration-stack">
                 <article class="pl-integration-column pl-integration-step">
+                    <div class="pl-integration-node-row">
+                        <span class="pl-integration-anchor-icon">IN</span>
+                    </div>
+                    <div class="pl-integration-copy">
+                        <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.integration_input_title') }}</p>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">{{ __('public.landing.integration_input_subtitle') }}</p>
+                    </div>
+                    <div class="pl-integration-mini-list">
+                        @foreach ($integrationInputs as $input)
+                            <span>{{ $input }}</span>
+                        @endforeach
+                    </div>
+                </article>
+
+                <article class="pl-integration-column pl-integration-column-argus pl-integration-step">
                     <div class="pl-integration-node-row">
                         <span class="pl-integration-anchor-icon">
                             <x-brand-logo :show-text="false" />
                         </span>
                     </div>
                     <div class="pl-integration-copy">
-                        <p class="text-sm font-semibold text-textPrimary">{{ \App\Support\Brand::product() }}</p>
-                        <p class="mt-1 text-xs leading-5 text-textSecondary">{{ __('public.landing.integration_layer') }}</p>
+                        <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.integration_argus_title') }}</p>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">{{ __('public.landing.integration_argus_subtitle') }}</p>
                     </div>
                 </article>
 
@@ -684,35 +701,33 @@
                         <span class="pl-integration-hub-badge">{{ __('public.landing.integration_api_label') }}</span>
                     </div>
                     <div class="pl-integration-copy">
-                        <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.integration_api_label') }}</p>
+                        <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.integration_process_title') }}</p>
                         <p class="mt-1 text-xs leading-5 text-textSecondary">{{ __('public.landing.integration_delivery') }}</p>
+                    </div>
+                    <div class="pl-integration-mini-list">
+                        @foreach ($integrationProcesses as $process)
+                            <span>{{ $process }}</span>
+                        @endforeach
                     </div>
                 </article>
 
-                <div class="pl-integration-target-slot pl-integration-step" data-integration-targets>
-                    <div class="relative min-h-[9.5rem]">
+                <article class="pl-integration-column pl-integration-step">
+                    <div class="pl-integration-node-row">
+                        <span class="pl-integration-anchor-icon">OUT</span>
+                    </div>
+                    <div class="pl-integration-copy">
+                        <p class="text-sm font-semibold text-textPrimary">{{ __('public.landing.integration_output_title') }}</p>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">{{ __('public.landing.integration_output_subtitle') }}</p>
+                    </div>
+                    <div class="pl-integration-target-grid">
                         @foreach ($integrationTargets as $target)
-                            <div
-                                class="pl-integration-target-card {{ $loop->first ? 'is-active' : '' }}"
-                                data-integration-target
-                                @if (! $loop->first) hidden @endif
-                                aria-hidden="{{ $loop->first ? 'false' : 'true' }}"
-                            >
-                                <div class="pl-integration-column">
-                                    <div class="pl-integration-node-row">
-                                        <span class="pl-integration-anchor-icon">
-                                            {{ $target['icon'] }}
-                                        </span>
-                                    </div>
-                                    <div class="pl-integration-copy">
-                                        <p class="text-sm font-semibold text-textPrimary">{{ $target['title'] }}</p>
-                                        <p class="mt-1 text-xs leading-5 text-textSecondary">{{ $target['subtitle'] }}</p>
-                                    </div>
-                                </div>
-                            </div>
+                            <span class="pl-integration-target-pill">
+                                <span>{{ $target['icon'] }}</span>
+                                <span>{{ $target['title'] }}</span>
+                            </span>
                         @endforeach
                     </div>
-                </div>
+                </article>
             </div>
         </div>
 
@@ -742,58 +757,6 @@
         if (window.lucide) {
             lucide.createIcons();
         }
-
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-        if (prefersReducedMotion.matches) {
-            return;
-        }
-
-        const mobileIntegration = window.matchMedia('(max-width: 767px)');
-
-        document.querySelectorAll('[data-integration-targets]').forEach((container) => {
-            const targets = Array.from(container.querySelectorAll('[data-integration-target]'));
-            if (targets.length < 2) {
-                return;
-            }
-
-            if (mobileIntegration.matches) {
-                targets.forEach((target, index) => {
-                    const isActive = index === 0;
-                    target.hidden = !isActive;
-                    target.classList.toggle('is-active', isActive);
-                    target.classList.toggle('is-inactive', !isActive);
-                    target.setAttribute('aria-hidden', isActive ? 'false' : 'true');
-                });
-
-                return;
-            }
-
-            let activeIndex = 0;
-
-            const showTarget = (nextIndex) => {
-                targets.forEach((target, index) => {
-                    const isActive = index === nextIndex;
-                    target.hidden = false;
-                    target.classList.toggle('is-active', isActive);
-                    target.classList.toggle('is-inactive', !isActive);
-                    target.setAttribute('aria-hidden', isActive ? 'false' : 'true');
-                });
-
-                window.setTimeout(() => {
-                    targets.forEach((target, index) => {
-                        if (index !== nextIndex) {
-                            target.hidden = true;
-                        }
-                    });
-                }, 360);
-
-                activeIndex = nextIndex;
-            };
-
-            window.setInterval(() => {
-                showTarget((activeIndex + 1) % targets.length);
-            }, 4500);
-        });
     });
 </script>
 </body>

@@ -42,6 +42,7 @@
     $signalEventCount = (int) ($metrics['events'] ?? 0);
     $openDetectionCount = (int) ($metrics['open_detections'] ?? 0);
     $candidateCount = (int) ($metrics['opportunities'] ?? 0);
+    $totalDetectionCount = method_exists($detections, 'total') ? (int) $detections->total() : (int) $detections->count();
     $humanDetectionSummary = function ($detection) use ($formatLabel): string {
         $category = (string) ($detection->category ?? '');
 
@@ -124,7 +125,9 @@
             :setup-url="in_array($readiness?->status, ['not_ready', 'partially_ready'], true) ? route('app.setup.index', ['workspace' => $workspace->id]) : null"
         />
     @elseif ((int) ($metrics['events'] ?? 0) === 0)
-        @php($firstSite = $sites->first())
+        @php
+            $firstSite = $sites->first();
+        @endphp
         <section class="rounded-lg border border-amber-200 bg-amber-50/70 p-5">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div class="max-w-3xl">
@@ -339,6 +342,11 @@
             </thead>
             <tbody class="divide-y divide-border">
                 @forelse ($detections as $detection)
+                    @php
+                        $canReviewDetection = $detection->canTransitionTo(\App\Enums\SignalStatus::REVIEWING);
+                        $canDismissDetection = $detection->canTransitionTo(\App\Enums\SignalStatus::DISMISSED);
+                        $canResolveDetection = $detection->canTransitionTo(\App\Enums\SignalStatus::RESOLVED);
+                    @endphp
                     <tr>
                         <td class="px-4 py-3">
                             <a href="{{ route('app.signal-intelligence.detections.show', $detection) }}" class="font-medium text-primary hover:underline">{{ $detection->title }}</a>
@@ -352,9 +360,15 @@
                             <div class="flex justify-end gap-2">
                                 <a href="{{ route('app.signal-intelligence.detections.show', $detection) }}" class="inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-textPrimary hover:bg-surfaceMuted">Review</a>
                                 <x-action-menu>
-                                    <form method="POST" action="{{ route('app.signal-intelligence.detections.review', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Mark reviewing</button></form>
-                                    <form method="POST" action="{{ route('app.signal-intelligence.detections.dismiss', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Dismiss</button></form>
-                                    <form method="POST" action="{{ route('app.signal-intelligence.detections.resolve', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Resolve</button></form>
+                                    @if ($canReviewDetection)
+                                        <form method="POST" action="{{ route('app.signal-intelligence.detections.review', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Mark reviewing</button></form>
+                                    @endif
+                                    @if ($canDismissDetection)
+                                        <form method="POST" action="{{ route('app.signal-intelligence.detections.dismiss', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Dismiss</button></form>
+                                    @endif
+                                    @if ($canResolveDetection)
+                                        <form method="POST" action="{{ route('app.signal-intelligence.detections.resolve', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Resolve</button></form>
+                                    @endif
                                 </x-action-menu>
                             </div>
                         </td>
@@ -382,7 +396,15 @@
             </div>
         </div>
         <div class="rounded-md border border-border bg-surface p-4 lg:col-span-2">
-            <h2 class="text-sm font-semibold text-textPrimary">Opportunity Candidates</h2>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-textPrimary">Opportunity Candidates</h2>
+                    <p class="mt-1 text-xs leading-5 text-textSecondary">Open detections appear here only when they look actionable enough for Opportunity Review.</p>
+                </div>
+                @if ($opportunityCandidates->isEmpty() && $nextDetection)
+                    <a href="{{ route('app.signal-intelligence.detections.show', $nextDetection) }}" class="inline-flex h-8 shrink-0 items-center justify-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-textPrimary hover:bg-surfaceMuted">Review open detection</a>
+                @endif
+            </div>
             <x-mobile-card-list class="mt-4">
                 @forelse ($opportunityCandidates as $detection)
                     <a href="{{ route('app.signal-intelligence.detections.show', $detection) }}" class="block rounded-md border border-border p-3 hover:bg-surfaceMuted">
@@ -395,7 +417,18 @@
                         </div>
                     </a>
                 @empty
-                    <p class="text-sm text-textMuted">No open opportunity candidates. Processed candidates remain in the Detections table above.</p>
+                    <div class="rounded-md border border-dashed border-border bg-surfaceSubtle p-4">
+                        @if ($openDetectionCount > 0)
+                            <p class="text-sm font-medium text-textPrimary">No open detections qualify as opportunity candidates yet.</p>
+                            <p class="mt-1 text-sm leading-6 text-textSecondary">Review the open detections first. If one is actionable, open it and promote it to Opportunity; otherwise dismiss or resolve it so the queue stays clean.</p>
+                        @elseif ($totalDetectionCount > 0)
+                            <p class="text-sm font-medium text-textPrimary">There is no user action waiting in this view.</p>
+                            <p class="mt-1 text-sm leading-6 text-textSecondary">All detections shown here are already processed, so they cannot unlock Opportunity Review. Run Signal Intelligence again after new AI Visibility evidence, or widen the filters if you expect an older open candidate.</p>
+                        @else
+                            <p class="text-sm font-medium text-textPrimary">No opportunity candidates have been detected yet.</p>
+                            <p class="mt-1 text-sm leading-6 text-textSecondary">Create or refresh AI Visibility evidence first, then run Signal Intelligence so Argusly can evaluate whether any signal should become a candidate.</p>
+                        @endif
+                    </div>
                 @endforelse
             </x-mobile-card-list>
         </div>

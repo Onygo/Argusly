@@ -8,6 +8,7 @@ use App\Models\AgenticActionRun;
 use App\Models\AgenticMarketingAction;
 use App\Services\AgenticMarketing\AgenticActionRunLogger;
 use App\Services\AgenticMarketing\AgenticApprovalGate;
+use App\Services\AgenticMarketing\ApprovalRecommendationService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ use Illuminate\View\View;
 
 class AppAgenticApprovalInboxController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, ApprovalRecommendationService $recommendations): View
     {
         $this->authorize('viewAny', AgenticActionRun::class);
 
@@ -29,7 +30,7 @@ class AppAgenticApprovalInboxController extends Controller
 
         $runs = AgenticActionRun::query()
             ->with(['workspace', 'goal.clientSite', 'opportunity', 'content', 'action.opportunity', 'action.objective.clientSite'])
-            ->where('status', AgenticActionRun::STATUS_APPROVAL_REQUIRED)
+            ->whereIn('status', [AgenticActionRun::STATUS_APPROVAL_REQUIRED, AgenticActionRun::STATUS_BLOCKED])
             ->whereHas('workspace', fn (Builder $query) => $query->where('organization_id', $organizationId))
             ->when($filters['action_type'] !== '', fn (Builder $query) => $query->where('action_type', $filters['action_type']))
             ->when($filters['workspace_id'] !== '', fn (Builder $query) => $query->where('workspace_id', $filters['workspace_id']))
@@ -54,6 +55,8 @@ class AppAgenticApprovalInboxController extends Controller
                 ->orderBy('action_type')
                 ->pluck('action_type')
                 ->all(),
+            'approvalRecommendation' => $recommendations->summarize($runs->getCollection()),
+            'approvalRecommendationService' => $recommendations,
         ]);
     }
 
@@ -214,6 +217,44 @@ class AppAgenticApprovalInboxController extends Controller
         }
 
         return back()->with('status', sprintf('Bulk approved %d low-risk action(s).', $runs->count()));
+    }
+
+    public function approveRecommended(Request $request, ApprovalRecommendationService $recommendations): RedirectResponse
+    {
+        $this->authorize('bulkApprove', AgenticActionRun::class);
+
+        $data = $request->validate([
+            'run_ids' => ['required', 'array', 'max:50'],
+            'run_ids.*' => ['uuid'],
+        ]);
+
+        $runs = AgenticActionRun::query()
+            ->with(['workspace', 'action', 'goal.clientSite', 'action.objective.clientSite'])
+            ->whereIn('id', $data['run_ids'])
+            ->where('status', AgenticActionRun::STATUS_APPROVAL_REQUIRED)
+            ->whereHas('workspace', fn (Builder $query) => $query->where('organization_id', $request->user()->organization_id))
+            ->get()
+            ->filter(fn (AgenticActionRun $run): bool => $recommendations->isRecommendedApproval($run));
+
+        foreach ($runs as $run) {
+            $this->authorize('approve', $run);
+            $run->forceFill([
+                'status' => AgenticActionRun::STATUS_APPROVED,
+                'approved_by' => $request->user()->id,
+                'approved_at' => now(),
+                'reason' => $run->reason ?: 'Customer approved Argusly recommended low-risk action.',
+            ])->save();
+
+            if ($run->action) {
+                $run->action->forceFill([
+                    'status' => AgenticMarketingAction::STATUS_APPROVED,
+                    'approved_at' => now(),
+                    'dismissed_at' => null,
+                ])->save();
+            }
+        }
+
+        return back()->with('status', sprintf('Approved %d recommended action(s).', $runs->count()));
     }
 
     private function claimAction(AgenticMarketingAction $action): ?string

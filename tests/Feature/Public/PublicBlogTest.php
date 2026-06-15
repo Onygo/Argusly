@@ -766,8 +766,7 @@ it('keeps x-default in hreflang metadata but never renders it as a visible local
         ->assertSee('rel="alternate" hreflang="x-default" href="' . url($enUrl) . '"', false)
         ->assertSee('href="' . url($nlUrl) . '"', false)
         ->assertSee('href="' . url($enUrl) . '"', false)
-        ->assertSee('>NL<', false)
-        ->assertSee('>EN<', false)
+        ->assertDontSee('rounded-md border border-border bg-white p-1 text-xs', false)
         ->assertDontSee('>X-DEFAULT<', false)
         ->assertDontSee('>DE<', false)
         ->assertDontSee('>FR<', false);

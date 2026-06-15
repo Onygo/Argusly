@@ -122,7 +122,12 @@ class WorkspaceJourneyService
         }
 
         if ($counts['opportunities'] === 0 && $counts['opportunity_candidates'] === 0) {
-            return new JourneyAction($this->runtime('Find Opportunity Candidate'), $this->runtime('Run or review Signal Intelligence until the first candidate is detected.'), $this->route('app.signal-intelligence.index', ['workspace' => $workspace->id]), 78);
+            return new JourneyAction(
+                $this->runtime('Find Opportunity Candidate'),
+                $this->runtime('No open candidate exists yet. Review open detections or run Signal Intelligence again after fresh AI Visibility evidence.'),
+                $this->route('app.signal-intelligence.index', ['workspace' => $workspace->id]).'#priority',
+                78,
+            );
         }
 
         if ($counts['opportunities'] === 0) {

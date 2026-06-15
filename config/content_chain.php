@@ -3,7 +3,7 @@
 return [
     'suggestions' => [
         'max_growth_suggestions_per_content' => (int) env('CONTENT_CHAIN_MAX_GROWTH_SUGGESTIONS', 6),
-        'max_footer_links_per_content' => (int) env('CONTENT_CHAIN_MAX_FOOTER_LINKS', 3),
+        'max_footer_links_per_content' => (int) env('CONTENT_CHAIN_MAX_FOOTER_LINKS', 0),
         'source_min_score' => (float) env('CONTENT_CHAIN_SOURCE_MIN_SCORE', 45),
         'confidence_threshold' => (float) env('CONTENT_CHAIN_CONFIDENCE_THRESHOLD', 0.58),
         'scoring' => [

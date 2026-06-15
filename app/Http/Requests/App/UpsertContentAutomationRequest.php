@@ -31,12 +31,18 @@ class UpsertContentAutomationRequest extends FormRequest
             array_unshift($locales, $locale);
         }
 
+        $mode = $this->nullableTrim('mode');
+        $includeTranslation = $this->boolean('include_translation');
+        if (in_array($mode, [ContentAutomationMode::CHAIN->value, ContentAutomationMode::PILLAR_PLUS_CLUSTER->value], true) && count($locales) > 1) {
+            $includeTranslation = true;
+        }
+
         $this->merge([
             'name' => $this->nullableTrim('name'),
             'workspace_id' => $this->nullableTrim('workspace_id'),
             'client_site_id' => $this->nullableTrim('client_site_id'),
             'content_destination_id' => $this->nullableTrim('content_destination_id'),
-            'mode' => $this->nullableTrim('mode'),
+            'mode' => $mode,
             'publication_mode' => $this->nullableTrim('publication_mode'),
             'generation_frequency_value' => (int) $this->input('generation_frequency_value', 3),
             'generation_frequency_unit' => $this->nullableTrim('generation_frequency_unit'),
@@ -58,7 +64,7 @@ class UpsertContentAutomationRequest extends FormRequest
             'max_runs' => $this->nullableInt('max_runs'),
             'is_active' => $this->boolean('is_active', true),
             'include_internal_linking' => $this->boolean('include_internal_linking'),
-            'include_translation' => $this->boolean('include_translation'),
+            'include_translation' => $includeTranslation,
             'auto_publish_translations' => $this->boolean('auto_publish_translations', true),
             'avoid_topic_overlap' => $this->boolean('avoid_topic_overlap', true),
             'generate_structured_answers' => $this->boolean('generate_structured_answers'),

@@ -24,8 +24,10 @@ use App\Models\Workspace;
 use App\Enums\SupportedLanguage;
 use App\Services\AuditLogService;
 use App\Services\Agents\AgentAutomationSettingsResolver;
+use App\Services\AgenticMarketing\AutonomyPresetService;
 use App\Services\BrandVoiceService;
 use App\Services\SubscriptionService;
+use App\Support\AdvancedMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -74,6 +76,7 @@ class AppSettingsController extends Controller
             'agenticExecutionSettings' => $workspace ? $this->agenticExecutionSettingsFor($workspace) : null,
             'agenticExecutionSites' => $workspace ? $this->agenticExecutionSitesFor($workspace) : collect(),
             'agenticExecutionDestinations' => $workspace ? $this->agenticExecutionDestinationsFor($workspace) : collect(),
+            'autonomyPresets' => app(AutonomyPresetService::class)->presets(),
             'contentLanguageOptions' => SupportedLanguage::options(),
             'users' => $users,
             'invites' => $invites,
@@ -144,6 +147,25 @@ class AppSettingsController extends Controller
         return back()->with('status', 'Workspace language settings updated.');
     }
 
+    public function updateAdvancedMode(Request $request): RedirectResponse
+    {
+        $enabled = $request->boolean('advanced_mode');
+
+        if ($enabled && ! AdvancedMode::canEnable($request->user())) {
+            $request->session()->put(AdvancedMode::SESSION_KEY, false);
+
+            return back()->withErrors([
+                'advanced_mode' => 'Advanced Mode is available to workspace owners, admins, and editors.',
+            ]);
+        }
+
+        $request->session()->put(AdvancedMode::SESSION_KEY, $enabled);
+
+        return back()->with('status', $enabled
+            ? 'Advanced Mode enabled. Technical navigation is now visible.'
+            : 'Advanced Mode disabled. Technical navigation is hidden.');
+    }
+
     public function updateWorkspaceAgentAutomation(
         Request $request,
         AgentAutomationSettingsResolver $settingsResolver,
@@ -161,7 +183,8 @@ class AppSettingsController extends Controller
     }
 
     public function updateAgenticMarketingExecutionSettings(
-        UpdateAgenticMarketingExecutionSettingsRequest $request
+        UpdateAgenticMarketingExecutionSettingsRequest $request,
+        AutonomyPresetService $autonomyPresets
     ): RedirectResponse {
         $workspace = $this->resolveWorkspace($request);
         if (! $workspace) {
@@ -171,11 +194,17 @@ class AppSettingsController extends Controller
         $this->authorize('updateName', $workspace);
 
         $data = $request->validated();
-        $mode = (string) $data['agentic_execution_mode'];
         $existing = AgenticMarketingExecutionSetting::query()
             ->where('workspace_id', $workspace->id)
             ->whereNull('brand_voice_id')
             ->first();
+
+        $preset = (string) ($data['autonomy_preset'] ?? $existing?->autonomy_preset ?? AutonomyPresetService::GUIDED_MODE);
+        if (array_key_exists('autonomy_preset', $data)) {
+            $data = array_merge($data, $autonomyPresets->settingsFor($preset));
+        }
+
+        $mode = (string) $data['agentic_execution_mode'];
         $wasAutonomous = $existing?->isAutonomous() ?? false;
         $siteIds = $this->assertAllowedSitesBelongToWorkspace($workspace, (array) ($data['allowed_site_ids'] ?? []));
         $destinationIds = $this->assertAllowedDestinationsBelongToWorkspace($workspace, (array) ($data['allowed_publishing_destination_ids'] ?? []));
@@ -215,6 +244,7 @@ class AppSettingsController extends Controller
             ],
             [
                 'organization_id' => (int) $workspace->organization_id,
+                'autonomy_preset' => $preset,
                 'agentic_execution_mode' => $mode,
                 'autonomous_publication_enabled' => (bool) ($data['autonomous_publication_enabled'] ?? false),
                 'autonomous_refresh_enabled' => (bool) ($data['autonomous_refresh_enabled'] ?? false),

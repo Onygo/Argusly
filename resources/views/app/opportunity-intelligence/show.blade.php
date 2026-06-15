@@ -122,13 +122,13 @@
                         <div class="rounded-md border border-border bg-surfaceSubtle p-4">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                    <p class="text-sm font-semibold text-textPrimary">Linked signal: {{ $formatLabel($signal->source?->value ?? $signal->source) }}</p>
+                                    <p class="text-sm font-semibold text-textPrimary">OpportunitySignal: {{ $formatLabel($signal->source?->value ?? $signal->source) }}</p>
                                     <p class="mt-1 text-xs text-textSecondary">{{ $signal->topic ?: $signal->entity ?: 'General signal' }} · Strength {{ number_format((float) $signal->signal_strength, 1) }} · Confidence {{ number_format((float) $signal->confidence, 1) }}</p>
                                 </div>
                                 @if ($detection)
                                     <a href="{{ route('app.signal-intelligence.detections.show', $detection) }}" class="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                                         <i data-lucide="arrow-up-right" class="h-3 w-3"></i>
-                                        View source detection
+                                        View SignalDetection
                                     </a>
                                 @endif
                             </div>

@@ -29,6 +29,9 @@
     $sourceHistory = $detection->events->pluck('signalSource')->filter()->unique('id')->values();
     $detectionStatus = $detection->status?->value ?? (string) $detection->status;
     $canPromote = in_array($detectionStatus, ['new', 'detected', 'reviewing'], true);
+    $canReview = $detection->canTransitionTo(\App\Enums\SignalStatus::REVIEWING);
+    $canDismiss = $detection->canTransitionTo(\App\Enums\SignalStatus::DISMISSED);
+    $canResolve = $detection->canTransitionTo(\App\Enums\SignalStatus::RESOLVED);
     $renderList = function (mixed $items): array {
         if ($items instanceof \Illuminate\Support\Collection) {
             return $items->all();
@@ -64,9 +67,15 @@
                     <form method="POST" action="{{ route('app.signal-intelligence.detections.promote', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover"><i data-lucide="send" class="h-4 w-4"></i>Promote to Opportunity</button></form>
                 @endif
             @endcan
-            <form method="POST" action="{{ route('app.signal-intelligence.detections.review', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-textPrimary hover:bg-surfaceMuted"><i data-lucide="eye" class="h-4 w-4"></i>Mark reviewing</button></form>
-            <form method="POST" action="{{ route('app.signal-intelligence.detections.dismiss', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-textSecondary hover:bg-surfaceMuted"><i data-lucide="x" class="h-4 w-4"></i>Dismiss</button></form>
-            <form method="POST" action="{{ route('app.signal-intelligence.detections.resolve', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover"><i data-lucide="check" class="h-4 w-4"></i>Resolve</button></form>
+            @if ($canReview)
+                <form method="POST" action="{{ route('app.signal-intelligence.detections.review', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-textPrimary hover:bg-surfaceMuted"><i data-lucide="eye" class="h-4 w-4"></i>Mark reviewing</button></form>
+            @endif
+            @if ($canDismiss)
+                <form method="POST" action="{{ route('app.signal-intelligence.detections.dismiss', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm font-medium text-textSecondary hover:bg-surfaceMuted"><i data-lucide="x" class="h-4 w-4"></i>Dismiss</button></form>
+            @endif
+            @if ($canResolve)
+                <form method="POST" action="{{ route('app.signal-intelligence.detections.resolve', $detection) }}">@csrf<button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover"><i data-lucide="check" class="h-4 w-4"></i>Resolve</button></form>
+            @endif
         </div>
     </div>
 

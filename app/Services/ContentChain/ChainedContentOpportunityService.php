@@ -248,6 +248,7 @@ class ChainedContentOpportunityService
             ->with('seriesArticle:id,series_id,content_id,article_number,is_pillar')
             ->where('workspace_id', $source->workspace_id)
             ->where('id', '!=', $source->id)
+            ->where('language', $source->localeCode())
             ->where('status', '!=', 'archived')
             ->where(function ($builder): void {
                 $builder->where('publish_status', 'published')
@@ -257,7 +258,10 @@ class ChainedContentOpportunityService
             ->whereNotNull('published_url')
             ->orderByDesc('updated_at');
 
-        $targets = $query->get();
+        $sourceRootId = $source->localizationRootId();
+        $targets = $query->get()
+            ->reject(fn (Content $target): bool => $target->localizationRootId() === $sourceRootId)
+            ->values();
 
         if (! $cluster) {
             return $targets->take(12)->values();

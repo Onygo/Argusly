@@ -3,6 +3,7 @@
 namespace App\Services\ContentAutomation;
 
 use App\Enums\SupportedLanguage;
+use App\Enums\ContentAutomationMode;
 use App\Models\ContentAutomation;
 
 class AutomationLocaleResolver
@@ -17,6 +18,10 @@ class AutomationLocaleResolver
      */
     public function configuredLocales(ContentAutomation $automation): array
     {
+        if ($this->isChainedAutomation($automation)) {
+            return $automation->configuredLocales();
+        }
+
         $locales = collect($automation->configuredLocales())
             ->filter(function (string $locale) use ($automation): bool {
                 $workspace = $automation->workspace;
@@ -48,7 +53,17 @@ class AutomationLocaleResolver
 
     public function shouldTranslate(ContentAutomation $automation): bool
     {
-        return $automation->autoTranslateGeneratedContent() && $this->targetLocales($automation) !== [];
+        return ($automation->autoTranslateGeneratedContent() || $this->isChainedAutomation($automation))
+            && $this->targetLocales($automation) !== [];
+    }
+
+    private function isChainedAutomation(ContentAutomation $automation): bool
+    {
+        $mode = $automation->mode instanceof ContentAutomationMode
+            ? $automation->mode
+            : ContentAutomationMode::tryFrom((string) $automation->mode);
+
+        return in_array($mode, [ContentAutomationMode::CHAIN, ContentAutomationMode::PILLAR_PLUS_CLUSTER], true);
     }
 
     /**

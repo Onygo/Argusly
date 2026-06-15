@@ -8,6 +8,8 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\AgenticMarketing\AutonomyPresetService;
+use App\Support\AdvancedMode;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -20,14 +22,71 @@ it('defaults Agentic Marketing execution to guided mode', function () {
         ->get(route('app.settings'))
         ->assertOk()
         ->assertSee('Agentic Marketing Execution')
-        ->assertSee('Guided')
-        ->assertSee('Autonomous mode is never enabled by default.');
+        ->assertSee('Autonomy preset')
+        ->assertSee('Guided Mode')
+        ->assertSee('Draft Assist')
+        ->assertSee('Advanced configuration is preserved.')
+        ->assertDontSee('Max actions per day');
 
     $default = AgenticMarketingExecutionSetting::defaultsFor($workspace);
 
     expect($default->agentic_execution_mode)->toBe(AgenticMarketingExecutionSetting::MODE_GUIDED)
         ->and($default->autonomous_publication_enabled)->toBeFalse()
         ->and(AgenticMarketingExecutionSetting::query()->count())->toBe(0);
+});
+
+it('shows detailed autonomy controls only in advanced mode', function () {
+    [$user] = makeAgenticExecutionSettingsContext('agentic-execution-advanced-mode');
+
+    $this->actingAs($user)
+        ->get(route('app.settings'))
+        ->assertOk()
+        ->assertDontSee('Max actions per day')
+        ->assertDontSee('Save advanced autonomy settings');
+
+    $this->actingAs($user)
+        ->withSession([AdvancedMode::SESSION_KEY => true])
+        ->get(route('app.settings'))
+        ->assertOk()
+        ->assertSee('Advanced configuration')
+        ->assertSee('Max actions per day')
+        ->assertSee('Save advanced autonomy settings');
+});
+
+it('applies autonomy presets to the existing execution guardrails', function () {
+    [$user, $workspace, , $site] = makeAgenticExecutionSettingsContext('agentic-content-autopilot');
+
+    $this->actingAs($user)
+        ->from(route('app.settings'))
+        ->post(route('app.settings.agentic-marketing-execution.update'), [
+            'autonomy_preset' => AutonomyPresetService::CONTENT_AUTOPILOT,
+            'agentic_execution_mode' => 'guided',
+            'autonomous_opt_in_confirmation' => '1',
+            'max_autonomous_actions_per_day' => 1,
+            'max_autonomous_credits_per_month' => 1,
+            'require_approval_above_priority_score' => 0,
+            'allowed_site_ids' => [(string) $site->id],
+        ])
+        ->assertRedirect(route('app.settings'))
+        ->assertSessionHasNoErrors();
+
+    $settings = AgenticMarketingExecutionSetting::query()
+        ->where('workspace_id', $workspace->id)
+        ->firstOrFail();
+
+    expect($settings->autonomy_preset)->toBe(AutonomyPresetService::CONTENT_AUTOPILOT)
+        ->and($settings->agentic_execution_mode)->toBe(AgenticMarketingExecutionSetting::MODE_AUTONOMOUS)
+        ->and($settings->autonomous_brief_generation_enabled)->toBeTrue()
+        ->and($settings->autonomous_chained_plans_enabled)->toBeTrue()
+        ->and($settings->autonomous_refresh_enabled)->toBeTrue()
+        ->and($settings->autonomous_internal_linking_enabled)->toBeTrue()
+        ->and($settings->autonomous_publication_enabled)->toBeFalse()
+        ->and($settings->max_autonomous_actions_per_day)->toBe(6)
+        ->and($settings->max_autonomous_credits_per_month)->toBe(350)
+        ->and($settings->require_approval_above_priority_score)->toBe(75)
+        ->and($settings->require_approval_for_new_pages)->toBeTrue()
+        ->and($settings->require_approval_for_external_publication)->toBeTrue()
+        ->and($settings->allowed_site_ids)->toBe([(string) $site->id]);
 });
 
 it('allows a workspace owner to explicitly enable autonomous mode with bounded rules', function () {

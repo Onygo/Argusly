@@ -72,9 +72,9 @@ class DashboardActionFirstService
                 'expected_outcome' => __('app.dashboard_action_first.growth_opportunities_outcome'),
                 'estimated_impact' => $this->impactLabel($growthOpportunities->max('opportunity_score')),
                 'primary_cta_label' => __('app.dashboard_action_first.review_opportunities'),
-                'primary_cta_route' => route('app.opportunity-review.index', ['workspace' => $workspace->id]),
+                'primary_cta_route' => route('app.opportunities.decisions', ['workspace' => $workspace->id]),
                 'secondary_cta_label' => __('app.dashboard_action_first.view_market_signals'),
-                'secondary_cta_route' => route('app.signal-intelligence.index', ['workspace' => $workspace->id]),
+                'secondary_cta_route' => route('app.opportunities.inbox', ['workspace' => $workspace->id]),
             ];
         }
 
@@ -90,9 +90,9 @@ class DashboardActionFirstService
                 'expected_outcome' => __('app.dashboard_action_first.active_risks_outcome'),
                 'estimated_impact' => $this->impactLabel($openRisks->max('risk_score') ?: $openRisks->max('priority_score')),
                 'primary_cta_label' => __('app.dashboard_action_first.review_risks_cta'),
-                'primary_cta_route' => route('app.signal-intelligence.index', ['workspace' => $workspace->id, 'category' => SignalDetection::CATEGORY_RISK_DETECTION]),
+                'primary_cta_route' => route('app.opportunities.decisions', ['workspace' => $workspace->id]),
                 'secondary_cta_label' => __('app.dashboard_action_first.view_market_signals'),
-                'secondary_cta_route' => route('app.signal-intelligence.index', ['workspace' => $workspace->id]),
+                'secondary_cta_route' => route('app.opportunities.inbox', ['workspace' => $workspace->id]),
             ];
         }
 
@@ -108,9 +108,9 @@ class DashboardActionFirstService
                 'expected_outcome' => __('app.dashboard_action_first.open_opportunities_outcome'),
                 'estimated_impact' => $this->impactLabel($openOpportunities->max('impact_score') ?: $openOpportunities->max('priority_score')),
                 'primary_cta_label' => __('app.dashboard_action_first.open_opportunity'),
-                'primary_cta_route' => $opportunity ? route('app.opportunity-intelligence.opportunities.show', $opportunity) : route('app.agentic-marketing.intelligence.index'),
+                'primary_cta_route' => $opportunity ? route('app.opportunities.show', $opportunity) : route('app.opportunities.index', ['workspace' => $workspace->id]),
                 'secondary_cta_label' => __('app.dashboard_action_first.view_all_opportunities'),
-                'secondary_cta_route' => route('app.agentic-marketing.intelligence.index', ['workspace' => $workspace->id]),
+                'secondary_cta_route' => route('app.opportunities.index', ['workspace' => $workspace->id]),
             ];
         }
 
@@ -126,9 +126,9 @@ class DashboardActionFirstService
                 'expected_outcome' => __('app.dashboard_action_first.execution_plans_outcome'),
                 'estimated_impact' => $this->impactLabel($executionPlans->max('expected_impact') ?: $executionPlans->max('priority_score')),
                 'primary_cta_label' => __('app.dashboard_action_first.open_execution_plan'),
-                'primary_cta_route' => $plan ? route('app.opportunity-intelligence.execution-plans.show', $plan) : null,
+                'primary_cta_route' => $plan ? route('app.opportunities.execution-recommendations.show', $plan) : null,
                 'secondary_cta_label' => __('app.dashboard_action_first.view_all_opportunities'),
-                'secondary_cta_route' => route('app.agentic-marketing.intelligence.index', ['workspace' => $workspace->id]),
+                'secondary_cta_route' => route('app.opportunities.index', ['workspace' => $workspace->id]),
             ];
         }
 
@@ -141,7 +141,7 @@ class DashboardActionFirstService
             'expected_outcome' => __('app.dashboard_action_first.monitoring_outcome'),
             'estimated_impact' => __('app.dashboard_action_first.low'),
             'primary_cta_label' => __('app.dashboard_action_first.continue_monitoring'),
-            'primary_cta_route' => $journey['recommended_action']->route ?? route('app.signal-intelligence.index', ['workspace' => $workspace->id]),
+            'primary_cta_route' => route('app.opportunities.index', ['workspace' => $workspace->id]),
             'secondary_cta_label' => null,
             'secondary_cta_route' => null,
         ];
@@ -221,7 +221,7 @@ class DashboardActionFirstService
                 'title' => $item->title,
                 'description' => $item->summary ?: $item->primary_topic,
                 'impact' => $this->impactLabel($item->opportunity_score),
-                'route' => route('app.signal-intelligence.detections.show', $item),
+                'route' => route('app.opportunities.candidates.show', $item),
                 'seen_at' => $item->last_seen_at ?: $item->created_at,
             ]))
             ->merge($openRisks->take(3)->map(fn (SignalDetection $item): array => [
@@ -229,7 +229,7 @@ class DashboardActionFirstService
                 'title' => $item->title,
                 'description' => $item->summary ?: $item->primary_topic,
                 'impact' => $this->impactLabel($item->risk_score ?: $item->priority_score),
-                'route' => route('app.signal-intelligence.detections.show', $item),
+                'route' => route('app.opportunities.candidates.show', $item),
                 'seen_at' => $item->last_seen_at ?: $item->created_at,
             ]))
             ->merge($openOpportunities->take(3)->map(fn (Opportunity $item): array => [
@@ -237,7 +237,7 @@ class DashboardActionFirstService
                 'title' => $item->title,
                 'description' => $item->summary ?: $item->topic,
                 'impact' => $this->impactLabel($item->impact_score ?: $item->priority_score),
-                'route' => route('app.opportunity-intelligence.opportunities.show', $item),
+                'route' => route('app.opportunities.show', $item),
                 'seen_at' => $item->last_seen_at ?: $item->created_at,
             ]))
             ->sortByDesc('seen_at')

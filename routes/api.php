@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\V1\Headless\OperationController as HeadlessOperatio
 use App\Http\Controllers\Api\V1\Headless\SeoAuditController as HeadlessSeoAuditController;
 use App\Http\Controllers\Api\V1\Headless\WebhookController as HeadlessWebhookController;
 use App\Http\Controllers\Api\V1\ImageController;
+use App\Http\Controllers\Api\V1\RecommendedActionController;
 use App\Http\Controllers\Api\V1\TaxonomyController;
 use App\Http\Controllers\Webhooks\MollieWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -105,6 +106,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/campaigns/channels', [CampaignController::class, 'channels'])
             ->middleware('integration.scope:content:read');
         Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])
+            ->middleware('integration.scope:content:read');
+        Route::get('/recommended-actions', [RecommendedActionController::class, 'index'])
+            ->middleware('integration.scope:content:read');
+        Route::get('/recommended-actions/{action}', [RecommendedActionController::class, 'show'])
             ->middleware('integration.scope:content:read');
         Route::delete('/content/bulk', [ContentDeletionController::class, 'bulkDestroy']);
         Route::delete('/content/{id}', [ContentDeletionController::class, 'destroy']);

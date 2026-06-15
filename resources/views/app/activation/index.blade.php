@@ -1,6 +1,18 @@
 @extends('layouts.app', ['title' => 'Activation'])
 
 @section('content')
+    @php
+        $rt = function (string $key, array $replace = []): string {
+            $line = (__('app.runtime')[$key] ?? $key);
+
+            foreach ($replace as $name => $value) {
+                $line = str_replace(':'.$name, (string) $value, $line);
+            }
+
+            return $line;
+        };
+    @endphp
+
     <div class="space-y-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -47,7 +59,7 @@
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">{{ __('app.runtime.Opportunity Review unlocked') }}</p>
                         <h2 class="mt-2 text-lg font-semibold text-textPrimary">{{ __('app.runtime.First Opportunity Candidate Detected') }}</h2>
-                        <p class="mt-1 text-sm text-textSecondary">{{ __('app.runtime.Argusly found a potential growth opportunity.') }}</p>
+                        <p class="mt-1 text-sm text-textSecondary">{{ $rt('Argusly found a potential growth opportunity.') }}</p>
                     </div>
                     <a href="{{ route('app.opportunity-review.index', ['workspace' => $workspace->id]) }}" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
                         <i data-lucide="eye" class="h-4 w-4"></i>

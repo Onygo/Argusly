@@ -3,6 +3,7 @@
 namespace App\Http\Requests\App;
 
 use App\Models\AgenticMarketingExecutionSetting;
+use App\Services\AgenticMarketing\AutonomyPresetService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,7 @@ class UpdateAgenticMarketingExecutionSettingsRequest extends FormRequest
     {
         return [
             'agentic_execution_mode' => ['required', 'string', Rule::in(AgenticMarketingExecutionSetting::modes())],
+            'autonomy_preset' => ['nullable', 'string', Rule::in(app(AutonomyPresetService::class)->keys())],
             'autonomous_publication_enabled' => ['nullable', 'boolean'],
             'autonomous_refresh_enabled' => ['nullable', 'boolean'],
             'autonomous_internal_linking_enabled' => ['nullable', 'boolean'],

@@ -6,22 +6,85 @@
             'source' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
             'variant' => 'border-sky-200 bg-sky-50 text-sky-700',
         ];
+        $openOpportunityCount = (int) data_get($actionFirstDashboard, 'open_opportunities.count', 0);
+        $recommendedActionCount = $openOpportunityCount + (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0);
+        $urgentDecisionCount = (int) data_get($actionFirstDashboard, 'risk_summary.count', 0) + (int) data_get($distributionSummary, 'failed_posts', 0) + (int) data_get($programmaticGrowthSummary, 'blocked_items', 0);
+        $progressScore = (int) data_get($actionFirstDashboard, 'journey_step.progress', 0);
+        $trackedContentCount = (int) data_get($performanceSummary, 'tracked_content_count', 0);
     @endphp
 
-    <div class="mb-8">
+    <div class="mb-6">
+        <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Argusly Command Center</p>
         <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ __('app.dashboard.title') }}</h1>
         <p class="text-textSecondary mt-1">{{ __('app.dashboard.subtitle') }}</p>
     </div>
+
+    <x-assistant.timeline
+        class="mb-8"
+        :items="$assistantFeed ?? collect()"
+        title="What Argusly is doing for you"
+        description="Opportunities, actions, impact, progress, and decisions in one guided assistant view."
+    />
+
+    <section class="mb-8 rounded-lg border border-border bg-surface p-5" aria-label="Growth Health">
+        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Growth Health</p>
+                <h2 class="mt-1 text-lg font-semibold text-textPrimary">What matters right now</h2>
+            </div>
+            <p class="text-sm text-textSecondary">{{ $trackedContentCount }} tracked page{{ $trackedContentCount === 1 ? '' : 's' }} contributing to recent results</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-md border border-border bg-background p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm text-textSecondary">Opportunities</p>
+                    <i data-lucide="target" class="h-4 w-4 text-primary"></i>
+                </div>
+                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ number_format($openOpportunityCount) }}</p>
+                <p class="mt-1 text-xs text-textSecondary">{{ (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0) }} high impact</p>
+            </div>
+            <div class="rounded-md border border-border bg-background p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm text-textSecondary">Actions</p>
+                    <i data-lucide="list-checks" class="h-4 w-4 text-primary"></i>
+                </div>
+                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ number_format($recommendedActionCount) }}</p>
+                <p class="mt-1 text-xs text-textSecondary">{{ (int) data_get($distributionSummary, 'variants_pending', 0) }} ready for review</p>
+            </div>
+            <div class="rounded-md border border-border bg-background p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm text-textSecondary">Impact</p>
+                    <i data-lucide="trending-up" class="h-4 w-4 text-primary"></i>
+                </div>
+                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ data_get($actionFirstDashboard, 'recommended_action.estimated_impact', __('app.dashboard_action_first.low')) }}</p>
+                <p class="mt-1 text-xs text-textSecondary">{{ $urgentDecisionCount }} urgent decision{{ $urgentDecisionCount === 1 ? '' : 's' }}</p>
+            </div>
+            <div class="rounded-md border border-border bg-background p-4">
+                <div class="flex items-center justify-between gap-3">
+                    <p class="text-sm text-textSecondary">Progress</p>
+                    <i data-lucide="gauge" class="h-4 w-4 text-primary"></i>
+                </div>
+                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ $progressScore }}%</p>
+                <div class="mt-3 h-2 overflow-hidden rounded-full bg-surfaceMuted">
+                    <div class="h-full rounded-full bg-primary" style="width: {{ max(0, min(100, $progressScore)) }}%"></div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <div class="mb-8 space-y-4">
         <x-dashboard.recommended-action-widget :action="data_get($actionFirstDashboard, 'recommended_action')" />
 
         <div class="grid gap-4 lg:grid-cols-2">
+            <x-dashboard.recommended-actions-widget :summary="$recommendedActionsSummary ?? []" />
             <x-dashboard.open-opportunities-widget :summary="data_get($actionFirstDashboard, 'open_opportunities')" />
-            <x-dashboard.risk-summary-widget :summary="data_get($actionFirstDashboard, 'risk_summary')" />
         </div>
 
-        <x-dashboard.next-journey-step-widget :step="data_get($actionFirstDashboard, 'journey_step')" />
+        <div class="grid gap-4 lg:grid-cols-2">
+            <x-dashboard.risk-summary-widget :summary="data_get($actionFirstDashboard, 'risk_summary')" />
+            <x-dashboard.next-journey-step-widget :step="data_get($actionFirstDashboard, 'journey_step')" />
+        </div>
+
         <x-dashboard.intelligence-feed-widget :items="data_get($actionFirstDashboard, 'intelligence_feed', collect())" />
     </div>
 
@@ -29,11 +92,11 @@
         <x-activation-banner class="mb-8" :activation="$activation" />
     @elseif (!empty($isEmptyDashboard))
         <div class="mb-8 rounded-md border border-border bg-surface p-5">
-            <h2 class="text-base font-semibold text-textPrimary">Start met First Value Activation</h2>
-            <p class="mt-1 text-sm text-textSecondary">Dit dashboard wacht nog op data. Open Activation om je eerste AI Visibility run en Signal Intelligence output te bereiken.</p>
+            <h2 class="text-base font-semibold text-textPrimary">Start your first growth mission</h2>
+            <p class="mt-1 text-sm text-textSecondary">The Command Center is waiting for enough context. Add your site and brand inputs so Argusly can recommend the first useful action.</p>
             <a href="{{ route('app.activation.index') }}" class="mt-4 inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
                 <i data-lucide="list-checks" class="h-4 w-4"></i>
-                Open Activation
+                Start setup
             </a>
         </div>
     @endif
@@ -47,9 +110,9 @@
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-textSecondary">{{ __('app.dashboard.content_created') }}</p>
+                    <p class="text-sm text-textSecondary">Content progress</p>
                     <p class="text-3xl font-semibold text-textPrimary mt-1">{{ $briefCount }}</p>
-                    <p class="text-sm text-textSecondary mt-1">{{ __('app.dashboard.total_briefs') }}</p>
+                    <p class="text-sm text-textSecondary mt-1">planned content items</p>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
                     <i data-lucide="file-text" class="h-5 w-5 text-accentYellow-900"></i>
@@ -59,25 +122,25 @@
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-textSecondary">Programmatic Growth</p>
+                    <p class="text-sm text-textSecondary">Automated growth</p>
                     <p class="text-3xl font-semibold text-textPrimary mt-1">{{ (int) data_get($programmaticGrowthSummary, 'active_growth_programs', 0) }}</p>
-                    <a href="{{ route('app.growth-programs.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">Open Growth Programs</a>
+                    <a href="{{ route('app.growth-programs.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">Open growth actions</a>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
                     <i data-lucide="workflow" class="h-5 w-5 text-accentYellow-900"></i>
                 </div>
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-textSecondary">
-                <span>{{ (int) data_get($programmaticGrowthSummary, 'opportunities_ready_for_scaling', 0) }} scaling opportunities</span>
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'opportunities_ready_for_scaling', 0) }} scalable opportunities</span>
                 <span>{{ (int) data_get($programmaticGrowthSummary, 'content_assets_ready', 0) }} ready assets</span>
-                <span>{{ (int) data_get($programmaticGrowthSummary, 'scheduled_publication_records', 0) }} scheduled records</span>
-                <span>{{ (int) data_get($programmaticGrowthSummary, 'blocked_items', 0) }} blocked</span>
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'scheduled_publication_records', 0) }} scheduled actions</span>
+                <span>{{ (int) data_get($programmaticGrowthSummary, 'blocked_items', 0) }} need decisions</span>
             </div>
         </div>
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-textSecondary">{{ __('app.dashboard.integrations') }}</p>
+                    <p class="text-sm text-textSecondary">Connected sites</p>
                     <p class="text-3xl font-semibold text-textPrimary mt-1">{{ $integrationsCount }}</p>
                     <p class="text-sm mt-2 font-medium text-success">{{ $connectedSitesCount }} {{ __('app.dashboard.connected') }}</p>
                 </div>
@@ -89,9 +152,9 @@
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-textSecondary">{{ __('app.dashboard.available_credits') }}</p>
+                    <p class="text-sm text-textSecondary">Action capacity</p>
                     <p class="text-3xl font-semibold text-textPrimary mt-1">{{ $totalAvailableCredits ?? 0 }}</p>
-                    <a href="{{ route('app.billing.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">{{ __('app.dashboard.buy_more_credits') }}</a>
+                    <a href="{{ route('app.billing.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">Add capacity</a>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
                     <i data-lucide="wallet" class="h-5 w-5 text-accentYellow-900"></i>
@@ -101,10 +164,10 @@
         <div class="bg-surface rounded-lg border border-border p-5">
             <div class="flex items-start justify-between">
                 <div>
-                    <p class="text-sm text-textSecondary">Distribution</p>
+                    <p class="text-sm text-textSecondary">Scheduled actions</p>
                     <p class="text-3xl font-semibold text-textPrimary mt-1">{{ (int) data_get($distributionSummary, 'scheduled_posts', 0) }}</p>
                     <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">
-                        {{ (int) data_get($distributionSummary, 'variants_pending', 0) }} variant{{ (int) data_get($distributionSummary, 'variants_pending', 0) === 1 ? '' : 's' }} pending
+                        {{ (int) data_get($distributionSummary, 'variants_pending', 0) }} action{{ (int) data_get($distributionSummary, 'variants_pending', 0) === 1 ? '' : 's' }} pending
                     </a>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
@@ -118,7 +181,7 @@
                     <p class="text-sm text-textSecondary">Opportunities</p>
                     <p class="text-3xl font-semibold text-textPrimary mt-1">{{ (int) data_get($opportunityIntelligenceSummary, 'open', 0) }}</p>
                     <a href="{{ route('app.agentic-marketing.intelligence.index') }}" class="text-sm mt-2 inline-block text-primary hover:underline">
-                        {{ (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0) }} high priority
+                        {{ (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0) }} high impact
                     </a>
                 </div>
                 <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accentYellow-100">
@@ -132,11 +195,11 @@
         $metricCards = [
             'content_roi' => [
                 'label' => 'Content ROI',
-                'hint' => 'Engagement and conversion signals blended into one score.',
+                'hint' => 'Engagement and conversion performance blended into one score.',
             ],
             'ai_visibility' => [
                 'label' => 'AI Visibility',
-                'hint' => 'Estimated visibility based on citation and mention signals.',
+                'hint' => 'Estimated visibility based on citations and mentions.',
             ],
             'ai_seo_score' => [
                 'label' => 'AI SEO Score',
@@ -148,12 +211,12 @@
     <div class="mb-8 rounded-lg border border-border bg-surface p-4">
         <div class="mb-4 flex items-center justify-between">
             <div>
-                <h3 class="font-semibold text-textPrimary">Performance Signals</h3>
+                <h3 class="font-semibold text-textPrimary">Recent Results</h3>
                 <p class="text-xs text-textSecondary">
                     Based on {{ (int) ($performanceSummary['tracked_content_count'] ?? 0) }} tracked pages in recent content.
                 </p>
             </div>
-            <a href="{{ route('app.content.index') }}" class="text-xs text-primary hover:underline">Open content analytics</a>
+            <a href="{{ route('app.content.pipeline.index') }}" class="text-xs text-primary hover:underline">Open content pipeline</a>
         </div>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach ($metricCards as $metricKey => $metric)
@@ -181,7 +244,7 @@
     <div class="bg-surface rounded-lg border border-border p-4">
         <div class="mb-4 flex items-center justify-between">
             <h3 class="font-semibold text-textPrimary">Latest Content</h3>
-            <a href="{{ route('app.content.index') }}" class="inline-flex items-center gap-1 text-sm text-textSecondary hover:text-textPrimary">
+            <a href="{{ route('app.content.pipeline.index') }}" class="inline-flex items-center gap-1 text-sm text-textSecondary hover:text-textPrimary">
                 View all <i data-lucide="arrow-right" class="h-4 w-4 rounded-sm bg-accentYellow-100 p-0.5 text-accentYellow-900"></i>
             </a>
         </div>

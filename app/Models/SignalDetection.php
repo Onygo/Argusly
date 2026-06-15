@@ -141,16 +141,43 @@ class SignalDetection extends Model
         return $this->transitionTo(SignalStatus::ARCHIVED);
     }
 
+    public function canTransitionTo(SignalStatus|string $target): bool
+    {
+        $target = $target instanceof SignalStatus ? $target : SignalStatus::from($target);
+        $current = $this->currentStatus();
+
+        return $target !== $current && in_array($target, $this->allowedTransitionsFrom($current), true);
+    }
+
     /**
      * @param array<string,mixed> $attributes
      */
     private function transitionTo(SignalStatus $target, array $attributes = []): self
     {
-        $current = $this->status instanceof SignalStatus
+        $current = $this->currentStatus();
+
+        if (! $this->canTransitionTo($target)) {
+            throw new \InvalidArgumentException("Cannot transition detection from {$current->value} to {$target->value}.");
+        }
+
+        $this->forceFill(array_merge(['status' => $target->value], $attributes))->save();
+
+        return $this->refresh();
+    }
+
+    private function currentStatus(): SignalStatus
+    {
+        return $this->status instanceof SignalStatus
             ? $this->status
             : SignalStatus::from((string) $this->status);
+    }
 
-        $allowed = match ($current) {
+    /**
+     * @return array<int, SignalStatus>
+     */
+    private function allowedTransitionsFrom(SignalStatus $current): array
+    {
+        return match ($current) {
             SignalStatus::NEW, SignalStatus::DETECTED => [
                 SignalStatus::REVIEWING,
                 SignalStatus::PUBLISHED,
@@ -179,13 +206,5 @@ class SignalDetection extends Model
             ],
             SignalStatus::DISMISSED, SignalStatus::ARCHIVED => [],
         };
-
-        if ($target !== $current && ! in_array($target, $allowed, true)) {
-            throw new \InvalidArgumentException("Cannot transition detection from {$current->value} to {$target->value}.");
-        }
-
-        $this->forceFill(array_merge(['status' => $target->value], $attributes))->save();
-
-        return $this->refresh();
     }
 }

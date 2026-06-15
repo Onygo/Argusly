@@ -1,10 +1,22 @@
 @extends('layouts.app', ['title' => __('app.runtime.Opportunity Intelligence')])
 
 @section('content')
+    @php
+        $rt = function (string $key, array $replace = []): string {
+            $line = (__('app.runtime')[$key] ?? $key);
+
+            foreach ($replace as $name => $value) {
+                $line = str_replace(':'.$name, (string) $value, $line);
+            }
+
+            return $line;
+        };
+    @endphp
+
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
             <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ __('app.runtime.Opportunity Intelligence') }}</h1>
-            <p class="mt-1 text-sm text-textSecondary">{{ __('app.runtime.Explainable signals, ranked opportunities, and recommended actions across search, AI visibility, competitors, content decay, and engagement.') }}</p>
+            <p class="mt-1 text-sm text-textSecondary">{{ $rt('Explainable signals, ranked opportunities, and recommended actions across search, AI visibility, competitors, content decay, and engagement.') }}</p>
         </div>
         <form method="POST" action="{{ route('app.opportunity-intelligence.run', request()->query()) }}" class="flex flex-wrap items-center gap-2">
             @csrf
@@ -12,7 +24,7 @@
                 <button class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">{{ __('app.runtime.Run Opportunity Intelligence') }}</button>
             @else
                 <a href="{{ route('app.signal-intelligence.index', ['workspace' => $workspace->id]) }}" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">{{ __('app.runtime.Open Signal Intelligence') }}</a>
-                <button type="button" disabled class="cursor-not-allowed rounded-md border border-border bg-surfaceMuted px-4 py-2 text-sm font-medium text-textFaint" title="{{ __('app.runtime.Promote at least one Signal Intelligence detection first.') }}">{{ __('app.runtime.Run Opportunity Intelligence') }}</button>
+                <button type="button" disabled class="cursor-not-allowed rounded-md border border-border bg-surfaceMuted px-4 py-2 text-sm font-medium text-textFaint" title="{{ $rt('Promote at least one Signal Intelligence detection first.') }}">{{ __('app.runtime.Run Opportunity Intelligence') }}</button>
             @endif
         </form>
     </div>
@@ -124,7 +136,7 @@
                                                 <span class="text-xs font-medium text-primary">{{ __('app.runtime.Signal priority') }} {{ number_format((float) $priority, 1) }}</span>
                                             @endif
                                         </div>
-                                        <p class="mt-1 text-xs text-textSecondary">{{ data_get($signal->metadata, 'summary') ?: data_get($signal->evidence, 'summary', __('app.runtime.Promoted detection evidence is attached to this opportunity.')) }}</p>
+                                        <p class="mt-1 text-xs text-textSecondary">{{ data_get($signal->metadata, 'summary') ?: data_get($signal->evidence, 'summary', $rt('Promoted detection evidence is attached to this opportunity.')) }}</p>
                                         @if (! empty($evidenceSummary))
                                             <pre class="mt-2 max-h-28 overflow-auto whitespace-pre-wrap rounded-md border border-border/70 bg-surface px-2 py-1 text-[11px] text-textSecondary">{{ json_encode($evidenceSummary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
                                         @endif
@@ -140,7 +152,7 @@
                             @foreach ((array) $opportunity->recommended_actions as $action)
                                 <div class="rounded-md border border-border bg-background p-3">
                                     <p class="text-sm font-medium text-textPrimary">{{ $action['label'] ?? str_replace('_', ' ', (string) ($action['type'] ?? __('app.runtime.Action'))) }}</p>
-                                    <p class="mt-1 text-xs text-textSecondary">{{ $action['rationale'] ?? __('app.runtime.Recommended from stored evidence.') }}</p>
+                                    <p class="mt-1 text-xs text-textSecondary">{{ $action['rationale'] ?? $rt('Recommended from stored evidence.') }}</p>
                                 </div>
                             @endforeach
                         </div>
@@ -156,11 +168,11 @@
                             @if (($canRunOpportunityEngine ?? false) && (int) ($promotedSignalCount ?? 0) > 0)
                                 <div class="mt-4 rounded-md border border-primary/20 bg-primarySoftBg/50 p-4">
                                     <p class="text-sm font-semibold text-textPrimary">{{ __('app.runtime.Promoted signals are ready') }}</p>
-                                    <p class="mt-1 text-sm text-textSecondary">{{ __('app.runtime.Run the engine to cluster :count promoted signal(s) into opportunities.', ['count' => number_format((int) $promotedSignalCount)]) }}</p>
+                                    <p class="mt-1 text-sm text-textSecondary">{{ $rt('Run the engine to cluster :count promoted signal(s) into opportunities.', ['count' => number_format((int) $promotedSignalCount)]) }}</p>
                                 </div>
                             @endif
                         @else
-                            <p class="text-sm text-textSecondary">{{ __('app.runtime.No opportunities yet. Ingest signals, then refresh intelligence.') }}</p>
+                            <p class="text-sm text-textSecondary">{{ $rt('No opportunities yet. Ingest signals, then refresh intelligence.') }}</p>
                         @endif
                     </div>
                 @endforelse
@@ -191,7 +203,7 @@
                             @endif
                         </div>
                     @empty
-                        <p class="text-sm text-textSecondary">{{ __('app.runtime.No signals stored yet.') }}</p>
+                        <p class="text-sm text-textSecondary">{{ $rt('No signals stored yet.') }}</p>
                     @endforelse
                 </div>
             </div>
@@ -212,7 +224,7 @@
                             </div>
                         </div>
                     @empty
-                        <p class="text-sm text-textSecondary">{{ __('app.runtime.No timeline yet.') }}</p>
+                        <p class="text-sm text-textSecondary">{{ $rt('No timeline yet.') }}</p>
                     @endforelse
                 </div>
             </div>

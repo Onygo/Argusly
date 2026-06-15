@@ -30,12 +30,39 @@
         || request()->routeIs('app.sites.seo-audits*')
         || request()->routeIs('app.sites.analytics*')
         || request()->routeIs('app.sites.learnings*');
+    $advancedModeUser = auth()->user();
+    $advancedModeCanEnable = \App\Support\AdvancedMode::canEnable($advancedModeUser);
+    $advancedModeEnabled = \App\Support\AdvancedMode::enabled(request());
+    $advancedModeCanSeeWorkflowInternals = \App\Support\AdvancedMode::canSeeWorkflowInternals($advancedModeUser);
+    $advancedModeCanSeeOrganizationControls = \App\Support\AdvancedMode::canSeeOrganizationControls($advancedModeUser);
+    $advancedModeCanSeeDeveloperTools = \App\Support\AdvancedMode::canSeeDeveloperTools($advancedModeUser);
     $contentIntelligenceWorkspace = auth()->user()?->organization_id
         ? \App\Models\Workspace::query()
             ->where('organization_id', auth()->user()->organization_id)
             ->orderBy('created_at')
             ->first(['id', 'organization_id'])
         : null;
+    $opportunitiesRoute = route('app.opportunities.index');
+    $opportunitiesNavActive = request()->routeIs('app.agentic-marketing.intelligence.*')
+        || request()->routeIs('app.opportunities.*')
+        || request()->routeIs('app.opportunity-intelligence.*')
+        || request()->routeIs('app.signal-intelligence.*')
+        || request()->routeIs('app.opportunity-review.*')
+        || request()->routeIs('app.agentic-marketing.content-opportunities.*');
+    $contentNavActive = request()->routeIs('app.content*')
+        || request()->routeIs('app.briefs*')
+        || request()->routeIs('app.drafts*')
+        || request()->routeIs('app.research*')
+        || $programmaticGrowthNavActive;
+    $resultsNavActive = $insightsNavActive
+        || request()->routeIs('app.agentic-marketing.learning.*')
+        || request()->routeIs('app.workspaces.content-quality.*')
+        || request()->routeIs('app.content-network.*');
+    $brandNavActive = request()->routeIs('app.brand.*')
+        || request()->routeIs('app.workspace-intelligence.*');
+    $settingsNavActive = request()->routeIs('app.settings*')
+        || request()->routeIs('app.billing.*')
+        || request()->routeIs('app.developer.*');
     $pageWidth = in_array(($pageWidth ?? 'wide'), ['wide', 'constrained'], true) ? ($pageWidth ?? 'wide') : 'wide';
     $pageShellClass = $pageWidth === 'constrained'
         ? 'pl-page pl-page--constrained'
@@ -58,208 +85,126 @@
 
         <nav class="flex-1 overflow-y-auto px-2 py-3">
             <div class="pl-work-sidebar-section">
-                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.content')) }}</p>
+                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">GROWTH</p>
                 <div class="space-y-1">
-                    <a href="{{ route('app.dashboard') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.dashboard') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.dashboard') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.dashboard') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.dashboard') }}</span>
+                    <a href="{{ route('app.dashboard') }}" data-sidebar-item data-sidebar-title="Home" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.dashboard') || request()->routeIs('app.activation.*') || request()->routeIs('app.setup.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="layout-dashboard" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Home</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Home</span>
                     </a>
-                    <a href="{{ route('app.setup.index') }}" data-sidebar-item data-sidebar-title="Setup" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.setup.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="list-checks" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">Setup</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Setup</span>
+                    <a href="{{ route('app.recommended-actions.index') }}" data-sidebar-item data-sidebar-title="Actions" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.recommended-actions.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="list-checks" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Actions</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Actions</span>
                     </a>
-                    <a href="{{ route('app.activation.index') }}" data-sidebar-item data-sidebar-title="Activation" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.activation.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="rocket" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">Activation</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Activation</span>
+                    <a href="{{ $opportunitiesRoute }}" data-sidebar-item data-sidebar-title="Opportunities" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $opportunitiesNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="radar" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Opportunities</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Opportunities</span>
                     </a>
-                    <a href="{{ route('app.content.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.content') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.content.index') || request()->routeIs('app.content.show') || request()->routeIs('app.content.series*') || request()->routeIs('app.content.batches*') || request()->routeIs('app.content.automations*') || request()->routeIs('app.content.calendar') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="folder-kanban" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.content') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.content') }}</span>
+                    <a href="{{ route('app.content.pipeline.index') }}" data-sidebar-item data-sidebar-title="Content" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $contentNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="folder-kanban" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Content</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Content</span>
                     </a>
-                    <a href="{{ route('app.content.lifecycle.index') }}" data-sidebar-item data-sidebar-title="Lifecycle" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.content.lifecycle*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="git-branch" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">Lifecycle</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Lifecycle</span>
+                    <a href="{{ route('app.insights.index') }}" data-sidebar-item data-sidebar-title="Results" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $resultsNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="line-chart" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Results</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Results</span>
                     </a>
-                    @if ($contentIntelligenceWorkspace)
-                        <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" data-sidebar-item data-sidebar-title="Content Intelligence" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.workspaces.content-quality.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="scan-search" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Content Intelligence</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Content Intelligence</span>
-                        </a>
-                    @endif
-                    @if ($agenticMarketingFlag)
-                        <a href="{{ route('app.agentic-marketing.index') }}" data-sidebar-item data-sidebar-title="Agentic Marketing" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.index') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="workflow" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Agentic Marketing</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Agentic Marketing</span>
-                        </a>
-                        <a href="{{ route('app.agentic-marketing.intelligence.index') }}" data-sidebar-item data-sidebar-title="Opportunity Intelligence" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="radar" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Intelligence</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Opportunity Intelligence</span>
-                        </a>
-                        <details data-sidebar-label class="rounded-md" @if($programmaticGrowthNavActive) open @endif>
-                            <summary class="group relative flex h-9 cursor-pointer list-none items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $programmaticGrowthNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                                <span class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                    <i data-lucide="network" class="h-4 w-4"></i>
-                                </span>
-                                <span class="truncate">Programmatic Growth</span>
-                            </summary>
-                            <div class="ml-8 mt-1 space-y-1 border-l border-border pl-2 text-xs">
-                                <a href="{{ route('app.growth-programs.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.growth-programs.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Growth Programs</a>
-                                <a href="{{ route('app.programmatic-opportunities.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-opportunities.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Programmatic Opportunities</a>
-                                <a href="{{ route('app.programmatic-clusters.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-clusters.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Programmatic Clusters</a>
-                                <a href="{{ route('app.programmatic-brief-blueprints.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-brief-blueprints.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Brief Blueprints</a>
-                                <a href="{{ route('app.programmatic-draft-requests.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-draft-requests.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Draft Requests</a>
-                                <a href="{{ route('app.programmatic-draft-reviews.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-draft-reviews.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Draft Reviews</a>
-                                <a href="{{ route('app.programmatic-publication-readiness.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-publication-readiness.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Publication Readiness</a>
-                                <a href="{{ route('app.programmatic-publication-plans.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-publication-plans.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Publication Plans</a>
-                                @if (auth()->user()?->is_admin || in_array((string) auth()->user()?->role, ['owner', 'admin'], true))
-                                    <a href="{{ route('app.programmatic-growth.beta-report') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-growth.beta-report') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Beta Report</a>
-                                @endif
-                            </div>
-                        </details>
-                        <a href="{{ route('app.agentic-marketing.campaign-planner.index') }}" data-sidebar-item data-sidebar-title="Campaign Planner" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.campaign-planner.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="map" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Planner</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Campaign Planner</span>
-                        </a>
-                        <a href="{{ route('app.agentic-marketing.learning.index') }}" data-sidebar-item data-sidebar-title="Learning" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.learning.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="chart-no-axes-combined" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Learning</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Learning</span>
-                        </a>
-                        <a href="{{ route('app.agentic-marketing.workflows.index') }}" data-sidebar-item data-sidebar-title="Workflows" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.workflows.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="route" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Workflows</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Workflows</span>
-                        </a>
-                        <a href="{{ route('app.agentic-marketing.distribution.index') }}" data-sidebar-item data-sidebar-title="Distribution" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="send" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Distribution</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Distribution</span>
-                        </a>
-                    @endif
-                    @if ($researchLayerFlag)
-                        <a href="{{ route('app.research.index') }}" data-sidebar-item data-sidebar-title="Research" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.research*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="search-check" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">Research</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Research</span>
-                        </a>
-                    @endif
                 </div>
             </div>
 
             <div class="pl-work-sidebar-section">
-                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.publishing')) }}</p>
+                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">WORKSPACE</p>
                 <div class="space-y-1">
-                    <a href="{{ route('app.sites') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.sites') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $sitesNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="globe" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.sites') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.sites') }}</span>
+                    <a href="{{ route('app.brand.company-profile') }}" data-sidebar-item data-sidebar-title="Brand" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $brandNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="palette" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Brand</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Brand</span>
                     </a>
-                    <a href="{{ route('app.insights.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.insights') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $insightsNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="line-chart" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.insights') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.insights') }}</span>
+                    <a href="{{ route('app.sites') }}" data-sidebar-item data-sidebar-title="Sites" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $sitesNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="globe" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Sites</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Sites</span>
                     </a>
-                    <a href="{{ route('app.brand.company-profile') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.brand') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.brand.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="palette" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.brand') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.brand') }}</span>
+                    <a href="{{ route('app.settings') }}" data-sidebar-item data-sidebar-title="Settings" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $settingsNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="settings" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">Settings</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Settings</span>
                     </a>
-                    <a href="{{ route('app.workspace-intelligence.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.workspace_intelligence') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.workspace-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="sparkles" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.workspace_intelligence') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.workspace_intelligence') }}</span>
-                    </a>
-                    @if ($signalIntelligenceFlag && $contentIntelligenceWorkspace)
-                        <a href="{{ route('app.signal-intelligence.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.runtime.Signal Intelligence') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.signal-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="radar" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">{{ __('app.runtime.Signal Intelligence') }}</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.runtime.Signal Intelligence') }}</span>
-                        </a>
-                        <a href="{{ route('app.opportunity-review.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.runtime.Opportunity Review') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.opportunity-review.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                            <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                                <i data-lucide="eye" class="h-4 w-4"></i>
-                            </span>
-                            <span data-sidebar-label class="truncate">{{ __('app.runtime.Opportunity Review') }}</span>
-                            <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.runtime.Opportunity Review') }}</span>
-                        </a>
-                    @endif
                 </div>
             </div>
 
-            <div class="pl-work-sidebar-section">
-                <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.administration')) }}</p>
-                <div class="space-y-1">
-                    <a href="{{ route('app.billing.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.billing') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.billing.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="wallet" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.billing') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.billing') }}</span>
-                    </a>
-                    <a href="{{ route('app.developer.index') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.developer') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.developer.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="code-2" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.developer') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.developer') }}</span>
-                    </a>
-                    <a href="{{ route('app.settings') }}" data-sidebar-item data-sidebar-title="{{ __('app.nav.settings') }}" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.settings*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
-                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
-                            <i data-lucide="settings" class="h-4 w-4"></i>
-                        </span>
-                        <span data-sidebar-label class="truncate">{{ __('app.nav.settings') }}</span>
-                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">{{ __('app.nav.settings') }}</span>
-                    </a>
+            @if ($advancedModeEnabled)
+                <div class="pl-work-sidebar-section">
+                    <p data-sidebar-label class="px-2 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">ADVANCED</p>
+                    <div class="space-y-1">
+                        <a href="{{ route('app.setup.index') }}" data-sidebar-item data-sidebar-title="Setup" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.setup.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="list-checks" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Setup</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Setup</span></a>
+                        <a href="{{ route('app.activation.index') }}" data-sidebar-item data-sidebar-title="Activation" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.activation.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="rocket" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Activation</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Activation</span></a>
+                        <a href="{{ route('app.content.lifecycle.index') }}" data-sidebar-item data-sidebar-title="Lifecycle" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.content.lifecycle*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="git-branch" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Lifecycle</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Lifecycle</span></a>
+                        @if ($contentIntelligenceWorkspace)
+                            <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" data-sidebar-item data-sidebar-title="Content Health" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.workspaces.content-quality.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="scan-search" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Content Health</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Content Health</span></a>
+                        @endif
+                        @if ($agenticMarketingFlag)
+                            <a href="{{ route('app.agentic-marketing.index') }}" data-sidebar-item data-sidebar-title="Growth Agent" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.index') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="workflow" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Growth Agent</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Growth Agent</span></a>
+                            <a href="{{ route('app.agentic-marketing.approvals.index') }}" data-sidebar-item data-sidebar-title="Decision Inbox" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.approvals.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="check-check" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Decision Inbox</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Decision Inbox</span></a>
+                            <a href="{{ route('app.agentic-marketing.campaign-planner.index') }}" data-sidebar-item data-sidebar-title="Planner" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.campaign-planner.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="map" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Planner</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Planner</span></a>
+                            <a href="{{ route('app.agentic-marketing.distribution.index') }}" data-sidebar-item data-sidebar-title="Distribution" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="send" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Distribution</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Distribution</span></a>
+                            <a href="{{ route('app.agentic-marketing.learning.index') }}" data-sidebar-item data-sidebar-title="Learning" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.learning.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="chart-no-axes-combined" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Learning</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Learning</span></a>
+                            <a href="{{ route('app.agentic-marketing.workflows.index') }}" data-sidebar-item data-sidebar-title="Workflows" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.agentic-marketing.workflows.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="route" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Workflows</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Workflows</span></a>
+                        @endif
+                        @if ($signalIntelligenceFlag && $contentIntelligenceWorkspace)
+                            <a href="{{ route('app.signal-intelligence.index') }}" data-sidebar-item data-sidebar-title="Market Monitoring" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.signal-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="activity" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Market Monitoring</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Market Monitoring</span></a>
+                            <a href="{{ route('app.opportunity-review.index') }}" data-sidebar-item data-sidebar-title="Opportunity Review" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.opportunity-review.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="eye" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Opportunity Review</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Opportunity Review</span></a>
+                        @endif
+                        @if ($researchLayerFlag)
+                            <a href="{{ route('app.research.index') }}" data-sidebar-item data-sidebar-title="Research" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.research*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="search-check" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Research</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Research</span></a>
+                        @endif
+                        @if ($agenticMarketingFlag && $advancedModeCanSeeWorkflowInternals)
+                            <details data-sidebar-label class="rounded-md" @if($programmaticGrowthNavActive) open @endif>
+                                <summary class="group relative flex h-9 cursor-pointer list-none items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ $programmaticGrowthNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="network" class="h-4 w-4"></i></span><span class="truncate">Scale Content</span></summary>
+                                <div class="ml-8 mt-1 space-y-1 border-l border-border pl-2 text-xs">
+                                    <a href="{{ route('app.growth-programs.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.growth-programs.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Growth Programs</a>
+                                    <a href="{{ route('app.programmatic-opportunities.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-opportunities.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Programmatic Opportunities</a>
+                                    <a href="{{ route('app.programmatic-clusters.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-clusters.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Topic Groups</a>
+                                    <a href="{{ route('app.programmatic-brief-blueprints.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-brief-blueprints.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Planned Briefs</a>
+                                    <a href="{{ route('app.programmatic-draft-requests.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-draft-requests.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Queued Drafts</a>
+                                    <a href="{{ route('app.programmatic-draft-reviews.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-draft-reviews.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Content Reviews</a>
+                                    <a href="{{ route('app.programmatic-publication-readiness.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-publication-readiness.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Publish Checks</a>
+                                    <a href="{{ route('app.programmatic-publication-plans.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-publication-plans.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Publishing Schedule</a>
+                                    @if (auth()->user()?->is_admin || in_array((string) auth()->user()?->role, ['owner', 'admin'], true))
+                                        <a href="{{ route('app.programmatic-growth.beta-report') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.programmatic-growth.beta-report') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Beta Report</a>
+                                    @endif
+                                </div>
+                            </details>
+                        @endif
+                        <a href="{{ route('app.workspace-intelligence.index') }}" data-sidebar-item data-sidebar-title="AI Brand Setup" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.workspace-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="sparkles" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">AI Brand Setup</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">AI Brand Setup</span></a>
+                        @if ($advancedModeCanSeeOrganizationControls)
+                            <a href="{{ route('app.billing.index') }}" data-sidebar-item data-sidebar-title="Billing" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.billing.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="wallet" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Billing</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Billing</span></a>
+                        @endif
+                        @if ($advancedModeCanSeeDeveloperTools)
+                            <a href="{{ route('app.developer.index') }}" data-sidebar-item data-sidebar-title="Developer" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.developer.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="code-2" class="h-4 w-4"></i></span><span data-sidebar-label class="truncate">Developer</span><span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Developer</span></a>
+                        @endif
+                    </div>
                 </div>
-            </div>
+            @endif
         </nav>
 
-        <div class="border-t border-border p-2">
+        <div class="space-y-2 border-t border-border p-2">
+            @if ($advancedModeCanEnable)
+                <form method="POST" action="{{ route('app.settings.advanced-mode.update') }}">
+                    @csrf
+                    <input type="hidden" name="advanced_mode" value="{{ $advancedModeEnabled ? '0' : '1' }}">
+                    <button type="submit" data-sidebar-item data-sidebar-title="Advanced Mode" class="group relative flex h-9 w-full items-center justify-start gap-3 rounded-md px-3 text-sm font-medium {{ $advancedModeEnabled ? 'border border-primary/25 bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <i data-lucide="sliders-horizontal" class="h-4 w-4"></i>
+                        </span>
+                        <span data-sidebar-label class="truncate">Advanced {{ $advancedModeEnabled ? 'on' : 'off' }}</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Advanced Mode</span>
+                    </button>
+                </form>
+            @endif
             <button id="collapseBtn" data-sidebar-item data-sidebar-title="Collapse sidebar" class="group relative flex h-9 w-full items-center justify-start gap-3 rounded-md px-3 text-sm font-medium text-textSecondary hover:bg-surfaceMuted">
                 <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center">
                     <i data-collapse-icon="expanded" data-lucide="panel-left-close" class="h-4 w-4"></i>
@@ -433,46 +378,69 @@
                 </div>
                 <nav class="space-y-3 p-4">
                     <div>
-                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.content')) }}</p>
+                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">GROWTH</p>
                         <div class="space-y-1">
-                            <a href="{{ route('app.dashboard') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.dashboard') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="layout-dashboard" class="h-4 w-4"></i> {{ __('app.nav.dashboard') }}</a>
-                            <a href="{{ route('app.activation.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.activation.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="rocket" class="h-4 w-4"></i> {{ __('app.runtime.Activation') }}</a>
-                            <a href="{{ route('app.content.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.content*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="folder-kanban" class="h-4 w-4"></i> {{ __('app.nav.content') }}</a>
-                            <a href="{{ route('app.content.lifecycle.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.content.lifecycle*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="git-branch" class="h-4 w-4"></i> {{ __('app.runtime.Lifecycle') }}</a>
-                            @if ($contentIntelligenceWorkspace)
-                                <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.workspaces.content-quality.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="scan-search" class="h-4 w-4"></i> {{ __('app.runtime.Content Intelligence') }}</a>
-                            @endif
-                            @if ($agenticMarketingFlag)
-                                <a href="{{ route('app.agentic-marketing.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.index') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="workflow" class="h-4 w-4"></i> Agentic Marketing</a>
-                                <a href="{{ route('app.agentic-marketing.intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="radar" class="h-4 w-4"></i> {{ __('app.runtime.Intelligence') }}</a>
-                                <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="send" class="h-4 w-4"></i> {{ __('app.runtime.Distribution') }}</a>
-                            @endif
-                            @if ($researchLayerFlag)
-                                <a href="{{ route('app.research.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.research*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="search-check" class="h-4 w-4"></i> {{ __('app.nav.research') }}</a>
-                            @endif
+                            <a href="{{ route('app.dashboard') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.dashboard') || request()->routeIs('app.activation.*') || request()->routeIs('app.setup.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="layout-dashboard" class="h-4 w-4"></i> Home</a>
+                            <a href="{{ route('app.recommended-actions.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.recommended-actions.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="list-checks" class="h-4 w-4"></i> Actions</a>
+                            <a href="{{ $opportunitiesRoute }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $opportunitiesNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="radar" class="h-4 w-4"></i> Opportunities</a>
+                            <a href="{{ route('app.content.pipeline.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $contentNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="folder-kanban" class="h-4 w-4"></i> Content</a>
+                            <a href="{{ route('app.insights.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $resultsNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="line-chart" class="h-4 w-4"></i> Results</a>
                         </div>
                     </div>
                     <div>
-                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.publishing')) }}</p>
+                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">WORKSPACE</p>
                         <div class="space-y-1">
-                            <a href="{{ route('app.sites') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $sitesNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="globe" class="h-4 w-4"></i> {{ __('app.nav.sites') }}</a>
-                            <a href="{{ route('app.insights.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $insightsNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="line-chart" class="h-4 w-4"></i> {{ __('app.nav.insights') }}</a>
-                            <a href="{{ route('app.brand.company-profile') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.brand.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="palette" class="h-4 w-4"></i> {{ __('app.nav.brand') }}</a>
-                            <a href="{{ route('app.workspace-intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.workspace-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="sparkles" class="h-4 w-4"></i> {{ __('app.nav.workspace_intelligence') }}</a>
-                            @if ($signalIntelligenceFlag && $contentIntelligenceWorkspace)
-                                <a href="{{ route('app.signal-intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.signal-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="radar" class="h-4 w-4"></i> {{ __('app.runtime.Signal Intelligence') }}</a>
-                                <a href="{{ route('app.opportunity-review.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.opportunity-review.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="eye" class="h-4 w-4"></i> {{ __('app.runtime.Opportunity Review') }}</a>
-                            @endif
+                            <a href="{{ route('app.brand.company-profile') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $brandNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="palette" class="h-4 w-4"></i> Brand</a>
+                            <a href="{{ route('app.sites') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $sitesNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="globe" class="h-4 w-4"></i> Sites</a>
+                            <a href="{{ route('app.settings') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $settingsNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="settings" class="h-4 w-4"></i> Settings</a>
                         </div>
                     </div>
-                    <div>
-                        <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">{{ strtoupper(__('app.nav.administration')) }}</p>
-                        <div class="space-y-1">
-                            <a href="{{ route('app.billing.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.billing.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="wallet" class="h-4 w-4"></i> {{ __('app.nav.billing') }}</a>
-                            <a href="{{ route('app.developer.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.developer.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="code-2" class="h-4 w-4"></i> {{ __('app.nav.developer') }}</a>
-                            <a href="{{ route('app.settings') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.settings*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="settings" class="h-4 w-4"></i> {{ __('app.nav.settings') }}</a>
+                    @if ($advancedModeEnabled)
+                        <div>
+                            <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">ADVANCED</p>
+                            <div class="space-y-1">
+                                <a href="{{ route('app.setup.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.setup.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="list-checks" class="h-4 w-4"></i> Setup</a>
+                                <a href="{{ route('app.activation.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.activation.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="rocket" class="h-4 w-4"></i> Activation</a>
+                                <a href="{{ route('app.content.lifecycle.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.content.lifecycle*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="git-branch" class="h-4 w-4"></i> Lifecycle</a>
+                                @if ($contentIntelligenceWorkspace)
+                                    <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.workspaces.content-quality.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="scan-search" class="h-4 w-4"></i> Content Health</a>
+                                @endif
+                                @if ($agenticMarketingFlag)
+                                    <a href="{{ route('app.agentic-marketing.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.index') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="workflow" class="h-4 w-4"></i> Growth Agent</a>
+                                    <a href="{{ route('app.agentic-marketing.approvals.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.approvals.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="check-check" class="h-4 w-4"></i> Decision Inbox</a>
+                                    <a href="{{ route('app.agentic-marketing.campaign-planner.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.campaign-planner.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="map" class="h-4 w-4"></i> Planner</a>
+                                    <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="send" class="h-4 w-4"></i> Distribution</a>
+                                    @if ($advancedModeCanSeeWorkflowInternals)
+                                        <a href="{{ route('app.growth-programs.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ $programmaticGrowthNavActive ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="network" class="h-4 w-4"></i> Scale Content</a>
+                                    @endif
+                                    <a href="{{ route('app.agentic-marketing.workflows.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.agentic-marketing.workflows.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="route" class="h-4 w-4"></i> Workflows</a>
+                                @endif
+                                @if ($signalIntelligenceFlag && $contentIntelligenceWorkspace)
+                                    <a href="{{ route('app.signal-intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.signal-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="activity" class="h-4 w-4"></i> Market Monitoring</a>
+                                @endif
+                                @if ($researchLayerFlag)
+                                    <a href="{{ route('app.research.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.research*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="search-check" class="h-4 w-4"></i> Research</a>
+                                @endif
+                                <a href="{{ route('app.workspace-intelligence.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.workspace-intelligence.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="sparkles" class="h-4 w-4"></i> AI Brand Setup</a>
+                                @if ($advancedModeCanSeeOrganizationControls)
+                                    <a href="{{ route('app.billing.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.billing.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="wallet" class="h-4 w-4"></i> Billing</a>
+                                @endif
+                                @if ($advancedModeCanSeeDeveloperTools)
+                                    <a href="{{ route('app.developer.index') }}" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm {{ request()->routeIs('app.developer.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><i data-lucide="code-2" class="h-4 w-4"></i> Developer</a>
+                                @endif
+                            </div>
                         </div>
-                    </div>
+                    @endif
+                    @if ($advancedModeCanEnable)
+                        <form method="POST" action="{{ route('app.settings.advanced-mode.update') }}" class="border-t border-border pt-3">
+                            @csrf
+                            <input type="hidden" name="advanced_mode" value="{{ $advancedModeEnabled ? '0' : '1' }}">
+                            <button type="submit" class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm {{ $advancedModeEnabled ? 'border border-primary/25 bg-primarySoftBg text-textPrimary' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                                <i data-lucide="sliders-horizontal" class="h-4 w-4"></i>
+                                Advanced {{ $advancedModeEnabled ? 'on' : 'off' }}
+                            </button>
+                        </form>
+                    @endif
                 </nav>
             </div>
         </div>

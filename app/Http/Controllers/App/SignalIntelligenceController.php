@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\App;
 
+use App\Enums\SignalStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ClientSite;
 use App\Models\SignalDetection;
@@ -238,6 +239,17 @@ class SignalIntelligenceController extends Controller
         $workspace = $this->resolveWorkspace($request, $detection->workspace_id);
         $this->assertDetectionWorkspace($detection, $workspace);
         $featureGate->assert($workspace, 'signal_intelligence');
+
+        $target = match ($action) {
+            'review' => SignalStatus::REVIEWING,
+            'dismiss' => SignalStatus::DISMISSED,
+            'resolve' => SignalStatus::RESOLVED,
+            default => null,
+        };
+
+        if (! $target || ! $detection->canTransitionTo($target)) {
+            return back()->withErrors(['signal_intelligence' => 'This detection cannot be marked as '.($target?->value ?? $action).' from its current status.']);
+        }
 
         try {
             match ($action) {

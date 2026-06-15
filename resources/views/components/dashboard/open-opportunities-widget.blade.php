@@ -11,7 +11,7 @@
     </div>
     <div class="mt-4 space-y-3">
         @forelse (data_get($summary, 'items', collect()) as $opportunity)
-            <a href="{{ route('app.opportunity-intelligence.opportunities.show', $opportunity) }}" class="block rounded-md border border-border bg-background p-3 hover:bg-surfaceMuted">
+            <a href="{{ route('app.opportunities.show', $opportunity) }}" class="block rounded-md border border-border bg-background p-3 hover:bg-surfaceMuted">
                 <p class="truncate text-sm font-semibold text-textPrimary">{{ $opportunity->title }}</p>
                 <p class="mt-1 line-clamp-2 text-xs text-textSecondary">{{ $opportunity->summary ?: $opportunity->topic }}</p>
                 <p class="mt-2 text-xs text-textSecondary">{{ __('app.dashboard_action_first.business_priority') }} {{ number_format((float) $opportunity->priority_score, 0) }}</p>

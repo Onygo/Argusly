@@ -101,7 +101,7 @@ it('creates new content from content list and opens the brief tab', function () 
     expect((string) $content->workspace_id)->toBe((string) $workspace->id);
     expect((string) $content->client_site_id)->toBe((string) $site->id);
     expect((string) $content->status)->toBe('brief');
-    expect((string) $content->source)->toBe('manual');
+    expect($content->source instanceof \BackedEnum ? $content->source->value : (string) $content->source)->toBe('manual');
     expect((string) $content->primary_keyword)->toBe('content operations');
 
     expect($brief)->not->toBeNull();
@@ -168,49 +168,106 @@ it('redirects legacy content brief tab URLs to content workspace brief section',
         ->assertRedirect(route('app.content.workspace.brief', $brief));
 });
 
-it('renders client sidebar sections and items in the requested order', function () {
+it('renders the guided growth sidebar sections and items in the requested order', function () {
     [, , , $user] = makeContentNavigationContext();
 
     $response = $this->actingAs($user)->get(route('app.dashboard'));
 
     $response->assertOk();
     $response->assertSeeInOrder([
-        '>CONTENT<',
-        'data-sidebar-title="Dashboard"',
+        '>GROWTH<',
+        'data-sidebar-title="Home"',
+        'data-sidebar-title="Opportunities"',
         'data-sidebar-title="Content"',
-        '>PUBLISHING<',
-        'data-sidebar-title="Sites"',
+        'data-sidebar-title="Results"',
+        '>WORKSPACE<',
         'data-sidebar-title="Brand"',
-        '>ADMINISTRATION<',
-        'data-sidebar-title="Billing"',
-        'data-sidebar-title="Developer"',
+        'data-sidebar-title="Sites"',
         'data-sidebar-title="Settings"',
+        'data-sidebar-title="Advanced Mode"',
     ], false);
 
     $response->assertDontSee('data-sidebar-title="Briefs"', false);
     $response->assertDontSee('data-sidebar-title="Drafts"', false);
     $response->assertDontSee('data-sidebar-title="Onboarding"', false);
+    $response->assertDontSee('data-sidebar-title="Developer"', false);
+    $response->assertDontSee('data-sidebar-title="Billing"', false);
+    $response->assertDontSee('data-sidebar-title="Lifecycle"', false);
+    $response->assertDontSee('Programmatic Clusters');
+    $response->assertDontSee('Brief Blueprints');
+    $response->assertDontSee('Draft Requests');
+    $response->assertDontSee('Publication Readiness');
+    $response->assertDontSee('Runs');
 });
 
-it('keeps developer child pages out of the global sidebar', function () {
+it('keeps advanced technical pages out of the default global sidebar', function () {
     [, , , $user] = makeContentNavigationContext();
 
     $response = $this->actingAs($user)->get(route('app.dashboard'));
 
     $response->assertOk()
+        ->assertDontSee('data-sidebar-title="Developer"', false)
+        ->assertDontSee('data-sidebar-title="Billing"', false)
+        ->assertDontSee('data-sidebar-title="Lifecycle"', false)
+        ->assertDontSee('data-sidebar-title="Developer API"', false)
+        ->assertDontSee('data-sidebar-title="Developer Webhooks"', false)
+        ->assertDontSee('data-sidebar-title="Developer Docs"', false);
+});
+
+it('shows advanced technical navigation for owners when advanced mode is enabled', function () {
+    [, , , $user] = makeContentNavigationContext();
+
+    $this->actingAs($user)
+        ->withSession(['app_advanced_mode_enabled' => true])
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('>ADVANCED<', false)
+        ->assertSee('data-sidebar-title="Lifecycle"', false)
+        ->assertSee('data-sidebar-title="Billing"', false)
         ->assertSee('data-sidebar-title="Developer"', false)
         ->assertDontSee('data-sidebar-title="Developer API"', false)
         ->assertDontSee('data-sidebar-title="Developer Webhooks"', false)
         ->assertDontSee('data-sidebar-title="Developer Docs"', false);
 });
 
-it('keeps the global developer nav item active on developer child routes', function () {
+it('keeps advanced navigation hidden for viewers even when the session flag exists', function () {
+    [, , , $user] = makeContentNavigationContext();
+    $user->forceFill(['role' => 'viewer'])->save();
+
+    $this->actingAs($user)
+        ->withSession(['app_advanced_mode_enabled' => true])
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertDontSee('>ADVANCED<', false)
+        ->assertDontSee('data-sidebar-title="Advanced Mode"', false)
+        ->assertDontSee('data-sidebar-title="Developer"', false)
+        ->assertDontSee('data-sidebar-title="Billing"', false)
+        ->assertDontSee('data-sidebar-title="Lifecycle"', false);
+});
+
+it('lets editors use workflow advanced mode without exposing owner-only controls', function () {
+    [, , , $user] = makeContentNavigationContext();
+    $user->forceFill(['role' => 'editor'])->save();
+
+    $this->actingAs($user)
+        ->withSession(['app_advanced_mode_enabled' => true])
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('>ADVANCED<', false)
+        ->assertSee('data-sidebar-title="Lifecycle"', false)
+        ->assertDontSee('data-sidebar-title="Developer"', false)
+        ->assertDontSee('data-sidebar-title="Billing"', false);
+});
+
+it('keeps the global developer nav item active on developer child routes in advanced mode', function () {
     [, , , $user] = makeContentNavigationContext();
 
     $this->actingAs($user)
+        ->withSession(['app_advanced_mode_enabled' => true])
         ->get(route('app.developer.webhooks'))
         ->assertOk()
-        ->assertSee('data-sidebar-title="Developer" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all border-l-2 border-l-primary bg-primarySoftBg text-textPrimary"', false);
+        ->assertSee('data-sidebar-title="Developer"', false)
+        ->assertSee('pl-work-sidebar-active', false);
 });
 
 it('renders local developer section nav and highlights the active child section', function () {

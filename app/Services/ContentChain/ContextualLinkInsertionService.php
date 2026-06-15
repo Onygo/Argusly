@@ -56,10 +56,6 @@ class ContextualLinkInsertionService
         $inlineSuggestions = $suggestions
             ->where('suggestion_kind', ContentChainSuggestion::KIND_INLINE_LINK)
             ->values();
-        $footerSuggestions = $suggestions
-            ->where('suggestion_kind', ContentChainSuggestion::KIND_FOOTER_LINK)
-            ->values();
-
         $usedTargets = [];
         $appliedInline = 0;
         $appliedInlineLinks = [];
@@ -72,11 +68,7 @@ class ContextualLinkInsertionService
             }
         }
 
-        $remainingFooter = $footerSuggestions
-            ->reject(fn (ContentChainSuggestion $suggestion): bool => in_array((string) $suggestion->target_content_id, $usedTargets, true))
-            ->values();
-
-        $appliedFooter = $this->appendFooterSection($document, $body, $remainingFooter, $usedTargets, $autoMode);
+        $appliedFooter = 0;
 
         $updatedHtml = $this->normalizer->normalize(trim($this->innerHtml($body)), [
             'context' => 'content_chain_links',

@@ -4,7 +4,7 @@
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">{{ __('app.dashboard_action_first.journey_progress') }}</p>
-            <h2 class="mt-1 text-base font-semibold text-textPrimary">{{ data_get($step, 'current_stage') }} → {{ data_get($step, 'next_stage') }}</h2>
+            <h2 class="mt-1 text-base font-semibold text-textPrimary">{{ data_get($step, 'next_stage') }}</h2>
             <p class="mt-1 text-sm text-textSecondary">{{ __('app.dashboard_action_first.next_journey_step_hint') }}</p>
         </div>
         @if (data_get($step, 'primary_cta_route'))

@@ -55,7 +55,7 @@ it('renders dashboard performance widgets with tracked values and stale ai seo f
 
     $response
         ->assertOk()
-        ->assertSee('Performance Signals')
+        ->assertSee('Recent Results')
         ->assertSee('Content ROI')
         ->assertSee('AI Visibility')
         ->assertSee('AI SEO Score')

@@ -154,19 +154,25 @@ it('renders the dashboard as opportunity first when growth opportunities exist',
     $this->actingAs($context['user'])
         ->get(route('app.dashboard'))
         ->assertOk()
-        ->assertSee('Recommended Action')
+        ->assertSee('Command Center')
+        ->assertSee('Growth Health')
+        ->assertSee('Next Best Action')
         ->assertSee('Review growth opportunities')
         ->assertSee('We identified 2 growth opportunities.')
         ->assertSee('What happened?')
-        ->assertSee('Why it matters')
-        ->assertSee('Expected outcome')
+        ->assertSee('What matters?')
+        ->assertSee('What can Argusly do?')
         ->assertSee('Review Opportunities')
-        ->assertSee('Open Opportunities')
-        ->assertSee('Active Risks')
-        ->assertSee('Journey Progress')
-        ->assertSee('Intelligence Feed')
-        ->assertSee('Supporting Metrics')
-        ->assertSeeInOrder(['Recommended Action', 'Open Opportunities', 'Active Risks', 'Journey Progress', 'Intelligence Feed', 'Supporting Metrics']);
+        ->assertSee('Recommended Actions')
+        ->assertSee('Urgent Decisions')
+        ->assertSee('Weekly Mission')
+        ->assertSee('Recent Results')
+        ->assertSee('Supporting Detail')
+        ->assertDontSee('Signals')
+        ->assertDontSee('Detections')
+        ->assertDontSee('Clusters')
+        ->assertDontSee('Runs')
+        ->assertSeeInOrder(['Growth Health', 'Next Best Action', 'Recommended Actions', 'Urgent Decisions', 'Weekly Mission', 'Recent Results', 'Supporting Detail']);
 });
 
 it('shows continue monitoring when there are no open risks or opportunities', function (): void {
@@ -176,9 +182,9 @@ it('shows continue monitoring when there are no open risks or opportunities', fu
         ->get(route('app.dashboard'))
         ->assertOk()
         ->assertSee('Continue Monitoring')
-        ->assertSee('No urgent risks or opportunities need review right now.')
+        ->assertSee('No urgent decisions or opportunities need review right now.')
         ->assertSee('No open opportunities need action right now.')
-        ->assertSee('No active risks need action right now.');
+        ->assertSee('No urgent decisions need action right now.');
 });
 
 it('keeps dashboard actions scoped to the first organization workspace', function (): void {

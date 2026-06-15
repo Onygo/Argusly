@@ -86,7 +86,7 @@ it('refreshes chained suggestions and renders the admin panel in the content ove
     expect(ContentChainGuidance::query()->where('content_id', $source->id)->exists())->toBeTrue()
         ->and(ContentChainSuggestion::query()->where('source_content_id', $source->id)->where('suggestion_kind', ContentChainSuggestion::KIND_GROWTH)->count())->toBeGreaterThan(0)
         ->and(ContentChainSuggestion::query()->where('source_content_id', $source->id)->where('suggestion_kind', ContentChainSuggestion::KIND_INLINE_LINK)->count())->toBe(1)
-        ->and(ContentChainSuggestion::query()->where('source_content_id', $source->id)->where('suggestion_kind', ContentChainSuggestion::KIND_FOOTER_LINK)->count())->toBeGreaterThanOrEqual(1);
+        ->and(ContentChainSuggestion::query()->where('source_content_id', $source->id)->where('suggestion_kind', ContentChainSuggestion::KIND_FOOTER_LINK)->count())->toBe(0);
 
     $growth = ContentChainSuggestion::query()
         ->where('source_content_id', $source->id)
@@ -164,7 +164,7 @@ it('prevents duplicate suggestions on refresh and preserves manual rejection', f
         ->and(ContentChainSuggestion::query()->findOrFail($inlineSuggestion->id)->status)->toBe(ContentChainSuggestion::STATUS_REJECTED);
 });
 
-it('applies approved inline and footer links without duplicating targets', function () {
+it('applies approved chained links inline without appending footer fallbacks', function () {
     Queue::fake();
 
     [$user, $workspace, $site, $analyticsSite] = makeContentChainContext('content-chain-apply');
@@ -187,7 +187,7 @@ it('applies approved inline and footer links without duplicating targets', funct
         path: '/blog/search-intent-framework',
         series: $series,
     );
-    makeChainedContent(
+    $footerTarget = makeChainedContent(
         workspace: $workspace,
         site: $site,
         title: 'Editorial reporting templates',
@@ -214,14 +214,26 @@ it('applies approved inline and footer links without duplicating targets', funct
         ->where('source_content_id', $source->id)
         ->where('suggestion_kind', ContentChainSuggestion::KIND_INLINE_LINK)
         ->firstOrFail();
-    $footerSuggestion = ContentChainSuggestion::query()
-        ->where('source_content_id', $source->id)
-        ->where('suggestion_kind', ContentChainSuggestion::KIND_FOOTER_LINK)
-        ->where('target_content_id', '!=', $inlineTarget->id)
-        ->firstOrFail();
+
+    $footerSuggestion = ContentChainSuggestion::query()->create([
+        'workspace_id' => $workspace->id,
+        'source_content_id' => $source->id,
+        'target_content_id' => $footerTarget->id,
+        'fingerprint' => sha1((string) Str::uuid()),
+        'suggestion_kind' => ContentChainSuggestion::KIND_FOOTER_LINK,
+        'suggestion_type' => 'supplementary_footer',
+        'title' => $footerTarget->title,
+        'anchor_text' => $footerTarget->primary_keyword,
+        'placement_type' => 'footer',
+        'placement_label' => 'Additional reading',
+        'rationale' => 'Legacy footer fallback that should no longer be applied.',
+        'score' => 55,
+        'confidence_score' => 0.55,
+        'meta' => ['target_url' => $footerTarget->published_url],
+        'status' => ContentChainSuggestion::STATUS_APPROVED,
+    ]);
 
     $this->actingAs($user)->post(route('app.content.chain-suggestions.approve', [$source, $inlineSuggestion]))->assertRedirect();
-    $this->actingAs($user)->post(route('app.content.chain-suggestions.approve', [$source, $footerSuggestion]))->assertRedirect();
 
     $this->actingAs($user)
         ->post(route('app.content.chain-suggestions.apply-approved-links', $source))
@@ -231,12 +243,76 @@ it('applies approved inline and footer links without duplicating targets', funct
     $html = (string) $source->currentRevision?->content_html;
 
     expect($html)->toContain('<a href="' . $inlineTarget->published_url . '">search intent framework</a>')
-        ->and($html)->toContain('data-content-chain-links="1"')
+        ->and($html)->not->toContain('data-content-chain-links="1"')
+        ->and($html)->not->toContain((string) $footerTarget->published_url)
         ->and(substr_count($html, (string) $inlineTarget->published_url))->toBe(1)
         ->and(ContentChainSuggestion::query()->findOrFail($inlineSuggestion->id)->applied_at)->not->toBeNull()
-        ->and(ContentChainSuggestion::query()->findOrFail($footerSuggestion->id)->applied_at)->not->toBeNull();
+        ->and(ContentChainSuggestion::query()->findOrFail($footerSuggestion->id)->applied_at)->toBeNull();
 
     Queue::assertPushed(RebuildContentMarkdownArtifactJob::class);
+});
+
+it('does not suggest chained links to another locale variant of the same article', function () {
+    [$user, $workspace, $site, $analyticsSite] = makeContentChainContext('content-chain-locale-family');
+
+    $series = makeContentSeries($workspace, $site, $user, 'Localization workflow');
+    $source = makeChainedContent(
+        workspace: $workspace,
+        site: $site,
+        title: 'Localization workflow overview',
+        keyword: 'localization workflow',
+        path: '/nl/blog/localization-workflow-overview',
+        series: $series,
+        html: '<p>Een localization workflow checklist voorkomt dat vertaalde artikelen naar zichzelf verwijzen.</p>',
+        language: 'nl',
+    );
+    $sameFamilyTarget = makeChainedContent(
+        workspace: $workspace,
+        site: $site,
+        title: 'Localization workflow checklist',
+        keyword: 'localization workflow checklist',
+        path: '/en/blog/localization-workflow-checklist',
+        series: $series,
+        language: 'en',
+        attributes: [
+            'family_id' => $source->id,
+            'translation_source_content_id' => $source->id,
+            'is_source_locale' => false,
+        ],
+    );
+    $validTarget = makeChainedContent(
+        workspace: $workspace,
+        site: $site,
+        title: 'Localization workflow checklist',
+        keyword: 'localization workflow checklist',
+        path: '/nl/blog/localization-workflow-checklist',
+        series: $series,
+        language: 'nl',
+    );
+
+    seedChainRollup($analyticsSite, $source, 180, 95);
+
+    $this->actingAs($user)
+        ->post(route('app.content.chain-guidance.update', $source), [
+            'priority' => 'high',
+            'inline_link_mode' => 'review',
+            'max_inline_links' => 2,
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($user)
+        ->post(route('app.content.chain-suggestions.refresh', $source))
+        ->assertRedirect();
+
+    $targetIds = ContentChainSuggestion::query()
+        ->where('source_content_id', $source->id)
+        ->where('suggestion_kind', ContentChainSuggestion::KIND_INLINE_LINK)
+        ->pluck('target_content_id')
+        ->map(fn ($id): string => (string) $id)
+        ->all();
+
+    expect($targetIds)->toContain((string) $validTarget->id)
+        ->and($targetIds)->not->toContain((string) $sameFamilyTarget->id);
 });
 
 it('creates new chained content from an approved growth suggestion', function () {
@@ -289,7 +365,7 @@ it('creates new chained content from an approved growth suggestion', function ()
 
     expect($growthSuggestion->status)->toBe(ContentChainSuggestion::STATUS_CONVERTED)
         ->and((string) $created->series_id)->toBe((string) $source->series_id)
-        ->and((string) $created->source)->toBe('content_chain')
+        ->and((string) $created->getRawOriginal('source'))->toBe('automation')
         ->and(Str::lower((string) $created->title))->toContain('automation prioritization matrix')
         ->and($created->brief)->not->toBeNull()
         ->and(data_get($created->brief->client_refs, 'chain_source_content_id'))->toBe((string) $source->id);
@@ -412,14 +488,18 @@ function makeChainedContent(
     string $path,
     ?ContentSeries $series = null,
     string $html = '<p>Default chained content body.</p>',
+    string $language = 'en',
+    array $attributes = [],
 ): Content {
-    $content = Content::query()->create([
+    $content = Content::query()->create(array_merge([
         'id' => (string) Str::uuid(),
         'workspace_id' => $workspace->id,
         'client_site_id' => $site->id,
         'series_id' => $series?->id,
         'title' => $title,
         'primary_keyword' => $keyword,
+        'language' => $language,
+        'is_source_locale' => true,
         'type' => 'article',
         'status' => 'published',
         'source' => 'manual',
@@ -428,7 +508,7 @@ function makeChainedContent(
         'external_key' => (string) Str::uuid(),
         'generation_mode' => 'balanced',
         'preferred_length' => 'medium',
-    ]);
+    ], $attributes));
 
     $version = ContentVersion::query()->create([
         'id' => (string) Str::uuid(),

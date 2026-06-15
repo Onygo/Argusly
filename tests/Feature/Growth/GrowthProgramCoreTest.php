@@ -452,10 +452,10 @@ it('loads the dashboard programmatic growth entry card', function (): void {
     $this->actingAs($user)
         ->get(route('app.dashboard'))
         ->assertOk()
-        ->assertSee('Programmatic Growth')
-        ->assertSee('Open Growth Programs')
-        ->assertSee('scheduled records')
-        ->assertSee('blocked');
+        ->assertSee('Automated growth')
+        ->assertSee('Open growth actions')
+        ->assertSee('scheduled actions')
+        ->assertSee('need decisions');
 });
 
 it('seeds a safe programmatic growth demo flow without live publishing', function (): void {

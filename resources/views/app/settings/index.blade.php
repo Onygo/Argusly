@@ -4,6 +4,9 @@
     @php
         $workspaceName = $workspace?->display_name ?: ($workspace?->name ?? 'n/a');
         $canManageOrganization = auth()->user()?->can('manage-organization') ?? false;
+        $advancedModeCanEnable = \App\Support\AdvancedMode::canEnable(auth()->user());
+        $advancedModeEnabled = \App\Support\AdvancedMode::enabled(request());
+        $advancedModeCanSeeDeveloperTools = \App\Support\AdvancedMode::canSeeDeveloperTools(auth()->user());
         $roleLabels = [
             'owner' => 'Owner',
             'admin' => 'Admin',
@@ -51,6 +54,40 @@
                 </ul>
             </div>
         @endif
+
+        <x-settings.section-card
+            title="Experience"
+            description="Choose how much of Argusly's technical machinery appears in navigation."
+        >
+            <div class="rounded-lg border border-border bg-background p-4">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div class="max-w-2xl">
+                        <h3 class="text-sm font-semibold text-textPrimary">Advanced Mode</h3>
+                        <p class="mt-1 text-xs leading-5 text-textSecondary">
+                            Keep the default navigation focused on Home, Opportunities, Content, Results, Brand, Sites, and Settings. Enable Advanced Mode to show technical workflow pages such as market monitoring, programmatic pipeline stages, workflow rules, billing, and developer tools.
+                        </p>
+                        @unless ($advancedModeCanEnable)
+                            <p class="mt-2 text-xs font-medium text-textSecondary">Advanced Mode is available to workspace owners, admins, and editors.</p>
+                        @endunless
+                    </div>
+                    @if ($advancedModeCanEnable)
+                        <form method="POST" action="{{ route('app.settings.advanced-mode.update') }}" class="shrink-0">
+                            @csrf
+                            <input type="hidden" name="advanced_mode" value="{{ $advancedModeEnabled ? '0' : '1' }}">
+                            <button class="{{ $advancedModeEnabled ? 'pl-btn-primary' : 'pl-btn-secondary' }}">
+                                <i data-lucide="sliders-horizontal" class="h-4 w-4"></i>
+                                <span>{{ $advancedModeEnabled ? 'Disable Advanced Mode' : 'Enable Advanced Mode' }}</span>
+                            </button>
+                        </form>
+                    @else
+                        <button class="pl-btn-secondary opacity-60" disabled>
+                            <i data-lucide="lock" class="h-4 w-4"></i>
+                            <span>Advanced Mode unavailable</span>
+                        </button>
+                    @endif
+                </div>
+            </div>
+        </x-settings.section-card>
 
         <x-settings.section-card
             title="Workspace"
@@ -311,16 +348,90 @@
                 $allowedSiteIds = collect(old('allowed_site_ids', $agenticSettings?->allowed_site_ids ?? []))->map(fn ($id) => (string) $id)->all();
                 $allowedDestinationIds = collect(old('allowed_publishing_destination_ids', $agenticSettings?->allowed_publishing_destination_ids ?? []))->map(fn ($id) => (string) $id)->all();
                 $currentMode = old('agentic_execution_mode', $agenticSettings?->agentic_execution_mode ?? 'guided');
+                $currentPreset = old('autonomy_preset', $agenticSettings?->autonomy_preset ?? \App\Services\AgenticMarketing\AutonomyPresetService::GUIDED_MODE);
             @endphp
 
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
                 <div class="rounded-lg border border-border bg-background p-4">
-                    <h3 class="text-sm font-semibold text-textPrimary">Execution mode</h3>
-                    <p class="mt-1 text-xs text-textSecondary">Guided mode requires customer approval before execution. Autonomous mode must be explicitly enabled and stays limited to the rules below.</p>
+                    <h3 class="text-sm font-semibold text-textPrimary">Autonomy preset</h3>
+                    <p class="mt-1 text-xs text-textSecondary">Choose how much work Argusly may prepare or complete. Each preset configures actions, approvals, risk thresholds, credit limits, and publishing permissions.</p>
 
                     @if ($canEditWorkspaceName && $workspace)
-                        <form method="POST" action="{{ route('app.settings.agentic-marketing-execution.update') }}" class="mt-4 space-y-4">
+                        <div class="mt-4 grid gap-3">
+                            @foreach (($autonomyPresets ?? []) as $presetKey => $preset)
+                                @php
+                                    $presetSettings = (array) ($preset['settings'] ?? []);
+                                    $isPresetAutonomous = ($presetSettings['agentic_execution_mode'] ?? 'guided') === 'autonomous';
+                                    $autonomousPresetUnavailable = $isPresetAutonomous && $agenticExecutionSites->isEmpty();
+                                @endphp
+                                <form method="POST" action="{{ route('app.settings.agentic-marketing-execution.update') }}" class="rounded-lg border {{ $currentPreset === $presetKey ? 'border-primary bg-primary/5' : 'border-border bg-surface' }} p-4">
+                                    @csrf
+                                    <input type="hidden" name="autonomy_preset" value="{{ $presetKey }}">
+                                    @foreach ($presetSettings as $field => $value)
+                                        <input type="hidden" name="{{ $field }}" value="{{ is_bool($value) ? ($value ? '1' : '0') : $value }}">
+                                    @endforeach
+                                    @if ($isPresetAutonomous)
+                                        <input type="hidden" name="autonomous_opt_in_confirmation" value="1">
+                                        @foreach ($agenticExecutionSites as $site)
+                                            <input type="hidden" name="allowed_site_ids[]" value="{{ $site->id }}">
+                                        @endforeach
+                                        @foreach ($agenticExecutionDestinations as $destination)
+                                            <input type="hidden" name="allowed_publishing_destination_ids[]" value="{{ $destination->id }}">
+                                        @endforeach
+                                    @endif
+
+                                    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                                        <div class="min-w-0">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <p class="text-sm font-semibold text-textPrimary">{{ $preset['label'] }}</p>
+                                                @if ($currentPreset === $presetKey)
+                                                    <span class="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Active</span>
+                                                @endif
+                                            </div>
+                                            <p class="mt-1 text-xs leading-5 text-textSecondary">{{ $preset['summary'] }}</p>
+                                            @if ($autonomousPresetUnavailable)
+                                                <p class="mt-2 text-xs font-medium text-amber-800">Connect an active site before enabling this preset.</p>
+                                            @endif
+                                            <div class="mt-3 grid gap-2 text-xs text-textSecondary md:grid-cols-2">
+                                                <div class="rounded-md border border-border bg-background px-3 py-2">
+                                                    <span class="block font-medium text-textPrimary">Argusly may do</span>
+                                                    <span>{{ implode(', ', (array) $preset['allowed_actions']) }}</span>
+                                                </div>
+                                                <div class="rounded-md border border-border bg-background px-3 py-2">
+                                                    <span class="block font-medium text-textPrimary">Approval rule</span>
+                                                    <span>{{ $preset['approval_requirements'] }}</span>
+                                                </div>
+                                                <div class="rounded-md border border-border bg-background px-3 py-2">
+                                                    <span class="block font-medium text-textPrimary">Risk threshold</span>
+                                                    <span>{{ $preset['risk_threshold'] }}</span>
+                                                </div>
+                                                <div class="rounded-md border border-border bg-background px-3 py-2">
+                                                    <span class="block font-medium text-textPrimary">Credits and publishing</span>
+                                                    <span>{{ $preset['credit_limit'] }} · {{ $preset['publishing_permissions'] }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button class="{{ $currentPreset === $presetKey ? 'pl-btn-secondary' : 'pl-btn-primary' }} shrink-0 {{ $autonomousPresetUnavailable ? 'opacity-60' : '' }}" @disabled($autonomousPresetUnavailable)>
+                                            <i data-lucide="{{ $currentPreset === $presetKey ? 'check' : 'wand-sparkles' }}" class="h-4 w-4"></i>
+                                            <span>{{ $autonomousPresetUnavailable ? 'Site required' : ($currentPreset === $presetKey ? 'Active preset' : 'Use preset') }}</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            @endforeach
+                        </div>
+
+                        @if (! $advancedModeEnabled)
+                            <div class="mt-4 rounded-md border border-border bg-surfaceSubtle px-3 py-2 text-xs text-textSecondary">
+                                Advanced configuration is preserved. Enable Advanced Mode to edit individual action permissions, approval gates, site scopes, destination scopes, and credit limits manually.
+                            </div>
+                        @else
+                        <form method="POST" action="{{ route('app.settings.agentic-marketing-execution.update') }}" class="mt-5 space-y-4 rounded-lg border border-border bg-surface p-4">
                             @csrf
+
+                            <div>
+                                <h4 class="text-sm font-semibold text-textPrimary">Advanced configuration</h4>
+                                <p class="mt-1 text-xs text-textSecondary">Fine-tune the active preset while preserving the same approval governance and workspace permissions.</p>
+                            </div>
 
                             <div class="grid gap-3 md:grid-cols-2">
                                 <label class="rounded-md border border-border bg-surface px-3 py-3 text-sm">
@@ -444,9 +555,10 @@
                             </div>
 
                             <x-settings.form-actions>
-                                <button class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Save Agentic Marketing execution settings</button>
+                                <button class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Save advanced autonomy settings</button>
                             </x-settings.form-actions>
                         </form>
+                        @endif
                     @else
                         <x-settings.empty-state class="mt-4" title="Read-only execution settings" description="Workspace owners can update Agentic Marketing execution mode." />
                     @endif
@@ -455,6 +567,10 @@
                 <div class="rounded-lg border border-border bg-background p-4">
                     <h3 class="text-sm font-semibold text-textPrimary">Current guardrail state</h3>
                     <div class="mt-3 space-y-3 text-sm text-textSecondary">
+                        <div class="rounded-md border border-border bg-surface px-3 py-2">
+                            <span class="block text-xs text-textSecondary">Preset</span>
+                            <span class="font-medium text-textPrimary">{{ data_get($autonomyPresets ?? [], $currentPreset.'.label', 'Guided Mode') }}</span>
+                        </div>
                         <div class="rounded-md border border-border bg-surface px-3 py-2">
                             <span class="block text-xs text-textSecondary">Mode</span>
                             <span class="font-medium text-textPrimary">{{ ucfirst((string) ($agenticSettings?->agentic_execution_mode ?? 'guided')) }}</span>
@@ -512,16 +628,18 @@
                 @endif
             </x-settings.section-card>
 
-            <x-settings.section-card title="API access moved" description="API keys, webhooks, and integration settings now live in Developer.">
-                <div class="rounded-md border border-border bg-background px-4 py-3">
-                    <p class="text-sm text-textPrimary">API keys, webhooks, and integration settings are now managed in the Developer section.</p>
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        <a href="{{ route('app.developer.api') }}" class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Open Developer settings</a>
-                        <a href="{{ route('app.developer.webhooks') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Webhooks</a>
-                        <a href="{{ route('app.developer.docs') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Docs</a>
+            @if ($advancedModeCanSeeDeveloperTools)
+                <x-settings.section-card title="API access moved" description="API keys, webhooks, and integration settings now live in Developer.">
+                    <div class="rounded-md border border-border bg-background px-4 py-3">
+                        <p class="text-sm text-textPrimary">API keys, webhooks, and integration settings are now managed in the Developer section.</p>
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <a href="{{ route('app.developer.api') }}" class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Open Developer settings</a>
+                            <a href="{{ route('app.developer.webhooks') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Webhooks</a>
+                            <a href="{{ route('app.developer.docs') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Docs</a>
+                        </div>
                     </div>
-                </div>
-            </x-settings.section-card>
+                </x-settings.section-card>
+            @endif
         </div>
 
         <x-settings.section-card title="Brand" description="Manage company profile, voice guidelines, and reusable intelligence proposals.">

@@ -96,8 +96,7 @@ it('matches contextual inline links without breaking existing anchors', function
     expect($matches['inline'])->toHaveCount(1)
         ->and($matches['inline']->first()['anchor_text'])->toBe('ai governance checklist')
         ->and($matches['inline']->first()['placement_type'])->toBe('inline')
-        ->and($matches['footer'])->toHaveCount(1)
-        ->and($matches['footer']->first()['target']->title)->toBe('AI policy template');
+        ->and($matches['footer'])->toHaveCount(0);
 });
 
 function matcherContent(

@@ -43,13 +43,6 @@
                     <i data-lucide="arrow-left" class="h-4 w-4"></i>
                     {{ __('public.blog.back_to_blog') }}
                 </a>
-                @if(count($localeSwitchUrls ?? []) > 1)
-                    <div class="mt-5 inline-flex items-center gap-1 rounded-md border border-border bg-white p-1 text-xs">
-                        @foreach(($localeSwitchUrls ?? []) as $switchLocale => $switchUrl)
-                            <a href="{{ $switchUrl }}" class="rounded-full px-3 py-1.5 font-medium {{ app()->getLocale() === $switchLocale ? 'bg-publicPrimary text-white' : 'text-textSecondary hover:bg-[#f8fafc] hover:text-textPrimary' }}">{{ strtoupper($switchLocale) }}</a>
-                        @endforeach
-                    </div>
-                @endif
                 <h1 class="mt-4 pl-public-heading pl-public-heading-h1">{{ $post['title'] ?? __('public.blog.meta_title') }}</h1>
                 <p class="mt-3 text-sm text-textSecondary">
                     {{ $post['published_date'] ?? '' }}

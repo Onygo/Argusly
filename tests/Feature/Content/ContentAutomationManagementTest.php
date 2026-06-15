@@ -143,6 +143,34 @@ it('prevents manual run when the automation is paused and resume schedules a fut
         ->and($automation->fresh()->next_run_at->isFuture())->toBeTrue();
 });
 
+it('forces translation on chained automations when multiple locales are selected', function () {
+    [$owner, $workspace, $site] = makeContentAutomationManagementContext();
+
+    $response = $this->actingAs($owner)
+        ->post(route('app.content.automations.store'), [
+            'name' => 'Localized CRM chain',
+            'workspace_id' => $workspace->id,
+            'client_site_id' => $site->id,
+            'mode' => 'chain',
+            'publication_mode' => 'draft_only',
+            'generation_frequency_value' => 3,
+            'generation_frequency_unit' => 'days',
+            'chain_size' => 3,
+            'locale' => 'en',
+            'locales' => ['en', 'nl'],
+            'topic_scope' => 'CRM migration strategy',
+            'include_translation' => 0,
+            'is_active' => 1,
+        ]);
+
+    $automation = ContentAutomation::query()->firstOrFail();
+
+    $response->assertRedirect(route('app.content.automations.show', $automation));
+
+    expect($automation->include_translation)->toBeTrue()
+        ->and($automation->targetLocales())->toBe(['nl']);
+});
+
 it('blocks manual run before dispatch when estimated credits are too low', function () {
     config()->set('argusly.ai.drafts.credit_cost', 4);
     config()->set('translation.default_credit_cost', 6);
@@ -185,14 +213,11 @@ it('blocks manual run before dispatch when estimated credits are too low', funct
     $this->actingAs($owner)
         ->post(route('app.content.automations.run', $automation))
         ->assertRedirect()
-        ->assertSessionHasErrors('automation');
+        ->assertSessionHasErrors([
+            'automation' => 'This automation needs 10 credits, but only 0 are available.',
+        ]);
 
     Bus::assertNotDispatched(RunContentAutomationJob::class);
-
-    $this->actingAs($owner)
-        ->get(route('app.content.automations.show', $automation))
-        ->assertOk()
-        ->assertSee('This automation needs 10 credits, but only 0 are available.');
 });
 
 it('shows recalculated failure diagnostics on automation index and detail pages', function () {

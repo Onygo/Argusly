@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\AgenticMarketing\AutonomyPresetService;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class AgenticMarketingExecutionSetting extends Model
         'organization_id',
         'workspace_id',
         'brand_voice_id',
+        'autonomy_preset',
         'agentic_execution_mode',
         'autonomous_publication_enabled',
         'autonomous_refresh_enabled',
@@ -37,6 +39,7 @@ class AgenticMarketingExecutionSetting extends Model
 
     protected $attributes = [
         'agentic_execution_mode' => self::MODE_GUIDED,
+        'autonomy_preset' => AutonomyPresetService::GUIDED_MODE,
         'autonomous_publication_enabled' => false,
         'autonomous_refresh_enabled' => false,
         'autonomous_internal_linking_enabled' => false,

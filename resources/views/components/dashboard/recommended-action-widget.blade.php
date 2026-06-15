@@ -28,7 +28,7 @@
                     <p class="mt-1 text-sm leading-6 text-textSecondary">{{ data_get($action, 'why_it_matters') }}</p>
                 </div>
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">{{ __('app.dashboard_action_first.expected_outcome') }}</p>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">{{ __('app.dashboard_action_first.what_argusly_can_do') }}</p>
                     <p class="mt-1 text-sm leading-6 text-textSecondary">{{ data_get($action, 'expected_outcome') }}</p>
                 </div>
             </div>
