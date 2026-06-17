@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\SocialAccount;
 use App\Models\SocialDistributionAuditLog;
 use App\Models\SocialEngagementMetric;
+use App\Models\SocialPost;
 use App\Models\SocialPostVariant;
 use App\Models\SocialPublication;
 use App\Models\User;
@@ -759,6 +760,80 @@ it('renders the distribution publish queue when publications have engagement met
         ->assertSee('Metrics Account');
 });
 
+it('renders campaignless published linkedin posts as posts in the timeline', function (): void {
+    config(['features.agentic_marketing' => true]);
+
+    $this->withoutMiddleware([
+        \App\Http\Middleware\EnsureEmailCodeVerified::class,
+        \App\Http\Middleware\EnsureUserApproved::class,
+        \App\Http\Middleware\EnsureUserHasOrganization::class,
+        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Campaignless Timeline Org',
+        'slug' => 'linkedin-campaignless-timeline-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Campaignless Timeline Workspace',
+    ]);
+
+    $account = SocialAccount::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'account_type' => 'person',
+        'display_name' => 'Campaignless Account',
+        'status' => SocialAccountStatus::CONNECTED,
+    ]);
+
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::THOUGHT_LEADERSHIP,
+        'status' => SocialPostVariantStatus::PUBLISHED,
+        'variant_number' => 1,
+        'hook' => 'Standalone LinkedIn post',
+        'body' => 'This post was published without a campaign.',
+        'approved_at' => now(),
+    ]);
+
+    SocialPublication::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'social_post_variant_id' => $variant->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'status' => SocialPublicationStatus::PUBLISHED,
+        'published_at' => now(),
+        'remote_url' => 'https://www.linkedin.com/feed/update/urn:li:share:123',
+        'payload_snapshot' => [
+            'publishing_text' => 'Standalone LinkedIn post body.',
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.agentic-marketing.distribution.index', ['workspace_id' => $workspace->id]))
+        ->assertOk()
+        ->assertSee('Standalone LinkedIn post')
+        ->assertSee('Campaignless Account')
+        ->assertSee('View on LinkedIn')
+        ->assertDontSee('Unlinked campaign');
+});
+
 it('shows failed linkedin publication errors and allows retrying them', function (): void {
     config([
         'features.agentic_marketing' => true,
@@ -845,7 +920,152 @@ it('shows failed linkedin publication errors and allows retrying them', function
         ->assertDontSee('disabled');
 });
 
-it('hides published linkedin variants and publications from the active distribution workspace', function (): void {
+it('approving a linkedin variant also approves the linked publish record', function (): void {
+    config(['features.agentic_marketing' => true]);
+
+    $this->withoutMiddleware([
+        \App\Http\Middleware\EnsureEmailCodeVerified::class,
+        \App\Http\Middleware\EnsureUserApproved::class,
+        \App\Http\Middleware\EnsureUserHasOrganization::class,
+        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Approval Bridge Org',
+        'slug' => 'linkedin-approval-bridge-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Approval Bridge Workspace',
+    ]);
+
+    $account = SocialAccount::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'account_type' => 'person',
+        'display_name' => 'Approval Bridge Account',
+        'status' => SocialAccountStatus::CONNECTED,
+    ]);
+
+    $post = SocialPost::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'provider' => SocialPlatform::LINKEDIN->value,
+        'type' => 'text',
+        'body' => 'Old draft body.',
+        'visibility' => 'public',
+        'status' => 'draft',
+        'error_message' => 'Human approval is required before publishing.',
+    ]);
+
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_post_id' => $post->id,
+        'social_account_id' => $account->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::THOUGHT_LEADERSHIP,
+        'status' => SocialPostVariantStatus::DRAFT,
+        'variant_number' => 1,
+        'hook' => 'Approval bridge',
+        'body' => 'Approving this variant should approve the linked publish record.',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('app.agentic-marketing.distribution.variants.approve', [
+            'variant' => $variant,
+            'workspace_id' => $workspace->id,
+        ]))
+        ->assertRedirect();
+
+    expect($variant->refresh()->status)->toBe(SocialPostVariantStatus::APPROVED)
+        ->and($post->refresh()->status)->toBe('approved')
+        ->and($post->error_message)->toBeNull()
+        ->and($post->body)->toContain('Approving this variant should approve the linked publish record.');
+});
+
+it('repairs stale draft social posts before linkedin publication', function (): void {
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Publication Repair Org',
+        'slug' => 'linkedin-publication-repair-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Publication Repair Workspace',
+    ]);
+
+    $account = SocialAccount::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'account_type' => 'person',
+        'display_name' => 'Publication Repair Account',
+        'status' => SocialAccountStatus::CONNECTED,
+    ]);
+
+    $post = SocialPost::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'provider' => SocialPlatform::LINKEDIN->value,
+        'type' => 'text',
+        'body' => 'Old draft body.',
+        'visibility' => 'public',
+        'status' => 'draft',
+        'error_message' => 'Human approval is required before publishing.',
+    ]);
+
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_post_id' => $post->id,
+        'social_account_id' => $account->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::THOUGHT_LEADERSHIP,
+        'status' => SocialPostVariantStatus::APPROVED,
+        'variant_number' => 1,
+        'hook' => 'Publication repair',
+        'body' => 'Retrying an approved variant should repair the linked draft post.',
+        'approved_at' => now(),
+    ]);
+
+    $publication = SocialPublication::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'social_post_variant_id' => $variant->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'status' => SocialPublicationStatus::QUEUED,
+        'scheduled_for' => now()->subMinute(),
+    ]);
+
+    $publisher = app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class);
+    $method = new ReflectionMethod($publisher, 'socialPostFor');
+    $method->setAccessible(true);
+    $resolvedPost = $method->invoke($publisher, $publication->fresh(['socialAccount', 'variant']));
+
+    expect($resolvedPost)->toBeInstanceOf(SocialPost::class)
+        ->and($post->refresh()->status)->toBe('approved')
+        ->and($post->error_message)->toBeNull()
+        ->and($post->body)->toContain('Retrying an approved variant should repair the linked draft post.');
+});
+
+it('hides published linkedin variants from active work while keeping publication history visible', function (): void {
     config(['features.agentic_marketing' => true]);
 
     $this->withoutMiddleware([
@@ -900,7 +1120,7 @@ it('hides published linkedin variants and publications from the active distribut
         'post_type' => SocialPostType::SHORT_HOOK,
         'status' => SocialPostVariantStatus::PUBLISHED,
         'variant_number' => 1,
-        'body' => 'Already-published LinkedIn copy should not be visible.',
+        'body' => 'Already-published LinkedIn copy should stay visible in history.',
     ]);
 
     SocialPublication::query()->create([
@@ -932,7 +1152,7 @@ it('hides published linkedin variants and publications from the active distribut
         ->assertSee('Published Cleanup Campaign')
         ->assertSee('Published')
         ->assertDontSee('Scheduled activity')
-        ->assertDontSee('Already-published LinkedIn copy should not be visible.')
+        ->assertSee('Already-published LinkedIn copy should stay visible in history.')
         ->assertSee('No publications queued.');
 });
 

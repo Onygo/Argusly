@@ -397,6 +397,14 @@ class AppSocialDistributionController extends Controller
             'approval_notes' => $request->input('approval_notes'),
         ])->save();
 
+        if ($variant->socialPost) {
+            $variant->socialPost->forceFill([
+                'status' => 'approved',
+                'body' => $variant->publishingText(),
+                'error_message' => null,
+            ])->save();
+        }
+
         $audit->record($variant, 'variant.approved', $before, $variant->attributesToArray());
 
         return back()->with('status', 'Social post variant approved.');

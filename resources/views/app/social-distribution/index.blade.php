@@ -462,15 +462,40 @@
                             </div>
                             <div class="grid gap-2">
                                 @foreach ($items as $item)
+                                    @php
+                                        $timelineTitle = trim((string) (
+                                            $item->campaign?->name
+                                            ?: $item->variant?->hook
+                                            ?: data_get($item->payload_snapshot, 'title')
+                                            ?: $rt('LinkedIn post')
+                                        ));
+                                        $timelineText = trim((string) data_get($item->payload_snapshot, 'publishing_text', ''));
+                                        if ($timelineText === '' && $item->variant) {
+                                            $timelineText = $item->variant->publishingText();
+                                        }
+                                        $timelineUrl = trim((string) ($item->remote_url ?: data_get($item->response_snapshot, 'remote_url', '')));
+                                    @endphp
                                     <div class="rounded-md border border-border bg-background p-3">
                                         <div class="flex flex-wrap items-center justify-between gap-2">
-                                            <p class="text-sm font-medium text-textPrimary">{{ $item->campaign?->name ?? $rt('Unlinked campaign') }}</p>
+                                            <p class="text-sm font-medium text-textPrimary">{{ $timelineTitle }}</p>
                                             <span class="rounded-full bg-surfaceMuted px-2 py-1 text-xs text-textSecondary">{{ $formatStatus($item->status) }}</span>
                                         </div>
                                         <p class="mt-1 text-xs text-textSecondary">
                                             {{ $item->socialAccount?->display_name ?? $rt('No account') }}
                                             · {{ ($item->published_at ?? $item->scheduled_for)?->copy()->timezone($scheduleTimezone)->format('H:i') }}
                                         </p>
+                                        @if ($item->campaign)
+                                            <p class="mt-1 text-xs text-textFaint">{{ $rt('Campaign') }} · {{ $item->campaign->name }}</p>
+                                        @endif
+                                        @if ($timelineText !== '')
+                                            <p class="mt-2 line-clamp-2 text-xs leading-5 text-textSecondary">{{ $timelineText }}</p>
+                                        @endif
+                                        @if ($timelineUrl !== '')
+                                            <a href="{{ $timelineUrl }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                                                <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
+                                                <span>{{ $rt('View on LinkedIn') }}</span>
+                                            </a>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>

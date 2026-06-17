@@ -62,9 +62,19 @@ class LinkedInPublisher implements SocialPlatformPublisher
         if ($variant?->social_post_id) {
             $post = SocialPost::query()->with(['account', 'content'])->findOrFail($variant->social_post_id);
             $body = $this->renderer->renderVariant($variant);
+            $updates = [];
 
             if ($body !== '' && trim((string) $post->body) !== $body) {
-                $post->forceFill(['body' => $body])->save();
+                $updates['body'] = $body;
+            }
+
+            if ($variant->isApproved() && ! in_array((string) $post->status, ['approved', 'scheduled', 'publishing', 'published'], true)) {
+                $updates['status'] = 'approved';
+                $updates['error_message'] = null;
+            }
+
+            if ($updates !== []) {
+                $post->forceFill($updates)->save();
             }
 
             return $post->fresh(['account', 'content']);
