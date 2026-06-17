@@ -161,10 +161,11 @@
                 <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
                     <div class="flex items-center gap-4">
                         @if ($status === 'processing')
-                            <div class="relative">
-                                <div class="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <div class="absolute inset-0 rounded-lg border-2 border-primary border-t-transparent animate-spin"></div>
-                                    <svg class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            <div class="flex h-14 w-14 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+                                <div class="flex h-7 items-end gap-1.5" aria-hidden="true">
+                                    <span class="w-1.5 rounded-full bg-current/50 animate-pulse" style="height: 14px;"></span>
+                                    <span class="w-1.5 rounded-full bg-current animate-pulse" style="height: 22px; animation-delay: 120ms;"></span>
+                                    <span class="w-1.5 rounded-full bg-current/70 animate-pulse" style="height: 18px; animation-delay: 240ms;"></span>
                                 </div>
                             </div>
                         @else

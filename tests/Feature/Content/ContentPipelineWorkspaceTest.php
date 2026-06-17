@@ -185,3 +185,44 @@ it('filters the pipeline by a user-facing lane and keeps existing content routes
         ->assertOk()
         ->assertSee('Only Published Piece');
 });
+
+it('does not duplicate content when its brief and draft are also in progress', function (): void {
+    $context = contentPipelineContext('dedupe');
+    $content = contentPipelineContent($context['workspace'], $context['site'], 'Legal and Ethical Content Guide', [
+        'status' => 'draft',
+        'publish_status' => 'draft',
+    ]);
+    $brief = contentPipelineBrief($context['site'], 'Legal and Ethical Content Guide');
+    contentPipelineDraft($context['site'], 'Legal and Ethical Content Guide', [
+        'brief_id' => $brief->id,
+        'content_id' => $content->id,
+        'status' => Draft::STATUS_DRAFT,
+    ]);
+
+    $response = $this->actingAs($context['user'])
+        ->get(route('app.content.pipeline.index'))
+        ->assertOk()
+        ->assertSee('In Progress')
+        ->assertSee('Legal and Ethical Content Guide');
+
+    expect(substr_count($response->getContent(), 'Legal and Ethical Content Guide'))->toBe(1);
+});
+
+it('shows a generated draft and its content workspace as one pipeline item', function (): void {
+    $context = contentPipelineContext('generated-draft-dedupe');
+    $brief = contentPipelineBrief($context['site'], 'Legal and Ethical Considerations of Web Crawling');
+    contentPipelineDraft($context['site'], 'Legal and Ethical Considerations of Web Crawling', [
+        'brief_id' => $brief->id,
+        'status' => 'generated',
+        'delivery_status' => 'published',
+        'delivered_at' => now(),
+    ]);
+
+    $response = $this->actingAs($context['user'])
+        ->get(route('app.content.pipeline.index'))
+        ->assertOk()
+        ->assertSee('Published')
+        ->assertSee('Legal and Ethical Considerations of Web Crawling');
+
+    expect(substr_count($response->getContent(), 'Legal and Ethical Considerations of Web Crawling'))->toBe(1);
+});

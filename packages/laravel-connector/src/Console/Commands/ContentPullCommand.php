@@ -12,12 +12,12 @@ final class ContentPullCommand extends Command
 {
     protected $signature = 'argusly:connector:content:pull {--limit=25}';
 
-    protected $description = 'Placeholder command for pulling content from Argusly.';
+    protected $description = 'Fetch content available to this connector from Argusly.';
 
     public function handle(ArguslyClient $client): int
     {
         try {
-            $response = $client->pullContent([
+            $response = $client->contentIndex([
                 'limit' => (int) $this->option('limit'),
             ]);
         } catch (Throwable $exception) {
@@ -26,9 +26,15 @@ final class ContentPullCommand extends Command
             return self::FAILURE;
         }
 
-        $this->line('Argusly content pull placeholder executed.');
-        $this->line('HTTP status: ' . $response->status());
+        if (! $response->successful()) {
+            $this->error(sprintf('Argusly content pull returned HTTP %d.', $response->status()));
 
-        return $response->successful() ? self::SUCCESS : self::FAILURE;
+            return self::FAILURE;
+        }
+
+        $items = $response->json('data');
+        $this->info(sprintf('Fetched %d Argusly content item(s).', is_array($items) ? count($items) : 0));
+
+        return self::SUCCESS;
     }
 }

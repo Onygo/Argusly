@@ -621,8 +621,12 @@ it('shows the actual locale and source locale on the draft detail page', functio
 
     $response->assertOk();
     $response->assertSee('Language: EN (Source: NL)');
-    $response->assertSee('Available languages');
-    $response->assertSee('Pending: 2 jobs');
+    $response->assertSee('Publishing');
+    $response->assertSee('Publish article');
+    $response->assertSee(route('app.content.publish-now', $translatedContent), false);
+    $response->assertSee('name="locale" value="en"', false);
+    $response->assertSee('Languages');
+    $response->assertSee('2 pending');
     expect(substr_count($response->getContent(), 'data-language-locale="en"'))->toBe(1)
         ->and(substr_count($response->getContent(), 'data-language-locale="nl"'))->toBe(1);
 });

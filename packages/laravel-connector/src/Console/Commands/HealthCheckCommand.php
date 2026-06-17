@@ -18,7 +18,7 @@ final class HealthCheckCommand extends Command
     {
         try {
             $response = $client->health([
-                'laravel_version' => app()->version(),
+                'framework_version' => app()->version(),
                 'php_version' => PHP_VERSION,
             ]);
         } catch (Throwable $exception) {

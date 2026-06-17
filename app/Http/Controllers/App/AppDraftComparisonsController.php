@@ -18,6 +18,7 @@ use App\Services\DraftComparison\DraftComparisonMetricResolver;
 use App\Services\DraftComparison\DraftComparisonProgressService;
 use App\Services\DraftComparison\DraftScoreExpectationResolver;
 use App\Services\DraftComparison\DraftComparisonService;
+use App\Services\DraftComparison\DraftComparisonWinnerService;
 use App\Services\DraftComparison\HybridDraftEligibilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -164,6 +165,7 @@ class AppDraftComparisonsController extends Controller
         DraftScoreExpectationResolver $scoreExpectationResolver,
         DraftComparisonService $draftComparisonService,
         HybridDraftEligibilityService $hybridEligibilityService,
+        DraftComparisonWinnerService $winnerService,
     ): View {
         $this->authorize('view', $brief);
         $this->authorize('view', $comparison);
@@ -218,6 +220,10 @@ class AppDraftComparisonsController extends Controller
             ? (int) round(min(100, (($done + $failed) / $total) * 100))
             : 0;
         $isTerminal = in_array((string) $comparison->status, DraftComparison::TERMINAL_STATUSES, true);
+        if ($isTerminal && $successfulRows !== [] && ! is_array(data_get($recommendation, 'suggested_winner'))) {
+            $recommendation = $winnerService->recommend($comparison);
+        }
+
         $draftCompareCapabilities = $draftComparisonService->compareCapabilitiesForBrief($brief);
         $hybridFeatureEnabled = (bool) ($draftCompareCapabilities['hybrid_enabled'] ?? false);
         $hybridEligibility = $hybridEligibilityService->checkEligibility($comparison);

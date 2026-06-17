@@ -10,25 +10,32 @@ use Throwable;
 
 final class ContentSyncCommand extends Command
 {
-    protected $signature = 'argusly:connector:content:sync {content_id} {--idempotency-key=}';
+    protected $signature = 'argusly:connector:content:ack {content_id} {status=synced} {--remote-id=} {--remote-url=} {--idempotency-key=}';
 
-    protected $description = 'Placeholder command for syncing local content state with Argusly.';
+    protected $description = 'Acknowledge a local content sync result to Argusly.';
 
     public function handle(ArguslyClient $client): int
     {
         try {
-            $response = $client->syncContent((string) $this->argument('content_id'), [
-                'status' => 'placeholder',
-            ], $this->option('idempotency-key') ? (string) $this->option('idempotency-key') : null);
+            $response = $client->acknowledgeContentSync((string) $this->argument('content_id'), array_filter([
+                'status' => (string) $this->argument('status'),
+                'remote_id' => $this->option('remote-id') ? (string) $this->option('remote-id') : null,
+                'remote_url' => $this->option('remote-url') ? (string) $this->option('remote-url') : null,
+            ], static fn ($value): bool => $value !== null && $value !== ''), $this->option('idempotency-key') ? (string) $this->option('idempotency-key') : null);
         } catch (Throwable $exception) {
-            $this->error('Argusly content sync failed: ' . $exception->getMessage());
+            $this->error('Argusly content sync acknowledgement failed: ' . $exception->getMessage());
 
             return self::FAILURE;
         }
 
-        $this->line('Argusly content sync placeholder executed.');
-        $this->line('HTTP status: ' . $response->status());
+        if (! $response->successful()) {
+            $this->error(sprintf('Argusly content sync acknowledgement returned HTTP %d.', $response->status()));
 
-        return $response->successful() ? self::SUCCESS : self::FAILURE;
+            return self::FAILURE;
+        }
+
+        $this->info('Argusly content sync acknowledgement accepted.');
+
+        return self::SUCCESS;
     }
 }

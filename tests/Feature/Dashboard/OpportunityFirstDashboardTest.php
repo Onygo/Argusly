@@ -187,6 +187,23 @@ it('shows continue monitoring when there are no open risks or opportunities', fu
         ->assertSee('No urgent decisions need action right now.');
 });
 
+it('does not count archived high priority opportunities as active dashboard actions', function (): void {
+    $context = ux17DashboardContext('archived-high-priority');
+
+    ux17Opportunity($context['workspace'], $context['site'], [
+        'title' => 'Archived high priority opportunity',
+        'status' => OpportunityStatus::ARCHIVED->value,
+        'priority_score' => 98,
+    ]);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('0 high impact')
+        ->assertSee('No open opportunities need action right now.')
+        ->assertDontSee('Archived high priority opportunity');
+});
+
 it('keeps dashboard actions scoped to the first organization workspace', function (): void {
     $context = ux17DashboardContext('own');
     $otherWorkspace = Workspace::query()->create([

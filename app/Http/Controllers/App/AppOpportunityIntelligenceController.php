@@ -37,12 +37,18 @@ class AppOpportunityIntelligenceController extends Controller
     {
         $workspace = $this->resolveWorkspace($request);
         $moduleReadiness = $readiness->getModuleReadiness($workspace, 'opportunity_intelligence');
+        $activeOpportunityStatuses = [
+            OpportunityStatus::OPEN->value,
+            OpportunityStatus::REVIEWING->value,
+            OpportunityStatus::APPROVED->value,
+            OpportunityStatus::PLANNED->value,
+        ];
 
         $opportunityQuery = Opportunity::query()
             ->where('workspace_id', $workspace->id)
             ->with(['campaign', 'content', 'contentCluster', 'signals'])
             ->when($request->query('category'), fn ($query, $category) => $query->where('category', $category))
-            ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status), fn ($query) => $query->where('status', 'open'));
+            ->when($request->query('status'), fn ($query, $status) => $query->where('status', $status), fn ($query) => $query->whereIn('status', $activeOpportunityStatuses));
 
         $opportunities = $opportunityQuery
             ->orderByDesc('priority_score')
@@ -86,10 +92,10 @@ class AppOpportunityIntelligenceController extends Controller
             'promotedSignalCount' => $promotedSignalCount,
             'programmaticGrowthSummary' => $programmaticGrowthBetaSummary->forWorkspace($workspace),
             'summary' => [
-                'open' => Opportunity::query()->where('workspace_id', $workspace->id)->whereIn('status', [OpportunityStatus::OPEN->value, OpportunityStatus::REVIEWING->value, OpportunityStatus::APPROVED->value, OpportunityStatus::PLANNED->value])->count(),
+                'open' => Opportunity::query()->where('workspace_id', $workspace->id)->whereIn('status', $activeOpportunityStatuses)->count(),
                 'avg_priority' => (float) Opportunity::query()->where('workspace_id', $workspace->id)->avg('priority_score'),
                 'signals' => OpportunitySignal::query()->where('workspace_id', $workspace->id)->count(),
-                'high_confidence' => Opportunity::query()->where('workspace_id', $workspace->id)->where('confidence_score', '>=', 75)->count(),
+                'high_confidence' => Opportunity::query()->where('workspace_id', $workspace->id)->whereIn('status', $activeOpportunityStatuses)->where('confidence_score', '>=', 75)->count(),
             ],
         ]);
     }

@@ -42,7 +42,15 @@ class AppContentPipelineController extends Controller
             ->limit(80)
             ->get();
 
-        $representedBriefIds = $contents->pluck('brief.id')->filter()->map(fn ($id): string => (string) $id)->all();
+        $representedContentIds = $contents->pluck('id')->filter()->map(fn ($id): string => (string) $id)->all();
+        $representedBriefIds = $contents
+            ->pluck('brief.id')
+            ->merge($contents->flatMap(fn (Content $content) => $content->drafts->pluck('brief_id')))
+            ->filter()
+            ->map(fn ($id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
         $representedDraftIds = $contents->flatMap(fn (Content $content) => $content->drafts->pluck('id'))->map(fn ($id): string => (string) $id)->all();
 
         $briefs = Brief::query()
@@ -58,9 +66,30 @@ class AppContentPipelineController extends Controller
             ->limit(50)
             ->get();
 
+        $representedBriefIds = collect($representedBriefIds)
+            ->merge($briefs->pluck('id'))
+            ->filter()
+            ->map(fn ($id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $representedDraftIds = collect($representedDraftIds)
+            ->merge($briefs->flatMap(fn (Brief $brief) => $brief->drafts->pluck('id')))
+            ->filter()
+            ->map(fn ($id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
+
         $drafts = Draft::query()
             ->whereHas('clientSite.workspace', fn ($workspace) => $workspace->where('organization_id', $organizationId))
             ->when($representedDraftIds !== [], fn ($query) => $query->whereNotIn('id', $representedDraftIds))
+            ->when($representedContentIds !== [], fn ($query) => $query->where(function ($draftQuery) use ($representedContentIds): void {
+                $draftQuery->whereNull('content_id')->orWhereNotIn('content_id', $representedContentIds);
+            }))
+            ->when($representedBriefIds !== [], fn ($query) => $query->where(function ($draftQuery) use ($representedBriefIds): void {
+                $draftQuery->whereNull('brief_id')->orWhereNotIn('brief_id', $representedBriefIds);
+            }))
             ->where('status', '!=', Draft::STATUS_ARCHIVED)
             ->with([
                 'clientSite:id,name,workspace_id',
@@ -72,8 +101,7 @@ class AppContentPipelineController extends Controller
             ->limit(50)
             ->get();
 
-        $cards = $contents
-            ->map(fn (Content $content): array => $this->contentCard($content))
+        $cards = collect($contents->map(fn (Content $content): array => $this->contentCard($content))->all())
             ->merge($briefs->map(fn (Brief $brief): array => $this->briefCard($brief)))
             ->merge($drafts->map(fn (Draft $draft): array => $this->draftCard($draft)))
             ->sortByDesc('updated_at')

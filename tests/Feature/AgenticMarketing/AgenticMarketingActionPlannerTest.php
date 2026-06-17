@@ -174,6 +174,35 @@ it('dedupes planned actions and keeps existing open proposals reusable', functio
         ->and(data_get($action->payload, 'planning.risk_level'))->toBe('low');
 });
 
+it('keeps schema technical improvements at two credits', function () {
+    [$org, $workspace] = makeActionPlannerTenant('am-planner-schema-credits');
+    $objective = makeActionPlannerObjective($org, $workspace);
+    $content = makeActionPlannerContent($workspace, ['schema_type' => null]);
+    $opportunity = makeActionPlannerOpportunity($objective, [
+        'content_id' => $content->id,
+        'title' => 'Resolve SEO indexability signals',
+        'type' => AgenticMarketingOpportunityType::SeoIndexability->value,
+        'payload' => [
+            'content_id' => $content->id,
+            'signals' => [
+                'issues' => ['missing_schema_type', 'crawled_not_indexed'],
+                'schema_type' => '',
+            ],
+            'score_explanation' => [
+                'summary' => 'Recommended because SEO/indexability issue signals reduce discoverability.',
+            ],
+        ],
+    ]);
+
+    app(AgenticMarketingActionPlanner::class)->planForOpportunity($opportunity);
+
+    $action = AgenticMarketingAction::query()->where('action_type', 'add_schema')->firstOrFail();
+
+    expect($action->estimated_credits)->toBe(2)
+        ->and(data_get($action->payload, 'planning.estimated_credits'))->toBe(2)
+        ->and(data_get($action->payload, 'proposal_details.items.5.signals'))->toContain('estimated_credits: 2');
+});
+
 it('records structured proposal details before execution', function () {
     [$org, $workspace] = makeActionPlannerTenant('am-planner-proposal-details');
     $objective = makeActionPlannerObjective($org, $workspace, [

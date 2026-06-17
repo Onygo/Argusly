@@ -902,3 +902,76 @@ it('renders the draft compare results and matrix sections', function () {
     $response->assertSee('Full Text Comparison');
     $response->assertSee('Suggested winner');
 });
+
+it('renders fallback recommendations when completed variants have no score metrics yet', function () {
+    [, $workspace, $site, $user] = makeDraftCompareContext('draft-compare-fallback-winner');
+
+    $content = \App\Models\Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'title' => 'Fallback winner content',
+        'type' => 'article',
+        'status' => 'brief',
+        'source' => 'manual',
+        'external_key' => (string) Str::uuid(),
+    ]);
+
+    $brief = Brief::query()->create([
+        'client_site_id' => $site->id,
+        'content_id' => $content->id,
+        'status' => 'done',
+        'source' => 'client_ui',
+        'progress' => 1,
+        'title' => 'Fallback winner brief',
+        'language' => 'en',
+        'content_type' => 'blog',
+        'output_type' => 'kb_article',
+    ]);
+
+    $comparison = DraftComparison::query()->create([
+        'id' => (string) Str::uuid(),
+        'brief_id' => $brief->id,
+        'content_id' => $content->id,
+        'client_site_id' => $site->id,
+        'created_by_user_id' => $user->id,
+        'mode' => 'compare_two',
+        'status' => DraftComparison::STATUS_COMPLETED,
+        'items_total' => 2,
+        'items_done' => 2,
+        'requested_model_count' => 2,
+        'comparison_summary_json' => [],
+    ]);
+
+    foreach ([['openai', 'gpt-4.1-mini'], ['anthropic', 'claude-3-5-haiku']] as $index => [$provider, $model]) {
+        $draft = Draft::query()->create([
+            'id' => (string) Str::uuid(),
+            'brief_id' => $brief->id,
+            'content_id' => $content->id,
+            'client_site_id' => $site->id,
+            'status' => 'generated',
+            'title' => 'Fallback draft '.$index,
+            'output_type' => 'kb_article',
+            'content_html' => '<p>Fallback draft body.</p>',
+        ]);
+
+        DraftComparisonVariant::query()->create([
+            'id' => (string) Str::uuid(),
+            'draft_comparison_id' => $comparison->id,
+            'provider_key' => $provider,
+            'model_key' => $model,
+            'display_name' => Str::headline($provider).' - '.$model,
+            'sort_order' => $index + 1,
+            'status' => DraftComparisonVariant::STATUS_COMPLETED,
+            'draft_id' => $draft->id,
+            'completed_at' => now(),
+        ]);
+    }
+
+    $response = $this->actingAs($user)->get(route('app.content.workspace.compare.show', [$brief, $comparison]));
+
+    $response->assertOk();
+    $response->assertSee('Suggested winner');
+    $response->assertSee('Openai · gpt-4.1-mini');
+    $response->assertDontSee('Calculating...');
+});

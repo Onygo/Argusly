@@ -33,6 +33,38 @@
         $executionPlanId = trim((string) (data_get($sourceContext, 'execution_plan_id') ?: data_get($sourceContext, 'opportunity_execution_plan_id', '')));
         $opportunityId = trim((string) data_get($sourceContext, 'opportunity_id', ''));
         $signalDetectionIds = collect((array) data_get($sourceContext, 'signal_detection_ids', []))->filter()->values();
+        $draftContent = $draft->content;
+        $draftSiteType = \App\Models\ClientSite::normalizeType((string) ($draft->clientSite?->type ?? ''));
+        $supportsImmediatePublish = $draftContent && in_array($draftSiteType, [
+            \App\Models\ClientSite::TYPE_WORDPRESS,
+            \App\Models\ClientSite::TYPE_LARAVEL,
+        ], true);
+        $statusPresenter = $draftContent ? \App\View\Presenters\ContentStatusPresenter::for($draftContent) : null;
+        $publishStatus = trim((string) ($draftContent?->publish_status ?: $draftContent?->status ?: $draft->delivery_status ?: $draft->status));
+        $publishStatusLabel = $statusPresenter?->deliveryLabel() ?: \Illuminate\Support\Str::headline(str_replace('_', ' ', $publishStatus ?: 'draft'));
+        $remotePublishLabel = $statusPresenter?->remotePublishLabel();
+        $remotePublishLabel = $remotePublishLabel === 'Unknown' ? null : $remotePublishLabel;
+        $publishedUrl = $statusPresenter?->publishedUrl() ?: trim((string) ($draftContent?->published_url ?? ''));
+        $lastPublishError = $statusPresenter?->lastErrorMessage() ?: trim((string) ($draftContent?->publish_error ?? ''));
+        $isPublishInProgress = in_array($publishStatus, ['publishing', 'queued', 'processing'], true)
+            || (bool) ($statusPresenter?->deliveryStatus()->isInProgress() ?? false);
+        $isPublished = in_array($publishStatus, ['published', 'delivered'], true)
+            || filled($publishedUrl)
+            || (bool) ($statusPresenter?->remotePublishStatus()?->isLive() ?? false);
+        $publishActionRoute = $draftContent
+            ? route($isPublished ? 'app.content.republish' : 'app.content.publish-now', $draftContent)
+            : null;
+        $publishActionLabel = match (true) {
+            $isPublishInProgress => 'Publishing',
+            $isPublished => 'Republish',
+            in_array($publishStatus, ['failed', 'missing_remote', 'failed_delivered'], true) => 'Retry publish',
+            default => 'Publish article',
+        };
+        $destinationLabel = match ($draftSiteType) {
+            \App\Models\ClientSite::TYPE_WORDPRESS => 'WordPress',
+            \App\Models\ClientSite::TYPE_LARAVEL => 'Laravel',
+            default => 'No publish destination',
+        };
     @endphp
 
     <div class="mb-6">
@@ -52,14 +84,30 @@
                     @endif
                 </div>
             </div>
-            @if (\App\Models\ClientSite::normalizeType((string) ($draft->clientSite?->type ?? '')) === \App\Models\ClientSite::TYPE_WORDPRESS)
-                <form method="POST" action="{{ route('app.drafts.republish', $draft) }}">
-                    @csrf
-                    <button class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
-                        Republish to WordPress
-                    </button>
-                </form>
-            @endif
+            <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                @if ($publishedUrl !== '')
+                    <a href="{{ $publishedUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                        <i data-lucide="external-link" class="h-4 w-4" aria-hidden="true"></i>
+                        View live
+                    </a>
+                @endif
+
+                @if ($supportsImmediatePublish && $draftContent)
+                    @can('update', $draftContent)
+                        <form method="POST" action="{{ $publishActionRoute }}">
+                            @csrf
+                            <input type="hidden" name="locale" value="{{ $draft->language->value }}">
+                            <button
+                                class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primaryHover disabled:cursor-not-allowed disabled:opacity-60"
+                                @disabled($isPublishInProgress)
+                            >
+                                <i data-lucide="{{ $isPublished ? 'refresh-cw' : 'send' }}" class="h-4 w-4" aria-hidden="true"></i>
+                                {{ $publishActionLabel }}
+                            </button>
+                        </form>
+                    @endcan
+                @endif
+            </div>
         </div>
     </div>
 
@@ -82,6 +130,12 @@
     @if ($errors->has('translation'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">
             {{ $errors->first('translation') }}
+        </div>
+    @endif
+
+    @if ($errors->has('publish'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">
+            {{ $errors->first('publish') }}
         </div>
     @endif
 
@@ -418,6 +472,57 @@
             </div>
 
             <div class="rounded-lg border border-border bg-surface p-4 space-y-4">
+                <div class="rounded-md border border-border bg-background p-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-medium text-textPrimary">Publishing</div>
+                            <div class="mt-1 text-xs text-textSecondary">
+                                {{ $destinationLabel }}
+                                @if ($remotePublishLabel)
+                                    · {{ $remotePublishLabel }}
+                                @endif
+                            </div>
+                        </div>
+                        <span class="rounded border border-border bg-surface px-2 py-1 text-xs font-medium text-textPrimary">{{ $publishStatusLabel }}</span>
+                    </div>
+
+                    @if ($lastPublishError !== '')
+                        <p class="mt-3 rounded border border-rose-200 bg-rose-50 px-2 py-1.5 text-xs text-rose-700">{{ $lastPublishError }}</p>
+                    @endif
+
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        @if ($supportsImmediatePublish && $draftContent)
+                            @can('update', $draftContent)
+                                <form method="POST" action="{{ $publishActionRoute }}">
+                                    @csrf
+                                    <input type="hidden" name="locale" value="{{ $draft->language->value }}">
+                                    <button
+                                        class="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primaryHover disabled:cursor-not-allowed disabled:opacity-60"
+                                        @disabled($isPublishInProgress)
+                                    >
+                                        <i data-lucide="{{ $isPublished ? 'refresh-cw' : 'send' }}" class="h-4 w-4" aria-hidden="true"></i>
+                                        {{ $publishActionLabel }}
+                                    </button>
+                                </form>
+                            @endcan
+                        @endif
+
+                        @if ($draftContent)
+                            <a href="{{ route('app.content.show', ['content' => $draftContent, 'tab' => 'overview']) }}" class="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                                <i data-lucide="settings-2" class="h-4 w-4" aria-hidden="true"></i>
+                                Settings
+                            </a>
+                        @endif
+
+                        @if ($publishedUrl !== '')
+                            <a href="{{ $publishedUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                                <i data-lucide="external-link" class="h-4 w-4" aria-hidden="true"></i>
+                                View live
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="space-y-2">
                     <div class="text-sm text-textSecondary">Brief</div>
                     <div class="text-sm text-textPrimary">{{ $draft->brief?->title }}</div>

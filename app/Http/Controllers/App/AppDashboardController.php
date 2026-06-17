@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Enums\OpportunityStatus;
 use App\Models\Brief;
 use App\Models\Campaign;
 use App\Models\Content;
@@ -135,6 +136,12 @@ class AppDashboardController extends Controller
         $activationWorkspace = $organization
             ? $organization->workspaces()->orderBy('created_at')->first()
             : null;
+        $activeOpportunityStatuses = [
+            OpportunityStatus::OPEN->value,
+            OpportunityStatus::REVIEWING->value,
+            OpportunityStatus::APPROVED->value,
+            OpportunityStatus::PLANNED->value,
+        ];
 
         $distributionSummary = [
             'campaigns' => empty($workspaceIds) ? 0 : Campaign::query()->whereIn('workspace_id', $workspaceIds)->count(),
@@ -155,10 +162,11 @@ class AppDashboardController extends Controller
         $opportunityIntelligenceSummary = [
             'open' => empty($workspaceIds) ? 0 : Opportunity::query()
                 ->whereIn('workspace_id', $workspaceIds)
-                ->where('status', 'open')
+                ->whereIn('status', $activeOpportunityStatuses)
                 ->count(),
             'high_priority' => empty($workspaceIds) ? 0 : Opportunity::query()
                 ->whereIn('workspace_id', $workspaceIds)
+                ->whereIn('status', $activeOpportunityStatuses)
                 ->where('priority_score', '>=', 75)
                 ->count(),
         ];

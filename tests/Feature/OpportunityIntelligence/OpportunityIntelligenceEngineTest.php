@@ -272,6 +272,27 @@ it('shows promoted signal intelligence evidence and detection link in the UI', f
         ->assertSee(route('app.signal-intelligence.detections.show', $promoted['detection']->id), false);
 });
 
+it('shows active non-open opportunities in the default intelligence list', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('default-active-list');
+    promotedOpportunitySignal($context['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill([
+        'status' => 'planned',
+        'title' => 'Planned opportunity remains actionable',
+    ])->save();
+
+    $this->actingAs($context['user'])
+        ->get(route('app.agentic-marketing.intelligence.index'))
+        ->assertOk()
+        ->assertSee('Planned opportunity remains actionable')
+        ->assertSee('Open opportunities')
+        ->assertDontSee('No opportunities yet');
+});
+
 it('shows the opportunity detail page with full signal lineage', function (): void {
     Config::set('features.agentic_marketing', true);
     Config::set('features.signal_intelligence', true);

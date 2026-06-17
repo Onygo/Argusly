@@ -361,14 +361,18 @@ class AgenticMarketingActionPlanner
 
     private function costEstimate(AgenticMarketingActionType $actionType, array $signals): int
     {
+        if ($actionType === AgenticMarketingActionType::AddSchema) {
+            return 2;
+        }
+
         $base = match ($actionType) {
             AgenticMarketingActionType::ImproveInternalLinks => 3,
             AgenticMarketingActionType::UpdateMeta => 4,
-            AgenticMarketingActionType::AddSchema => 4,
             AgenticMarketingActionType::AddAnswerBlock => 6,
             AgenticMarketingActionType::RefreshArticle => 12,
             AgenticMarketingActionType::CreateLocaleVariant => 18,
             AgenticMarketingActionType::CreateArticle => 24,
+            AgenticMarketingActionType::AddSchema => 2,
         };
 
         $base += min(6, (int) ($signals['suggested_link_count'] ?? 0));

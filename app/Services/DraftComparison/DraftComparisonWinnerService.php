@@ -30,9 +30,12 @@ class DraftComparisonWinnerService
 
         $legacyMetricsByModel = $this->metricResolver->legacyMetricsByProviderModel($comparison);
 
-        $rows = $comparison->variants
+        $completedRows = $comparison->variants
             ->filter(fn (DraftComparisonVariant $variant): bool => (string) $variant->status === DraftComparisonVariant::STATUS_COMPLETED)
             ->map(fn (DraftComparisonVariant $variant): array => $this->variantRow($variant, $legacyMetricsByModel, $weights))
+            ->values();
+
+        $rows = $completedRows
             ->filter(fn (array $row): bool => $row['weighted_score'] !== null)
             ->values();
 
@@ -40,6 +43,8 @@ class DraftComparisonWinnerService
             ->sortByDesc(fn (array $row): float => (float) ($row['weighted_score'] ?? 0))
             ->values()
             ->first();
+        $fallbackWinner = $completedRows->first();
+        $suggestedWinner = is_array($winner) ? $winner : (is_array($fallbackWinner) ? $fallbackWinner : null);
 
         $runnerUp = $rows
             ->sortByDesc(fn (array $row): float => (float) ($row['weighted_score'] ?? 0))
@@ -51,13 +56,18 @@ class DraftComparisonWinnerService
             'generated_at' => now()->toIso8601String(),
             'weights' => $weights,
             'weights_source' => $weightResolution['source'],
-            'candidate_count' => $rows->count(),
-            'suggested_winner' => is_array($winner) ? $this->winnerPayload($winner) : null,
-            'why_it_won' => is_array($winner) ? $this->winnerExplanation($winner, is_array($runnerUp) ? $runnerUp : null) : 'No completed variants with score data available yet.',
-            'best_for_seo' => $this->bestForSeo($rows),
-            'best_for_brand_voice' => $this->bestByMetric($rows, 'brand_voice_match'),
-            'best_concise_option' => $this->bestConcise($rows),
-            'best_conversion_focused_option' => $this->bestConversion($rows),
+            'candidate_count' => $completedRows->count(),
+            'scored_candidate_count' => $rows->count(),
+            'suggested_winner' => is_array($suggestedWinner) ? $this->winnerPayload($suggestedWinner) : null,
+            'why_it_won' => is_array($winner)
+                ? $this->winnerExplanation($winner, is_array($runnerUp) ? $runnerUp : null)
+                : (is_array($fallbackWinner)
+                    ? 'Completed variant available, but score metrics are not available yet.'
+                    : 'No completed variants available yet.'),
+            'best_for_seo' => $this->bestForSeo($completedRows),
+            'best_for_brand_voice' => $this->bestByMetric($completedRows, 'brand_voice_match'),
+            'best_concise_option' => $this->bestConcise($completedRows),
+            'best_conversion_focused_option' => $this->bestConversion($completedRows),
         ];
     }
 
@@ -207,7 +217,7 @@ class DraftComparisonWinnerService
             'provider' => (string) $winner['provider'],
             'model' => (string) $winner['model'],
             'display_name' => $winner['display_name'],
-            'total_weighted_score' => round((float) ($winner['weighted_score'] ?? 0), 2),
+            'total_weighted_score' => is_numeric($winner['weighted_score'] ?? null) ? round((float) $winner['weighted_score'], 2) : null,
             'weighted_breakdown' => (array) ($winner['weighted_breakdown'] ?? []),
             'missing_weighted_metrics' => (array) ($winner['missing_weighted_metrics'] ?? []),
         ];
@@ -276,7 +286,9 @@ class DraftComparisonWinnerService
             ->first();
 
         if (! is_array($winner)) {
-            return null;
+            $fallback = $rows->first();
+
+            return is_array($fallback) ? $this->categoryFallbackPayload($fallback) : null;
         }
 
         return [
@@ -302,7 +314,9 @@ class DraftComparisonWinnerService
             ->first();
 
         if (! is_array($winner)) {
-            return null;
+            $fallback = $rows->first();
+
+            return is_array($fallback) ? $this->categoryFallbackPayload($fallback) : null;
         }
 
         return [
@@ -328,7 +342,9 @@ class DraftComparisonWinnerService
             ->first();
 
         if (! is_array($winner)) {
-            return null;
+            $fallback = $rows->first();
+
+            return is_array($fallback) ? $this->categoryFallbackPayload($fallback) : null;
         }
 
         return [
@@ -370,7 +386,9 @@ class DraftComparisonWinnerService
             ->first();
 
         if (! is_array($winner)) {
-            return null;
+            $fallback = $rows->first();
+
+            return is_array($fallback) ? $this->categoryFallbackPayload($fallback) : null;
         }
 
         return [
@@ -380,6 +398,22 @@ class DraftComparisonWinnerService
             'model' => (string) $winner['model'],
             'display_name' => $winner['display_name'],
             'score' => round((float) $winner['conversion_fit_score'], 2),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @return array<string,mixed>
+     */
+    private function categoryFallbackPayload(array $row): array
+    {
+        return [
+            'variant_id' => (string) $row['variant_id'],
+            'draft_id' => $row['draft_id'],
+            'provider' => (string) $row['provider'],
+            'model' => (string) $row['model'],
+            'display_name' => $row['display_name'],
+            'score' => null,
         ];
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureBillingOnboardingCompleted;
 use App\Models\Brief;
 use App\Models\ClientSite;
+use App\Models\Content;
 use App\Models\Draft;
 use App\Models\Organization;
 use App\Models\User;
@@ -38,6 +39,32 @@ it('sanitizes unsafe draft html in preview output', function () {
         ->assertDontSee('<script>alert(1)</script>', false)
         ->assertDontSee('href="javascript:alert(2)"', false)
         ->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false);
+});
+
+it('surfaces the publish action on linked draft detail pages', function () {
+    [$user, $draft] = createDraftRenderingContext('<p>Ready to publish.</p>');
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $content = Content::query()->create([
+        'workspace_id' => (string) $draft->clientSite->workspace_id,
+        'client_site_id' => (string) $draft->client_site_id,
+        'title' => 'Ready to publish',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'draft',
+        'publish_status' => 'draft',
+        'delivery_status' => 'pending',
+    ]);
+    $draft->update(['content_id' => (string) $content->id]);
+    $draft->brief?->update(['content_id' => (string) $content->id]);
+
+    $this->actingAs($user)
+        ->get(route('app.drafts.show', $draft))
+        ->assertOk()
+        ->assertSee('Publish article')
+        ->assertSee('Publishing')
+        ->assertSee(route('app.content.publish-now', $content), false)
+        ->assertSee('name="locale" value="en"', false);
 });
 
 /**

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" fill="none">
+  <circle cx="62" cy="60" r="22" fill="#235CFF" fill-opacity="0.1"/>
+  <circle cx="62" cy="60" r="22" stroke="#235CFF" stroke-opacity="0.15" stroke-width="2"/>
+  <circle cx="62" cy="60" r="14" fill="#235CFF"/>
+  <text x="104" y="74" fill="#0B0F17" font-family="Instrument Sans, ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="700" letter-spacing="0">Argusly</text>
+</svg>

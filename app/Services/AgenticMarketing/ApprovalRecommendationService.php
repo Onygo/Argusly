@@ -7,6 +7,11 @@ use Illuminate\Support\Collection;
 
 class ApprovalRecommendationService
 {
+    private const APPROVAL_CANDIDATE_STATUSES = [
+        AgenticActionRun::STATUS_PROPOSED,
+        AgenticActionRun::STATUS_APPROVAL_REQUIRED,
+    ];
+
     /**
      * @param Collection<int,AgenticActionRun> $runs
      * @return array<string,mixed>
@@ -15,7 +20,7 @@ class ApprovalRecommendationService
     {
         $lowRisk = $runs->filter(fn (AgenticActionRun $run): bool => $this->isRecommendedApproval($run))->values();
         $needsJudgment = $runs
-            ->filter(fn (AgenticActionRun $run): bool => $run->status === AgenticActionRun::STATUS_APPROVAL_REQUIRED && ! $this->isRecommendedApproval($run))
+            ->filter(fn (AgenticActionRun $run): bool => in_array($run->status, self::APPROVAL_CANDIDATE_STATUSES, true) && ! $this->isRecommendedApproval($run))
             ->values();
         $blocked = $runs
             ->filter(fn (AgenticActionRun $run): bool => $run->status === AgenticActionRun::STATUS_BLOCKED || $this->isBlockedByMissingDestination($run))
@@ -47,7 +52,7 @@ class ApprovalRecommendationService
 
     public function isRecommendedApproval(AgenticActionRun $run): bool
     {
-        if ($run->status !== AgenticActionRun::STATUS_APPROVAL_REQUIRED) {
+        if (! in_array($run->status, self::APPROVAL_CANDIDATE_STATUSES, true)) {
             return false;
         }
 

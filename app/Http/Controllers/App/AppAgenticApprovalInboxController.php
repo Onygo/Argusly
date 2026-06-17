@@ -18,6 +18,17 @@ use Illuminate\View\View;
 
 class AppAgenticApprovalInboxController extends Controller
 {
+    private const APPROVAL_CANDIDATE_STATUSES = [
+        AgenticActionRun::STATUS_PROPOSED,
+        AgenticActionRun::STATUS_APPROVAL_REQUIRED,
+    ];
+
+    private const CONVERSATION_STATUSES = [
+        AgenticActionRun::STATUS_PROPOSED,
+        AgenticActionRun::STATUS_APPROVAL_REQUIRED,
+        AgenticActionRun::STATUS_BLOCKED,
+    ];
+
     public function index(Request $request, ApprovalRecommendationService $recommendations): View
     {
         $this->authorize('viewAny', AgenticActionRun::class);
@@ -30,7 +41,7 @@ class AppAgenticApprovalInboxController extends Controller
 
         $runs = AgenticActionRun::query()
             ->with(['workspace', 'goal.clientSite', 'opportunity', 'content', 'action.opportunity', 'action.objective.clientSite'])
-            ->whereIn('status', [AgenticActionRun::STATUS_APPROVAL_REQUIRED, AgenticActionRun::STATUS_BLOCKED])
+            ->whereIn('status', self::CONVERSATION_STATUSES)
             ->whereHas('workspace', fn (Builder $query) => $query->where('organization_id', $organizationId))
             ->when($filters['action_type'] !== '', fn (Builder $query) => $query->where('action_type', $filters['action_type']))
             ->when($filters['workspace_id'] !== '', fn (Builder $query) => $query->where('workspace_id', $filters['workspace_id']))
@@ -49,7 +60,7 @@ class AppAgenticApprovalInboxController extends Controller
             'workspaces' => $workspaces,
             'actionTypes' => AgenticActionRun::query()
                 ->whereHas('workspace', fn (Builder $query) => $query->where('organization_id', $organizationId))
-                ->where('status', AgenticActionRun::STATUS_APPROVAL_REQUIRED)
+                ->whereIn('status', self::APPROVAL_CANDIDATE_STATUSES)
                 ->select('action_type')
                 ->distinct()
                 ->orderBy('action_type')
@@ -64,7 +75,7 @@ class AppAgenticApprovalInboxController extends Controller
     {
         $this->authorize('approve', $run);
 
-        if ($run->status !== AgenticActionRun::STATUS_APPROVAL_REQUIRED) {
+        if (! in_array($run->status, self::APPROVAL_CANDIDATE_STATUSES, true)) {
             return back()->with('status', 'Only actions waiting for approval can be approved.');
         }
 
@@ -194,7 +205,7 @@ class AppAgenticApprovalInboxController extends Controller
         $runs = AgenticActionRun::query()
             ->with(['workspace', 'action'])
             ->whereIn('id', $data['run_ids'])
-            ->where('status', AgenticActionRun::STATUS_APPROVAL_REQUIRED)
+            ->whereIn('status', self::APPROVAL_CANDIDATE_STATUSES)
             ->whereHas('workspace', fn (Builder $query) => $query->where('organization_id', $request->user()->organization_id))
             ->get()
             ->filter(fn (AgenticActionRun $run): bool => $this->isLowRisk($run));
@@ -231,7 +242,7 @@ class AppAgenticApprovalInboxController extends Controller
         $runs = AgenticActionRun::query()
             ->with(['workspace', 'action', 'goal.clientSite', 'action.objective.clientSite'])
             ->whereIn('id', $data['run_ids'])
-            ->where('status', AgenticActionRun::STATUS_APPROVAL_REQUIRED)
+            ->whereIn('status', self::APPROVAL_CANDIDATE_STATUSES)
             ->whereHas('workspace', fn (Builder $query) => $query->where('organization_id', $request->user()->organization_id))
             ->get()
             ->filter(fn (AgenticActionRun $run): bool => $recommendations->isRecommendedApproval($run));

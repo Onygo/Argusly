@@ -46,6 +46,28 @@ it('lists approval required Agentic Action runs with proposal details', function
         ->assertDontSee('blocked-only-reason');
 });
 
+it('lists proposed action runs that the dashboard links to approval conversations', function () {
+    [$action, $run] = makeAgenticApprovalInboxRun($this->organization, $this->workspace, $this->site, [
+        'status' => AgenticActionRun::STATUS_PROPOSED,
+        'reason' => 'Add schema recommendation',
+    ]);
+
+    $this->actingAs($this->user)
+        ->get(route('app.agentic-marketing.approvals.index', ['workspace_id' => $this->workspace->id]))
+        ->assertOk()
+        ->assertSee('Approval Conversations')
+        ->assertSee('Approve 1 recommended action')
+        ->assertSee('Add schema recommendation')
+        ->assertSee('Recommended approval');
+
+    $this->actingAs($this->user)
+        ->post(route('app.agentic-marketing.approvals.approve', $run))
+        ->assertRedirect();
+
+    expect($run->fresh()->status)->toBe(AgenticActionRun::STATUS_APPROVED)
+        ->and($action->fresh()->status)->toBe(AgenticMarketingAction::STATUS_APPROVED);
+});
+
 it('stores approver details and approves the linked action', function () {
     [$action, $run] = makeAgenticApprovalInboxRun($this->organization, $this->workspace, $this->site);
 
