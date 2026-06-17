@@ -303,7 +303,7 @@ class ContentStatusPresenter
     public function lastErrorMessage(): ?string
     {
         if ($this->publication) {
-            $message = trim((string) ($this->publication->last_error_message ?? ''));
+            $message = trim((string) ($this->publication->publicErrorMessage() ?? ''));
 
             return $message !== '' ? $message : null;
         }

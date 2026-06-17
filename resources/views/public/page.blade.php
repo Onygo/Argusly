@@ -13,8 +13,8 @@
     @include('partials.brand-meta')
     @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? request()->url()])
     @include('public.partials.analytics')
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/public.js'])
+    <script defer src="https://unpkg.com/lucide@latest"></script>
     @if (($pageKey ?? '') === 'company.contact')
         <x-forms.recaptcha-script />
     @endif
@@ -59,12 +59,5 @@
 
 @include('public.partials.footer')
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    });
-</script>
 </body>
 </html>

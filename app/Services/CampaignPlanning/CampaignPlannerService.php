@@ -25,6 +25,33 @@ class CampaignPlannerService
      */
     public function plan(Workspace $workspace, string $topic, array $options = []): Campaign
     {
+        return $this->persistPlan($workspace, $topic, $options);
+    }
+
+    /**
+     * @param  array<string,mixed>  $options
+     */
+    public function planExistingCampaign(Campaign $campaign, array $options = []): Campaign
+    {
+        $workspace = $campaign->workspace()->firstOrFail();
+        $topic = (string) ($options['topic'] ?? $campaign->name);
+
+        $options = array_replace([
+            'goals' => $campaign->goals ?: [],
+            'audience' => implode(', ', (array) data_get($campaign->audience, 'primary', [])),
+            'start_date' => $campaign->planned_start_date?->toDateString(),
+            'client_site_id' => $campaign->client_site_id,
+            'owner_user_id' => $campaign->owner_user_id,
+        ], $options);
+
+        return $this->persistPlan($workspace, $topic, $options, $campaign);
+    }
+
+    /**
+     * @param  array<string,mixed>  $options
+     */
+    private function persistPlan(Workspace $workspace, string $topic, array $options = [], ?Campaign $existingCampaign = null): Campaign
+    {
         $topic = $this->normalizeTopic($topic);
         $goals = $this->normalizeList($options['goals'] ?? []);
         $audience = $this->audienceMapping($topic, $goals, (string) ($options['audience'] ?? ''));
@@ -53,14 +80,29 @@ class CampaignPlannerService
             $visualMap,
             $approvalCheckpoints,
             $options,
+            $existingCampaign,
         ): Campaign {
-            $campaign = Campaign::query()->create([
+            $campaignMetadata = array_replace((array) $existingCampaign?->metadata, [
+                'planner_version' => 'deterministic_v1',
+                'funnel_stage_map' => $this->funnelStageMap($assets),
+                'audience_map' => $audience,
+                'content_sequence' => $publishingSchedule,
+                'approval_required_before_execution' => true,
+                'autonomous_execution_enabled' => false,
+            ]);
+            $trackingParameters = collect((array) ($options['tracking_parameters'] ?? []))
+                ->map(fn (mixed $value): string => trim((string) $value))
+                ->filter()
+                ->all();
+            if ($trackingParameters !== []) {
+                $campaignMetadata['tracking_parameters'] = $trackingParameters;
+            }
+
+            $campaignAttributes = [
                 'organization_id' => $workspace->organization_id,
                 'workspace_id' => (string) $workspace->id,
                 'client_site_id' => $options['client_site_id'] ?? null,
                 'owner_user_id' => $options['owner_user_id'] ?? null,
-                'name' => Str::title($topic).' Campaign',
-                'slug' => Str::slug($topic).'-'.Str::lower(Str::random(6)),
                 'objective' => $this->objective($topic, $goals, $opportunities),
                 'status' => CampaignStatus::PLANNING,
                 'approval_status' => CampaignApprovalStatus::REQUESTED,
@@ -98,21 +140,38 @@ class CampaignPlannerService
                     'tone_variations' => $toneVariations,
                 ],
                 'internal_linking_strategy' => $internalLinks,
-                'metadata' => [
-                    'planner_version' => 'deterministic_v1',
-                    'funnel_stage_map' => $this->funnelStageMap($assets),
-                    'audience_map' => $audience,
-                    'content_sequence' => $publishingSchedule,
-                    'approval_required_before_execution' => true,
-                    'autonomous_execution_enabled' => false,
-                ],
+                'metadata' => $campaignMetadata,
                 'last_planned_at' => now(),
-            ]);
+            ];
+
+            $campaign = $existingCampaign;
+
+            if ($campaign) {
+                $campaign->forceFill($campaignAttributes)->save();
+            } else {
+                $campaign = Campaign::query()->create(array_replace($campaignAttributes, [
+                    'name' => Str::title($topic).' Campaign',
+                    'slug' => Str::slug($topic).'-'.Str::lower(Str::random(6)),
+                ]));
+            }
 
             $channels = $this->channelsFor($workspace);
+            $existingContentsByPlannerKey = $campaign->contents()
+                ->get()
+                ->keyBy(fn (CampaignContent $content): string => (string) data_get($content->metadata, 'planner_key', ''));
 
             foreach ($assets as $asset) {
-                $campaignContent = CampaignContent::query()->create([
+                $campaignContent = $existingContentsByPlannerKey->get($asset['key']) ?: new CampaignContent([
+                    'campaign_id' => (string) $campaign->id,
+                ]);
+                $metadata = array_replace((array) $campaignContent->metadata, [
+                    'planner_key' => $asset['key'],
+                    'lane' => $asset['lane'],
+                    'dependencies' => $dependencyGraph['edges_by_asset'][$asset['key']] ?? [],
+                    'repurposing' => $repurposing[$asset['key']] ?? [],
+                ]);
+
+                $campaignContent->forceFill([
                     'campaign_id' => (string) $campaign->id,
                     'asset_type' => $asset['asset_type'],
                     'status' => 'planned',
@@ -137,16 +196,16 @@ class CampaignPlannerService
                     ],
                     'optimization_notes' => $asset['optimization_notes'],
                     'internal_linking_targets' => data_get($internalLinks, 'by_asset.'.$asset['key'], []),
-                    'metadata' => [
-                        'planner_key' => $asset['key'],
-                        'lane' => $asset['lane'],
-                        'dependencies' => $dependencyGraph['edges_by_asset'][$asset['key']] ?? [],
-                        'repurposing' => $repurposing[$asset['key']] ?? [],
-                    ],
-                ]);
+                    'metadata' => $metadata,
+                ])->save();
 
                 foreach ($this->distributionTargets($asset, $channels) as $target) {
-                    CampaignDistributionPlan::query()->create([
+                    $distributionPlan = CampaignDistributionPlan::query()
+                        ->where('campaign_content_id', (string) $campaignContent->id)
+                        ->where('distribution_channel_id', (string) $target['channel']->id)
+                        ->first() ?: new CampaignDistributionPlan();
+
+                    $distributionPlan->forceFill([
                         'campaign_id' => (string) $campaign->id,
                         'campaign_content_id' => (string) $campaignContent->id,
                         'distribution_channel_id' => (string) $target['channel']->id,
@@ -163,7 +222,7 @@ class CampaignPlannerService
                             'approval_checkpoint' => $approvalCheckpoints[$asset['key']] ?? null,
                             'rate_limit_awareness' => 'Scheduling remains draft-only until a connected publisher validates platform limits.',
                         ],
-                    ]);
+                    ])->save();
                 }
             }
 

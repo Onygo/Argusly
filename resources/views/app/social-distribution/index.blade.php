@@ -293,6 +293,35 @@
                             <span class="text-xs font-medium text-textSecondary">{{ $rt('Hashtags') }}</span>
                             <input name="hashtags" class="pl-input mt-1" maxlength="240" placeholder="#AIVisibility #ContentMarketing #B2B">
                         </label>
+                        <details class="rounded-md border border-border bg-background p-3">
+                            <summary class="cursor-pointer text-xs font-semibold text-textSecondary">Tracking parameters</summary>
+                            <div class="mt-3 grid gap-3">
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM source</span>
+                                        <input name="utm_source" class="pl-input mt-1" maxlength="120" placeholder="linkedin">
+                                    </label>
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM medium</span>
+                                        <input name="utm_medium" class="pl-input mt-1" maxlength="120" placeholder="social">
+                                    </label>
+                                </div>
+                                <label>
+                                    <span class="text-xs font-medium text-textSecondary">UTM campaign</span>
+                                    <input name="utm_campaign" class="pl-input mt-1" maxlength="180" placeholder="q3-ai-authority">
+                                </label>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM content</span>
+                                        <input name="utm_content" class="pl-input mt-1" maxlength="180" placeholder="thought-leadership">
+                                    </label>
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM term</span>
+                                        <input name="utm_term" class="pl-input mt-1" maxlength="180" placeholder="agentic-marketing">
+                                    </label>
+                                </div>
+                            </div>
+                        </details>
                         <button class="pl-btn-primary w-full">
                             <i data-lucide="sparkles" class="h-4 w-4"></i>
                             <span>{{ $rt('Queue generation') }}</span>
@@ -325,6 +354,17 @@
                                     @endforeach
                                 </select>
                             </label>
+                            <label>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('LinkedIn account') }}</span>
+                                <select name="social_account_id" class="pl-input mt-1">
+                                    <option value="">{{ $rt('Assign later') }}</option>
+                                    @foreach ($accounts as $account)
+                                        <option value="{{ $account->id }}">{{ $account->display_name }} · {{ $formatStatus($account->status) }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        </div>
+                        <div class="grid gap-4 lg:grid-cols-2">
                             <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Campaign') }}</span>
                                 <select name="campaign_id" class="pl-input mt-1">
@@ -362,6 +402,35 @@
                             <span class="text-xs font-medium text-textSecondary">{{ $rt('Hashtags') }}</span>
                             <input name="hashtags" class="pl-input mt-1" maxlength="240" placeholder="#AIVisibility #ContentMarketing #B2B">
                         </label>
+                        <details class="rounded-md border border-border bg-background p-3">
+                            <summary class="cursor-pointer text-xs font-semibold text-textSecondary">Tracking parameters</summary>
+                            <div class="mt-3 grid gap-3">
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM source</span>
+                                        <input name="utm_source" class="pl-input mt-1" maxlength="120" placeholder="linkedin">
+                                    </label>
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM medium</span>
+                                        <input name="utm_medium" class="pl-input mt-1" maxlength="120" placeholder="social">
+                                    </label>
+                                </div>
+                                <label>
+                                    <span class="text-xs font-medium text-textSecondary">UTM campaign</span>
+                                    <input name="utm_campaign" class="pl-input mt-1" maxlength="180" placeholder="q3-ai-authority">
+                                </label>
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM content</span>
+                                        <input name="utm_content" class="pl-input mt-1" maxlength="180" placeholder="article-variant">
+                                    </label>
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">UTM term</span>
+                                        <input name="utm_term" class="pl-input mt-1" maxlength="180" placeholder="agentic-marketing">
+                                    </label>
+                                </div>
+                            </div>
+                        </details>
                         <button class="pl-btn-primary w-full">
                             <i data-lucide="file-plus-2" class="h-4 w-4"></i>
                             <span>{{ $rt('Create draft') }}</span>
@@ -672,7 +741,7 @@
                                 <div class="grid gap-2 sm:grid-cols-[minmax(9rem,1fr)_minmax(12rem,1.1fr)]">
                                     <select name="social_account_id" class="pl-input" required @disabled(! $canSchedule)>
                                         @forelse ($publishableAccounts as $account)
-                                            <option value="{{ $account->id }}">{{ $account->display_name }} · {{ $account->actorLabel() }}</option>
+                                            <option value="{{ $account->id }}" @selected((string) $variant->social_account_id === (string) $account->id)>{{ $account->display_name }} · {{ $account->actorLabel() }}</option>
                                         @empty
                                             <option value="">{{ $rt('No connected account') }}</option>
                                         @endforelse
@@ -704,12 +773,17 @@
             <div class="divide-y divide-border">
                 @forelse ($publications as $publication)
                     @php
-                        $canPublishNow = config('services.linkedin.publishing_enabled') && in_array(($publication->status?->value ?? $publication->status), ['approved', 'scheduled', 'queued'], true);
+                        $publicationStatus = $publication->status?->value ?? $publication->status;
+                        $canPublishNow = config('services.linkedin.publishing_enabled') && in_array($publicationStatus, ['approved', 'scheduled', 'queued', 'failed'], true);
+                        $publicationError = $publication->publicErrorMessage();
                     @endphp
                     <div class="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                         <div>
                             <p class="text-sm font-medium text-textPrimary">{{ $publication->variant?->campaign?->name ?? $publication->campaign?->name ?? $rt('LinkedIn post') }}</p>
                             <p class="mt-1 text-xs text-textSecondary">{{ $formatStatus($publication->status) }} · {{ $publication->scheduled_for?->copy()->timezone($scheduleTimezone)->format('d-m-Y H:i') ?: $rt('No schedule') }}</p>
+                            @if ($publicationStatus === 'failed' && filled($publicationError))
+                                <p class="mt-1 max-w-xl text-xs text-danger">{{ $publicationError }}</p>
+                            @endif
                         </div>
                         @php
                             $publicationPreviewText = trim((string) data_get($publication->payload_snapshot, 'publishing_text', ''));

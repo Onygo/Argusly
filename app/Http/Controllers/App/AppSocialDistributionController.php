@@ -129,22 +129,35 @@ class AppSocialDistributionController extends Controller
         $data = $request->validate([
             'content_id' => ['required', 'string', Rule::exists('contents', 'id')->where('workspace_id', $workspace->id)],
             'campaign_id' => ['nullable', 'string', Rule::exists('campaigns', 'id')->where('workspace_id', $workspace->id)],
+            'social_account_id' => ['nullable', 'string', Rule::exists('social_accounts', 'id')->where('workspace_id', $workspace->id)],
             'language' => ['required', 'string', Rule::in(['nl', 'en'])],
             'source_url' => ['nullable', 'url', 'max:500'],
             'hashtags' => ['nullable', 'string', 'max:240'],
             'target_audience' => ['nullable', 'string', 'max:180'],
             'tone_of_voice' => ['nullable', 'string', 'max:180'],
+            'utm_source' => ['nullable', 'string', 'max:120'],
+            'utm_medium' => ['nullable', 'string', 'max:120'],
+            'utm_campaign' => ['nullable', 'string', 'max:180'],
+            'utm_content' => ['nullable', 'string', 'max:180'],
+            'utm_term' => ['nullable', 'string', 'max:180'],
         ]);
 
         $content = Content::query()->where('workspace_id', $workspace->id)->findOrFail($data['content_id']);
         $campaign = ! empty($data['campaign_id'])
             ? Campaign::query()->where('workspace_id', $workspace->id)->findOrFail($data['campaign_id'])
             : null;
+        $socialAccount = ! empty($data['social_account_id'])
+            ? SocialAccount::query()->where('workspace_id', $workspace->id)->findOrFail($data['social_account_id'])
+            : null;
+        $trackingParameters = $this->trackingParametersFromData($data);
+        $this->updateCampaignTracking($campaign, $data);
 
         $post = $action->handle($content, [
             'campaign' => $campaign,
+            'social_account' => $socialAccount,
             'language' => $data['language'],
-            'source_url' => $data['source_url'] ?? $content->seo_canonical,
+            'source_url' => $data['source_url'] ?? null,
+            'tracking_parameters' => $trackingParameters,
             'hashtags' => $this->parseHashtags($data['hashtags'] ?? ''),
             'target_audience' => $data['target_audience'] ?? null,
             'tone_of_voice' => $data['tone_of_voice'] ?? null,
@@ -307,9 +320,16 @@ class AppSocialDistributionController extends Controller
             'language' => ['required', 'string', Rule::in(['nl', 'en'])],
             'source_url' => ['nullable', 'url', 'max:500'],
             'hashtags' => ['nullable', 'string', 'max:240'],
+            'utm_source' => ['nullable', 'string', 'max:120'],
+            'utm_medium' => ['nullable', 'string', 'max:120'],
+            'utm_campaign' => ['nullable', 'string', 'max:180'],
+            'utm_content' => ['nullable', 'string', 'max:180'],
+            'utm_term' => ['nullable', 'string', 'max:180'],
         ]);
 
         $campaign = Campaign::query()->where('workspace_id', $workspace->id)->findOrFail($data['campaign_id']);
+        $trackingParameters = $this->trackingParametersFromData($data);
+        $this->updateCampaignTracking($campaign, $data);
         $targetAccount = ! empty($data['social_account_id'])
             ? SocialAccount::query()->where('workspace_id', $workspace->id)->findOrFail($data['social_account_id'])
             : null;
@@ -341,6 +361,7 @@ class AppSocialDistributionController extends Controller
                     'internal_linking_strategy' => $campaign->internal_linking_strategy,
                     'language' => $data['language'],
                     'source_url' => $data['source_url'] ?? null,
+                    'tracking_parameters' => $trackingParameters,
                     'hashtags' => $this->parseHashtags($data['hashtags'] ?? ''),
                     'target_social_account' => $targetAccount ? [
                         'display_name' => $targetAccount->display_name,
@@ -625,6 +646,40 @@ class AppSocialDistributionController extends Controller
             ->unique()
             ->take(8)
             ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string,mixed>  $data
+     */
+    private function updateCampaignTracking(?Campaign $campaign, array $data): void
+    {
+        if (! $campaign) {
+            return;
+        }
+
+        $parameters = $this->trackingParametersFromData($data);
+
+        if ($parameters === []) {
+            return;
+        }
+
+        $campaign->forceFill([
+            'metadata' => array_replace((array) $campaign->metadata, [
+                'tracking_parameters' => $parameters,
+            ]),
+        ])->save();
+    }
+
+    /**
+     * @param  array<string,mixed>  $data
+     * @return array<string,string>
+     */
+    private function trackingParametersFromData(array $data): array
+    {
+        return collect(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'])
+            ->mapWithKeys(fn (string $key): array => [$key => trim((string) ($data[$key] ?? ''))])
+            ->filter()
             ->all();
     }
 }

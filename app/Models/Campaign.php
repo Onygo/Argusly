@@ -173,4 +173,45 @@ class Campaign extends Model
     {
         return $this->approval_status === CampaignApprovalStatus::APPROVED;
     }
+
+    /**
+     * @return array<string,string>
+     */
+    public function trackingParameters(): array
+    {
+        return collect((array) data_get($this->metadata, 'tracking_parameters', []))
+            ->only(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'])
+            ->map(fn (mixed $value): string => trim((string) $value))
+            ->filter()
+            ->all();
+    }
+
+    public function trackedUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        $parameters = $this->trackingParameters();
+
+        if ($url === '' || $parameters === []) {
+            return $url !== '' ? $url : null;
+        }
+
+        $parts = parse_url($url);
+        if ($parts === false || empty($parts['scheme']) || empty($parts['host'])) {
+            return $url;
+        }
+
+        parse_str((string) ($parts['query'] ?? ''), $query);
+        $query = array_replace($query, $parameters);
+
+        $authority = $parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
+        $userInfo = $parts['user'] ?? null;
+        if ($userInfo !== null) {
+            $authority = $userInfo.(isset($parts['pass']) ? ':'.$parts['pass'] : '').'@'.$authority;
+        }
+
+        return $parts['scheme'].'://'.$authority
+            .($parts['path'] ?? '')
+            .($query !== [] ? '?'.http_build_query($query, '', '&', PHP_QUERY_RFC3986) : '')
+            .(isset($parts['fragment']) ? '#'.$parts['fragment'] : '');
+    }
 }

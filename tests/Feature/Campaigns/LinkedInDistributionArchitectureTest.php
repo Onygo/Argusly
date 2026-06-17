@@ -28,6 +28,8 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 it('models linkedin distribution as queue driven social publishing with failure audit state', function (): void {
+    config(['services.linkedin.publishing_enabled' => false]);
+
     $organization = Organization::query()->create([
         'name' => 'LinkedIn Distribution Org',
         'slug' => 'linkedin-distribution-'.Str::random(6),
@@ -755,6 +757,92 @@ it('renders the distribution publish queue when publications have engagement met
         ->assertSee('Metrics Campaign')
         ->assertSee('Scheduled for '.$scheduledLabel)
         ->assertSee('Metrics Account');
+});
+
+it('shows failed linkedin publication errors and allows retrying them', function (): void {
+    config([
+        'features.agentic_marketing' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+
+    $this->withoutMiddleware([
+        \App\Http\Middleware\EnsureEmailCodeVerified::class,
+        \App\Http\Middleware\EnsureUserApproved::class,
+        \App\Http\Middleware\EnsureUserHasOrganization::class,
+        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Failed Retry Org',
+        'slug' => 'linkedin-failed-retry-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Failed Retry Workspace',
+    ]);
+
+    $campaign = Campaign::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'name' => 'Failed Retry Campaign',
+        'slug' => 'failed-retry-campaign',
+        'status' => 'active',
+    ]);
+
+    $account = SocialAccount::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'account_type' => 'person',
+        'display_name' => 'Retry Account',
+        'status' => SocialAccountStatus::CONNECTED,
+    ]);
+
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'campaign_id' => $campaign->id,
+        'social_account_id' => $account->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::THOUGHT_LEADERSHIP,
+        'status' => SocialPostVariantStatus::APPROVED,
+        'variant_number' => 1,
+        'hook' => 'Retry failed LinkedIn posts',
+        'body' => 'Failed publications should explain what happened and remain retryable.',
+        'approved_at' => now(),
+        'approved_by' => $user->id,
+    ]);
+
+    SocialPublication::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'social_post_variant_id' => $variant->id,
+        'campaign_id' => $campaign->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'status' => SocialPublicationStatus::FAILED,
+        'scheduled_for' => now()->subHour(),
+        'last_error_code' => 'ACCOUNT_NOT_CONNECTED',
+        'last_error_message' => 'LinkedIn account is not connected.',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.agentic-marketing.distribution.index', ['workspace_id' => $workspace->id]))
+        ->assertOk()
+        ->assertSee('Failed Retry Campaign')
+        ->assertSee('LinkedIn account is not connected.')
+        ->assertSee('Publish now')
+        ->assertDontSee('disabled');
 });
 
 it('hides published linkedin variants and publications from the active distribution workspace', function (): void {

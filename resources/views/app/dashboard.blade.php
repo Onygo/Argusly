@@ -101,6 +101,86 @@
         </div>
     @endif
 
+    @php
+        $publicationQueue = collect($publicationQueue ?? []);
+        $publicationQueueTimezone = $publicationQueueTimezone ?? 'Europe/Amsterdam';
+        $publicationStatusClasses = [
+            'scheduled' => 'border-sky-200 bg-sky-50 text-sky-700',
+            'queued' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+            'rate_limited' => 'border-amber-200 bg-amber-50 text-amber-800',
+            'failed' => 'border-red-200 bg-red-50 text-red-700',
+        ];
+    @endphp
+
+    <section class="mb-8 rounded-lg border border-border bg-surface" aria-label="Publication queue">
+        <div class="flex flex-col gap-3 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Publication queue</p>
+                <h2 class="mt-1 text-lg font-semibold text-textPrimary">Ready to go live</h2>
+                <p class="mt-1 text-sm text-textSecondary">Scheduled, queued, rate-limited, and failed LinkedIn publications that need attention soon.</p>
+            </div>
+            <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border px-3 text-sm font-medium text-textPrimary hover:bg-background">
+                <i data-lucide="send" class="h-4 w-4"></i>
+                Open distribution
+            </a>
+        </div>
+
+        <div class="divide-y divide-border">
+            @forelse ($publicationQueue as $publication)
+                @php
+                    $publicationStatus = (string) ($publication->status?->value ?? $publication->status);
+                    $scheduledAt = $publication->scheduled_for?->copy()->timezone($publicationQueueTimezone);
+                    $retryAt = $publication->next_retry_at?->copy()->timezone($publicationQueueTimezone);
+                    $queueTime = $retryAt ?: $scheduledAt ?: $publication->queued_at?->copy()->timezone($publicationQueueTimezone) ?: $publication->created_at?->copy()->timezone($publicationQueueTimezone);
+                    $isPastDue = $scheduledAt && $scheduledAt->isPast() && in_array($publicationStatus, ['scheduled', 'queued', 'rate_limited'], true);
+                    $title = $publication->variant?->campaign?->name
+                        ?: $publication->campaign?->name
+                        ?: (string) data_get($publication->payload_snapshot, 'title', 'LinkedIn post');
+                    $accountLabel = $publication->socialAccount?->display_name ?: 'No account assigned';
+                    $statusLabel = (string) str($publicationStatus)->replace('_', ' ')->title();
+                    $statusClass = $publicationStatusClasses[$publicationStatus] ?? 'border-border bg-background text-textSecondary';
+                    $publicationError = $publication->publicErrorMessage();
+                @endphp
+                <article class="grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_10rem_12rem_auto] md:items-center">
+                    <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <p class="truncate text-sm font-semibold text-textPrimary">{{ $title }}</p>
+                            @if ($isPastDue)
+                                <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800">Due</span>
+                            @endif
+                        </div>
+                        <p class="mt-1 text-xs text-textSecondary">{{ $accountLabel }} · LinkedIn</p>
+                        @if ($publicationError)
+                            <p class="mt-1 line-clamp-1 text-xs text-red-700">{{ $publicationError }}</p>
+                        @endif
+                    </div>
+                    <div>
+                        <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">{{ $statusLabel }}</span>
+                    </div>
+                    <div class="text-sm text-textSecondary">
+                        @if ($queueTime)
+                            <span class="font-medium text-textPrimary">{{ $queueTime->format('d-m-Y H:i') }}</span>
+                        @else
+                            <span>No time set</span>
+                        @endif
+                    </div>
+                    <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border px-3 text-sm font-medium text-textPrimary hover:bg-background">
+                        Review
+                        <i data-lucide="arrow-right" class="h-4 w-4"></i>
+                    </a>
+                </article>
+            @empty
+                <div class="flex min-h-28 items-center justify-center px-4 text-center">
+                    <div>
+                        <i data-lucide="calendar-check" class="mx-auto h-7 w-7 text-textFaint"></i>
+                        <p class="mt-2 text-sm font-medium text-textPrimary">No active publication queue</p>
+                        <p class="mt-1 text-sm text-textSecondary">Approved LinkedIn posts will appear here once they are scheduled or queued.</p>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+    </section>
+
     <div class="mb-4">
         <h2 class="text-lg font-semibold text-textPrimary">{{ __('app.dashboard_action_first.supporting_metrics') }}</h2>
         <p class="mt-1 text-sm text-textSecondary">{{ __('app.dashboard_action_first.supporting_metrics_hint') }}</p>

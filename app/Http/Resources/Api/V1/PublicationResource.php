@@ -32,7 +32,7 @@ class PublicationResource extends JsonResource
             ],
             'error' => [
                 'code' => $this->last_error_code,
-                'message' => $this->last_error_message,
+                'message' => $this->publicErrorMessage(),
                 'at' => $this->last_error_at?->toIso8601String(),
             ],
             'timestamps' => [

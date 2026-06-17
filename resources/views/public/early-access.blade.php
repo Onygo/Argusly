@@ -13,8 +13,8 @@
     @include('partials.brand-meta')
     @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/public.js'])
+    <script defer src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-background text-textSecondary antialiased">
 @include('public.partials.analytics-body')
@@ -150,12 +150,5 @@
 
 @include('public.partials.footer')
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    });
-</script>
 </body>
 </html>

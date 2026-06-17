@@ -1,12 +1,20 @@
 <?php
 
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostType;
+use App\Enums\SocialPostVariantStatus;
+use App\Enums\SocialPublicationStatus;
 use App\Models\AnalyticsSite;
+use App\Models\Campaign;
 use App\Models\ClientSite;
 use App\Models\Content;
 use App\Models\ContentAutomation;
 use App\Models\OnboardingState;
 use App\Models\Organization;
 use App\Models\Plan;
+use App\Models\SocialAccount;
+use App\Models\SocialPostVariant;
+use App\Models\SocialPublication;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
@@ -65,6 +73,62 @@ it('renders dashboard performance widgets with tracked values and stale ai seo f
     expect(data_get($summary, 'content_roi.value'))->toBe(70.0)
         ->and(data_get($summary, 'ai_visibility.value'))->toBe(35.0)
         ->and(data_get($summary, 'ai_seo_score.value'))->toBe(71.2);
+});
+
+it('renders the active LinkedIn publication queue on the dashboard', function (): void {
+    [$user, $workspace] = makeContentPerformanceWidgetContext();
+
+    $campaign = Campaign::query()->create([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'name' => 'Agentic Marketing Launch',
+        'slug' => 'agentic-marketing-launch-'.Str::random(6),
+        'status' => 'active',
+    ]);
+
+    $account = SocialAccount::query()->create([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'account_type' => 'person',
+        'display_name' => 'Ricardo LinkedIn',
+        'status' => 'connected',
+    ]);
+
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'campaign_id' => $campaign->id,
+        'social_account_id' => $account->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::THOUGHT_LEADERSHIP,
+        'status' => SocialPostVariantStatus::SCHEDULED,
+        'variant_number' => 1,
+        'body' => 'A scheduled LinkedIn post for the dashboard queue.',
+    ]);
+
+    $scheduledFor = now()->addDay()->setTime(18, 0);
+
+    SocialPublication::query()->create([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'social_post_variant_id' => $variant->id,
+        'campaign_id' => $campaign->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'status' => SocialPublicationStatus::SCHEDULED,
+        'scheduled_for' => $scheduledFor,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.dashboard'))
+        ->assertOk()
+        ->assertSee('Publication queue')
+        ->assertSee('Ready to go live')
+        ->assertSee('Agentic Marketing Launch')
+        ->assertSee('Ricardo LinkedIn')
+        ->assertSee($scheduledFor->copy()->timezone('Europe/Amsterdam')->format('d-m-Y H:i'))
+        ->assertSee('Open distribution');
 });
 
 it('groups latest dashboard content by article and keeps locale rows collapsed by default', function () {

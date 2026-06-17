@@ -158,6 +158,16 @@ class AppDashboardController extends Controller
                 ->where('status', 'failed')
                 ->count(),
         ];
+        $publicationQueue = empty($workspaceIds)
+            ? collect()
+            : SocialPublication::query()
+                ->whereIn('workspace_id', $workspaceIds)
+                ->whereIn('status', ['scheduled', 'queued', 'rate_limited', 'failed'])
+                ->with(['campaign', 'socialAccount', 'variant.campaign'])
+                ->orderByRaw("CASE status WHEN 'failed' THEN 0 WHEN 'queued' THEN 1 WHEN 'rate_limited' THEN 2 WHEN 'scheduled' THEN 3 ELSE 4 END")
+                ->orderByRaw('COALESCE(next_retry_at, scheduled_for, queued_at, created_at)')
+                ->limit(5)
+                ->get();
 
         $opportunityIntelligenceSummary = [
             'open' => empty($workspaceIds) ? 0 : Opportunity::query()
@@ -180,6 +190,8 @@ class AppDashboardController extends Controller
             'recentContentInsights' => $recentContentInsights,
             'performanceSummary' => $performanceSummary,
             'distributionSummary' => $distributionSummary,
+            'publicationQueue' => $publicationQueue,
+            'publicationQueueTimezone' => 'Europe/Amsterdam',
             'opportunityIntelligenceSummary' => $opportunityIntelligenceSummary,
             'programmaticGrowthSummary' => $activationWorkspace ? $programmaticGrowthBetaSummary->forWorkspace($activationWorkspace) : [],
             'activation' => $activationWorkspace ? $activationService->forWorkspace($activationWorkspace) : null,

@@ -96,6 +96,62 @@ it('generates deterministic approval gated campaign plans from a topic and oppor
     expect(Opportunity::query()->where('campaign_id', $campaign->id)->where('status', 'planned')->exists())->toBeTrue();
 });
 
+it('can generate a planner map on top of an existing campaign without duplicating planner assets', function () {
+    $organization = Organization::query()->create([
+        'name' => 'Existing Campaign Org',
+        'slug' => 'existing-campaign-org',
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'Existing Campaign Workspace',
+    ]);
+
+    $campaign = Campaign::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'name' => 'Q3 AI Authority',
+        'slug' => 'q3-ai-authority',
+        'objective' => 'Build an authority campaign around AI visibility.',
+        'status' => CampaignStatus::DRAFT,
+        'approval_status' => CampaignApprovalStatus::NOT_REQUIRED,
+        'planned_start_date' => '2026-07-01',
+        'audience' => ['primary' => ['B2B marketing leaders']],
+        'goals' => ['Grow authority'],
+        'kpis' => [],
+        'channel_mix' => [],
+        'ai_planning_context' => [],
+        'optimization_signals' => [],
+        'internal_linking_strategy' => [],
+        'metadata' => ['source' => 'manual_campaign'],
+    ]);
+
+    $planned = app(CampaignPlannerService::class)->planExistingCampaign($campaign, [
+        'start_date' => '2026-07-08',
+    ]);
+
+    expect((string) $planned->id)->toBe((string) $campaign->id);
+    expect($planned->name)->toBe('Q3 AI Authority');
+    expect($planned->status)->toBe(CampaignStatus::PLANNING);
+    expect($planned->approval_status)->toBe(CampaignApprovalStatus::REQUESTED);
+    expect($planned->contents)->toHaveCount(10);
+    expect(data_get($planned->ai_planning_context, 'source_topic'))->toBe('Q3 AI Authority');
+    expect(data_get($planned->metadata, 'planner_version'))->toBe('deterministic_v1');
+    expect(data_get($planned->metadata, 'source'))->toBe('manual_campaign');
+
+    $replanned = app(CampaignPlannerService::class)->planExistingCampaign($planned, [
+        'topic' => 'AI visibility',
+        'goals' => ['Improve demand capture'],
+    ]);
+
+    expect((string) $replanned->id)->toBe((string) $campaign->id);
+    expect(CampaignContent::query()->where('campaign_id', $campaign->id)->count())->toBe(10);
+    expect(CampaignDistributionPlan::query()->where('campaign_id', $campaign->id)->count())->toBe(10);
+    expect(data_get($replanned->fresh()->ai_planning_context, 'source_topic'))->toBe('AI visibility');
+});
+
 it('generates review gated suggested content and social drafts from an approved campaign plan', function () {
     Queue::fake();
 

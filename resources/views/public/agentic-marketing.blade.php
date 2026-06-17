@@ -37,8 +37,8 @@
     @include('partials.brand-meta')
     @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl])
     @include('public.partials.analytics')
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/public.js'])
+    <script defer src="https://unpkg.com/lucide@latest"></script>
     <script type="application/ld+json">{!! json_encode($faqSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     <script type="application/ld+json">{!! json_encode($softwareSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
 </head>
@@ -341,12 +341,5 @@
 
 @include('public.partials.footer')
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    });
-</script>
 </body>
 </html>

@@ -34,8 +34,20 @@
                 <form method="POST" action="{{ route('app.agentic-marketing.campaign-planner.store') }}" class="mt-4 space-y-4">
                     @csrf
                     <div>
-                        <label for="topic" class="mb-1 block text-xs font-medium text-textSecondary">Topic</label>
-                        <input id="topic" name="topic" value="{{ old('topic', 'Agentic Marketing') }}" class="pl-input w-full" required maxlength="180">
+                        <label for="base_campaign_id" class="mb-1 block text-xs font-medium text-textSecondary">Base campaign</label>
+                        <select id="base_campaign_id" name="base_campaign_id" class="pl-input w-full">
+                            <option value="">New planner campaign</option>
+                            @foreach ($baseCampaigns as $baseCampaign)
+                                <option value="{{ $baseCampaign->id }}" @selected(old('base_campaign_id') === (string) $baseCampaign->id)>
+                                    {{ $baseCampaign->name }}{{ $baseCampaign->contents_count ? ' · '.$baseCampaign->contents_count.' assets' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('base_campaign_id') <p class="mt-1 text-xs text-rose-700">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="topic" class="mb-1 block text-xs font-medium text-textSecondary">Topic or override</label>
+                        <input id="topic" name="topic" value="{{ old('topic') }}" class="pl-input w-full" maxlength="180" placeholder="Agentic Marketing">
                         @error('topic') <p class="mt-1 text-xs text-rose-700">{{ $message }}</p> @enderror
                     </div>
                     <div>
@@ -51,6 +63,35 @@
                         <label for="start_date" class="mb-1 block text-xs font-medium text-textSecondary">Start date</label>
                         <input id="start_date" type="date" name="start_date" value="{{ old('start_date') }}" class="pl-input w-full">
                     </div>
+                    <details class="rounded-md border border-border bg-background p-3">
+                        <summary class="cursor-pointer text-xs font-semibold text-textSecondary">Tracking parameters</summary>
+                        <div class="mt-3 grid gap-3">
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <label>
+                                    <span class="text-xs font-medium text-textSecondary">UTM source</span>
+                                    <input name="utm_source" value="{{ old('utm_source') }}" class="pl-input mt-1" maxlength="120" placeholder="linkedin">
+                                </label>
+                                <label>
+                                    <span class="text-xs font-medium text-textSecondary">UTM medium</span>
+                                    <input name="utm_medium" value="{{ old('utm_medium') }}" class="pl-input mt-1" maxlength="120" placeholder="social">
+                                </label>
+                            </div>
+                            <label>
+                                <span class="text-xs font-medium text-textSecondary">UTM campaign</span>
+                                <input name="utm_campaign" value="{{ old('utm_campaign') }}" class="pl-input mt-1" maxlength="180" placeholder="q3-ai-authority">
+                            </label>
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <label>
+                                    <span class="text-xs font-medium text-textSecondary">UTM content</span>
+                                    <input name="utm_content" value="{{ old('utm_content') }}" class="pl-input mt-1" maxlength="180" placeholder="thought-leadership">
+                                </label>
+                                <label>
+                                    <span class="text-xs font-medium text-textSecondary">UTM term</span>
+                                    <input name="utm_term" value="{{ old('utm_term') }}" class="pl-input mt-1" maxlength="180" placeholder="agentic-marketing">
+                                </label>
+                            </div>
+                        </div>
+                    </details>
                     <button class="pl-btn-primary w-full justify-center" type="submit">
                         <i data-lucide="sparkles" class="h-4 w-4"></i>
                         <span>Generate campaign plan</span>

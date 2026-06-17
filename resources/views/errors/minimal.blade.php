@@ -36,8 +36,8 @@
     <title>{{ $code }} - {{ $title }} | {{ \App\Support\Brand::product() }}</title>
     <meta name="robots" content="noindex, nofollow">
     @include('partials.brand-meta')
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://unpkg.com/lucide@latest"></script>
+    @vite(['resources/css/app.css', 'resources/js/public.js'])
+    <script defer src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="min-h-full bg-background text-textPrimary antialiased">
     <main class="flex min-h-screen items-center">
@@ -124,13 +124,5 @@
             </div>
         </section>
     </main>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-        });
-    </script>
 </body>
 </html>

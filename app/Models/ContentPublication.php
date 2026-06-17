@@ -7,6 +7,7 @@ use App\Enums\SupportedLanguage;
 use App\Enums\PublicationDeliveryStatus;
 use App\Enums\RemoteExistenceStatus;
 use App\Enums\RemotePublishStatus;
+use App\Support\PublicErrorMessageSanitizer;
 use App\View\Presenters\ContentStatusPresenter;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -119,6 +120,14 @@ class ContentPublication extends Model
     public function destination(): BelongsTo
     {
         return $this->belongsTo(ContentDestination::class, 'destination_id');
+    }
+
+    public function publicErrorMessage(): ?string
+    {
+        return PublicErrorMessageSanitizer::sanitize(
+            $this->last_error_message,
+            'Publication failed. Check the destination settings and retry.'
+        );
     }
 
     public function clientSite(): BelongsTo

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Concerns\BelongsToOrganizationViaWorkspace;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPublicationStatus;
+use App\Support\PublicErrorMessageSanitizer;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -96,5 +97,13 @@ class SocialPublication extends Model
     public function repostSuggestions(): HasMany
     {
         return $this->hasMany(SocialRepostSuggestion::class);
+    }
+
+    public function publicErrorMessage(): ?string
+    {
+        return PublicErrorMessageSanitizer::sanitize(
+            $this->last_error_message,
+            'LinkedIn publishing failed. Check the account connection and retry the publication.'
+        );
     }
 }
