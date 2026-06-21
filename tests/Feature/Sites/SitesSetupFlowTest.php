@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceEntitlement;
 use App\Services\CreditWalletService;
+use App\Services\Entitlements\WorkspaceEntitlementsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -54,11 +55,48 @@ it('creates a site within workspace max_sites limit', function () {
     expect($token->token_hash)->not->toBe('');
 });
 
+it('uses active platform plan included sites when no site entitlement has been refreshed', function () {
+    [, $workspace] = makeManagerWithWorkspace();
+
+    $plan = Subscription::query()
+        ->where('workspace_id', $workspace->id)
+        ->firstOrFail()
+        ->plan;
+
+    $plan->forceFill([
+        'limits' => [
+            'sites' => 2,
+            'users' => 5,
+            'extra_site_price_cents' => 2900,
+        ],
+        'seat_limit' => 5,
+    ])->save();
+
+    ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'Existing',
+        'site_url' => 'https://existing.example.com',
+        'base_url' => 'https://existing.example.com',
+        'allowed_domains' => ['existing.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $siteUsage = app(WorkspaceEntitlementsService::class)->siteUsage($workspace);
+
+    expect($siteUsage['max_sites'])->toBe(2)
+        ->and($siteUsage['sites_used'])->toBe(1)
+        ->and($siteUsage['sites_remaining'])->toBe(1)
+        ->and($siteUsage['site_limit_reached'])->toBeFalse()
+        ->and($siteUsage['extra_site_price_cents'])->toBe(2900);
+});
+
 it('shows site type selector on add site form', function () {
     [$user] = makeManagerWithWorkspace();
 
     $this->actingAs($user)
-        ->get('/app/sites')
+        ->get(route('app.sites'))
         ->assertOk()
         ->assertSee('Site type')
         ->assertSee('WordPress')

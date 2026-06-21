@@ -125,19 +125,19 @@ class MarketingPageController extends Controller
         $hubPageKey = trim((string) data_get($content, 'hub_page_key', ''));
         $hubPage = $page->key === 'ai_search'
             ? [
-                'title' => __('public.nav.resources'),
+                'title' => __('public.resources.ai_search_geo'),
                 'url' => $canonicalUrl,
             ]
             : ($hubPageKey !== '' ? $resolvePage($hubPageKey) : null);
 
         $breadcrumbs = [[
-            'label' => __('public.nav.overview'),
-            'url' => LocalizedMarketingUrl::route('landing', [], $locale),
+            'label' => __('public.nav.resources'),
+            'url' => null,
         ]];
 
         if (is_array($hubPage)) {
             $breadcrumbs[] = [
-                'label' => __('public.nav.resources'),
+                'label' => $hubPage['title'],
                 'url' => $hubPage['url'],
             ];
         }

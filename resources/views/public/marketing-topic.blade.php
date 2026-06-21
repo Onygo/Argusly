@@ -2,9 +2,11 @@
 <html lang="{{ $publicLang ?? app()->getLocale() }}" class="scroll-smooth">
 <head>
     @php
+        $faqIntelligence = app(\App\Services\Faq\FaqIntelligenceRenderer::class)
+            ->forPage('resource', (string) ($page->key ?? $translation->slug ?? request()->path()), app()->getLocale());
         $faqSchema = null;
 
-        if (! empty($content['faq'] ?? [])) {
+        if ($faqIntelligence['items']->isEmpty() && ! empty($content['faq'] ?? [])) {
             $faqSchema = [
                 '@context' => 'https://schema.org',
                 '@type' => 'FAQPage',
@@ -50,7 +52,11 @@
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <nav class="mb-6 flex flex-wrap items-center gap-2 text-xs text-textMuted">
                 @foreach ($breadcrumbs as $index => $crumb)
-                    <a href="{{ $crumb['url'] }}" class="hover:text-textPrimary">{{ $crumb['label'] }}</a>
+                    @if (! empty($crumb['url']))
+                        <a href="{{ $crumb['url'] }}" class="hover:text-textPrimary">{{ $crumb['label'] }}</a>
+                    @else
+                        <span>{{ $crumb['label'] }}</span>
+                    @endif
                     @if ($index < count($breadcrumbs) - 1)
                         <span>/</span>
                     @endif
@@ -179,7 +185,14 @@
                     </article>
                 @endforeach
 
-                @if (! empty($content['faq'] ?? []))
+                <x-public.faq-section
+                    :items="$faqIntelligence['items']"
+                    :schema="$faqIntelligence['schema']"
+                    :locale="app()->getLocale()"
+                    :heading="$content['faq_title'] ?? null"
+                />
+
+                @if ($faqIntelligence['items']->isEmpty() && ! empty($content['faq'] ?? []))
                     <article class="rounded-md border border-border bg-surface p-6 md:p-8">
                         <h2 class="pl-public-heading pl-public-heading-h2">{{ $content['faq_title'] ?? 'FAQ' }}</h2>
                         <div class="mt-6 space-y-4">

@@ -65,7 +65,6 @@
 
                 <form method="POST" action="{{ LocalizedMarketingUrl::route('public.contact.submit') }}" class="mt-6 space-y-4">
                     @csrf
-                    <input type="hidden" name="topic" value="{{ old('topic', $topic ?? '') }}">
                     <input type="hidden" name="source_page" value="{{ old('source_page', $source ?? request()->path()) }}">
                     <input type="hidden" name="cta_label" value="{{ old('cta_label', $cta ?? '') }}">
                     <input type="hidden" name="url" value="{{ old('url', request()->fullUrl()) }}">
@@ -88,9 +87,40 @@
                         </div>
                         <div>
                             <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.contact.request_type_label') }}</label>
-                            <select name="request_type" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary">
+                            <select name="topic" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary">
                                 @foreach(__('public.contact.request_types') as $value => $label)
-                                    <option value="{{ $value }}" @selected(old('request_type', $topic ?? '') === $value)>{{ $label }}</option>
+                                    <option value="{{ $value }}" @selected(old('topic', $topic ?? '') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.website') }}</label>
+                            <input type="url" name="website" value="{{ old('website') }}" placeholder="https://example.com" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="500">
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.market') }}</label>
+                            <input type="text" name="market" value="{{ old('market') }}" placeholder="{{ __('public.page.contact_form.market_placeholder') }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="190">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.competitors') }}</label>
+                        <input type="text" name="competitors" value="{{ old('competitors') }}" placeholder="{{ __('public.page.contact_form.competitors_placeholder') }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="1000">
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.growth_goal') }}</label>
+                            <input type="text" name="growth_goal" value="{{ old('growth_goal') }}" placeholder="{{ __('public.page.contact_form.growth_goal_placeholder') }}" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary" maxlength="190">
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-textPrimary">{{ __('public.page.contact_form.interest_area') }}</label>
+                            <select name="interest_area" class="w-full rounded-md border border-border bg-background px-4 py-2.5 text-sm focus:border-publicPrimary focus:outline-none focus:ring-1 focus:ring-publicPrimary">
+                                @foreach(__('public.page.contact_form.interest_areas') as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('interest_area') === $value)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>

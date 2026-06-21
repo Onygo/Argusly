@@ -146,7 +146,7 @@ class SeoMetadataService
     {
         $url = trim($url);
         if ($url === '') {
-            return asset('images/argusly-logo.svg');
+            return '';
         }
 
         return str_starts_with($url, '/') ? url($url) : $url;

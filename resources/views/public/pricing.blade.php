@@ -22,20 +22,99 @@
 
 @php
     $locale = app()->getLocale();
-    $hero = (array) ($pageContent['hero'] ?? []);
     $comparison = (array) ($pageContent['comparison'] ?? []);
-    $credits = (array) ($pageContent['credits'] ?? []);
-    $creditPacksSection = (array) ($pageContent['credit_packs'] ?? []);
     $teamWorkflow = (array) ($pageContent['team_workflow'] ?? []);
     $roi = (array) ($pageContent['roi'] ?? []);
-    $faqItems = collect((array) ($pageContent['faq'] ?? []));
-    $finalCta = (array) ($pageContent['final_cta'] ?? []);
     $canSelfRegister = (bool) config('argusly.launch.public_registration_enabled', true)
         && ! (bool) config('argusly.launch.soft_launch_mode', false);
-    $registerHref = $canSelfRegister
-        ? route('register', ['plan' => 'creator'])
-        : \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access'], $locale);
+    $pricingCopy = $locale === 'nl'
+        ? [
+            'eyebrow' => 'Argusly Platform',
+            'headline' => 'Eenvoudige pricing voor autonome marketing',
+            'subheadline' => 'Start met het Argusly Platform. Schaal met credits. Voeg sites toe wanneer je organisatie groeit.',
+            'supporting' => 'Een abonnement voor platformtoegang, AI Visibility, Opportunity Discovery, contentgeneratie, publishing, automations en reporting.',
+            'primary_cta' => 'Start abonnement',
+            'pilot_cta' => 'Pilot aanvragen',
+            'secondary_cta' => 'Talk to Sales',
+            'hero_card_title' => 'Een platform. Twee schaalfactoren.',
+            'hero_card_body' => 'Geen Creator, Growth of Scale tiers. Argusly schaalt met credits en sites.',
+            'credit_line' => '250 maandelijkse credits inbegrepen',
+            'site_line' => '1 site inbegrepen, extra sites EUR 29 per maand',
+            'pack_line' => 'Credit packs voor tijdelijke pieken',
+            'section_title' => 'Argusly Platform',
+            'section_body' => 'Alles wat je nodig hebt om autonome marketingoperaties te draaien, met credits als primaire schaalfactor.',
+            'features' => ['250 monthly credits', '1 site', '5 users', 'AI Visibility', 'Opportunity Discovery', 'Content Generation', 'Publishing', 'Automations', 'Reporting'],
+            'scale_title' => 'Schaal je operatie',
+            'extra_site_title' => 'Extra Site',
+            'extra_site_price' => '€29/maand per site',
+            'extra_site_body' => 'Track AI visibility, opportunities en content performance voor extra merken, domeinen of landensites.',
+            'credit_packs_title' => 'Credit Packs',
+            'credit_packs_body' => 'Tijdelijk extra capaciteit nodig? Koop extra credits zonder je abonnement te wijzigen.',
+            'credits_title' => 'Wat zijn credits?',
+            'credits_body' => 'Credits voeden het werk dat Argusly uitvoert: AI visibility analyses, opportunity discovery, contentgeneratie, refresh workflows en publishing automation.',
+            'team_title' => 'Gebouwd voor content operations en AI visibility',
+            'team_body' => 'Argusly is geen losse AI writer, maar een systeem voor planning, zichtbaarheid, productie, governance en publishing.',
+            'final_title' => 'Breng content operations onder in één schaalbaar systeem.',
+            'final_body' => 'Start met het Argusly Platform en schaal met credits, sites en automation wanneer dat nodig is.',
+            'faq' => [
+                ['question' => 'Is Argusly alleen een AI writer?', 'answer' => 'Nee. Argusly combineert AI visibility, opportunity discovery, content operations, publishing en reporting in één platform.'],
+                ['question' => 'Hoe werken credits?', 'answer' => 'Credits worden gebruikt voor werk dat Argusly uitvoert, zoals analyses, opportunities, contentgeneratie, refresh workflows en publishing automation.'],
+                ['question' => 'Wat gebeurt er als mijn credits op zijn?', 'answer' => 'Je kunt een credit pack kopen voor tijdelijke extra capaciteit zonder je abonnement te wijzigen.'],
+                ['question' => 'Kan ik meer sites toevoegen?', 'answer' => 'Ja. Eén site is inbegrepen. Extra sites kosten €29 per maand per site.'],
+                ['question' => 'Kan mijn team samenwerken?', 'answer' => 'Ja. Het platformabonnement bevat 5 gebruikers en is ingericht voor samenwerking rond planning, content en publicatie.'],
+                ['question' => 'Kan ik direct naar WordPress en LinkedIn publiceren?', 'answer' => 'Ja. Argusly ondersteunt publishing workflows voor WordPress en LinkedIn.'],
+                ['question' => 'Verlopen ongebruikte credits?', 'answer' => 'Maandelijkse credits volgen de abonnementsregels. Gekochte credit packs zijn 12 maanden geldig.'],
+                ['question' => 'Worden credit packs gedeeld binnen teams?', 'answer' => 'Ja. Gekochte credit packs zijn beschikbaar voor de organisatiecapaciteit en kunnen over workflows en sites worden ingezet.'],
+                ['question' => 'Is er een agency- of enterprise-optie?', 'answer' => 'Ja. Enterprise is beschikbaar voor agencies, veel sites, SSO, SLA, governance en maatwerkafspraken.'],
+            ],
+        ]
+        : [
+            'eyebrow' => 'Argusly Platform',
+            'headline' => 'Simple pricing for autonomous marketing',
+            'subheadline' => 'Start with the Argusly Platform. Scale with credits. Add sites when your operation grows.',
+            'supporting' => 'One subscription for platform access, AI Visibility, Opportunity Discovery, content generation, publishing, automations and reporting.',
+            'primary_cta' => 'Start subscription',
+            'pilot_cta' => 'Request a pilot',
+            'secondary_cta' => 'Talk to Sales',
+            'hero_card_title' => 'One platform. Two scale factors.',
+            'hero_card_body' => 'No Creator, Growth or Scale tiers. Argusly scales with credits and sites.',
+            'credit_line' => '250 monthly credits included',
+            'site_line' => '1 site included, extra sites EUR 29 per month',
+            'pack_line' => 'Credit packs for temporary peaks',
+            'section_title' => 'Argusly Platform',
+            'section_body' => 'Everything needed to run autonomous marketing operations, with credits as the primary scale factor.',
+            'features' => ['250 monthly credits', '1 site', '5 users', 'AI Visibility', 'Opportunity Discovery', 'Content Generation', 'Publishing', 'Automations', 'Reporting'],
+            'scale_title' => 'Scale your operation',
+            'extra_site_title' => 'Extra Site',
+            'extra_site_price' => '€29/month per site',
+            'extra_site_body' => 'Track AI visibility, opportunities and content performance for additional brands, domains or country websites.',
+            'credit_packs_title' => 'Credit Packs',
+            'credit_packs_body' => 'Need temporary capacity? Purchase additional credits without changing your subscription.',
+            'credits_title' => 'What are credits?',
+            'credits_body' => 'Credits power the work Argusly performs, including AI visibility analysis, opportunity discovery, content generation, refresh workflows and publishing automation.',
+            'team_title' => 'Built for content operations and AI visibility',
+            'team_body' => 'Argusly is not just an AI writer. It is a system for planning, visibility, production, governance and publishing.',
+            'final_title' => 'Move content operations into one scalable system.',
+            'final_body' => 'Start with the Argusly Platform and scale with credits, sites and automation when needed.',
+            'faq' => [
+                ['question' => 'Is Argusly just an AI writer?', 'answer' => 'No. Argusly combines AI visibility, opportunity discovery, content operations, publishing and reporting in one platform.'],
+                ['question' => 'How do credits work?', 'answer' => 'Credits are used for work Argusly performs, including analysis, opportunities, content generation, refresh workflows and publishing automation.'],
+                ['question' => 'What happens when I run out of credits?', 'answer' => 'You can buy a credit pack for temporary extra capacity without changing your subscription.'],
+                ['question' => 'Can I add more sites?', 'answer' => 'Yes. One site is included. Extra sites cost €29 per month per site.'],
+                ['question' => 'Can my team collaborate?', 'answer' => 'Yes. The platform subscription includes 5 users and supports collaboration around planning, content and publishing.'],
+                ['question' => 'Can I publish directly to WordPress and LinkedIn?', 'answer' => 'Yes. Argusly supports publishing workflows for WordPress and LinkedIn.'],
+                ['question' => 'Do unused credits expire?', 'answer' => 'Monthly credits follow the subscription rules. Purchased credit packs are valid for 12 months.'],
+                ['question' => 'Are credit packs shared across teams?', 'answer' => 'Yes. Purchased credit packs are available as organization capacity and can be used across workflows and sites.'],
+                ['question' => 'Is there an agency or enterprise option?', 'answer' => 'Yes. Enterprise is available for agencies, many sites, SSO, SLA, governance and custom agreements.'],
+            ],
+        ];
+    $simplifiedFaqItems = collect($pricingCopy['faq'])->map(fn (array $item): object => (object) $item);
     $contactHref = \App\Support\LocalizedMarketingUrl::route('public.contact', ['subject' => 'enterprise-pricing'], $locale) . '#contact-form';
+    $pilotHref = \App\Support\LocalizedMarketingUrl::route('public.contact', ['subject' => 'pilot-aanvraag'], $locale) . '#contact-form';
+    $subscribeHref = $canSelfRegister
+        ? route('register', ['plan' => 'argusly_platform'])
+        : $pilotHref;
+    $registerHref = $subscribeHref;
     $plansCollection = collect($plans ?? [])->sortBy('sort_order')->values();
     $creditPacksCollection = collect($creditPacks ?? [])->sortBy('sort_order')->values();
     $formatCurrency = function (?int $amountCents, string $currency = 'EUR'): string {
@@ -55,44 +134,44 @@
             <div class="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-end">
                 <div class="max-w-3xl">
                     <span class="pl-public-hero-label">
-                        {{ $hero['eyebrow'] ?? 'Premium content operations' }}
+                        {{ $pricingCopy['eyebrow'] }}
                     </span>
                     <h1 class="mt-5 pl-public-heading pl-public-heading-hero">
-                        {{ $hero['headline'] ?? __('public.landing.pricing_title') }}
+                        {{ $pricingCopy['headline'] }}
                     </h1>
                     <p class="mt-5 max-w-2xl text-lg leading-8 text-textPrimary">
-                        {{ $hero['subheadline'] ?? __('public.landing.pricing_subline') }}
+                        {{ $pricingCopy['subheadline'] }}
                     </p>
                     <p class="mt-4 max-w-2xl text-base leading-7 text-textSecondary">
-                        {{ $hero['supporting_text'] ?? __('public.landing.pricing_text_1') }}
+                        {{ $pricingCopy['supporting'] }}
                     </p>
                     <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <a href="#plans" class="pl-public-primary-button">
-                            {{ $hero['primary_cta_label'] ?? 'Choose a plan' }}
+                        <a href="{{ $subscribeHref }}" class="pl-public-primary-button">
+                            {{ $pricingCopy['primary_cta'] }}
                         </a>
-                        <a href="{{ $contactHref }}" class="pl-public-secondary-button">
-                            {{ $hero['secondary_cta_label'] ?? 'Talk to sales' }}
+                        <a href="{{ $pilotHref }}" class="pl-public-secondary-button">
+                            {{ $pricingCopy['pilot_cta'] }}
                         </a>
                     </div>
                 </div>
 
                 <div class="rounded-md border border-border/80 bg-white p-6 sm:p-7">
-                    <p class="text-sm font-semibold text-textPrimary">{{ $credits['title'] ?? 'Flexible AI credits' }}</p>
+                    <p class="text-sm font-semibold text-textPrimary">{{ $pricingCopy['hero_card_title'] }}</p>
                     <p class="mt-3 text-sm leading-6 text-textSecondary">
-                        {{ $credits['body'] ?? 'Credits are consumed by generation, translations, refreshes, answer blocks, research and AI visibility workflows.' }}
+                        {{ $pricingCopy['hero_card_body'] }}
                     </p>
                     <div class="mt-6 space-y-3 border-t border-border/70 pt-6">
                         <div class="flex items-start gap-3 text-sm">
                             <x-public.icon name="refresh-cw" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
-                            <span>Unused subscription credits roll over for 3 months.</span>
+                            <span>{{ $pricingCopy['credit_line'] }}</span>
                         </div>
                         <div class="flex items-start gap-3 text-sm">
-                            <x-public.icon name="layers" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
-                            <span>Purchased credit packs remain valid for 12 months.</span>
+                            <x-public.icon name="globe" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
+                            <span>{{ $pricingCopy['site_line'] }}</span>
                         </div>
                         <div class="flex items-start gap-3 text-sm">
-                            <x-public.icon name="users" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
-                            <span>Credits are shared across the workspace team.</span>
+                            <x-public.icon name="zap" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
+                            <span>{{ $pricingCopy['pack_line'] }}</span>
                         </div>
                     </div>
                 </div>
@@ -102,81 +181,95 @@
 
     <section id="plans" class="bg-white">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8 xl:grid-cols-3">
-                @foreach($plansCollection as $plan)
-                    @php
-                        $isPopular = (bool) ($plan['is_popular'] ?? false);
-                        $features = array_values(array_filter((array) ($plan['features'] ?? [])));
-                        $price = $formatCurrency($plan['price_monthly_cents'] ?? null, (string) ($plan['currency'] ?? 'EUR'));
-                        $ctaHref = $canSelfRegister
-                            ? route('register', ['plan' => $plan['slug']])
-                            : \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access'], $locale);
-                    @endphp
-                    <article
-                        data-pricing-card
-                        class="relative flex h-full min-h-[620px] flex-col rounded-md border p-8 sm:p-9 {{ $isPopular ? 'border-publicPrimary bg-[#f8fafc]' : 'border-border/80 bg-[#f8fafc]' }}"
-                    >
-                        @if($isPopular)
-                            <div class="absolute right-6 top-6">
-                                <span class="inline-flex items-center rounded-md bg-publicPrimary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white">
-                                    {{ $plan['badge'] ?: 'Most popular' }}
-                                </span>
-                            </div>
-                        @endif
+            <div class="mb-10 max-w-3xl">
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ $pricingCopy['section_title'] }}</h2>
+                <p class="mt-4 text-base leading-7 text-textSecondary">
+                    {{ $pricingCopy['section_body'] }}
+                </p>
+            </div>
 
-                        <div class="pr-20">
-                            @if(! empty($plan['eyebrow']))
-                                <p class="pl-public-eyebrow">{{ $plan['eyebrow'] }}</p>
-                            @endif
-                            <h2 class="mt-3 pl-public-heading pl-public-heading-h3">{{ $plan['name'] }}</h2>
-                            <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $plan['audience'] ?? $plan['description'] }}</p>
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                <article data-pricing-card class="relative flex h-full flex-col rounded-md border border-publicPrimary bg-[#f8fafc] p-7">
+                    <p class="pl-public-eyebrow">Platform subscription</p>
+                    <h2 class="mt-3 pl-public-heading pl-public-heading-h3">Argusly Platform</h2>
+                    <div class="mt-8">
+                        <div class="flex items-end gap-2">
+                            <span class="pl-public-heading text-5xl text-textPrimary">€99</span>
+                            <span class="pb-1 text-sm text-textSecondary">/ month</span>
                         </div>
-
-                        <div class="mt-8">
-                            <div class="flex items-end gap-2">
-                                <span class="pl-public-heading text-5xl text-textPrimary">{{ $price }}</span>
-                                <span class="pb-1 text-sm text-textSecondary">/ month</span>
+                        <p class="mt-4 text-sm font-medium text-textPrimary">250 credits / month</p>
+                    </div>
+                    <div class="mt-6 rounded-md border border-border/70 bg-white px-4 py-4">
+                        <p class="pl-public-eyebrow">Platform access</p>
+                        <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-textSecondary">
+                            <div>
+                                <p class="font-medium text-textPrimary">1</p>
+                                <p>Site included</p>
                             </div>
-                            <p class="mt-4 text-sm font-medium text-textPrimary">
-                                {{ number_format((int) ($plan['included_credits_monthly'] ?? 0)) }} credits / month
-                            </p>
-                            @if(($plan['article_estimate_min'] ?? null) !== null && ($plan['article_estimate_max'] ?? null) !== null)
-                                <p class="mt-2 text-xs leading-5 text-textMuted">
-                                    Approx. {{ $plan['article_estimate_min'] }} to {{ $plan['article_estimate_max'] }} standard SEO articles
-                                </p>
-                            @endif
+                            <div>
+                                <p class="font-medium text-textPrimary">5</p>
+                                <p>Users</p>
+                            </div>
                         </div>
+                        <p class="mt-3 border-t border-border/60 pt-3 text-xs leading-5 text-textMuted">
+                            Extra sites €29 / month each.
+                        </p>
+                    </div>
+                    <ul class="mt-7 grid gap-3.5 text-sm leading-6 text-textSecondary sm:grid-cols-2 lg:grid-cols-1">
+                        @foreach($pricingCopy['features'] as $feature)
+                            <li class="flex items-start gap-3">
+                                <x-public.icon name="check" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
+                                <span>{{ $feature }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="mt-auto grid gap-3 pt-8 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                        <a href="{{ $subscribeHref }}" class="pl-public-primary-button justify-center">
+                            {{ $pricingCopy['primary_cta'] }}
+                        </a>
+                        <a href="{{ $pilotHref }}" class="pl-public-secondary-button justify-center">
+                            {{ $pricingCopy['pilot_cta'] }}
+                        </a>
+                    </div>
+                </article>
 
-                        <div class="mt-6 rounded-md border border-border/70 bg-white px-4 py-4">
-                            <p class="pl-public-eyebrow">Platform access</p>
-                            <div class="mt-3 grid grid-cols-2 gap-3 text-sm text-textSecondary">
-                                <div>
-                                    <p class="font-medium text-textPrimary">{{ $plan['workspace_limit'] ?? 'Custom' }}</p>
-                                    <p>Workspaces</p>
+                <article class="pl-public-card-compact p-7">
+                    <p class="pl-public-eyebrow">{{ $pricingCopy['scale_title'] }}</p>
+
+                    <div class="mt-6 rounded-md border border-border/70 bg-white p-5">
+                        <h3 class="pl-public-heading pl-public-heading-h3">{{ $pricingCopy['extra_site_title'] }}</h3>
+                        <p class="mt-3 pl-public-heading text-3xl text-textPrimary">
+                            €29 <span class="text-sm font-medium text-textSecondary">{{ $locale === 'nl' ? '/maand per site' : '/month per site' }}</span>
+                        </p>
+                        <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $pricingCopy['extra_site_body'] }}</p>
+                    </div>
+
+                    <div class="mt-5 rounded-md border border-border/70 bg-white p-5">
+                        <h3 class="pl-public-heading pl-public-heading-h3">{{ $pricingCopy['credit_packs_title'] }}</h3>
+                        <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $pricingCopy['credit_packs_body'] }}</p>
+                        <div class="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+                            @forelse($creditPacksCollection as $pack)
+                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                    <p class="text-sm font-semibold text-textPrimary">{{ number_format((int) ($pack['credits'] ?? 0)) }} credits</p>
+                                    <p class="mt-1 text-sm text-textSecondary">{{ $formatCurrency($pack['price_cents'] ?? 0, (string) ($pack['currency'] ?? 'EUR')) }}</p>
                                 </div>
-                                <div>
-                                    <p class="font-medium text-textPrimary">{{ $plan['user_limit'] ?? 'Custom' }}</p>
-                                    <p>Users</p>
+                            @empty
+                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                    <p class="text-sm font-semibold text-textPrimary">100 credits</p>
+                                    <p class="mt-1 text-sm text-textSecondary">€39</p>
                                 </div>
-                            </div>
+                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                    <p class="text-sm font-semibold text-textPrimary">500 credits</p>
+                                    <p class="mt-1 text-sm text-textSecondary">€179</p>
+                                </div>
+                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                    <p class="text-sm font-semibold text-textPrimary">1,000 credits</p>
+                                    <p class="mt-1 text-sm text-textSecondary">€329</p>
+                                </div>
+                            @endforelse
                         </div>
-
-                        <ul class="mt-7 space-y-3.5 text-sm leading-6 text-textSecondary">
-                            @foreach($features as $feature)
-                                <li class="flex items-start gap-3">
-                                    <x-public.icon name="check" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
-                                    <span>{{ $feature }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
-
-                        <div class="mt-auto pt-8">
-                            <a href="{{ $ctaHref }}" class="inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition-colors {{ $isPopular ? 'bg-publicPrimary text-white hover:bg-publicPrimaryHover' : 'border border-border bg-white text-textPrimary hover:bg-surfaceMuted' }}">
-                                {{ $plan['cta_label'] ?: 'Choose plan' }}
-                            </a>
-                        </div>
-                    </article>
-                @endforeach
+                    </div>
+                </article>
             </div>
 
             @if($enterprisePlan)
@@ -199,7 +292,7 @@
                                     </p>
                                     <div class="mt-7">
                                         <a href="{{ $enterprisePlan['cta_url'] }}" class="inline-flex items-center justify-center rounded-full bg-white px-5 py-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-white/90">
-                                            {{ $enterprisePlan['cta_label'] ?: 'Talk to sales' }}
+                                            {{ $enterprisePlan['cta_label'] ?: 'Plan enterprise rollout' }}
                                         </a>
                                     </div>
                                 </div>
@@ -222,7 +315,7 @@
         </div>
     </section>
 
-    <section class="pl-public-warm">
+    <section class="bg-white">
         <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
             <div class="max-w-3xl">
                 <h2 class="pl-public-heading pl-public-heading-h2">
@@ -255,77 +348,10 @@
     </section>
 
     <section class="bg-white">
-        <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)] md:py-20">
-            <div>
-                <h2 class="pl-public-heading pl-public-heading-h2">
-                    {{ $credits['title'] ?? 'Flexible AI credits' }}
-                </h2>
-                <p class="mt-4 max-w-2xl text-base leading-7 text-textSecondary">
-                    {{ $credits['body'] ?? 'Credits are consumed by generation, translations, refreshes, answer blocks, research and AI visibility workflows.' }}
-                </p>
-                <p class="mt-4 max-w-2xl text-sm leading-6 text-textMuted">
-                    {{ $credits['note'] ?? 'A standard SEO article typically uses 10 to 14 credits depending on content depth, research and optimization workflows.' }}
-                </p>
-            </div>
-            <div class="rounded-md border border-border/80 bg-[#f8fafc] p-7">
-                <ul class="space-y-4 text-sm text-textSecondary">
-                    @foreach((array) ($credits['points'] ?? []) as $point)
-                        <li class="flex items-start gap-3">
-                            <x-public.icon name="check" size="xs" class="mt-0.5 flex-none text-publicPrimary" />
-                            <span>{{ $point }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    </section>
-
-    <section class="pl-public-warm">
-        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-            <div class="max-w-3xl">
-                <h2 class="pl-public-heading pl-public-heading-h2">
-                    {{ $creditPacksSection['title'] ?? 'Scale usage when needed' }}
-                </h2>
-                <p class="mt-4 text-base leading-7 text-textSecondary">
-                    {{ $creditPacksSection['subtitle'] ?? 'Add flexible credit packs anytime without upgrading your plan.' }}
-                </p>
-            </div>
-
-            <div class="mt-10 grid gap-6 md:grid-cols-3">
-                @foreach($creditPacksCollection as $pack)
-                    <article class="pl-public-card-compact p-6">
-                        @if(! empty($pack['badge']))
-                            <span class="inline-flex items-center rounded-md border border-publicPrimary/15 bg-publicPrimary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-publicPrimary">
-                                {{ $pack['badge'] }}
-                            </span>
-                        @endif
-                        <h3 class="mt-4 pl-public-heading pl-public-heading-h3">{{ number_format((int) ($pack['credits'] ?? 0)) }} credits</h3>
-                        <p class="mt-2 pl-public-heading text-3xl text-textPrimary">{{ $formatCurrency($pack['price_cents'] ?? 0, (string) ($pack['currency'] ?? 'EUR')) }}</p>
-                        <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $pack['description'] ?? '' }}</p>
-                        @if(($pack['expires_in_months'] ?? null) !== null)
-                            <p class="mt-4 text-xs text-textMuted">Valid for {{ $pack['expires_in_months'] }} months after purchase.</p>
-                        @endif
-                    </article>
-                @endforeach
-            </div>
-
-            <div class="mt-8 flex flex-col gap-3 pl-public-card-compact px-6 py-5 text-sm text-textSecondary md:flex-row md:items-center md:justify-between">
-                <div>
-                    <p>{{ $creditPacksSection['footer_note'] ?? 'Purchased credit packs remain valid for 12 months and are shared across the workspace team.' }}</p>
-                    <p class="mt-1 text-textMuted">{{ $creditPacksSection['custom_label'] ?? 'Custom enterprise packs available' }}</p>
-                </div>
-                <a href="{{ $contactHref }}" class="pl-public-secondary-button">
-                    {{ $hero['secondary_cta_label'] ?? 'Talk to sales' }}
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <section class="bg-white">
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-2 md:py-20">
             <div class="rounded-md border border-border/80 bg-[#f8fafc] p-7 sm:p-8">
-                <h2 class="pl-public-heading pl-public-heading-h2">{{ $teamWorkflow['title'] ?? 'Built for teams, workflows and scale' }}</h2>
-                <p class="mt-4 text-base leading-7 text-textSecondary">{{ $teamWorkflow['subtitle'] ?? '' }}</p>
+                <h2 class="pl-public-heading pl-public-heading-h2">{{ $teamWorkflow['title'] ?? $pricingCopy['team_title'] }}</h2>
+                <p class="mt-4 text-base leading-7 text-textSecondary">{{ $teamWorkflow['subtitle'] ?? $pricingCopy['team_body'] }}</p>
                 <ul class="mt-6 space-y-4 text-sm text-textSecondary">
                     @foreach((array) ($teamWorkflow['points'] ?? []) as $point)
                         <li class="flex items-start gap-3">
@@ -337,7 +363,7 @@
             </div>
 
             <div class="rounded-md border border-border/80 bg-textPrimary p-7 text-white sm:p-8">
-                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ $roi['title'] ?? 'Replace fragmented content workflows' }}</h2>
+                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ $roi['title'] ?? ($locale === 'nl' ? 'Van losse AI-output naar governed execution' : 'From isolated AI output to governed execution') }}</h2>
                 <ul class="mt-6 grid gap-4 sm:grid-cols-2">
                     @foreach((array) ($roi['items'] ?? []) as $item)
                         <li class="rounded-md border border-white/10 bg-white/5 px-4 py-4 text-sm text-white/82">
@@ -349,41 +375,26 @@
         </div>
     </section>
 
-    <section class="pl-public-warm">
-        <div class="mx-auto max-w-4xl px-4 py-16 sm:px-6 md:py-20">
-            <div class="text-center">
-                <h2 class="pl-public-heading pl-public-heading-h2">FAQ</h2>
-            </div>
-            <div class="mt-10 space-y-4">
-                @foreach($faqItems as $item)
-                    <details class="group pl-public-card-compact">
-                        <summary class="flex cursor-pointer items-center justify-between gap-4 px-6 py-5 text-left text-sm font-medium text-textPrimary">
-                            <span>{{ $item['question'] ?? '' }}</span>
-                            <x-public.icon name="chevron-down" size="xs" class="transition-transform group-open:rotate-180" />
-                        </summary>
-                        <div class="px-6 pb-5 text-sm leading-6 text-textSecondary">
-                            {{ $item['answer'] ?? '' }}
-                        </div>
-                    </details>
-                @endforeach
-            </div>
-        </div>
-    </section>
+    <x-public.faq-section
+        :items="$simplifiedFaqItems"
+        :locale="$locale"
+        :emit-schema="false"
+    />
 
     <section class="bg-publicPrimary">
         <div class="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6 md:py-20">
             <h2 class="pl-public-heading pl-public-heading-h2 text-white">
-                {{ $finalCta['title'] ?? 'Move content operations into one scalable system' }}
+                {{ $pricingCopy['final_title'] }}
             </h2>
             <p class="mx-auto mt-4 max-w-3xl text-base leading-7 text-white/80">
-                {{ $finalCta['body'] ?? 'Run planning, AI-assisted production, localization, optimization and publishing from one operational platform.' }}
+                {{ $pricingCopy['final_body'] }}
             </p>
             <div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <a href="{{ $registerHref }}" class="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-white/90">
-                    {{ $finalCta['primary_label'] ?? 'Choose your plan' }}
+                    {{ $pricingCopy['primary_cta'] }}
                 </a>
-                <a href="{{ $contactHref }}" class="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20">
-                    {{ $finalCta['secondary_label'] ?? 'Talk to sales' }}
+                <a href="{{ $pilotHref }}" class="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20">
+                    {{ $pricingCopy['pilot_cta'] }}
                 </a>
             </div>
         </div>

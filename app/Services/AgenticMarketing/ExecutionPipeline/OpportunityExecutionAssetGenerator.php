@@ -11,6 +11,7 @@ use App\Models\Draft;
 use App\Services\AgenticMarketing\CampaignOrchestration\AutonomousCampaignOrchestrationEngine;
 use App\Services\AgenticMarketing\StrategicPlanning\StrategicPlanningEngine;
 use App\Services\AgenticMarketing\VisibilityScoring\AIVisibilityScoringEngine;
+use App\Services\HumanSignals\HumanSignalContextBuilder;
 use Illuminate\Support\Str;
 
 class OpportunityExecutionAssetGenerator
@@ -19,6 +20,7 @@ class OpportunityExecutionAssetGenerator
         private readonly StrategicPlanningEngine $strategicPlanningEngine,
         private readonly AIVisibilityScoringEngine $visibilityScoringEngine,
         private readonly AutonomousCampaignOrchestrationEngine $campaignOrchestrationEngine,
+        private readonly HumanSignalContextBuilder $humanSignalContext,
     ) {}
 
     /**
@@ -244,6 +246,7 @@ class OpportunityExecutionAssetGenerator
         $summary = trim($this->summary($opportunity));
         $objectiveGoal = trim((string) ($opportunity->objective?->goal ?: ''));
         $fullName = $this->fullNameForTopic($topic, $entities);
+        $workspace = $opportunity->objective?->workspace ?: $opportunity->content?->workspace;
 
         return [
             'title' => $title,
@@ -258,6 +261,7 @@ class OpportunityExecutionAssetGenerator
             'angle' => $angle,
             'summary' => $summary !== '' ? $summary : $this->definitionSentence($topic, $fullName, $entities),
             'objective_goal' => $objectiveGoal,
+            'human_signals' => $this->humanSignalContext->forWorkspace($workspace, 4),
             'cta' => trim((string) data_get($opportunity->payload, 'suggested_cta', 'Explore Argusly')),
             'schema_type' => trim((string) data_get($opportunity->payload, 'suggested_schema', 'Article')) ?: 'Article',
         ];
@@ -793,8 +797,9 @@ class OpportunityExecutionAssetGenerator
         $topic = (string) $context['topic'];
         $angle = trim((string) $context['angle']);
         $angleSentence = $angle !== '' ? ' The recommended angle is: '.$angle : '';
+        $signalSentence = $this->signalSentence($context);
 
-        return 'A strong '.$topic.' workflow defines the target question, maps related entities, writes a direct answer first, expands with evidence and examples, adds FAQ and schema markup, links to supporting content, and places a relevant CTA after the reader has enough context.'.$angleSentence;
+        return 'A strong '.$topic.' workflow defines the target question, maps related entities, writes a direct answer first, expands with evidence and examples, adds FAQ and schema markup, links to supporting content, and places a relevant CTA after the reader has enough context.'.$angleSentence.$signalSentence;
     }
 
     /**
@@ -805,7 +810,7 @@ class OpportunityExecutionAssetGenerator
         $topic = (string) $context['topic'];
         $summary = (string) $context['summary'];
 
-        return $topic.' matters now because AI search and answer engines increasingly select content that is explicit, structured, entity-rich, and easy to summarize. '.$summary;
+        return $topic.' matters now because AI search and answer engines select content that is explicit, structured, entity-rich, and easy to summarize. '.$summary.$this->signalSentence($context);
     }
 
     /**
@@ -815,7 +820,7 @@ class OpportunityExecutionAssetGenerator
     {
         $topic = (string) $context['topic'];
 
-        return 'Measure '.$topic.' with a mix of answer visibility, rankings for high-intent questions, structured answer coverage, internal link depth, assisted conversions, demo or signup intent, and refresh performance after publication.';
+        return 'Measure '.$topic.' with a mix of answer visibility, rankings for high-intent questions, structured answer coverage, internal link depth, assisted conversions, demo or signup intent, and refresh performance after publication.'.$this->signalSentence($context);
     }
 
     /**
@@ -827,6 +832,24 @@ class OpportunityExecutionAssetGenerator
         $cta = (string) $context['cta'];
 
         return 'The next best action is to publish a focused '.$topic.' asset with answer blocks, FAQ schema, internal links, metadata, and a clear CTA such as "'.$cta.'".';
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     */
+    private function signalSentence(array $context): string
+    {
+        $signals = trim((string) ($context['human_signals'] ?? ''));
+        if ($signals === '') {
+            return '';
+        }
+
+        $firstSignal = collect(explode("\n", $signals))
+            ->first(fn (string $line): bool => str_starts_with(trim($line), '- ['));
+
+        return $firstSignal
+            ? ' This recommendation is grounded in the observed signal: '.trim(ltrim((string) $firstSignal, '- ')).'.'
+            : '';
     }
 
     /**

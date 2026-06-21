@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\V1\CreditsController;
 use App\Http\Controllers\Api\V1\DraftController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\GenerationOptionsController;
+use App\Http\Controllers\Api\V1\HumanSignalController;
 use App\Http\Controllers\Api\V1\Headless\AnalyticsIngestController;
 use App\Http\Controllers\Api\V1\Headless\ApiKeyController as HeadlessApiKeyController;
 use App\Http\Controllers\Api\V1\Headless\DestinationController as HeadlessDestinationController;
@@ -111,6 +112,16 @@ Route::prefix('v1')->group(function () {
             ->middleware('integration.scope:content:read');
         Route::get('/recommended-actions/{action}', [RecommendedActionController::class, 'show'])
             ->middleware('integration.scope:content:read');
+        Route::get('/human-signals', [HumanSignalController::class, 'index'])
+            ->middleware('integration.scope:content:read');
+        Route::get('/human-signals/{id}', [HumanSignalController::class, 'show'])
+            ->middleware('integration.scope:content:read');
+        Route::post('/human-signals/detect', [HumanSignalController::class, 'detect'])
+            ->middleware('integration.scope:content:write');
+        Route::post('/human-signals/{id}/generate-content', [HumanSignalController::class, 'generateContent'])
+            ->middleware('integration.scope:content:read');
+        Route::post('/human-signals/{id}/create-opportunity', [HumanSignalController::class, 'createOpportunity'])
+            ->middleware('integration.scope:content:write');
         Route::delete('/content/bulk', [ContentDeletionController::class, 'bulkDestroy']);
         Route::delete('/content/{id}', [ContentDeletionController::class, 'destroy']);
         Route::post('/content/{id}/restore', [ContentDeletionController::class, 'restore']);

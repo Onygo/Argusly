@@ -287,7 +287,7 @@ class AppSettingsController extends Controller
         $organization = $request->user()->organization;
         $this->ensureManager($request);
         try {
-            app(SubscriptionService::class)->assertSeatLimitAvailable($organization, $request->user());
+            app(SubscriptionService::class)->assertSeatLimitAvailableForInvite($organization, $request->user());
         } catch (RuntimeException $exception) {
             return back()->withErrors(['invite' => $exception->getMessage()]);
         }

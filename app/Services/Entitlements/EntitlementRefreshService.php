@@ -107,7 +107,7 @@ class EntitlementRefreshService
                 $entitlement->id = (string) Str::uuid();
             }
 
-            if ((string) $entitlement->source === 'manual') {
+            if (in_array((string) $entitlement->source, ['manual', 'migration'], true)) {
                 continue;
             }
 

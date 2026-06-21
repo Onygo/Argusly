@@ -27,6 +27,54 @@ const initPublicMobileNav = () => {
     });
 };
 
+const initPublicNavDetails = () => {
+    const detailsItems = Array.from(document.querySelectorAll('header nav details'));
+    if (detailsItems.length === 0) {
+        return;
+    }
+
+    const closeSiblings = (current) => {
+        const nav = current.closest('nav');
+        if (!nav) {
+            return;
+        }
+
+        nav.querySelectorAll('details[open]').forEach((details) => {
+            if (details !== current) {
+                details.removeAttribute('open');
+            }
+        });
+    };
+
+    detailsItems.forEach((details) => {
+        details.addEventListener('toggle', () => {
+            if (details.open) {
+                closeSiblings(details);
+            }
+        });
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) {
+            return;
+        }
+
+        if (event.target.closest('header nav details')) {
+            return;
+        }
+
+        detailsItems.forEach((details) => details.removeAttribute('open'));
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') {
+            return;
+        }
+
+        detailsItems.forEach((details) => details.removeAttribute('open'));
+    });
+};
+
 const initLegalNavigation = () => {
     const picker = document.querySelector('[data-legal-nav-select]');
     if (!picker) {
@@ -47,6 +95,7 @@ const createLucideIcons = () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initPublicMobileNav();
+    initPublicNavDetails();
     initLegalNavigation();
     createLucideIcons();
 });

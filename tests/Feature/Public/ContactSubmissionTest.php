@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\EarlyAccessSignupStatus;
 use App\Mail\ContactSubmissionReceived;
 use App\Models\ContactSubmission;
+use App\Models\EarlyAccessSignup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
@@ -21,6 +23,11 @@ function contactPayload(array $overrides = []): array
         'name' => 'Jane Doe',
         'email' => 'jane@example.com',
         'company' => 'Onygo',
+        'website' => 'https://onygo.example',
+        'market' => 'B2B SaaS',
+        'competitors' => 'Acme AI, Northstar Content',
+        'growth_goal' => 'Improve AI answer visibility',
+        'interest_area' => 'AI Visibility',
         'subject' => 'Enterprise pricing',
         'message' => 'We want a multi brand rollout.',
         'topic' => 'Enterprise pricing',
@@ -163,6 +170,11 @@ it('stores contact submissions and sends notification email when captcha verific
     expect($submission)->not->toBeNull();
     expect((string) $submission->topic)->toBe('Enterprise pricing');
     expect((string) $submission->cta_label)->toBe('Request enterprise pricing');
+    expect((string) $submission->website)->toBe('https://onygo.example');
+    expect((string) $submission->market)->toBe('B2B SaaS');
+    expect((string) $submission->competitors)->toBe('Acme AI, Northstar Content');
+    expect((string) $submission->growth_goal)->toBe('Improve AI answer visibility');
+    expect((string) $submission->interest_area)->toBe('AI Visibility');
 
     Mail::assertSent(ContactSubmissionReceived::class);
 
@@ -173,6 +185,52 @@ it('stores contact submissions and sends notification email when captcha verific
             && ($body['secret'] ?? null) === 'recaptcha-secret-key'
             && ($body['response'] ?? null) === 'valid-recaptcha-token';
     });
+});
+
+it('creates an admin pilot signup from pilot contact submissions', function () {
+    Mail::fake();
+
+    Http::fake([
+        'www.google.com/recaptcha/api/siteverify' => Http::response(recaptchaSuccessResponse(), 200),
+    ]);
+
+    $response = $this->from('/nl/bedrijf/contact?subject=pilot-aanvraag#contact-form')->post('/nl/bedrijf/contact', contactPayload([
+        'name' => 'Pilot Prospect',
+        'email' => 'pilot@example.com',
+        'company' => 'Pilot Co',
+        'website' => 'https://pilot.example',
+        'market' => 'B2B SaaS',
+        'competitors' => 'Northstar',
+        'growth_goal' => 'Improve AI visibility',
+        'interest_area' => 'AI Visibility',
+        'subject' => 'Pilot aanvraag',
+        'topic' => 'pilot',
+        'message' => 'We want to join the pilot with our content team.',
+        'source_page' => 'pricing',
+        'cta_label' => 'Pilot aanvragen',
+    ]));
+
+    $response->assertRedirect('/nl/bedrijf/contact?subject=pilot-aanvraag#contact-form');
+    $response->assertSessionHas('contact_status');
+
+    $submission = ContactSubmission::query()->where('email', 'pilot@example.com')->first();
+    expect($submission)->not->toBeNull()
+        ->and((string) $submission->topic)->toBe('pilot')
+        ->and((string) $submission->subject)->toBe('Pilot aanvraag');
+
+    $signup = EarlyAccessSignup::query()->where('email', 'pilot@example.com')->first();
+    expect($signup)->not->toBeNull()
+        ->and($signup->status)->toBe(EarlyAccessSignupStatus::NEW)
+        ->and((string) $signup->full_name)->toBe('Pilot Prospect')
+        ->and((string) $signup->company_name)->toBe('Pilot Co')
+        ->and((string) $signup->website)->toBe('https://pilot.example')
+        ->and((string) $signup->use_case)->toContain('join the pilot')
+        ->and((string) $signup->source)->toBe('pilot_contact')
+        ->and((string) $signup->notes)->toContain('Subject: Pilot aanvraag')
+        ->and((string) $signup->notes)->toContain('Growth goal: Improve AI visibility')
+        ->and($signup->submitted_at)->not->toBeNull();
+
+    Mail::assertSent(ContactSubmissionReceived::class);
 });
 
 it('fails safely when google captcha verification is unreachable', function () {
@@ -220,4 +278,11 @@ it('prefills subject on short contact route', function () {
         ->assertOk()
         ->assertSee('name="subject"', false)
         ->assertSee('value="maatwerk-enterprise"', false);
+});
+
+it('prefills pilot application subject and request type from subject slug', function () {
+    $this->get('/nl/bedrijf/contact?subject=pilot-aanvraag')
+        ->assertOk()
+        ->assertSee('<option value="pilot" selected>Pilot aanvraag</option>', false)
+        ->assertSee('value="Pilot aanvraag"', false);
 });

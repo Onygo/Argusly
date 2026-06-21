@@ -24,10 +24,14 @@ class Plan extends Model
         'vat_included',
         'included_credits',
         'included_credits_per_interval',
+        'article_estimate_min',
+        'article_estimate_max',
         'credit_rollover_policy',
         'credit_expiry_days',
         'credit_rollover_monthly_cycles',
         'limits',
+        'workspace_limit',
+        'user_limit',
         'seat_limit',
         'has_required_onboarding',
         'onboarding_label',
@@ -66,10 +70,14 @@ class Plan extends Model
         'vat_included' => 'boolean',
         'included_credits' => 'integer',
         'included_credits_per_interval' => 'integer',
+        'article_estimate_min' => 'integer',
+        'article_estimate_max' => 'integer',
         'credit_rollover_policy' => 'string',
         'credit_expiry_days' => 'integer',
         'credit_rollover_monthly_cycles' => 'integer',
         'limits' => 'array',
+        'workspace_limit' => 'integer',
+        'user_limit' => 'integer',
         'seat_limit' => 'integer',
         'has_required_onboarding' => 'boolean',
         'onboarding_fee_cents' => 'integer',
@@ -124,6 +132,31 @@ class Plan extends Model
     public function monthlyCredits(): int
     {
         return max(0, (int) ($this->included_credits_per_interval ?: $this->included_credits));
+    }
+
+    public function includedSites(): int
+    {
+        $sites = (int) data_get($this->limits, 'sites', 1);
+
+        return $sites < 0 ? -1 : max(0, $sites);
+    }
+
+    public function includedUsers(): int
+    {
+        $users = (int) ($this->seat_limit ?: data_get($this->limits, 'users', 1));
+
+        return $users < 0 ? -1 : max(0, $users);
+    }
+
+    public function extraSitePriceCents(): int
+    {
+        return max(0, (int) data_get($this->limits, 'extra_site_price_cents', 0));
+    }
+
+    public function getIsEnterpriseAttribute(): bool
+    {
+        return $this->billing_type === 'custom'
+            || in_array((string) ($this->slug ?: $this->key), ['enterprise', 'enterprise_custom'], true);
     }
 
     public function scopePubliclyVisible($query)

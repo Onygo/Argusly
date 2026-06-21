@@ -271,6 +271,38 @@ it('keeps the team invite flow working', function () {
     expect((string) $invite->role)->toBe('viewer');
 });
 
+it('blocks team invites when active users and pending invites reach the seat limit', function () {
+    [$user, , $organization] = makeSettingsHubContext();
+
+    $subscription = Subscription::query()
+        ->where('organization_id', $organization->id)
+        ->firstOrFail();
+    $subscription->forceFill(['seat_limit' => 5])->save();
+
+    foreach (range(1, 4) as $index) {
+        Invite::query()->create([
+            'organization_id' => $organization->id,
+            'invited_by' => $user->id,
+            'email' => 'pending-'.$index.'@example.com',
+            'role' => 'viewer',
+            'token_hash' => hash('sha256', 'pending-'.$index),
+            'token_encrypted' => encrypt('pending-'.$index),
+            'expires_at' => now()->addDays(14),
+        ]);
+    }
+
+    $this->from(route('app.settings'))
+        ->actingAs($user)
+        ->post(route('app.settings.invites'), [
+            'email' => 'sixth.member@example.com',
+            'role' => 'viewer',
+        ])
+        ->assertRedirect(route('app.settings'))
+        ->assertSessionHasErrors('invite');
+
+    expect(Invite::query()->where('organization_id', $organization->id)->where('email', 'sixth.member@example.com')->exists())->toBeFalse();
+});
+
 it('renders brand shortcut links on settings', function () {
     [$user] = makeSettingsHubContext();
 

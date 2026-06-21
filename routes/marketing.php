@@ -20,8 +20,10 @@ use App\Http\Controllers\PublicContactController;
 use App\Http\Controllers\PublicEarlyAccessController;
 use App\Http\Controllers\PublicEarlyAccessInviteController;
 use App\Http\Controllers\PublicLegalController;
+use App\Http\Controllers\PublicMarketController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\PublicRobotsController;
+use App\Http\Controllers\PublicSolutionController;
 use App\Http\Controllers\SitemapController;
 use App\Support\MarketingRouteSegments;
 use Illuminate\Support\Facades\Route;
@@ -131,6 +133,25 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
                 ->name('legacy.intelligence');
         });
 
+        // Legacy market URLs now redirect to the canonical industries/sectoren paths.
+        Route::prefix('markets')->name('public.markets.legacy.en.')->group(function () {
+            foreach ((array) config('argusly_markets.pages', []) as $market => $page) {
+                Route::get('/' . data_get($page, 'slugs.en', $market), [LegacyLocalizedMarketingRedirectController::class, 'route'])
+                    ->defaults('marketing_route', 'public.markets.' . $market)
+                    ->defaults('legacy_locale', 'en')
+                    ->name($market);
+            }
+        });
+
+        Route::prefix('markten')->name('public.markets.legacy.nl.')->group(function () {
+            foreach ((array) config('argusly_markets.pages', []) as $market => $page) {
+                Route::get('/' . data_get($page, 'slugs.nl', $market), [LegacyLocalizedMarketingRedirectController::class, 'route'])
+                    ->defaults('marketing_route', 'public.markets.' . $market)
+                    ->defaults('legacy_locale', 'nl')
+                    ->name($market);
+            }
+        });
+
         // Company pages
         Route::prefix('company')->name('public.company.')->group(function () {
             Route::get('/about', [LegacyLocalizedMarketingRedirectController::class, 'route'])
@@ -201,6 +222,44 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
 
                 Route::get('/' . $marketingSegments->segment('agentic_marketing', $locale), PublicAgenticMarketingController::class)
                     ->name('public.agentic-marketing');
+
+                foreach (['en' => 'markets', 'nl' => 'markten'] as $legacyLocale => $legacySegment) {
+                    if ($locale !== $legacyLocale || $legacySegment === $marketingSegments->segment('markets', $locale)) {
+                        continue;
+                    }
+
+                    Route::prefix($legacySegment)->name('public.markets.legacy.' . $locale . '.')->group(function () use ($locale) {
+                        foreach ((array) config('argusly_markets.pages', []) as $market => $page) {
+                            Route::get('/' . data_get($page, 'slugs.' . $locale, $market), [LegacyLocalizedMarketingRedirectController::class, 'route'])
+                                ->defaults('marketing_route', 'public.markets.' . $market)
+                                ->defaults('legacy_locale', $locale)
+                                ->name($market);
+                        }
+                    });
+                }
+
+                Route::prefix($marketingSegments->segment('markets', $locale))->name('public.markets.')->group(function () use ($locale) {
+                    foreach ((array) config('argusly_markets.pages', []) as $market => $page) {
+                        Route::get('/' . data_get($page, 'slugs.' . $locale, $market), PublicMarketController::class)
+                            ->defaults('market', $market)
+                            ->name($market);
+                    }
+                });
+
+                Route::prefix($marketingSegments->segment('solutions', $locale))->name('public.solutions.')->group(function () use ($locale, $marketingSegments) {
+                    Route::get('/' . $marketingSegments->segment('opportunity_intelligence', $locale), [PublicSolutionController::class, 'show'])
+                        ->defaults('solution', 'opportunity-intelligence')
+                        ->name('opportunity-intelligence');
+                    Route::get('/' . $marketingSegments->segment('ai_visibility', $locale), [PublicSolutionController::class, 'show'])
+                        ->defaults('solution', 'ai-visibility')
+                        ->name('ai-visibility');
+                    Route::get('/' . $marketingSegments->segment('competitive_intelligence', $locale), [PublicSolutionController::class, 'show'])
+                        ->defaults('solution', 'competitive-intelligence')
+                        ->name('competitive-intelligence');
+                    Route::get('/' . $marketingSegments->segment('marketing_without_large_team', $locale), [PublicSolutionController::class, 'show'])
+                        ->defaults('solution', 'marketing-without-large-team')
+                        ->name('marketing-without-large-team');
+                });
 
                 Route::prefix($marketingSegments->segment('blog', $locale))
                     ->name('public.blog.')

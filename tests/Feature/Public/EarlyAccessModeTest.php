@@ -167,7 +167,8 @@ describe('MarketingNavigation in full marketing mode', function () {
         $cta = MarketingNavigation::headerPrimaryCTA();
 
         expect($cta['route'])->toBe('public.company.contact');
-        expect($cta['label'])->toBe(__('public.nav.contact'));
+        expect($cta['label'])->toBe(__('public.nav.ai_visibility_scan'));
+        expect($cta['route_params'])->toBe(['subject' => 'walkthrough']);
     });
 
     it('returns full footer product items', function () {

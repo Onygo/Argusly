@@ -128,11 +128,35 @@ class AppBillingController extends Controller
         $workspaceSummaries = $sites->pluck('workspace_id')->unique()->map(function (string $workspaceId) use ($workspaceCredits): array {
             return $workspaceCredits->summary($workspaceId);
         });
+        $workspaceIdsForCredits = $workspaceSummaries->pluck('workspace_id')->filter()->values()->all();
+        $activeCreditBucketQuery = WorkspaceCreditTransaction::query()
+            ->whereIn('workspace_id', $workspaceIdsForCredits)
+            ->where('remaining', '>', 0)
+            ->where(function (Builder $builder): void {
+                $builder->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            });
 
         $totals = [
             'balance_cached' => (int) $workspaceSummaries->sum('balance_cached'),
             'reserved_cached' => (int) $workspaceSummaries->sum('reserved_cached'),
             'available' => (int) $workspaceSummaries->sum('available'),
+            'monthly_credits' => (int) ($activeSubscription?->included_credits_per_interval ?? 0),
+            'purchased_credits_available' => (int) (clone $activeCreditBucketQuery)
+                ->where('type', WorkspaceCreditLedgerService::TYPE_PURCHASE)
+                ->sum('remaining'),
+            'monthly_credits_available' => (int) (clone $activeCreditBucketQuery)
+                ->where('type', WorkspaceCreditLedgerService::TYPE_SUBSCRIPTION_GRANT)
+                ->sum('remaining'),
+            'expiring_packs_count' => (int) (clone $activeCreditBucketQuery)
+                ->where('type', WorkspaceCreditLedgerService::TYPE_PURCHASE)
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '<=', now()->addDays(30))
+                ->count(),
+            'expiring_packs_credits' => (int) (clone $activeCreditBucketQuery)
+                ->where('type', WorkspaceCreditLedgerService::TYPE_PURCHASE)
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '<=', now()->addDays(30))
+                ->sum('remaining'),
             'allocated_credits' => (int) $wallets->sum('balance_cached'),
             'used_credits' => (int) $wallets->sum('used_cached'),
             'unallocated_credits' => (int) $workspaceSummaries->sum('unallocated_credits'),

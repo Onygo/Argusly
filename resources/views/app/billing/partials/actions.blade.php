@@ -13,6 +13,17 @@
         $billingMoney = fn (int|float $cents, string $currency = 'EUR'): string => number_format(((float) $cents) / 100, 2, $billingUiNl ? ',' : '.', $billingUiNl ? '.' : ',') . ' ' . $currency;
         $billingVatLabel = $billingUiNl ? 'incl. btw' : 'incl. VAT';
         $billingOneTimeLabel = $billingUiNl ? 'eenmalig' : 'one time';
+        $billingPlanLabel = function ($plan): string {
+            if (! $plan) {
+                return 'No active subscription';
+            }
+
+            $credits = (int) ($plan->included_credits_per_interval ?: $plan->included_credits ?: 0);
+
+            return $credits > 0
+                ? trim((string) $plan->name) . ' - ' . number_format($credits) . ' credits/month'
+                : trim((string) $plan->name);
+        };
     @endphp
 
     <div class="mb-4 rounded border border-border/70 bg-surfaceSubtle/30 p-3 text-xs text-textSecondary">
@@ -54,18 +65,20 @@
                 <span class="inline-flex items-center rounded-md border px-2 py-1 font-medium {{ $organizationAccess['badge_classes'] ?? 'border-border bg-background text-textSecondary' }}">{{ $accessLabel }}</span>
             </div>
         @endif
-        <div><strong>Current plan:</strong> {{ $billingSubscription?->plan?->name ?? 'No active subscription' }}</div>
+        <div><strong>Current plan:</strong> {{ $billingPlanLabel($billingSubscription?->plan) }}</div>
         <div>
             <strong>Scheduled next plan:</strong>
-            {{ $scheduledPlanChange?->toPlan?->name ?? $activeSubscription?->pendingPlan?->name ?? 'None scheduled' }}
+            @php $nextPlan = $scheduledPlanChange?->toPlan ?? $activeSubscription?->pendingPlan; @endphp
+            {{ $nextPlan ? $billingPlanLabel($nextPlan) : 'None scheduled' }}
         </div>
         <div>
             <strong>Effective date:</strong>
             {{ optional($scheduledPlanChange?->effective_at ?? $activeSubscription?->current_period_end)->format('Y-m-d') ?? 'n/a' }}
         </div>
         <div><strong>Monthly price:</strong> {{ $billingSubscription ? number_format((($billingSubscription->price_cents ?? 0) / 100), 2) . ' ' . ($billingSubscription->currency ?? 'EUR') : 'n/a' }}</div>
-        <div><strong>Credits per month:</strong> {{ number_format((int) ($billingSubscription?->included_credits_per_interval ?? 0)) }}</div>
-        <div><strong>Credits remaining:</strong> {{ number_format((int) ($totals['available'] ?? 0)) }}</div>
+        <div><strong>Monthly credits:</strong> {{ number_format((int) ($billingSubscription?->included_credits_per_interval ?? 0)) }}</div>
+        <div><strong>Purchased credits:</strong> {{ number_format((int) ($totals['purchased_credits_available'] ?? 0)) }}</div>
+        <div><strong>Total available credits:</strong> {{ number_format((int) ($totals['available'] ?? 0)) }}</div>
         <div><strong>Status:</strong> {{ $billingSubscription?->status ?? 'inactive' }}</div>
         <div><strong>Next payment:</strong> {{ optional($billingSubscription?->next_payment_at ?? $billingSubscription?->current_period_end)->format('Y-m-d') ?? 'n/a' }}</div>
         <div><strong>Interval:</strong> {{ $billingSubscription?->interval ?? 'n/a' }}</div>
@@ -114,7 +127,7 @@
                         @php
                             $planCheckout = (array) ($planCheckoutSummaries[(string) $plan->id] ?? []);
                         @endphp
-                        <option value="{{ $plan->id }}" @selected($selectedPlanId === (string) $plan->id)>{{ $plan->name }} ({{ $billingIntervalLabel($plan->interval) }}) - {{ $billingMoney((int) ($plan->price_cents ?? $plan->monthly_price_cents), (string) $plan->currency) }} {{ $billingVatLabel }} @if(($planCheckout['onboarding_amount_cents'] ?? 0) > 0)+ {{ $billingMoney((int) ($planCheckout['onboarding_amount_cents'] ?? 0), (string) $plan->currency) }} {{ strtolower((string) ($planCheckout['onboarding_label'] ?? 'onboarding')) }} {{ $billingOneTimeLabel }} @endif</option>
+                        <option value="{{ $plan->id }}" @selected($selectedPlanId === (string) $plan->id)>{{ $billingPlanLabel($plan) }} ({{ $billingIntervalLabel($plan->interval) }}) - {{ $billingMoney((int) ($plan->price_cents ?? $plan->monthly_price_cents), (string) $plan->currency) }} {{ $billingVatLabel }} @if(($planCheckout['onboarding_amount_cents'] ?? 0) > 0)+ {{ $billingMoney((int) ($planCheckout['onboarding_amount_cents'] ?? 0), (string) $plan->currency) }} {{ strtolower((string) ($planCheckout['onboarding_label'] ?? 'onboarding')) }} {{ $billingOneTimeLabel }} @endif</option>
                     @endforeach
                 </select>
                 <input type="text" name="company_name" value="{{ old('company_name', $organization->billing_company_name ?? $organization->name) }}" placeholder="Company name" class="rounded border border-border bg-background px-2 py-2 text-sm">
@@ -162,7 +175,7 @@
                 <select name="to_plan_id" class="rounded border border-border bg-background px-2 py-2 text-sm" required>
                     @foreach ($plans as $plan)
                         @if ((string) $plan->id !== (string) $activeSubscription->plan_id)
-                            <option value="{{ $plan->id }}">{{ $plan->name }} ({{ $billingIntervalLabel($plan->interval) }}) - {{ $billingMoney((int) ($plan->price_cents ?? $plan->monthly_price_cents), (string) $plan->currency) }} {{ $billingVatLabel }}</option>
+                            <option value="{{ $plan->id }}">{{ $billingPlanLabel($plan) }} ({{ $billingIntervalLabel($plan->interval) }}) - {{ $billingMoney((int) ($plan->price_cents ?? $plan->monthly_price_cents), (string) $plan->currency) }} {{ $billingVatLabel }}</option>
                         @endif
                     @endforeach
                 </select>

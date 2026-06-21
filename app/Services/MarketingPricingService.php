@@ -12,10 +12,10 @@ use Illuminate\Support\Facades\Schema;
 
 class MarketingPricingService
 {
-    private const CONTENT_CACHE_KEY = 'public.pricing.page_content.v2';
-    private const PLANS_CACHE_KEY = 'public.pricing.plans.v2';
-    private const ENTERPRISE_CACHE_KEY = 'public.pricing.enterprise.v2';
-    private const PACKS_CACHE_KEY = 'public.pricing.packs.v2';
+    private const CONTENT_CACHE_KEY = 'public.pricing.page_content.v3';
+    private const PLANS_CACHE_KEY = 'public.pricing.plans.v3';
+    private const ENTERPRISE_CACHE_KEY = 'public.pricing.enterprise.v3';
+    private const PACKS_CACHE_KEY = 'public.pricing.packs.v3';
     private const SETTINGS_KEY = 'marketing_pricing_page';
 
     public function __construct(
@@ -76,6 +76,9 @@ class MarketingPricingService
                         'price_yearly_cents' => $plan->price_yearly_cents !== null ? (int) $plan->price_yearly_cents : null,
                         'currency' => (string) ($plan->currency ?: 'EUR'),
                         'included_credits_monthly' => (int) ($plan->included_credits_per_interval ?: $plan->included_credits ?: 0),
+                        'included_sites' => $plan->includedSites(),
+                        'included_users' => $plan->includedUsers(),
+                        'extra_site_price_cents' => $plan->extraSitePriceCents(),
                         'article_estimate_min' => $plan->article_estimate_min !== null ? (int) $plan->article_estimate_min : null,
                         'article_estimate_max' => $plan->article_estimate_max !== null ? (int) $plan->article_estimate_max : null,
                         'workspace_limit' => $plan->workspace_limit !== null
@@ -215,7 +218,7 @@ class MarketingPricingService
 
     public function clearCaches(): void
     {
-        foreach ([self::CONTENT_CACHE_KEY, self::PLANS_CACHE_KEY, self::ENTERPRISE_CACHE_KEY, self::PACKS_CACHE_KEY, 'public.pricing.page_content', 'public.landing.active_plans', 'public.landing.enterprise_plan', 'public.landing.active_credit_packs'] as $key) {
+        foreach ([self::CONTENT_CACHE_KEY, self::PLANS_CACHE_KEY, self::ENTERPRISE_CACHE_KEY, self::PACKS_CACHE_KEY, 'public.pricing.page_content.v2', 'public.pricing.plans.v2', 'public.pricing.enterprise.v2', 'public.pricing.packs.v2', 'public.pricing.page_content', 'public.landing.active_plans', 'public.landing.enterprise_plan', 'public.landing.active_credit_packs'] as $key) {
             Cache::forget($key);
         }
     }

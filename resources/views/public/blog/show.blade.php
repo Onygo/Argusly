@@ -33,6 +33,20 @@
         ? \App\Support\LocalizedMarketingUrl::route('pricing')
         : \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'early_access']);
     $secondaryCtaLabel = $showPricingCta ? __('public.blog.cta_pricing') : __('public.nav.early_access');
+    $articleText = \Illuminate\Support\Str::lower(strip_tags(($post['title'] ?? '') . ' ' . ($post['content_html'] ?? '')));
+    $showAutomotiveIndustryLink = \Illuminate\Support\Str::contains($articleText, [
+        'automotive',
+        'dealer',
+        'dealers',
+        'importer',
+        'importeurs',
+        'lease',
+        'leasing',
+        'fleet',
+        'fleetmanagement',
+        'mobiliteit',
+        'mobility',
+    ]);
 @endphp
 
 <main class="bg-background">
@@ -87,6 +101,9 @@
                     <div class="mt-5 flex flex-wrap gap-3">
                         <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.product.overview') }}" class="pl-public-secondary-button">{{ __('public.blog.cta_product') }}</a>
                         <a href="{{ $secondaryCtaHref }}" class="pl-public-primary-button">{{ $secondaryCtaLabel }}</a>
+                        @if ($showAutomotiveIndustryLink)
+                            <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.markets.automotive') }}" class="pl-public-secondary-button">Automotive AI Visibility</a>
+                        @endif
                     </div>
                 </div>
             </article>

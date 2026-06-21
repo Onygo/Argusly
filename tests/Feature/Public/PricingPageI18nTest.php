@@ -16,7 +16,8 @@ describe('Pricing page localization', function () {
         $response = $this->get('/en/pricing');
 
         $response->assertOk()
-            ->assertSee('Scale autonomous content operations beyond AI writing', false)
+            ->assertSee('Simple pricing for autonomous marketing', false)
+            ->assertSee('Start with the Argusly Platform. Scale with credits. Add sites when your operation grows.', false)
             ->assertSee('/en/pricing', false)
             ->assertSee('/nl/prijzen', false);
     });
@@ -25,10 +26,11 @@ describe('Pricing page localization', function () {
         $response = $this->get('/nl/prijzen');
 
         $response->assertOk()
-            ->assertSee('Schaal autonome content operations voorbij AI writing', false)
-            ->assertSee('Research, plan, genereer, optimaliseer, lokaliseer en publiceer content vanuit één klantgestuurd platform.', false)
-            ->assertSee('Meest gekozen', false)
-            ->assertSee('Prijs op aanvraag', false)
+            ->assertSee('Eenvoudige pricing voor autonome marketing', false)
+            ->assertSee('Start met het Argusly Platform. Schaal met credits. Voeg sites toe wanneer je organisatie groeit.', false)
+            ->assertSee('Argusly Platform', false)
+            ->assertSee('Start abonnement', false)
+            ->assertSee('Pilot aanvragen', false)
             ->assertSee('/nl/prijzen', false)
             ->assertSee('/en/pricing', false);
     });

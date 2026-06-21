@@ -9,6 +9,7 @@ use App\Models\Draft;
 use App\Models\DraftComparisonScore;
 use App\Models\DraftComparisonVariant;
 use App\Services\Drafts\DraftCtaScoringService;
+use App\Services\HumanSignals\ContentHumanityAnalyzer;
 use Illuminate\Support\Str;
 
 class DraftComparisonScoringService
@@ -29,12 +30,15 @@ class DraftComparisonScoringService
         'entity_coverage' => ['label' => 'Entity Coverage', 'group' => 'quality', 'source_type' => 'heuristic'],
         'factual_confidence' => ['label' => 'Factual Confidence', 'group' => 'quality', 'source_type' => 'heuristic'],
         'conversion_focus' => ['label' => 'Conversion Focus', 'group' => 'conversion', 'source_type' => 'heuristic'],
+        'humanity_score' => ['label' => 'Humanity Score', 'group' => 'quality', 'source_type' => 'heuristic'],
+        'ai_slop_score' => ['label' => 'AI Slop Score', 'group' => 'quality', 'source_type' => 'heuristic'],
     ];
 
     private const SCORING_VERSION = 'draft_compare_v2';
 
     public function __construct(
         private readonly DraftCtaScoringService $ctaScoring,
+        private readonly ContentHumanityAnalyzer $humanityAnalyzer,
     ) {}
 
     /**
@@ -77,6 +81,7 @@ class DraftComparisonScoringService
         $entityCoverage = $this->entityCoverageDetails($plainTextOriginal, $wordCount);
         $factualConfidence = $this->factualConfidenceDetails($plainTextOriginal, $plainText);
         $conversionFocus = $this->conversionFocusDetails($plainText, (int) ($ctaStrength['score'] ?? 0));
+        $humanity = $this->humanityAnalyzer->analyze($plainTextOriginal);
         $aiSeoScore = $this->aiSeoScoreDetails(
             draft: $draft,
             seoScore: (float) ($seoScore['score'] ?? 0),
@@ -99,6 +104,9 @@ class DraftComparisonScoringService
             'entity_coverage' => $entityCoverage['score'],
             'factual_confidence' => $factualConfidence['score'],
             'conversion_focus' => $conversionFocus['score'],
+            'humanity_score' => $humanity['humanity_score'],
+            'ai_slop_score' => $humanity['ai_slop_score'],
+            'humanity_analysis' => $humanity,
             'meta_description_length' => Str::length((string) ($draft->seo_meta_description ?? '')),
             'has_focus_keyword' => $primaryKeyword !== null,
             'scored_at' => now()->toIso8601String(),
@@ -120,6 +128,8 @@ class DraftComparisonScoringService
             'entity_coverage' => (string) ($entityCoverage['explanation'] ?? ''),
             'factual_confidence' => (string) ($factualConfidence['explanation'] ?? ''),
             'conversion_focus' => (string) ($conversionFocus['explanation'] ?? ''),
+            'humanity_score' => 'Measures concrete, observed, evidence-rich language and penalizes generic AI-style phrasing.',
+            'ai_slop_score' => 'Measures generic claims and common cliches such as broad importance claims or digital transformation language.',
         ];
 
         $analysis = $draft->analysis;

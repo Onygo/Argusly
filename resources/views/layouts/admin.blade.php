@@ -119,6 +119,11 @@
                         <span data-sidebar-label class="truncate">Content Policies</span>
                         <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">Content Policies</span>
                     </a>
+                    <a href="{{ route('admin.faq-intelligence.index') }}" data-sidebar-item data-sidebar-title="FAQ Intelligence" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.faq-intelligence.*') ? 'bg-primary text-white' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
+                        <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="messages-square" class="h-4 w-4"></i></span>
+                        <span data-sidebar-label class="truncate">FAQ Intelligence</span>
+                        <span data-sidebar-tooltip class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-1 text-xs text-textPrimary opacity-0 transition-opacity duration-150 group-hover:opacity-100">FAQ Intelligence</span>
+                    </a>
                     <a href="{{ route('admin.feature-flags.index') }}" data-sidebar-item data-sidebar-title="Feature flags" class="group relative flex h-9 items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('admin.feature-flags.*') ? 'bg-primary text-white' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}">
                         <span data-sidebar-icon-wrap class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="toggle-left" class="h-4 w-4"></i></span>
                         <span data-sidebar-label class="truncate">Feature Flags</span>

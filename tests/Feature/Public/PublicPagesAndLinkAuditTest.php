@@ -54,7 +54,7 @@ it('does not emit crawlable contact tracking query links', function () {
 
     $this->get('/en')
         ->assertOk()
-        ->assertSee('/en/company/contact#contact-form', false)
+        ->assertSee('/en/company/contact?subject=walkthrough#contact-form', false)
         ->assertDontSee('topic=', false)
         ->assertDontSee('source=', false)
         ->assertDontSee('cta=', false);
@@ -67,6 +67,17 @@ it('canonicalizes old contact tracking query urls', function () {
     $this->get('/en/company/contact?topic=Contact&source=en/blog/example&cta=Contact')
         ->assertRedirect('/en/company/contact#contact-form')
         ->assertStatus(301);
+});
+
+it('prefills walkthrough contact subject from the header cta subject key', function () {
+    config(['argusly.launch.soft_launch_mode' => false]);
+    $this->seed(\Database\Seeders\MarketingPageSeeder::class);
+
+    $this->get('/nl/bedrijf/contact?subject=walkthrough#contact-form')
+        ->assertOk()
+        ->assertSee('value="demo"', false)
+        ->assertSee('selected>Walkthrough-aanvraag', false)
+        ->assertSee('value="Plan een walkthrough"', false);
 });
 
 it('passes the public link audit command without missing routes or broken links', function () {

@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\AdminDraftsController;
 use App\Http\Controllers\Admin\AdminEarlyAccessController;
 use App\Http\Controllers\Admin\AdminEditorialTaxonomyController;
 use App\Http\Controllers\Admin\AdminFeatureFlagController;
+use App\Http\Controllers\Admin\AdminFaqIntelligenceController;
 use App\Http\Controllers\Admin\AdminInvoiceController;
 use App\Http\Controllers\Admin\AdminLlmController;
 use App\Http\Controllers\Admin\AdminNotificationsController;
@@ -167,6 +168,16 @@ Route::middleware('admin.locale')->group(function () {
             Route::get('/feature-flags', [AdminFeatureFlagController::class, 'index'])->name('admin.feature-flags.index');
             Route::post('/feature-flags', [AdminFeatureFlagController::class, 'store'])->name('admin.feature-flags.store');
             Route::patch('/feature-flags/{featureFlag}', [AdminFeatureFlagController::class, 'update'])->name('admin.feature-flags.update');
+
+            Route::get('/faq-intelligence', [AdminFaqIntelligenceController::class, 'index'])->name('admin.faq-intelligence.index');
+            Route::post('/faq-intelligence/analyze', [AdminFaqIntelligenceController::class, 'analyze'])
+                ->middleware('protect.heavy:report')
+                ->name('admin.faq-intelligence.analyze');
+            Route::post('/faq-intelligence/publish', [AdminFaqIntelligenceController::class, 'publish'])->name('admin.faq-intelligence.publish');
+            Route::post('/faq-intelligence/accept', [AdminFaqIntelligenceController::class, 'accept'])->name('admin.faq-intelligence.accept');
+            Route::patch('/faq-intelligence/questions/{faqQuestion}', [AdminFaqIntelligenceController::class, 'update'])->name('admin.faq-intelligence.questions.update');
+            Route::post('/faq-intelligence/questions/{faqQuestion}/publish', [AdminFaqIntelligenceController::class, 'publishFaq'])->name('admin.faq-intelligence.questions.publish');
+            Route::delete('/faq-intelligence/assignments/{assignment}', [AdminFaqIntelligenceController::class, 'unlink'])->name('admin.faq-intelligence.assignments.unlink');
 
             Route::get('/announcements', [AdminAnnouncementsController::class, 'index'])->name('admin.announcements.index');
             Route::get('/announcements/create', [AdminAnnouncementsController::class, 'create'])->name('admin.announcements.create');

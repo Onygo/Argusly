@@ -39,6 +39,12 @@
     $isAboutPage = $pageKey === 'company.about';
     $isContactPage = $pageKey === 'company.contact';
     $isRoadmapPage = $pageKey === 'company.roadmap';
+    $faqPageType = match (true) {
+        $isProductPlatformPage => 'platform',
+        $isProductOverviewPage => 'platform',
+        $isContactPage => 'contact',
+        default => null,
+    };
 @endphp
 
 <main class="bg-background" @if($pageKey !== '') data-page="{{ str_replace('.', '-', $pageKey) }}" @endif>
@@ -54,6 +60,14 @@
         @include('public.partials.company.roadmap')
     @else
         @include('public.partials.page-generic')
+    @endif
+
+    @if ($faqPageType !== null)
+        <x-public.faq-section
+            :page-type="$faqPageType"
+            :page-slug="$pageKey"
+            :locale="app()->getLocale()"
+        />
     @endif
 </main>
 

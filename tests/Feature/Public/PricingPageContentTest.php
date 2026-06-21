@@ -14,18 +14,20 @@ describe('Public pricing page content', function () {
         $response = $this->get(route('pricing'));
 
         $response->assertOk()
-            ->assertSee('Scale autonomous content operations beyond AI writing', false)
-            ->assertSee('Research, plan, generate, optimize, localize and publish content from one customer-controlled platform.', false)
-            ->assertSee('More than AI writing. Argusly manages the full content lifecycle across CMS, API and LinkedIn channels.', false)
-            ->assertSee('Creator', false)
-            ->assertSee('Growth', false)
-            ->assertSee('Scale', false)
+            ->assertSee('Simple pricing for autonomous marketing', false)
+            ->assertSee('Start with the Argusly Platform. Scale with credits. Add sites when your operation grows.', false)
+            ->assertSee('More than AI writing', false)
+            ->assertSee('Argusly Platform', false)
+            ->assertSee('Extra Sites', false)
+            ->assertSee('What are credits?', false)
             ->assertSee('Enterprise', false)
-            ->assertSee('Flexible AI credits', false)
-            ->assertSee('Scale usage when needed', false)
-            ->assertSee('Replace fragmented content workflows', false)
-            ->assertSee('FAQ', false)
+            ->assertSee('Scale when needed', false)
+            ->assertSee('Start subscription', false)
+            ->assertSee('Request a pilot', false)
             ->assertDontSee('Starter', false)
+            ->assertDontSee('Solo operation', false)
+            ->assertDontSee('Team workflow', false)
+            ->assertDontSee('Operational scale', false)
             ->assertDontSee('Agency', false)
             ->assertDontSee('articles/month', false);
     });
@@ -53,8 +55,7 @@ describe('Public pricing page content', function () {
             ->assertSee('100 credits', false)
             ->assertSee('500 credits', false)
             ->assertSee('1,000 credits', false)
-            ->assertSee('Can I buy extra credits?', false)
-            ->assertSee('Can multiple team members collaborate?', false)
-            ->assertSee('Can I publish directly to WordPress and LinkedIn?', false);
+            ->assertSee('What are credits?', false)
+            ->assertSee('Credit packs for temporary peaks', false);
     });
 });

@@ -62,7 +62,7 @@ class FeatureGate
             ->where(function ($query) {
                 $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
             })
-            ->orderByRaw("CASE WHEN source = 'manual' THEN 0 WHEN source = 'plan' THEN 1 ELSE 2 END")
+            ->orderByRaw("CASE WHEN source = 'manual' THEN 0 WHEN source = 'migration' THEN 1 WHEN source = 'plan' THEN 2 ELSE 3 END")
             ->orderByDesc('refreshed_at')
             ->orderByDesc('updated_at')
             ->first();

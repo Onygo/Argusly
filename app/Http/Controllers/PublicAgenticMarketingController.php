@@ -28,6 +28,7 @@ class PublicAgenticMarketingController extends Controller
                 ->all(),
             'copy' => $copy,
             'faq' => $copy['faq'],
+            'opportunityUrl' => LocalizedMarketingUrl::route('public.solutions.opportunity-intelligence', [], $locale),
         ]);
     }
 
@@ -45,10 +46,10 @@ class PublicAgenticMarketingController extends Controller
                 'og_title' => 'Agentic Marketing infrastructuur | Argusly',
                 'og_description' => 'Van AI-schrijftool naar autonome marketingoperaties voor AI visibility, semantic SEO en lifecycle management.',
                 'badge' => 'Agentic Marketing infrastructuur',
-                'h1' => 'Van handmatige marketinguitvoering naar autonome AI visibility-operaties.',
-                'intro' => 'Argusly helpt marketingteams strategie, content, semantic SEO, AI search readiness, publishing en continue optimalisatie te orkestreren via doelgestuurde workflows. Het is geen simpele AI-schrijftool, maar een operationele laag voor teams die zich voorbereiden op AI-native discovery.',
+                'h1' => 'Zet groeikansen om in autonome marketing workflows met menselijke controle.',
+                'intro' => 'Argusly helpt marketingteams opportunities ontdekken, prioriteren en uitvoeren via doelgestuurde workflows voor content, semantic SEO, AI search readiness, publishing en continue optimalisatie. Het is geen losse AI-schrijftool, maar een operationele laag voor teams die AI-native discovery willen besturen.',
                 'primary_cta' => 'Vraag een vroege platform walkthrough aan',
-                'secondary_cta' => 'Bekijk hoe Argusly AI visibility orkestreert',
+                'secondary_cta' => 'Bekijk Opportunity Intelligence',
                 'hero_cards' => [
                     ['title' => 'AI visibility', 'text' => 'Ontworpen voor search, answer engines en LLM-discovery.'],
                     ['title' => 'Autonome lifecycle', 'text' => 'Plan, publiceer, refresh, lokaliseer en verbeter content continu.'],
@@ -169,10 +170,10 @@ class PublicAgenticMarketingController extends Controller
                 ],
                 'cta' => [
                     'eyebrow' => 'Agentic Marketing infrastructuur',
-                    'title' => 'Bouw autonome content workflows voor AI visibility.',
-                    'text' => 'Bekijk hoe Argusly goal-driven content operations, AI search optimization, semantic entity workflows en continuous lifecycle management ondersteunt.',
+                    'title' => 'Bouw autonome workflows rond de kansen die ertoe doen.',
+                    'text' => 'Bekijk hoe Argusly Opportunity Intelligence koppelt aan goal-driven content operations, AI search optimization, semantic entity workflows en continuous lifecycle management.',
                     'primary' => 'Vraag een vroege platform walkthrough aan',
-                    'secondary' => 'Bouw autonome content workflows',
+                    'secondary' => 'Ontdek Opportunity Intelligence',
                 ],
                 'seo' => [
                     'eyebrow' => 'SEO content blocks',
@@ -200,10 +201,10 @@ class PublicAgenticMarketingController extends Controller
             'og_title' => 'Agentic Marketing Infrastructure | Argusly',
             'og_description' => 'Move from AI writing tools to autonomous marketing operations for AI visibility, semantic SEO, and content lifecycle management.',
             'badge' => 'Agentic Marketing Infrastructure',
-            'h1' => 'Move from manual marketing execution to autonomous AI visibility operations.',
-            'intro' => 'Argusly helps marketing teams orchestrate strategy, content, semantic SEO, AI search readiness, publishing, and continuous optimization through goal-driven workflows. It is not an AI writing shortcut. It is the operational layer for marketing teams preparing for AI-native discovery.',
+            'h1' => 'Turn growth opportunities into autonomous marketing workflows with human control.',
+            'intro' => 'Argusly helps marketing teams discover, prioritize, and execute opportunities through goal-driven workflows for content, semantic SEO, AI search readiness, publishing, and continuous optimization. It is not an AI writing shortcut. It is the operational layer for teams that want to govern AI-native discovery.',
             'primary_cta' => 'Request an early platform walkthrough',
-            'secondary_cta' => 'See how Argusly orchestrates AI visibility',
+            'secondary_cta' => 'Explore Opportunity Intelligence',
             'hero_cards' => [
                 ['title' => 'AI visibility', 'text' => 'Designed for search, answer engines, and LLM discovery surfaces.'],
                 ['title' => 'Autonomous lifecycle', 'text' => 'Plan, publish, refresh, localize, and improve content continuously.'],
@@ -324,10 +325,10 @@ class PublicAgenticMarketingController extends Controller
             ],
             'cta' => [
                 'eyebrow' => 'Agentic Marketing Infrastructure',
-                'title' => 'Build autonomous content workflows for AI visibility.',
-                'text' => 'See how Argusly can support goal-driven content operations, AI search optimization, semantic entity workflows, and continuous lifecycle management.',
+                'title' => 'Build autonomous workflows around the opportunities that matter.',
+                'text' => 'See how Argusly connects Opportunity Intelligence with goal-driven content operations, AI search optimization, semantic entity workflows, and continuous lifecycle management.',
                 'primary' => 'Request an early platform walkthrough',
-                'secondary' => 'Build autonomous content workflows',
+                'secondary' => 'Explore Opportunity Intelligence',
             ],
             'seo' => [
                 'eyebrow' => 'SEO content blocks',

@@ -3,7 +3,7 @@
 @section('content')
     @php
         $marketingUrl = \App\Support\LocalizedMarketingUrl::route('landing');
-        $registerUrl = route('register', ['plan' => 'creator']);
+        $registerUrl = route('register', ['plan' => 'platform_250']);
         $termsUrl = \App\Support\LocalizedMarketingUrl::route('public.legal.terms');
         $privacyUrl = \App\Support\LocalizedMarketingUrl::route('public.legal.privacy');
         $showForgotPassword = \Illuminate\Support\Facades\Route::has('password.request');

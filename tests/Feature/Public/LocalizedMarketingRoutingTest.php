@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\LocalizedMarketingUrl;
+use App\Support\MarketingNavigation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -36,4 +37,44 @@ it('generates localized urls through the helper', function () {
         ->and(LocalizedMarketingUrl::page('seo', 'nl', false))->toBe('/nl/seo')
         ->and(LocalizedMarketingUrl::page('ai_search', 'en', false))->toBe('/en/ai-search')
         ->and(LocalizedMarketingUrl::page('ai_search', 'nl', false))->toBe('/nl/ai-zoekmachines');
+});
+
+it('renders automotive industry pages in English and Dutch', function () {
+    $this->get('/en/markets/automotive')
+        ->assertOk()
+        ->assertSee('Accelerate automotive growth with AI visibility and market intelligence.', false)
+        ->assertSee('Increasing competition between dealers, importers and marketplaces', false)
+        ->assertSee('Request AI Visibility Scan', false);
+
+    $this->get('/nl/markten/automotive')
+        ->assertOk()
+        ->assertSee('Versnel groei in automotive met AI zichtbaarheid en marktintelligentie.', false)
+        ->assertSee('Toenemende concurrentie tussen dealers, importeurs en platformen', false)
+        ->assertSee('Vraag een AI Visibility Scan aan', false);
+});
+
+it('uses the requested primary industry navigation order per locale', function () {
+    app()->setLocale('en');
+
+    expect(collect(MarketingNavigation::marketItems())->pluck('label')->all())->toBe([
+        'Telecom & Connectivity',
+        'Energy, Oil & Gas',
+        'Logistics & Supply Chain',
+        'Manufacturing',
+        'IT Services & SaaS',
+        'Consultancy & Professional Services',
+        'Automotive',
+    ]);
+
+    app()->setLocale('nl');
+
+    expect(collect(MarketingNavigation::marketItems())->pluck('label')->all())->toBe([
+        'Telecom & Connectiviteit',
+        'Energie, Olie & Gas',
+        'Logistiek & Supply Chain',
+        'Productie & Manufacturing',
+        'IT Dienstverlening & SaaS',
+        'Consultancy & Zakelijke Dienstverlening',
+        'Automotive',
+    ]);
 });

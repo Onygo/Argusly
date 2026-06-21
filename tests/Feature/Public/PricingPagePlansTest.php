@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
 
-it('renders three fixed pricing cards plus the enterprise block with growth featured', function () {
+it('renders one platform pricing card plus the enterprise block', function () {
     $this->seed(MarketingPricingPageSeeder::class);
     Cache::flush();
 
@@ -14,27 +14,42 @@ it('renders three fixed pricing cards plus the enterprise block with growth feat
     $html = $response->getContent();
 
     $response->assertOk()
-        ->assertSeeInOrder(['Creator', 'Growth', 'Scale'])
-        ->assertSee('Most popular', false)
+        ->assertSee('Argusly Platform', false)
+        ->assertSee('€99', false)
+        ->assertSee('250 credits / month', false)
+        ->assertSee('1', false)
+        ->assertSee('5', false)
+        ->assertSee('Extra sites €29 / month each.', false)
+        ->assertSee('Start subscription', false)
+        ->assertSee('Request a pilot', false)
+        ->assertSee('Scale your operation', false)
+        ->assertSee('Extra Site', false)
+        ->assertSee('Need temporary capacity? Purchase additional credits without changing your subscription.', false)
         ->assertSee('Custom pricing', false)
-        ->assertSee('Approx. 7 to 10 standard SEO articles', false)
-        ->assertSee('Approx. 35 to 50 standard SEO articles', false)
-        ->assertSee('Approx. 140 to 200 standard SEO articles', false);
+        ->assertDontSee('Scale usage when needed', false)
+        ->assertDontSee('Solo operation', false)
+        ->assertDontSee('Team workflow', false)
+        ->assertDontSee('Operational scale', false);
 
-    expect(substr_count($html, 'data-pricing-card'))->toBe(3)
-        ->and(substr_count($html, 'data-enterprise-block'))->toBe(1);
+    expect(substr_count($html, 'data-pricing-card'))->toBe(1)
+        ->and(substr_count($html, 'data-enterprise-block'))->toBe(1)
+        ->and(substr_count($html, '100 credits'))->toBe(1)
+        ->and(substr_count($html, '500 credits'))->toBe(1)
+        ->and(substr_count($html, '1,000 credits'))->toBe(1);
 });
 
-it('uses credits as the primary pricing unit instead of article quotas', function () {
+it('uses credits and sites as pricing units instead of article quotas', function () {
     $this->seed(MarketingPricingPageSeeder::class);
     Cache::flush();
 
     $response = $this->get(route('pricing'));
 
     $response->assertOk()
-        ->assertSee('100 credits / month', false)
-        ->assertSee('500 credits / month', false)
-        ->assertSee('2,000 credits / month', false)
+        ->assertSee('250 credits / month', false)
+        ->assertSee('Extra Site', false)
+        ->assertSee('€29', false)
+        ->assertSee('What are credits?', false)
+        ->assertDontSee('Scale usage when needed', false)
         ->assertDontSee('5 articles / month', false)
         ->assertDontSee('20 articles / month', false)
         ->assertDontSee('75 articles / month', false);

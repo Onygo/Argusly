@@ -145,6 +145,8 @@ class LocalizedMarketingUrlGenerator
             unset($parameters['sectionSlug']);
         }
 
+        unset($parameters['solution']);
+
         return $parameters;
     }
 

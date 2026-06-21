@@ -20,7 +20,6 @@
             'url' => $canonicalUrl,
             'description' => $metaDescription,
         ];
-        $primaryCta = \App\Support\LocalizedMarketingUrl::route('public.early-access.show', ['intent' => 'agentic-marketing']);
         $contactCta = \App\Support\LocalizedMarketingUrl::route('public.company.contact', ['subject' => $copy['primary_cta']]) . '#contact-form';
     @endphp
     <meta charset="UTF-8" />
@@ -58,7 +57,7 @@
                 <p class="mt-5 max-w-3xl text-pretty text-base leading-8 text-textSecondary md:text-lg">{{ $copy['intro'] }}</p>
                 <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                     <a href="{{ $contactCta }}" class="pl-public-primary-button">{{ $copy['primary_cta'] }}</a>
-                    <a href="#architecture" class="inline-flex items-center justify-center rounded-full border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-surfaceMuted">{{ $copy['secondary_cta'] }}</a>
+                    <a href="{{ $opportunityUrl }}" class="inline-flex items-center justify-center rounded-full border border-publicPrimary/18 bg-white px-6 py-3 text-sm font-semibold text-publicPrimary transition-colors hover:bg-surfaceMuted">{{ $copy['secondary_cta'] }}</a>
                 </div>
                 <div class="mt-8 grid gap-3 text-sm md:grid-cols-3">
                     @foreach ($copy['hero_cards'] as $card)
@@ -294,7 +293,7 @@
                     </div>
                     <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
                         <a href="{{ $contactCta }}" class="pl-public-cta-primary">{{ $copy['cta']['primary'] }}</a>
-                        <a href="{{ $primaryCta }}" class="pl-public-cta-secondary">{{ $copy['cta']['secondary'] }}</a>
+                        <a href="{{ $opportunityUrl }}" class="pl-public-cta-secondary">{{ $copy['cta']['secondary'] }}</a>
                     </div>
                 </div>
             </div>

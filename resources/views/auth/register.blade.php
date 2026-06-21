@@ -21,7 +21,7 @@
     <form class="space-y-4" method="POST" action="{{ route('register.store') }}">
         @csrf
         @php
-            $selectedPlanSlug = old('plan', $selectedPlan?->slug ?? 'creator');
+            $selectedPlanSlug = old('plan', $selectedPlan?->slug ?? 'platform_250');
             $selectedPlanOnboarding = $selectedPlan?->onboardingData() ?? [];
             $selectedPlanOnboardingFeeCents = max(0, (int) ($selectedPlanOnboarding['fee_cents'] ?? 0));
             $selectedPlanOnboardingLabel = strtolower(trim((string) (($selectedPlanOnboarding['checkout_label'] ?? $selectedPlanOnboarding['label'] ?? ''))));

@@ -55,8 +55,8 @@
         <p class="mb-3 text-sm font-semibold text-textPrimary">Add site</p>
         @if (($siteUsage['site_limit_reached'] ?? false))
             <x-alert class="mb-3 text-xs" :icon="true">
-                Site limit reached for your current package.
-                <a href="{{ route('app.billing.index', ['tab' => 'subscriptions']) }}" class="underline">Upgrade package</a>
+                You have reached the included site limit. Add another site for €{{ number_format((int) ($siteUsage['extra_site_price_cents'] ?? 2900) / 100, 0) }} per month.
+                <a href="{{ route('app.billing.index', ['tab' => 'subscriptions']) }}" class="underline">Manage billing</a>
             </x-alert>
         @endif
         <form method="POST" action="{{ route('app.sites.store') }}" class="grid gap-3 md:grid-cols-4">

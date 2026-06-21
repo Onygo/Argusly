@@ -49,20 +49,6 @@ final class MarketingNavigation
                 'anchor' => '#contact-form',
             ];
         } else {
-            // Full marketing mode
-            $items[] = [
-                'label' => __('public.nav.overview'),
-                'route' => 'public.product.overview',
-            ];
-            $items[] = [
-                'label' => __('public.nav.platform'),
-                'route' => 'public.product.platform',
-            ];
-            $items[] = [
-                'label' => __('public.nav.blog'),
-                'route' => 'public.blog.index',
-            ];
-
             if (EarlyAccess::pricingEnabled()) {
                 $items[] = [
                     'label' => __('public.nav.pricing'),
@@ -75,19 +61,107 @@ final class MarketingNavigation
     }
 
     /**
-     * @return array{label: string, page_key: string, description: string}
+     * @return array<int, array{label: string, route: string, route_params?: array<string, mixed>, anchor?: string, description: string}>
+     */
+    public static function platformItems(): array
+    {
+        return [
+            [
+                'label' => __('public.platform_nav.overview'),
+                'route' => 'public.product.platform',
+                'description' => __('public.platform_nav.overview_description'),
+            ],
+            [
+                'label' => __('public.platform_nav.how_it_works'),
+                'route' => 'landing',
+                'anchor' => '#how',
+                'description' => __('public.platform_nav.how_it_works_description'),
+            ],
+            [
+                'label' => __('public.platform_nav.ai_visibility'),
+                'route' => 'public.solutions.ai-visibility',
+                'description' => __('public.platform_nav.ai_visibility_description'),
+            ],
+            [
+                'label' => __('public.platform_nav.opportunity_intelligence'),
+                'route' => 'public.solutions.opportunity-intelligence',
+                'description' => __('public.platform_nav.opportunity_intelligence_description'),
+            ],
+            [
+                'label' => __('public.platform_nav.autonomous_marketing'),
+                'route' => 'public.agentic-marketing',
+                'description' => __('public.platform_nav.autonomous_marketing_description'),
+            ],
+            [
+                'label' => __('public.platform_nav.integrations'),
+                'route' => 'public.product.platform',
+                'anchor' => '#capabilities',
+                'description' => __('public.platform_nav.integrations_description'),
+            ],
+            [
+                'label' => __('public.platform_nav.governance_security'),
+                'route' => 'public.product.platform',
+                'anchor' => '#governance',
+                'description' => __('public.platform_nav.governance_security_description'),
+            ],
+        ];
+    }
+
+    /**
+     * @return array{label: string, page_key: string, description: string}|null
      */
     public static function resourceHubItem(): ?array
     {
-        if (! self::resourcePageExists('ai_search')) {
-            return null;
-        }
+        return null;
+    }
 
+    /**
+     * @return array<int, array{label: string, page_key?: string, route?: string}>
+     */
+    public static function solutionItems(): array
+    {
         return [
-            'label' => __('public.resources.hub_short'),
-            'page_key' => 'ai_search',
-            'description' => __('public.resources.hub_description'),
+            [
+                'label' => __('public.solutions.discover_opportunities'),
+                'route' => 'public.solutions.opportunity-intelligence',
+                'description' => __('public.solutions.opportunity_intelligence_description'),
+            ],
+            [
+                'label' => __('public.solutions.increase_ai_visibility'),
+                'route' => 'public.solutions.ai-visibility',
+                'description' => __('public.solutions.ai_visibility_description'),
+            ],
+            [
+                'label' => __('public.solutions.competitive_insight'),
+                'route' => 'public.solutions.competitive-intelligence',
+                'description' => __('public.solutions.competitive_intelligence_description'),
+            ],
+            [
+                'label' => __('public.solutions.organize_marketing_autonomously'),
+                'route' => 'public.agentic-marketing',
+                'description' => __('public.solutions.agentic_marketing_description'),
+            ],
         ];
+    }
+
+    /**
+     * @return array<int, array{label: string, route: string, description: string}>
+     */
+    public static function marketItems(): array
+    {
+        $locale = (string) app()->getLocale();
+
+        return collect((array) config('argusly_markets.pages', []))
+            ->map(fn (array $market): array => self::localizedMarket($market, $locale))
+            ->filter(fn (array $market): bool => (bool) ($market['nav_primary'] ?? true))
+            ->sortBy(fn (array $market): int => (int) ($market['nav_order'] ?? 999))
+            ->map(fn (array $market, string $key): array => [
+                'label' => (string) ($market['nav_label'] ?? $market['label'] ?? $key),
+                'route' => 'public.markets.' . $key,
+                'description' => (string) ($market['description'] ?? ''),
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -97,32 +171,16 @@ final class MarketingNavigation
     {
         return collect([
             [
-                'label' => __('public.resources.seo'),
-                'page_key' => 'seo',
+                'label' => __('public.resources.ai_visibility_agentic_marketing'),
+                'page_key' => 'ai_visibility_agentic_marketing',
             ],
             [
-                'label' => __('public.resources.geo'),
-                'page_key' => 'geo',
+                'label' => __('public.nav.blog'),
+                'route' => 'public.blog.index',
             ],
             [
-                'label' => __('public.resources.seo_vs_geo'),
-                'page_key' => 'seo_vs_geo',
-            ],
-            [
-                'label' => __('public.resources.llm_visibility'),
-                'page_key' => 'llm_visibility',
-            ],
-            [
-                'label' => __('public.resources.ai_visibility_score'),
-                'page_key' => 'ai_visibility_score',
-            ],
-            [
-                'label' => __('public.resources.ai_search_optimization'),
-                'page_key' => 'ai_search_optimization',
-            ],
-            [
-                'label' => __('public.resources.agentic_marketing'),
-                'route' => 'public.agentic-marketing',
+                'label' => __('public.resources.ai_search_geo'),
+                'page_key' => 'ai_search',
             ],
         ])
             ->filter(fn (array $item): bool => isset($item['route']) || self::resourcePageExists((string) $item['page_key']))
@@ -167,8 +225,9 @@ final class MarketingNavigation
         }
 
         return [
-            'label' => __('public.nav.contact'),
+            'label' => __('public.nav.ai_visibility_scan'),
             'route' => 'public.company.contact',
+            'route_params' => ['subject' => 'walkthrough'],
             'anchor' => '#contact-form',
         ];
     }
@@ -193,16 +252,16 @@ final class MarketingNavigation
         // Full marketing mode
         $items = [
             [
-                'label' => __('public.nav.overview'),
-                'route' => 'public.product.overview',
-            ],
-            [
-                'label' => __('public.nav.platform'),
+                'label' => __('public.platform_nav.overview'),
                 'route' => 'public.product.platform',
             ],
             [
-                'label' => __('public.footer.blog'),
-                'route' => 'public.blog.index',
+                'label' => __('public.solutions.opportunity_intelligence'),
+                'route' => 'public.solutions.opportunity-intelligence',
+            ],
+            [
+                'label' => __('public.nav.markets'),
+                'route' => 'public.markets.it-services-saas',
             ],
         ];
 
@@ -453,6 +512,14 @@ final class MarketingNavigation
         }
 
         return $url;
+    }
+
+    private static function localizedMarket(array $market, string $locale): array
+    {
+        $localized = (array) ($market['locales'][$locale] ?? []);
+        unset($market['locales']);
+
+        return array_replace_recursive($market, $localized);
     }
 
     private static function resourcePageExists(string $pageKey): bool

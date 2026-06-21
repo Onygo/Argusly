@@ -21,6 +21,7 @@
                     <th class="pb-2 font-medium">Received</th>
                     <th class="pb-2 font-medium">Name</th>
                     <th class="pb-2 font-medium">Email</th>
+                    <th class="pb-2 font-medium">Interest</th>
                     <th class="pb-2 font-medium">Topic</th>
                     <th class="pb-2 font-medium">Source</th>
                     <th class="pb-2 font-medium">Subject</th>
@@ -34,6 +35,7 @@
                         <td class="py-3">{{ optional($submission->created_at)->format('Y-m-d H:i') }}</td>
                         <td class="py-3">{{ $submission->name }}</td>
                         <td class="py-3">{{ $submission->email }}</td>
+                        <td class="py-3">{{ $submission->interest_area ?: 'n/a' }}</td>
                         <td class="py-3">{{ $submission->topic ?: 'n/a' }}</td>
                         <td class="py-3">{{ $submission->source_page ?: 'n/a' }}</td>
                         <td class="py-3">{{ $submission->subject ?: 'n/a' }}</td>
@@ -54,7 +56,15 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="pb-3 text-xs text-textSecondary" colspan="8">
+                        <td class="pb-3 text-xs text-textSecondary" colspan="9">
+                            @if ($submission->website || $submission->market || $submission->competitors || $submission->growth_goal)
+                                <div class="mb-2 grid gap-1 sm:grid-cols-2">
+                                    <span><strong class="text-textPrimary">Website:</strong> {{ $submission->website ?: 'n/a' }}</span>
+                                    <span><strong class="text-textPrimary">Market:</strong> {{ $submission->market ?: 'n/a' }}</span>
+                                    <span><strong class="text-textPrimary">Competitors:</strong> {{ \Illuminate\Support\Str::limit($submission->competitors ?: 'n/a', 120) }}</span>
+                                    <span><strong class="text-textPrimary">Growth goal:</strong> {{ $submission->growth_goal ?: 'n/a' }}</span>
+                                </div>
+                            @endif
                             <strong class="text-textPrimary">Message:</strong>
                             {{ \Illuminate\Support\Str::limit($submission->message, 280) }}
                             @if ($submission->mail_error)

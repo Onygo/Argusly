@@ -277,9 +277,20 @@ class ExistingPilotUserService
                 'is_active' => false,
                 'is_popular' => false,
                 'sort_order' => 999,
-                'limits' => ['workspaces' => 1, 'sites' => 3, 'users' => 5, 'included_drafts_per_month' => 20],
+                'limits' => ['workspaces' => 1, 'sites' => 1, 'users' => 5, 'included_drafts_per_month' => 20],
             ]);
         }
+
+        $limits = is_array($plan->limits) ? $plan->limits : [];
+        $limits['workspaces'] = 1;
+        $limits['sites'] = 1;
+        $limits['users'] = 5;
+        $limits['included_drafts_per_month'] = (int) ($limits['included_drafts_per_month'] ?? 20);
+
+        $plan->forceFill([
+            'seat_limit' => 5,
+            'limits' => $limits,
+        ])->save();
 
         if (! $plan->features()->exists()) {
             $templatePlan = Plan::query()

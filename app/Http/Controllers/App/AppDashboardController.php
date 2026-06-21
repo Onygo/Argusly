@@ -16,6 +16,7 @@ use App\Services\Assistant\AssistantFeedService;
 use App\Services\CreditWalletService;
 use App\Services\Dashboard\DashboardActionFirstService;
 use App\Services\Growth\ProgrammaticGrowthBetaSummary;
+use App\Services\HumanSignals\HumanSignalDashboardService;
 use App\Services\Onboarding\FirstValueActivationService;
 use App\Services\RecommendedActions\RecommendedActionEngine;
 use App\View\Presenters\ContentIndexTreePresenter;
@@ -34,6 +35,7 @@ class AppDashboardController extends Controller
         ProgrammaticGrowthBetaSummary $programmaticGrowthBetaSummary,
         AssistantFeedService $assistantFeedService,
         RecommendedActionEngine $recommendedActionEngine,
+        HumanSignalDashboardService $humanSignalDashboardService,
     ): View|RedirectResponse
     {
         $user = request()->user();
@@ -199,6 +201,7 @@ class AppDashboardController extends Controller
             'recommendedActionsSummary' => $activationWorkspace
                 ? $recommendedActionEngine->dashboardSummary($activationWorkspace)
                 : ['count' => 0, 'high_priority_count' => 0, 'approval_required_count' => 0, 'items' => collect()],
+            'humanSignalsSummary' => $humanSignalDashboardService->forWorkspace($activationWorkspace),
             'assistantFeed' => $activationWorkspace
                 ? $assistantFeedService->hydrateWorkspace($activationWorkspace, 5, false)->take(6)
                 : collect(),

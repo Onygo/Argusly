@@ -24,6 +24,14 @@
     @include('public.legal.partials.hero', ['title' => $heroTitle, 'subtitle' => $heroSubtitle])
 
     @include('public.legal.partials.shell', ['items' => $legalSidebarItems, 'activeLegal' => $activeLegal])
+
+    @if (($activeLegal ?? '') === 'security')
+        <x-public.faq-section
+            page-type="security"
+            page-slug="legal.security"
+            :locale="app()->getLocale()"
+        />
+    @endif
 </main>
 
 @include('public.partials.footer')

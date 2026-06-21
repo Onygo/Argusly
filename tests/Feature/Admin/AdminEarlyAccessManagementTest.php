@@ -348,6 +348,15 @@ it('adds an existing organization user to the pilot program without sending an i
         ->and(AccessOverride::query()->where('user_id', $user->id)->where('type', 'early_access')->open()->exists())->toBeTrue()
         ->and(Subscription::query()->where('organization_id', $user->organization_id)->where('status_reason', 'early_access_existing_user')->exists())->toBeTrue();
 
+    $subscription = Subscription::query()
+        ->where('organization_id', $user->organization_id)
+        ->where('status_reason', 'early_access_existing_user')
+        ->firstOrFail();
+
+    expect($subscription->seat_limit)->toBe(5)
+        ->and($subscription->plan?->includedSites())->toBe(1)
+        ->and($subscription->plan?->includedUsers())->toBe(5);
+
     Mail::assertNothingSent();
 });
 

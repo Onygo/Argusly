@@ -10,6 +10,11 @@ class ContactSubmission extends Model
         'name',
         'email',
         'company',
+        'website',
+        'market',
+        'competitors',
+        'growth_goal',
+        'interest_area',
         'subject',
         'message',
         'topic',
@@ -26,4 +31,3 @@ class ContactSubmission extends Model
         'mail_sent_at' => 'datetime',
     ];
 }
-

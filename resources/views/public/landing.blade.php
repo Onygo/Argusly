@@ -60,6 +60,55 @@
     </div>
 </section>
 
+{{-- Signals to Action --}}
+<section class="bg-surface">
+    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16">
+        <div class="mx-auto max-w-3xl text-center">
+            <p class="pl-public-eyebrow">{{ __('public.landing.signals_badge') }}</p>
+            <h2 class="mt-3 pl-public-heading pl-public-heading-h2">{{ __('public.landing.signals_title') }}</h2>
+            <p class="mt-3 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.landing.signals_text') }}</p>
+        </div>
+
+        <div class="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            @foreach(trans('public.landing.signals_steps') as $step)
+                <div class="pl-public-card-compact bg-white p-5">
+                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-publicPrimary text-sm font-semibold text-white">{{ $loop->iteration }}</span>
+                    <h3 class="mt-4 text-sm font-semibold text-textPrimary">{{ $step['title'] }}</h3>
+                    <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $step['text'] }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- Sample Opportunity Output --}}
+<section class="bg-white">
+    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16">
+        <div class="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
+            <div>
+                <p class="pl-public-eyebrow">{{ __('public.landing.sample_outputs_badge') }}</p>
+                <h2 class="mt-3 pl-public-heading pl-public-heading-h2">{{ __('public.landing.sample_outputs_title') }}</h2>
+                <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ __('public.landing.sample_outputs_text') }}</p>
+            </div>
+            <div class="grid gap-4 md:grid-cols-2">
+                @foreach(trans('public.landing.sample_outputs') as $sample)
+                    <article class="pl-public-card-compact p-5">
+                        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-publicPrimary">{{ $sample['label'] }}</p>
+                        <h3 class="mt-3 text-sm font-semibold leading-6 text-textPrimary">{{ $sample['title'] }}</h3>
+                        <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $sample['text'] }}</p>
+                    </article>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
+@include('public.partials.market-links', [
+    'variant' => 'warm',
+    'title' => __('public.markets.homepage_title'),
+    'text' => __('public.markets.homepage_text'),
+])
+
 {{-- Problem / Pain Points --}}
 <section class="bg-surface">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
@@ -573,6 +622,29 @@
     </div>
 </section>
 
+{{-- Future Vision --}}
+<section class="bg-white">
+    <div class="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-16">
+        <div class="pl-public-card-soft px-6 py-8 sm:px-8 md:px-10">
+            <div class="grid gap-8 md:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] md:items-center">
+                <div>
+                    <p class="pl-public-eyebrow">{{ __('public.landing.vision_badge') }}</p>
+                    <h2 class="mt-3 pl-public-heading pl-public-heading-h2">{{ __('public.landing.vision_title') }}</h2>
+                    <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ __('public.landing.vision_text') }}</p>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    @foreach (__('public.landing.vision_layers') as $layer)
+                        <div class="rounded-md border border-border bg-white px-4 py-3">
+                            <p class="text-sm font-semibold text-textPrimary">{{ $layer }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- AI Search --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
@@ -734,6 +806,15 @@
         <p class="mx-auto mt-5 max-w-3xl text-center text-sm leading-6 text-textSecondary md:mt-8">{{ __('public.landing.integration_text') }}</p>
     </div>
 </section>
+
+<x-public.faq-section
+    page-type="homepage"
+    page-slug="landing"
+    :locale="app()->getLocale()"
+    :items="collect(__('public.landing.faqs'))->map(fn (array $item) => (object) $item)"
+    :heading="__('public.landing.homepage_faq_heading')"
+    :intro="__('public.landing.homepage_faq_intro')"
+/>
 
 {{-- Bottom CTA --}}
 <section id="cta" class="bg-surface">

@@ -16,7 +16,25 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('admin.billing.pricing-page.update') }}" class="space-y-6">
+    @include('admin.faq-intelligence._cms-tab', [
+        'pageType' => 'pricing',
+        'pageSlug' => 'pricing',
+        'locale' => 'en',
+        'title' => 'Pricing',
+        'metaTitle' => $content['hero_title'] ?? 'Pricing',
+        'metaDescription' => $content['hero_subline'] ?? '',
+        'h1' => $content['hero_title'] ?? 'Pricing',
+        'content' => implode(' ', array_filter([
+            $content['hero_subline'] ?? '',
+            $content['hero_text_1'] ?? '',
+            $content['hero_text_2'] ?? '',
+            $content['enterprise_text'] ?? '',
+            $content['credit_faq_text'] ?? '',
+        ])),
+        'solutionType' => 'Pricing',
+    ])
+
+    <form method="POST" action="{{ route('admin.billing.pricing-page.update') }}" class="mt-6 space-y-6">
         @csrf
 
         <div class="rounded-lg border border-border bg-surface p-5">

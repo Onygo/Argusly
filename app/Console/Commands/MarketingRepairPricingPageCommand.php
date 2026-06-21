@@ -25,7 +25,7 @@ class MarketingRepairPricingPageCommand extends Command
         $settings->clearCache('pricing_page_content');
 
         $plans = Plan::query()
-            ->whereIn('slug', ['creator', 'growth', 'scale', 'enterprise'])
+            ->whereIn('slug', ['platform_250', 'platform_500', 'platform_1000', 'platform_2000', 'enterprise_custom'])
             ->orderBy('sort_order')
             ->get(['slug', 'name', 'price_monthly_cents', 'included_credits_per_interval', 'billing_type', 'is_popular', 'is_active']);
 

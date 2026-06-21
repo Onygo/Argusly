@@ -36,7 +36,8 @@ class WorkspaceEntitlementsService
             'has_subscription' => $hasSubscription,
             'has_access' => $commercialAccess,
             'access_tier' => $workspace->organization ? $this->access->effectiveState($workspace->organization) : null,
-            'max_sites' => $this->intValue($workspace, 'wp_sites_limit', 1),
+            'max_sites' => $this->siteLimit($workspace, $subscription),
+            'extra_site_price_cents' => (int) ($subscription?->plan?->extraSitePriceCents() ?? 2900),
             'briefs_per_month' => $this->intValue($workspace, 'briefs_per_month', -1),
             'drafts_per_month' => $this->intValue($workspace, 'drafts_per_month', -1),
             'can_generate_briefs' => $this->boolValue($workspace, 'can_generate_briefs', true),
@@ -72,7 +73,7 @@ class WorkspaceEntitlementsService
         }
 
         if ((int) $sites['sites_used'] >= $max) {
-            throw new RuntimeException(sprintf('Site limit reached (%d). Upgrade your package to add more sites.', $max));
+            throw new RuntimeException('You have reached the included site limit. Add another site for €29 per month.');
         }
     }
 
@@ -97,6 +98,7 @@ class WorkspaceEntitlementsService
             'sites_used' => $used,
             'sites_remaining' => $max < 0 ? -1 : max(0, $max - $used),
             'site_limit_reached' => $max >= 0 && $used >= $max,
+            'extra_site_price_cents' => (int) ($limits['extra_site_price_cents'] ?? 2900),
         ];
     }
 
@@ -187,5 +189,17 @@ class WorkspaceEntitlementsService
         $value = $this->gate->value($workspace, $key, $default);
 
         return is_numeric($value) ? (int) $value : $default;
+    }
+
+    private function siteLimit(Workspace $workspace, mixed $subscription): int
+    {
+        $entitlementValue = $this->gate->value($workspace, 'wp_sites_limit', null);
+        if (is_numeric($entitlementValue)) {
+            return (int) $entitlementValue;
+        }
+
+        $plan = $subscription?->plan;
+
+        return $plan ? $plan->includedSites() : 1;
     }
 }

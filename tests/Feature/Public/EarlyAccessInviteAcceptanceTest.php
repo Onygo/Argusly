@@ -70,10 +70,17 @@ it('accepts an early access invite and provisions the account workspace and plan
         ->and($workspace)->not->toBeNull()
         ->and($subscription)->not->toBeNull()
         ->and($subscription->status)->toBe('active')
+        ->and($subscription->seat_limit)->toBe(5)
         ->and($plan)->toBeInstanceOf(Plan::class)
         ->and((string) $plan->key)->toBe('early_access')
+        ->and($plan->includedSites())->toBe(1)
+        ->and($plan->includedUsers())->toBe(5)
         ->and((string) $organization->active_subscription_id)->toBe((string) $subscription?->id)
-        ->and(WorkspaceEntitlement::query()->where('workspace_id', $workspace?->id)->count())->toBeGreaterThan(0);
+        ->and(WorkspaceEntitlement::query()->where('workspace_id', $workspace?->id)->count())->toBeGreaterThan(0)
+        ->and(WorkspaceEntitlement::query()
+            ->where('workspace_id', $workspace?->id)
+            ->where('feature_key', 'wp_sites_limit')
+            ->value('value_int'))->toBe(1);
 
     $this->post(route('public.early-access.invites.store', $plainToken), [
         'name' => 'Activation Candidate',

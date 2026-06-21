@@ -4,6 +4,7 @@ namespace App\Services\SocialDistribution;
 
 use App\Models\SocialPostVariant;
 use App\Models\WriterProfile;
+use App\Services\HumanSignals\HumanSignalContextBuilder;
 use App\Services\Llm\Data\LlmMessage;
 use App\Services\Llm\Data\LlmRequest;
 use App\Services\Llm\LlmManager;
@@ -17,6 +18,7 @@ class SocialPostVariantGenerationProvider
     public function __construct(
         private readonly LlmManager $llm,
         private readonly SocialCopyLanguageAgent $languageAgent,
+        private readonly HumanSignalContextBuilder $humanSignalContext,
     ) {}
 
     /**
@@ -110,8 +112,9 @@ class SocialPostVariantGenerationProvider
         $targetAccountLine = $targetAccount !== []
             ? json_encode($targetAccount, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
             : 'Not assigned';
+        $humanSignals = $this->humanSignalContext->forWorkspace($variant->workspace, 4);
 
-        return trim(implode("\n", [
+        $lines = [
             'Create one LinkedIn variant.',
             'Language: '.$language,
             $language === 'Dutch (Nederlands)'
@@ -127,8 +130,15 @@ class SocialPostVariantGenerationProvider
             'Allowed hashtags: '.($hashtags !== '' ? $hashtags : 'Return only highly relevant hashtags if useful'),
             'Target publishing identity: '.$targetAccountLine,
             'Prompt context JSON: '.json_encode($context, JSON_UNESCAPED_SLASHES),
-            'Write for a practical executive audience. Keep the hook under 160 characters and the body under 900 characters. Do not include the article URL inside hook or body; it is attached separately.',
-        ]));
+        ];
+
+        if ($humanSignals !== '') {
+            $lines[] = $humanSignals;
+        }
+
+        $lines[] = 'Write for a practical executive audience. Keep the hook under 160 characters and the body under 900 characters. Do not include the article URL inside hook or body; it is attached separately.';
+
+        return trim(implode("\n", $lines));
     }
 
     private function promptValue(mixed $value): string

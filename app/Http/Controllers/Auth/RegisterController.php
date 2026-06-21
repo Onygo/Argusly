@@ -42,9 +42,11 @@ class RegisterController extends Controller
             : '';
         $requestedSlug = $this->normalizePublicPlanSlug($requestedSlug);
         $sessionSlug = $this->normalizePublicPlanSlug($sessionSlug);
-        $fallbackSlug = $plans->contains(fn (Plan $plan): bool => (string) $plan->slug === 'creator')
-            ? 'creator'
-            : (string) ($plans->first()?->slug ?? '');
+        $fallbackSlug = $plans->contains(fn (Plan $plan): bool => (string) $plan->slug === 'argusly_platform')
+            ? 'argusly_platform'
+            : ($plans->contains(fn (Plan $plan): bool => (string) $plan->slug === 'platform_250')
+                ? 'platform_250'
+                : (string) ($plans->first()?->slug ?? ''));
         $selectedSlug = $requestedSlug !== '' ? $requestedSlug : ($sessionSlug !== '' ? $sessionSlug : $fallbackSlug);
 
         $selectedPlan = $plans->first(fn (Plan $plan): bool => (string) $plan->slug === $selectedSlug);
@@ -150,14 +152,33 @@ class RegisterController extends Controller
 
     private function resolvePublicPlanBySlug(string $slug): ?Plan
     {
+        $originalSlug = strtolower(trim($slug));
         $slug = $this->normalizePublicPlanSlug($slug);
 
         if ($slug === '') {
             return null;
         }
 
-        return $this->publicMonthlyPlans()
+        $plans = $this->publicMonthlyPlans();
+        $plan = $plans
             ->first(fn (Plan $plan): bool => (string) $plan->slug === $slug);
+
+        if ($plan) {
+            return $plan;
+        }
+
+        $legacyFallback = match ($originalSlug) {
+            'argusly_platform' => 'platform_250',
+            'starter', 'creator' => 'platform_250',
+            'pro', 'growth' => 'platform_250',
+            'agency', 'scale' => 'platform_250',
+            'enterprise' => 'enterprise',
+            default => '',
+        };
+
+        return $legacyFallback !== ''
+            ? $plans->first(fn (Plan $plan): bool => (string) $plan->slug === $legacyFallback)
+            : null;
     }
 
     /**
@@ -247,9 +268,8 @@ class RegisterController extends Controller
         $slug = strtolower(trim($slug));
 
         return match ($slug) {
-            'starter' => 'creator',
-            'pro' => 'growth',
-            'agency' => 'scale',
+            'starter', 'creator', 'pro', 'growth', 'agency', 'scale' => 'argusly_platform',
+            'enterprise' => 'enterprise_custom',
             default => $slug,
         };
     }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ClientSite;
+use App\Models\Invite;
 use App\Models\Organization;
 use App\Models\Subscription;
 use App\Models\User;
@@ -158,6 +159,35 @@ class SubscriptionService
         $activeUsers = (int) $organization->users()->where('active', true)->count();
 
         if ($activeUsers >= $seatLimit) {
+            throw new RuntimeException('Seat limit reached for the active plan. Upgrade plan to add users.');
+        }
+    }
+
+    public function assertSeatLimitAvailableForInvite(
+        Organization $organization,
+        User|int|string|null $actor = null,
+    ): void {
+        $subscription = $this->assertOrganizationCanBuyCredits($organization, $actor);
+
+        if (! $subscription) {
+            return;
+        }
+
+        $seatLimit = (int) ($subscription->seat_limit ?? 0);
+        if ($seatLimit <= 0) {
+            $seatLimit = 1;
+        }
+
+        $activeUsers = (int) $organization->users()->where('active', true)->count();
+        $pendingInvites = (int) Invite::query()
+            ->where('organization_id', $organization->id)
+            ->whereNull('accepted_at')
+            ->where(function ($query): void {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->count();
+
+        if ($activeUsers + $pendingInvites >= $seatLimit) {
             throw new RuntimeException('Seat limit reached for the active plan. Upgrade plan to add users.');
         }
     }

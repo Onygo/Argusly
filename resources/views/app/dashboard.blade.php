@@ -86,6 +86,8 @@
         </div>
 
         <x-dashboard.intelligence-feed-widget :items="data_get($actionFirstDashboard, 'intelligence_feed', collect())" />
+
+        <x-dashboard.human-signals-widget :summary="$humanSignalsSummary ?? []" />
     </div>
 
     @if (!empty($activation) && !data_get($activation, 'is_active'))

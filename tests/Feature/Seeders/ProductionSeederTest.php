@@ -51,11 +51,12 @@ it('seeds current pricing plans and credit pricing idempotently', function () {
 
     $plans = Plan::query()->orderBy('sort_order')->pluck('slug')->all();
 
-    expect($plans)->toBe(['creator', 'growth', 'scale', 'enterprise'])
-        ->and(Plan::query()->where('slug', 'creator')->value('price_monthly_cents'))->toBe(3900)
-        ->and(Plan::query()->where('slug', 'growth')->value('price_monthly_cents'))->toBe(14900)
-        ->and(Plan::query()->where('slug', 'scale')->value('price_monthly_cents'))->toBe(49900)
-        ->and(Plan::query()->where('slug', 'enterprise')->value('billing_type'))->toBe('custom')
+    expect($plans)->toBe(['platform_250', 'platform_500', 'platform_1000', 'platform_2000', 'enterprise_custom'])
+        ->and(Plan::query()->where('slug', 'platform_250')->value('price_monthly_cents'))->toBe(9900)
+        ->and(Plan::query()->where('slug', 'platform_500')->value('price_monthly_cents'))->toBe(14900)
+        ->and(Plan::query()->where('slug', 'platform_1000')->value('price_monthly_cents'))->toBe(24900)
+        ->and(Plan::query()->where('slug', 'platform_2000')->value('price_monthly_cents'))->toBe(39900)
+        ->and(Plan::query()->where('slug', 'enterprise_custom')->value('billing_type'))->toBe('custom')
         ->and(CreditPack::query()->where('is_active', true)->count())->toBe(3)
         ->and(SiteSetting::query()->where('key', 'marketing_pricing_page')->exists())->toBeTrue();
 });

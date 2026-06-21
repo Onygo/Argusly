@@ -102,6 +102,26 @@ return [
             'en' => 'solutions',
             'nl' => 'oplossingen',
         ],
+        'markets' => [
+            'en' => 'industries',
+            'nl' => 'sectoren',
+        ],
+        'opportunity_intelligence' => [
+            'en' => 'opportunity-intelligence',
+            'nl' => 'opportunity-intelligence',
+        ],
+        'ai_visibility' => [
+            'en' => 'ai-visibility',
+            'nl' => 'ai-visibility',
+        ],
+        'competitive_intelligence' => [
+            'en' => 'competitive-intelligence',
+            'nl' => 'competitive-intelligence',
+        ],
+        'marketing_without_large_team' => [
+            'en' => 'marketing-without-a-large-team',
+            'nl' => 'marketing-zonder-groot-team',
+        ],
         'knowledge_base' => [
             'en' => 'knowledge-base',
             'nl' => 'kennisbank',

@@ -11,6 +11,7 @@ use App\Models\TeamMember;
 use App\Models\Workspace;
 use App\Models\WriterProfile;
 use App\Services\Credits\GenerationPricing;
+use App\Services\HumanSignals\HumanSignalContextBuilder;
 use App\Services\Llm\Data\LlmMessage;
 use App\Services\Llm\Data\LlmRequest;
 use App\Services\Llm\Exceptions\LlmException;
@@ -31,6 +32,7 @@ class DraftGenerationService
         protected CreditWalletService $credits,
         protected LlmManager $llmManager,
         protected GenerationPricing $pricing,
+        protected HumanSignalContextBuilder $humanSignalContext,
     ) {}
 
     public function generateAndBill(Draft $draft, ?string $userId = null, int $maxPasses = 2): array
@@ -329,6 +331,7 @@ class DraftGenerationService
         $context = $content ? $this->buildGenerationContext($content, $draft) : $this->defaultSystemContext();
         $context = $this->appendWriterProfileContext($context, $draft, $content, $workspace, $outputType);
         $context = $this->appendCompetitorContext($context, $draft);
+        $context = $this->appendHumanSignalContext($context, $workspace);
 
         $requestedProviderOverride = $this->resolveProviderName((string) (
             $meta['generation_provider_override']
@@ -434,10 +437,16 @@ class DraftGenerationService
     {
         $content = $draft->content()->with(['workspace.organization', 'brandVoice', 'teamMember', 'writerProfile'])->first();
         if (! $content) {
-            return $this->appendCompetitorContext($this->defaultSystemContext(), $draft);
+            return $this->appendHumanSignalContext(
+                $this->appendCompetitorContext($this->defaultSystemContext(), $draft),
+                $this->resolveWorkspaceForDraft($draft)
+            );
         }
 
-        return $this->appendCompetitorContext($this->buildGenerationContext($content, $draft), $draft);
+        return $this->appendHumanSignalContext(
+            $this->appendCompetitorContext($this->buildGenerationContext($content, $draft), $draft),
+            $this->resolveWorkspaceForDraft($draft)
+        );
     }
 
     public function buildGenerationContext(Content $content, ?Draft $draft = null): string
@@ -623,6 +632,15 @@ class DraftGenerationService
         }
 
         return $context . "\n" . implode("\n", $lines);
+    }
+
+    private function appendHumanSignalContext(string $context, ?Workspace $workspace): string
+    {
+        $signals = $this->humanSignalContext->forWorkspace($workspace);
+
+        return $signals !== ''
+            ? $context."\n\n".$signals
+            : $context;
     }
 
     private function shouldInjectCompetitorContext(Draft $draft): bool

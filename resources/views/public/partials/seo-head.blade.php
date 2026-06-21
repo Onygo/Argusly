@@ -1,3 +1,10 @@
+@php
+    $resolvedSocialImage = app(\App\Support\SocialImageResolver::class)->resolve(
+        $ogImage ?? $socialImage ?? null,
+        $canonicalUrl ?? null,
+        $socialImagePageType ?? $pageType ?? null
+    );
+@endphp
 <title>{{ $metaTitle ?? config('app.name', 'Argusly') }}</title>
 <meta name="description" content="{{ $metaDescription ?? '' }}" />
 @if (filled(config('services.google.search_console_verification')))
@@ -20,15 +27,13 @@
 @if (! empty($ogType ?? null))
     <meta property="og:type" content="{{ $ogType }}" />
 @endif
-@if (! empty($ogImage ?? null))
-    <meta property="og:image" content="{{ $ogImage }}" />
-@endif
+<meta property="og:image" content="{{ $resolvedSocialImage }}" />
+<meta property="og:image:width" content="{{ (int) config('argusly_social.width', 1200) }}" />
+<meta property="og:image:height" content="{{ (int) config('argusly_social.height', 630) }}" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="{{ $twitterTitle ?? $ogTitle ?? $metaTitle }}" />
 <meta name="twitter:description" content="{{ $twitterDescription ?? $ogDescription ?? $metaDescription }}" />
-@if (! empty($ogImage ?? null))
-    <meta name="twitter:image" content="{{ $ogImage }}" />
-@endif
+<meta name="twitter:image" content="{{ $resolvedSocialImage }}" />
 <script type="application/ld+json">{!! json_encode([
     "\x40context" => 'https://schema.org',
     '@type' => 'Organization',
