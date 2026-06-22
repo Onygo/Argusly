@@ -4,9 +4,14 @@ namespace App\Services\Marketing;
 
 use App\Models\MarketingBlogRedirect;
 use App\Support\LocalizedMarketingUrl;
+use App\Support\MarketingRouteSegments;
 
 class MarketingBlogRedirectService
 {
+    public function __construct(
+        private readonly MarketingRouteSegments $segments,
+    ) {}
+
     public function blogPath(string $locale, string $slug): string
     {
         return LocalizedMarketingUrl::route('public.blog.show', ['slug' => $slug], $locale, false);
@@ -24,10 +29,14 @@ class MarketingBlogRedirectService
             return null;
         }
 
-        foreach (['en', 'nl'] as $locale) {
+        foreach ($this->segments->locales() as $locale) {
             if ($path === $this->blogPath($locale, $slug)) {
                 return $locale;
             }
+        }
+
+        if ($path === '/' . trim($this->segments->segment('blog', $this->segments->defaultLocale()), '/') . '/' . $slug) {
+            return $this->segments->defaultLocale();
         }
 
         return null;

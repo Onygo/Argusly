@@ -6,7 +6,10 @@ use App\Concerns\BelongsToOrganizationViaWorkspace;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostType;
 use App\Enums\SocialPostVariantStatus;
+use App\Services\SocialDistribution\InstagramPostTextRenderer;
 use App\Services\SocialDistribution\LinkedInPostTextRenderer;
+use App\Services\SocialDistribution\SocialPlatformCapabilities;
+use App\Services\SocialDistribution\SocialArticleUrlResolver;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -167,18 +170,78 @@ class SocialPostVariant extends Model
 
     public function publishingText(): string
     {
+        $platform = $this->platform?->value ?? (string) $this->platform;
+
+        if ($platform === SocialPlatform::INSTAGRAM->value) {
+            return app(InstagramPostTextRenderer::class)->renderVariant($this);
+        }
+
         return app(LinkedInPostTextRenderer::class)->renderVariant($this);
+    }
+
+    public function platformLabel(): string
+    {
+        return app(SocialPlatformCapabilities::class)->label($this->platform);
+    }
+
+    public function postLabel(): string
+    {
+        return app(SocialPlatformCapabilities::class)->postLabel($this->platform);
+    }
+
+    public function requiresMedia(): bool
+    {
+        return app(SocialPlatformCapabilities::class)->requiresMedia($this->platform);
+    }
+
+    public function hasPublishableMedia(): bool
+    {
+        return collect((array) $this->media_refs)
+            ->contains(function (mixed $media): bool {
+                if (is_string($media)) {
+                    return trim($media) !== '';
+                }
+
+                $type = strtolower((string) data_get($media, 'type', data_get($media, 'media_type', 'image')));
+                $url = trim((string) data_get($media, 'url', data_get($media, 'image_url', data_get($media, 'path', ''))));
+
+                return $url !== '' && in_array($type, ['image', 'photo'], true);
+            });
+    }
+
+    public function publishingBlockedReason(): ?string
+    {
+        if ($this->requiresMedia() && ! $this->hasPublishableMedia()) {
+            return 'Instagram posts require an image before publishing.';
+        }
+
+        if (trim($this->publishingText()) === '') {
+            return 'Social post copy is required before publishing.';
+        }
+
+        return null;
     }
 
     public function sourceUrl(): ?string
     {
+        $content = $this->relationLoaded('content') ? $this->getRelation('content') : $this->content()->first();
         $url = trim((string) data_get($this->generation_prompt_context, 'source_url', ''));
 
         if ($url !== '') {
+            $url = $content instanceof Content
+                ? app(SocialArticleUrlResolver::class)->forContent($content, $url)
+                : $url;
+
             return $this->campaign?->trackedUrl($url) ?? $this->trackedUrl($url) ?? $url;
         }
 
         $url = trim((string) data_get($this->metadata, 'source_url', ''));
+
+        if ($url === '' && $content instanceof Content) {
+            $url = app(SocialArticleUrlResolver::class)->forContent($content);
+        } elseif ($url !== '' && $content instanceof Content) {
+            $url = app(SocialArticleUrlResolver::class)->forContent($content, $url);
+        }
 
         return $url !== '' ? ($this->campaign?->trackedUrl($url) ?? $this->trackedUrl($url) ?? $url) : null;
     }

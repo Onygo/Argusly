@@ -67,6 +67,37 @@ class CanonicalUrlService
         return $this->publicBlogCanonical($slug, $content->localeCode());
     }
 
+    public function liveUrlForContent(Content $content, ?string $candidate = null, ?string $fallbackSlug = null): ?string
+    {
+        $candidate = trim((string) ($candidate ?? $content->published_url ?? ''));
+
+        if ((string) $content->type !== 'article') {
+            return $this->normalize($candidate) ?? ($candidate !== '' ? $candidate : null);
+        }
+
+        $expected = $this->expectedCanonicalForContent($content);
+
+        $fallbackSlug = trim((string) $fallbackSlug);
+
+        if (($expected === null || $expected === '') && $fallbackSlug === '') {
+            $fallbackSlug = $this->slugFromPublicBlogCandidate($candidate) ?? '';
+        }
+
+        if (($expected === null || $expected === '') && $fallbackSlug !== '') {
+            $expected = $this->publicBlogCanonical($fallbackSlug, $content->localeCode());
+        }
+
+        if ($candidate === '') {
+            return $expected;
+        }
+
+        if ($expected !== null && $this->isSamePublicBlogUrlWithoutLocale($candidate, $expected)) {
+            return $this->withOriginalQuery($this->withCandidateBase($expected, $candidate), $candidate);
+        }
+
+        return $candidate;
+    }
+
     public function normalize(?string $url): ?string
     {
         $url = trim((string) $url);
@@ -108,5 +139,112 @@ class CanonicalUrlService
     public function normalizeOrFallback(?string $candidate, string $fallback): string
     {
         return $this->normalize($candidate) ?? $this->normalize($fallback) ?? $fallback;
+    }
+
+    private function isSamePublicBlogUrlWithoutLocale(string $candidate, string $expected): bool
+    {
+        $candidateParts = parse_url($candidate);
+        $expectedParts = parse_url($expected);
+
+        if (! is_array($candidateParts) || ! is_array($expectedParts)) {
+            return false;
+        }
+
+        $candidateHost = strtolower((string) ($candidateParts['host'] ?? ''));
+        $expectedHost = strtolower((string) ($expectedParts['host'] ?? ''));
+
+        if ($candidateHost === '' || $expectedHost === '') {
+            return false;
+        }
+
+        $candidatePath = '/' . ltrim((string) ($candidateParts['path'] ?? ''), '/');
+        $expectedPath = '/' . ltrim((string) ($expectedParts['path'] ?? ''), '/');
+
+        if ($candidateHost !== $expectedHost && ! $this->isKnownPublicMarketingHost($candidateHost)) {
+            return false;
+        }
+
+        $candidateSlug = $this->slugFromPublicBlogCandidate($candidatePath);
+        $expectedSlug = $this->slugFromPublicBlogCandidate($expectedPath);
+
+        return $candidateSlug !== null
+            && $expectedSlug !== null
+            && hash_equals($candidateSlug, $expectedSlug);
+    }
+
+    private function slugFromPublicBlogCandidate(string $candidate): ?string
+    {
+        $parts = parse_url($candidate);
+
+        if (! is_array($parts)) {
+            return null;
+        }
+
+        $segments = array_values(array_filter(
+            explode('/', trim((string) ($parts['path'] ?? ''), '/')),
+            fn (string $segment): bool => $segment !== ''
+        ));
+
+        if ($segments === []) {
+            return null;
+        }
+
+        $blogSegments = array_values(array_unique(array_filter(array_map(
+            fn (mixed $segment): string => trim((string) $segment, '/'),
+            (array) config('marketing_routing.segments.blog', ['en' => 'blog'])
+        ))));
+
+        if (count($segments) >= 2 && in_array($segments[0], $blogSegments, true)) {
+            return $segments[1];
+        }
+
+        if (count($segments) >= 3 && in_array($segments[1], $blogSegments, true)) {
+            return $segments[2];
+        }
+
+        return null;
+    }
+
+    private function withCandidateBase(string $url, string $candidate): string
+    {
+        $urlParts = parse_url($url);
+        $candidateParts = parse_url($candidate);
+
+        if (! is_array($urlParts) || ! is_array($candidateParts) || empty($candidateParts['host'])) {
+            return $url;
+        }
+
+        $scheme = (string) ($candidateParts['scheme'] ?? $urlParts['scheme'] ?? 'https');
+        $host = strtolower((string) $candidateParts['host']);
+        $port = isset($candidateParts['port']) ? ':' . (int) $candidateParts['port'] : '';
+        $path = '/' . ltrim((string) ($urlParts['path'] ?? '/'), '/');
+
+        return $scheme . '://' . $host . $port . $path;
+    }
+
+    private function isKnownPublicMarketingHost(string $host): bool
+    {
+        $knownHosts = [
+            'argusly.com',
+            'www.argusly.com',
+            strtolower((string) config('domains.base', '')),
+            strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST)),
+        ];
+        $knownHosts = array_merge(
+            $knownHosts,
+            array_map(
+                fn (mixed $host): string => strtolower(trim((string) $host)),
+                (array) config('argusly.analytics.internal_verified_domains', [])
+            )
+        );
+
+        return in_array(strtolower($host), array_filter($knownHosts), true);
+    }
+
+    private function withOriginalQuery(string $url, string $original): string
+    {
+        $query = parse_url($original, PHP_URL_QUERY);
+
+        return $query ? $url . '?' . $query : $url;
     }
 }

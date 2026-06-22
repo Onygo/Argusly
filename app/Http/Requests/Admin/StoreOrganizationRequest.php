@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\SupportedLanguage;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -29,7 +30,7 @@ class StoreOrganizationRequest extends FormRequest
 
             'create_workspace' => ['nullable', 'boolean', 'accepted_if:create_site,1'],
             'workspace_name' => ['required_if:create_workspace,1', 'nullable', 'string', 'max:190'],
-            'default_content_language' => ['required_if:create_workspace,1', 'nullable', Rule::in(['en', 'nl'])],
+            'default_content_language' => ['required_if:create_workspace,1', 'nullable', Rule::in(SupportedLanguage::values())],
 
             'create_site' => ['nullable', 'boolean'],
             'site_name' => ['required_if:create_site,1', 'nullable', 'string', 'max:190'],

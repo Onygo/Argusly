@@ -243,7 +243,7 @@
                         <h2 class="mt-2 text-lg font-semibold text-textPrimary">All detections in this view are processed</h2>
                         <p class="mt-1 text-sm leading-6 text-textSecondary">
                             There is nothing left to review here. The table below is history: resolved, dismissed, published, or archived detections stay visible for audit context.
-                            Run detection again when new AI Visibility evidence is available.
+                            There is no action waiting right now. Run detection again when new AI Visibility evidence is available.
                         </p>
                     @endif
                 </div>

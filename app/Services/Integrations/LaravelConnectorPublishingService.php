@@ -13,6 +13,7 @@ use App\Models\Event;
 use App\Services\Content\ContentLifecycleService;
 use App\Services\Publication\LaravelPublicationBridge;
 use App\Services\Publication\PublicationLegacyCompatibilityService;
+use App\Services\Seo\CanonicalUrlService;
 use App\Support\SeoMetadata;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -23,6 +24,7 @@ class LaravelConnectorPublishingService
         private readonly LaravelConnectorDestinationResolver $destinationResolver,
         private readonly LaravelPublicationBridge $publicationBridge,
         private readonly PublicationLegacyCompatibilityService $legacyCompatibility,
+        private readonly CanonicalUrlService $canonicals,
     ) {}
 
     public function publish(Content $content, ?Draft $draft = null, string $mode = 'publish_now', string $source = 'app.content.publish-now'): ContentPublishTarget
@@ -221,8 +223,10 @@ class LaravelConnectorPublishingService
 
         $base = rtrim((string) ($content->clientSite?->site_url ?? ''), '/');
         if ($base !== '') {
+            $slug = Str::slug((string) $content->title);
+
             return [
-                'url' => $base.'/blog/'.Str::slug((string) $content->title),
+                'url' => $this->canonicals->liveUrlForContent($content, $base.'/blog/'.$slug, $slug),
                 'source' => 'site.slug_guess',
             ];
         }

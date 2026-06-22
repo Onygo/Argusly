@@ -94,4 +94,18 @@ return [
         'application_daily_limit' => 100000,
     ],
 
+    'meta' => [
+        'client_id' => env('META_CLIENT_ID'),
+        'client_secret' => env('META_CLIENT_SECRET'),
+        'redirect_uri' => env('META_REDIRECT_URI'),
+        'graph_api_version' => env('META_GRAPH_API_VERSION', 'v23.0'),
+        'enabled' => env('META_ENABLED', (bool) env('META_CLIENT_ID') && (bool) env('META_CLIENT_SECRET')),
+        'scopes' => [
+            'instagram_basic',
+            'instagram_content_publish',
+            'pages_show_list',
+            'pages_read_engagement',
+        ],
+    ],
+
 ];

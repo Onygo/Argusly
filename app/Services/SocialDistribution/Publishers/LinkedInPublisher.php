@@ -62,10 +62,20 @@ class LinkedInPublisher implements SocialPlatformPublisher
         if ($variant?->social_post_id) {
             $post = SocialPost::query()->with(['account', 'content'])->findOrFail($variant->social_post_id);
             $body = $this->renderer->renderVariant($variant);
+            $sourceUrl = $variant->sourceUrl();
             $updates = [];
 
             if ($body !== '' && trim((string) $post->body) !== $body) {
                 $updates['body'] = $body;
+            }
+
+            if (trim((string) $post->url) !== trim((string) $sourceUrl)) {
+                $updates['url'] = $sourceUrl;
+            }
+
+            $type = filled($sourceUrl) ? 'article' : 'text';
+            if ((string) $post->type !== $type) {
+                $updates['type'] = $type;
             }
 
             if ($variant->isApproved() && ! in_array((string) $post->status, ['approved', 'scheduled', 'publishing', 'published'], true)) {
@@ -81,6 +91,7 @@ class LinkedInPublisher implements SocialPlatformPublisher
         }
 
         $body = $variant ? $this->renderer->renderVariant($variant) : '';
+        $sourceUrl = $variant?->sourceUrl();
 
         $post = SocialPost::query()->create([
             'organization_id' => $publication->organization_id,
@@ -89,8 +100,9 @@ class LinkedInPublisher implements SocialPlatformPublisher
             'content_id' => $variant?->content_id,
             'social_account_id' => $publication->social_account_id,
             'provider' => SocialPlatform::LINKEDIN->value,
-            'type' => 'text',
+            'type' => filled($sourceUrl) ? 'article' : 'text',
             'body' => $body,
+            'url' => $sourceUrl,
             'visibility' => 'public',
             'status' => 'approved',
             'scheduled_at' => $publication->scheduled_for,

@@ -6,6 +6,7 @@ enum CampaignContentAssetType: string
 {
     case ARTICLE = 'article';
     case LINKEDIN_POST = 'linkedin_post';
+    case INSTAGRAM_POST = 'instagram_post';
     case FOUNDER_POST = 'founder_post';
     case NEWSLETTER_SNIPPET = 'newsletter_snippet';
     case FAQ_BLOCK = 'faq_block';

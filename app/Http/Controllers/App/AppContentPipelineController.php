@@ -110,13 +110,22 @@ class AppContentPipelineController extends Controller
         $visibleCards = array_key_exists($selectedLane, self::LANES)
             ? $cards->where('lane', $selectedLane)->values()
             : $cards;
+        $activeLaneKeys = collect(array_keys(self::LANES))
+            ->reject(fn (string $key): bool => $key === 'published')
+            ->values()
+            ->all();
+        $publishedCards = $cards->where('lane', 'published')->values();
 
         return view('app.content.pipeline', [
             'title' => 'Content Pipeline',
             'lanes' => self::LANES,
+            'activeLaneKeys' => $activeLaneKeys,
             'selectedLane' => $selectedLane,
             'cards' => $visibleCards,
             'cardsByLane' => $visibleCards->groupBy('lane'),
+            'publishedCards' => $publishedCards,
+            'recentPublishedCards' => $publishedCards->take(8),
+            'publishedOverflowCount' => max(0, $publishedCards->count() - 8),
             'summary' => collect(self::LANES)
                 ->mapWithKeys(fn (string $label, string $key): array => [$key => $cards->where('lane', $key)->count()])
                 ->all(),

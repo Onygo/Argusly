@@ -45,7 +45,7 @@
 
             <div class="mt-4 space-y-3">
                 @forelse ($personas as $persona)
-                    <details class="rounded-lg border border-border bg-background p-4" @open($loop->first)>
+                    <details class="rounded-lg border border-border bg-background p-4" @if ($loop->first) open @endif>
                         <summary class="cursor-pointer list-none">
                             <div class="flex flex-wrap items-start justify-between gap-3">
                                 <div>

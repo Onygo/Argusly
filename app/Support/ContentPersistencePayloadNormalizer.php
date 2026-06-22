@@ -165,14 +165,14 @@ class ContentPersistencePayloadNormalizer
 
     public static function normalizeLocale(mixed $value): string
     {
-        $locale = SupportedLanguage::normalizeLocale((string) $value);
+        $locale = SupportedLanguage::tryFromString((string) $value)?->value;
 
         return $locale ?? SupportedLanguage::EN->value;
     }
 
     public static function normalizeNullableLocale(mixed $value): ?string
     {
-        $locale = SupportedLanguage::normalizeLocale((string) $value);
+        $locale = SupportedLanguage::tryFromString((string) $value)?->value;
 
         return $locale !== null ? $locale : null;
     }

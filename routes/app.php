@@ -73,6 +73,7 @@ use App\Http\Controllers\App\AppSettingsController;
 use App\Http\Controllers\App\SignalIntelligenceController;
 use App\Http\Controllers\App\SetupController;
 use App\Http\Controllers\App\Settings\LinkedInIntegrationController;
+use App\Http\Controllers\App\Settings\InstagramIntegrationController;
 use App\Http\Controllers\App\AppSiteCompetitorsController;
 use App\Http\Controllers\App\AppSitesController;
 use App\Http\Controllers\App\AppSiteSeoAuditController;
@@ -719,6 +720,10 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::get('/settings/integrations/linkedin/connect', [LinkedInIntegrationController::class, 'connect'])->name('app.settings.integrations.linkedin.connect');
         Route::get('/settings/integrations/linkedin/callback', [LinkedInIntegrationController::class, 'callback'])->name('app.settings.integrations.linkedin.callback');
         Route::post('/settings/integrations/linkedin/disconnect', [LinkedInIntegrationController::class, 'disconnect'])->name('app.settings.integrations.linkedin.disconnect');
+        Route::get('/settings/integrations/instagram', [InstagramIntegrationController::class, 'show'])->name('app.settings.integrations.instagram');
+        Route::get('/settings/integrations/instagram/connect', [InstagramIntegrationController::class, 'connect'])->name('app.settings.integrations.instagram.connect');
+        Route::get('/settings/integrations/instagram/callback', [InstagramIntegrationController::class, 'callback'])->name('app.settings.integrations.instagram.callback');
+        Route::post('/settings/integrations/instagram/disconnect', [InstagramIntegrationController::class, 'disconnect'])->name('app.settings.integrations.instagram.disconnect');
         Route::get('/developer', [AppDeveloperController::class, 'index'])->name('app.developer.index');
         Route::get('/developer/api', [AppDeveloperController::class, 'api'])->name('app.developer.api');
         Route::get('/developer/webhooks', [AppDeveloperController::class, 'webhooks'])->name('app.developer.webhooks');

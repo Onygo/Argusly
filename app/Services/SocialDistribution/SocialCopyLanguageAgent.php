@@ -2,6 +2,7 @@
 
 namespace App\Services\SocialDistribution;
 
+use App\Enums\SupportedLanguage;
 use App\Support\DutchTextCasingNormalizer;
 use Illuminate\Support\Str;
 
@@ -64,7 +65,7 @@ class SocialCopyLanguageAgent
 
     private function normalizeLanguage(string $language): string
     {
-        return in_array($language, ['nl', 'en'], true) ? $language : 'en';
+        return SupportedLanguage::tryFromString($language)?->value ?? SupportedLanguage::EN->value;
     }
 
     private function normalizeWhitespace(string $value): string

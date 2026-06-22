@@ -326,7 +326,7 @@
                 </p>
             </div>
 
-            <div class="mt-10 overflow-hidden rounded-md border border-border/80 bg-white">
+            <div class="mt-10 hidden overflow-hidden rounded-md border border-border/80 bg-white md:block">
                 <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] border-b border-border/70 bg-[#f8fafc] px-6 py-4 text-sm font-semibold text-textPrimary">
                     <div>Capabilities</div>
                     <div class="text-center">{{ $comparison['left_label'] ?? 'Argusly' }}</div>
@@ -342,6 +342,24 @@
                             <x-public.icon name="{{ !empty($row['alternative']) ? 'check' : 'minus' }}" size="xs" class="{{ !empty($row['alternative']) ? 'text-textPrimary' : 'text-textMuted' }}" />
                         </div>
                     </div>
+                @endforeach
+            </div>
+
+            <div class="mt-8 space-y-3 md:hidden">
+                @foreach((array) ($comparison['rows'] ?? []) as $row)
+                    <article class="rounded-md border border-border/80 bg-white p-4">
+                        <h3 class="text-base font-semibold leading-6 text-textPrimary">{{ $row['label'] ?? '' }}</h3>
+                        <div class="mt-4 grid gap-3">
+                            <div class="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-[#f8fafc] px-3 py-3">
+                                <span class="text-sm font-medium text-textPrimary">{{ $comparison['left_label'] ?? 'Argusly' }}</span>
+                                <x-public.icon name="{{ !empty($row['argusly']) ? 'check' : 'minus' }}" size="xs" class="{{ !empty($row['argusly']) ? 'text-publicPrimary' : 'text-textMuted' }}" />
+                            </div>
+                            <div class="flex items-center justify-between gap-4 rounded-md border border-border/70 bg-[#f8fafc] px-3 py-3">
+                                <span class="text-sm font-medium text-textPrimary">{{ $comparison['right_label'] ?? 'Traditional AI writers' }}</span>
+                                <x-public.icon name="{{ !empty($row['alternative']) ? 'check' : 'minus' }}" size="xs" class="{{ !empty($row['alternative']) ? 'text-textPrimary' : 'text-textMuted' }}" />
+                            </div>
+                        </div>
+                    </article>
                 @endforeach
             </div>
         </div>

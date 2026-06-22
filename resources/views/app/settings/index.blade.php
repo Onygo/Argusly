@@ -196,6 +196,23 @@
                     </a>
                 </div>
             </div>
+            <div class="mt-3 rounded-lg border border-border bg-background p-4">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface">
+                            <i data-lucide="instagram" class="h-4 w-4 text-textSecondary"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-textPrimary">Instagram</h3>
+                            <p class="mt-1 text-xs text-textSecondary">Business and Creator account publishing for approved single-image posts.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('app.settings.integrations.instagram') }}" class="pl-btn-secondary">
+                        <i data-lucide="settings" class="h-4 w-4"></i>
+                        <span>Manage</span>
+                    </a>
+                </div>
+            </div>
         </x-settings.section-card>
 
         <x-settings.section-card

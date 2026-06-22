@@ -121,6 +121,15 @@ class WorkspaceJourneyService
             return new JourneyAction($this->runtime('Review Detection'), $this->runtime('Open Signal Intelligence and run or review detections from the available signals.'), $this->route('app.signal-intelligence.index', ['workspace' => $workspace->id]), 80);
         }
 
+        if ($counts['open_detections'] === 0 && $counts['opportunity_candidates'] === 0 && $counts['opportunities'] === 0) {
+            return new JourneyAction(
+                $this->runtime('Monitor New Signals'),
+                $this->runtime('All detections are processed. There is no opportunity candidate to review until new evidence appears.'),
+                $this->route('app.signal-intelligence.index', ['workspace' => $workspace->id]),
+                20,
+            );
+        }
+
         if ($counts['opportunities'] === 0 && $counts['opportunity_candidates'] === 0) {
             return new JourneyAction(
                 $this->runtime('Find Opportunity Candidate'),
@@ -188,6 +197,7 @@ class WorkspaceJourneyService
             'runs' => LlmTrackingQueryRun::query()->whereHas('trackingQuery', fn ($query) => $query->where('workspace_id', $workspace->id))->count(),
             'signal_events' => SignalEvent::query()->where('workspace_id', $workspace->id)->count(),
             'detections' => SignalDetection::query()->where('workspace_id', $workspace->id)->count(),
+            'open_detections' => SignalDetection::query()->where('workspace_id', $workspace->id)->open()->count(),
             'opportunity_candidates' => SignalDetection::query()
                 ->where('workspace_id', $workspace->id)
                 ->open()
@@ -230,7 +240,7 @@ class WorkspaceJourneyService
 
     private function signalStatus(array $counts): string
     {
-        if ($counts['opportunity_candidates'] > 0 || $counts['opportunities'] > 0) {
+        if ($counts['opportunity_candidates'] > 0 || $counts['opportunities'] > 0 || ($counts['detections'] > 0 && $counts['open_detections'] === 0)) {
             return 'completed';
         }
 

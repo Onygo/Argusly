@@ -1,5 +1,5 @@
 @php
-    $mailLogoUrl = rtrim((string) config('app.url'), '/') . '/images/argusly-logo.png';
+    $mailLogoUrl = rtrim((string) config('app.url'), '/') . '/images/argusly-logo-standalone.png';
 @endphp
 <!DOCTYPE html>
 <html lang="en">

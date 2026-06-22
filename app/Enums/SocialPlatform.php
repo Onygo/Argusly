@@ -5,6 +5,7 @@ namespace App\Enums;
 enum SocialPlatform: string
 {
     case LINKEDIN = 'linkedin';
+    case INSTAGRAM = 'instagram';
     case X = 'x';
 
     /**

@@ -6,7 +6,9 @@ use App\Models\Content;
 use App\Models\MarketingBlogRedirect;
 use App\Services\Content\ContentCacheInvalidationService;
 use App\Services\PublicBlog\MarketingBlogSourceScope;
+use App\Enums\SupportedLanguage;
 use App\Support\LocalizedMarketingUrl;
+use App\Support\MarketingRouteSegments;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,7 @@ class MarketingBlogLocaleNormalizationService
     public function __construct(
         private readonly MarketingBlogSourceScope $sourceScope,
         private readonly ContentCacheInvalidationService $cacheInvalidation,
+        private readonly MarketingRouteSegments $segments,
     ) {
     }
 
@@ -370,9 +373,11 @@ class MarketingBlogLocaleNormalizationService
 
     private function normalizeLocale(?string $locale): ?string
     {
-        $resolved = strtolower(trim((string) $locale));
+        $resolved = SupportedLanguage::tryFromString($locale)?->value;
 
-        return in_array($resolved, ['nl', 'en'], true) ? $resolved : null;
+        return $resolved !== null && $this->segments->isSupportedLocale($resolved)
+            ? $resolved
+            : null;
     }
 
     private function shouldCreateLegacyLocaleRedirect(Content $content, string $legacyRouteLocale, string $targetLocale): bool
@@ -381,15 +386,12 @@ class MarketingBlogLocaleNormalizationService
             return false;
         }
 
-        if ($legacyRouteLocale !== 'en' || $targetLocale !== 'nl') {
-            return false;
-        }
-
         if ((string) $content->status !== 'published' || (string) ($content->publish_status ?? '') !== 'published') {
             return false;
         }
 
-        return true;
+        return $this->segments->isSupportedLocale($legacyRouteLocale)
+            && $this->segments->isSupportedLocale($targetLocale);
     }
 
     private function localizedBlogPath(string $locale, string $slug): string
@@ -429,10 +431,14 @@ class MarketingBlogLocaleNormalizationService
             return null;
         }
 
-        foreach (['en', 'nl'] as $locale) {
+        foreach ($this->segments->locales() as $locale) {
             if ($path === $this->localizedBlogPath($locale, $slug)) {
                 return $locale;
             }
+        }
+
+        if ($path === '/' . trim($this->segments->segment('blog', $this->segments->defaultLocale()), '/') . '/' . $slug) {
+            return $this->segments->defaultLocale();
         }
 
         return null;

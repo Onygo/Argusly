@@ -2,6 +2,7 @@
 
 namespace App\Services\Marketing;
 
+use App\Enums\SupportedLanguage;
 use App\Models\Content;
 use Illuminate\Support\Str;
 
@@ -176,8 +177,6 @@ class MarketingBlogLocaleDetector
 
     private function normalizeLocale(?string $locale): ?string
     {
-        $resolved = strtolower(trim((string) $locale));
-
-        return in_array($resolved, ['nl', 'en'], true) ? $resolved : null;
+        return SupportedLanguage::tryFromString($locale)?->value;
     }
 }

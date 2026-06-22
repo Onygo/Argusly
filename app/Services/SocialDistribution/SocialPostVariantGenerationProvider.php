@@ -40,7 +40,7 @@ class SocialPostVariantGenerationProvider
         $response = $this->llm->generateJson(
             new LlmRequest(
                 messages: [
-                    new LlmMessage('system', $this->systemPrompt($writerProfile)),
+                    new LlmMessage('system', $this->systemPrompt($variant, $writerProfile)),
                     new LlmMessage('user', $this->userPrompt($variant)),
                 ],
                 temperature: 0.55,
@@ -67,7 +67,7 @@ class SocialPostVariantGenerationProvider
         $body = $languageReview['body'];
 
         if ($hook === '' && $body === '') {
-            throw new RuntimeException('The generation provider returned empty LinkedIn copy.');
+            throw new RuntimeException('The generation provider returned empty social copy.');
         }
 
         return [
@@ -87,12 +87,15 @@ class SocialPostVariantGenerationProvider
         ];
     }
 
-    private function systemPrompt(?WriterProfile $writerProfile = null): string
+    private function systemPrompt(SocialPostVariant $variant, ?WriterProfile $writerProfile = null): string
     {
-        $prompt = 'You write concise LinkedIn posts for B2B content teams. Return strict JSON only with hook, body, hashtags, mentions, and quality_score. Follow the requested language exactly. Do not invent statistics, customer names, URLs, hashtags, or external claims.';
+        $platform = (string) ($variant->platform?->value ?? $variant->platform);
+        $prompt = $platform === 'instagram'
+            ? 'You write concise Instagram captions for B2B content teams. Return strict JSON only with hook, body, hashtags, mentions, and quality_score. Write visual-first, short, caption-friendly copy. Do not write LinkedIn-style longform. Follow the requested language exactly. Do not invent statistics, customer names, URLs, hashtags, or external claims.'
+            : 'You write concise LinkedIn posts for B2B content teams. Return strict JSON only with hook, body, hashtags, mentions, and quality_score. Follow the requested language exactly. Do not invent statistics, customer names, URLs, hashtags, or external claims.';
 
         if ($writerProfile) {
-            $prompt .= "\n\n".WriterProfilePromptTemplates::applySystemInstruction($writerProfile, 'linkedin');
+            $prompt .= "\n\n".WriterProfilePromptTemplates::applySystemInstruction($writerProfile, $platform === 'instagram' ? 'instagram' : 'linkedin');
         }
 
         return $prompt;
@@ -114,8 +117,10 @@ class SocialPostVariantGenerationProvider
             : 'Not assigned';
         $humanSignals = $this->humanSignalContext->forWorkspace($variant->workspace, 4);
 
+        $platform = (string) ($variant->platform?->value ?? $variant->platform);
+        $platformLabel = $platform === 'instagram' ? 'Instagram' : 'LinkedIn';
         $lines = [
-            'Create one LinkedIn variant.',
+            'Create one '.$platformLabel.' variant.',
             'Language: '.$language,
             $language === 'Dutch (Nederlands)'
                 ? 'Dutch casing: use normal Dutch sentence case, not English Title Case. Keep only proper nouns, brand names, and acronyms uppercase.'
@@ -136,7 +141,9 @@ class SocialPostVariantGenerationProvider
             $lines[] = $humanSignals;
         }
 
-        $lines[] = 'Write for a practical executive audience. Keep the hook under 160 characters and the body under 900 characters. Do not include the article URL inside hook or body; it is attached separately.';
+        $lines[] = $platform === 'instagram'
+            ? 'Write for a practical executive audience. Keep the hook under 120 characters and the body under 600 characters. Make it visual-first, caption-ready, and include useful hashtags. Do not include the article URL inside hook or body. Instagram publishing requires an image.'
+            : 'Write for a practical executive audience. Keep the hook under 160 characters and the body under 900 characters. Do not include the article URL inside hook or body; it is attached separately.';
 
         return trim(implode("\n", $lines));
     }

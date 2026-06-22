@@ -8,6 +8,7 @@ use App\Enums\SocialPlatform;
 use App\Enums\SocialPostType;
 use App\Enums\SocialPostVariantStatus;
 use App\Enums\SocialPublicationStatus;
+use App\Enums\SupportedLanguage;
 use App\Actions\Social\GenerateLinkedInPostFromContent;
 use App\Http\Controllers\Controller;
 use App\Jobs\SocialDistribution\GenerateSocialPostVariantsJob;
@@ -22,6 +23,7 @@ use App\Models\SocialPublication;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\SocialDistribution\SocialDistributionAuditLogger;
+use App\Services\SocialDistribution\SocialPlatformCapabilities;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,7 +132,7 @@ class AppSocialDistributionController extends Controller
             'content_id' => ['required', 'string', Rule::exists('contents', 'id')->where('workspace_id', $workspace->id)],
             'campaign_id' => ['nullable', 'string', Rule::exists('campaigns', 'id')->where('workspace_id', $workspace->id)],
             'social_account_id' => ['nullable', 'string', Rule::exists('social_accounts', 'id')->where('workspace_id', $workspace->id)],
-            'language' => ['required', 'string', Rule::in(['nl', 'en'])],
+            'language' => ['required', 'string', Rule::in(SupportedLanguage::values())],
             'source_url' => ['nullable', 'url', 'max:500'],
             'hashtags' => ['nullable', 'string', 'max:240'],
             'target_audience' => ['nullable', 'string', 'max:180'],
@@ -173,7 +175,7 @@ class AppSocialDistributionController extends Controller
         $workspace = $this->resolveWorkspace($request);
         $data = $request->validate([
             'display_name' => ['nullable', 'string', 'max:180'],
-            'account_type' => ['nullable', 'string', Rule::in(['person', 'organization'])],
+            'account_type' => ['nullable', 'string', Rule::in(['person', 'organization', 'business', 'creator'])],
             'owner_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('organization_id', $workspace->organization_id)],
             'labels' => ['nullable', 'string', 'max:180'],
             'tone_profile' => ['nullable', 'string', 'max:500'],
@@ -315,10 +317,12 @@ class AppSocialDistributionController extends Controller
             'campaign_id' => ['required', 'string', Rule::exists('campaigns', 'id')->where('workspace_id', $workspace->id)],
             'campaign_content_id' => ['nullable', 'string', Rule::exists('campaign_contents', 'id')],
             'social_account_id' => ['nullable', 'string', Rule::exists('social_accounts', 'id')->where('workspace_id', $workspace->id)],
+            'platform' => ['nullable', 'string', Rule::in([SocialPlatform::LINKEDIN->value, SocialPlatform::INSTAGRAM->value])],
             'post_type' => ['required', 'string', Rule::in(SocialPostType::values())],
             'variant_count' => ['required', 'integer', 'min:1', 'max:5'],
-            'language' => ['required', 'string', Rule::in(['nl', 'en'])],
+            'language' => ['required', 'string', Rule::in(SupportedLanguage::values())],
             'source_url' => ['nullable', 'url', 'max:500'],
+            'media_url' => ['nullable', 'url', 'max:1000'],
             'hashtags' => ['nullable', 'string', 'max:240'],
             'utm_source' => ['nullable', 'string', 'max:120'],
             'utm_medium' => ['nullable', 'string', 'max:120'],
@@ -328,11 +332,15 @@ class AppSocialDistributionController extends Controller
         ]);
 
         $campaign = Campaign::query()->where('workspace_id', $workspace->id)->findOrFail($data['campaign_id']);
+        $platform = $data['platform'] ?? SocialPlatform::LINKEDIN->value;
         $trackingParameters = $this->trackingParametersFromData($data);
         $this->updateCampaignTracking($campaign, $data);
         $targetAccount = ! empty($data['social_account_id'])
             ? SocialAccount::query()->where('workspace_id', $workspace->id)->findOrFail($data['social_account_id'])
             : null;
+        if ($targetAccount && ($targetAccount->platform?->value ?? (string) $targetAccount->platform) !== $platform) {
+            return back()->withErrors(['social_account_id' => 'Choose an account for the selected social channel.']);
+        }
         $campaignContent = null;
         if (! empty($data['campaign_content_id'])) {
             $campaignContent = CampaignContent::query()
@@ -349,18 +357,21 @@ class AppSocialDistributionController extends Controller
                 'campaign_content_id' => $campaignContent?->id,
                 'content_id' => $campaignContent?->content_id ?: $campaignContent?->source_content_id,
                 'social_account_id' => $data['social_account_id'] ?? null,
-                'platform' => SocialPlatform::LINKEDIN->value,
+                'platform' => $platform,
                 'post_type' => $data['post_type'],
                 'status' => SocialPostVariantStatus::GENERATION_REQUESTED->value,
                 'variant_number' => $i,
+                'media_refs' => $this->mediaRefsFromUrl($data['media_url'] ?? null),
                 'generation_prompt_context' => [
                     'campaign_id' => (string) $campaign->id,
                     'campaign_content_id' => $campaignContent?->id,
+                    'platform' => $platform,
                     'objective' => $campaign->objective,
                     'asset_type' => $campaignContent?->asset_type?->value ?? $campaignContent?->asset_type,
                     'internal_linking_strategy' => $campaign->internal_linking_strategy,
                     'language' => $data['language'],
                     'source_url' => $data['source_url'] ?? null,
+                    'media_required' => app(SocialPlatformCapabilities::class)->requiresMedia($platform),
                     'tracking_parameters' => $trackingParameters,
                     'hashtags' => $this->parseHashtags($data['hashtags'] ?? ''),
                     'target_social_account' => $targetAccount ? [
@@ -378,7 +389,11 @@ class AppSocialDistributionController extends Controller
 
         GenerateSocialPostVariantsJob::dispatch($variantIds)->afterCommit();
 
-        return back()->with('status', 'LinkedIn post variant generation queued.');
+        $statusLabel = $platform === SocialPlatform::LINKEDIN->value
+            ? 'LinkedIn post'
+            : app(SocialPlatformCapabilities::class)->postLabel($platform);
+
+        return back()->with('status', $statusLabel.' variant generation queued.');
     }
 
     public function approveVariant(Request $request, SocialPostVariant $variant, SocialDistributionAuditLogger $audit): RedirectResponse
@@ -468,8 +483,9 @@ class AppSocialDistributionController extends Controller
 
         $data = $request->validate([
             'body' => ['required', 'string', 'max:3000'],
-            'language' => ['required', 'string', Rule::in(['nl', 'en'])],
+            'language' => ['required', 'string', Rule::in(SupportedLanguage::values())],
             'source_url' => ['nullable', 'url', 'max:500'],
+            'media_url' => ['nullable', 'url', 'max:1000'],
             'hashtags' => ['nullable', 'string', 'max:240'],
             'selected' => ['nullable', 'boolean'],
         ]);
@@ -478,12 +494,14 @@ class AppSocialDistributionController extends Controller
         $context = array_replace((array) $variant->generation_prompt_context, [
             'language' => $data['language'],
             'source_url' => $data['source_url'] ?? null,
+            'media_required' => $variant->requiresMedia(),
             'hashtags' => $this->parseHashtags($data['hashtags'] ?? ''),
         ]);
 
         $variant->forceFill([
             'body' => $variant->forceFill(['body' => $data['body']])->bodyWithoutRepeatedHook(),
             'hashtags' => $this->parseHashtags($data['hashtags'] ?? ''),
+            'media_refs' => $this->mediaRefsFromUrl($data['media_url'] ?? null, (array) $variant->media_refs),
             'generation_prompt_context' => $context,
             'selected' => $request->boolean('selected'),
             'status' => SocialPostVariantStatus::DRAFT->value,
@@ -521,6 +539,7 @@ class AppSocialDistributionController extends Controller
                 'string',
                 Rule::exists('social_accounts', 'id')
                     ->where('workspace_id', $workspace->id)
+                    ->where('platform', $variant->platform?->value ?? (string) $variant->platform)
                     ->whereIn('status', [SocialAccountStatus::CONNECTED->value, SocialAccountStatus::ACTIVE->value]),
             ],
             'scheduled_for' => ['required', 'date'],
@@ -532,7 +551,11 @@ class AppSocialDistributionController extends Controller
             ->findOrFail($data['social_account_id']);
 
         if (! $socialAccount->isSchedulable()) {
-            return back()->withErrors(['social_account_id' => 'Choose a connected LinkedIn account with publish permission before scheduling.']);
+            return back()->withErrors(['social_account_id' => 'Choose a connected '.$variant->platformLabel().' account with publish permission before scheduling.']);
+        }
+
+        if ($reason = $variant->publishingBlockedReason()) {
+            return back()->withErrors(['variant' => $reason]);
         }
 
         $scheduledFor = CarbonImmutable::parse(
@@ -558,6 +581,7 @@ class AppSocialDistributionController extends Controller
                 'source_url' => $variant->sourceUrl(),
                 'hashtags' => $variant->hashtags,
                 'mentions' => $variant->mentions,
+                'media_refs' => $variant->media_refs,
             ],
             'metadata' => [
                 'scheduled_timezone' => (string) ($data['timezone'] ?? $this->scheduleTimezone($request)),
@@ -655,6 +679,25 @@ class AppSocialDistributionController extends Controller
             ->take(8)
             ->values()
             ->all();
+    }
+
+    /**
+     * @param array<int,mixed> $existing
+     * @return array<int,array<string,string>>
+     */
+    private function mediaRefsFromUrl(?string $url, array $existing = []): array
+    {
+        $url = trim((string) $url);
+
+        if ($url === '') {
+            return $existing;
+        }
+
+        return [[
+            'type' => 'image',
+            'url' => $url,
+            'source' => 'manual_url',
+        ]];
     }
 
     /**

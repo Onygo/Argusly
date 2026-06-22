@@ -9,6 +9,7 @@ use App\Models\Content;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\SocialPostVariant;
+use App\Services\SocialDistribution\SocialArticleUrlResolver;
 use App\Services\SocialDistribution\SocialCopyLanguageAgent;
 use Illuminate\Support\Str;
 
@@ -16,6 +17,7 @@ class GenerateLinkedInPostFromContent
 {
     public function __construct(
         private readonly SocialCopyLanguageAgent $languageAgent,
+        private readonly SocialArticleUrlResolver $articleUrls,
     ) {}
 
     /**
@@ -25,14 +27,18 @@ class GenerateLinkedInPostFromContent
     {
         $campaign = $options['campaign'] ?? null;
         $socialAccount = $options['social_account'] ?? null;
-        $language = in_array((string) ($options['language'] ?? ''), ['nl', 'en'], true) ? (string) $options['language'] : 'en';
+        $language = SupportedLanguage::tryFromString((string) ($options['language'] ?? ''))?->value
+            ?? SupportedLanguage::EN->value;
         $sourceContent = $this->contentForLanguage($content, $language);
         $sourceUrl = trim((string) ($options['source_url'] ?? ''));
         $sourceUrl = $sourceUrl !== '' ? $sourceUrl : $this->defaultSourceUrl($sourceContent);
         $trackingParameters = $this->cleanTrackingParameters((array) ($options['tracking_parameters'] ?? []));
         $trackedSourceUrl = $campaign?->trackedUrl($sourceUrl) ?? $this->trackedUrl($sourceUrl, $trackingParameters) ?? $sourceUrl;
         $hashtags = $this->cleanHashtags((array) ($options['hashtags'] ?? []));
-        $audience = trim((string) ($options['target_audience'] ?? $socialAccount?->actorLabel() ?? 'the target audience'));
+        $audience = $this->audienceForCopy(
+            trim((string) ($options['target_audience'] ?? $socialAccount?->actorLabel() ?? '')),
+            $language,
+        );
         $tone = trim((string) ($options['tone_of_voice'] ?? $socialAccount?->toneProfile() ?? 'clear, useful, and practical'));
         $accountContext = $this->accountContext($socialAccount);
         $summary = Str::of((string) ($sourceContent->public_blog_excerpt ?: $sourceContent->seo_meta_description ?: $sourceContent->title))
@@ -117,7 +123,34 @@ class GenerateLinkedInPostFromContent
 
     private function defaultSourceUrl(Content $content): string
     {
-        return trim((string) ($content->published_url ?: $content->seo_canonical));
+        return $this->articleUrls->forContent($content);
+    }
+
+    private function audienceForCopy(string $audience, string $language): string
+    {
+        $audience = Str::of($audience)->stripTags()->squish()->toString();
+        $default = $language === 'nl' ? 'de doelgroep' : 'the target audience';
+
+        if ($audience === '' || strtolower($audience) === 'the target audience') {
+            return $default;
+        }
+
+        $audience = preg_replace('/\s*(?:,|;|\/|\||\+|&|\band\b|\ben\b)\s*/iu', ', ', $audience) ?: $audience;
+        $audience = preg_replace('/\s+(?=(?:CMO\'?s|CFOs?|CTOs?|CEOs?|COOs?|CROs?|Growth Leaders|Marketing Managers|Marketing Directors|Revenue Leaders|RevOps Leaders|Founders|Content Teams)\b)/u', ', ', $audience) ?: $audience;
+
+        $parts = collect(explode(',', $audience))
+            ->map(fn (string $part): string => trim($part))
+            ->filter()
+            ->unique(fn (string $part): string => strtolower($part))
+            ->values();
+
+        if ($parts->count() <= 1) {
+            return $parts->first() ?: $default;
+        }
+
+        $last = $parts->pop();
+
+        return $parts->implode(', ') . ($language === 'nl' ? ' en ' : ', and ') . $last;
     }
 
     /**

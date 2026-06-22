@@ -8,6 +8,7 @@ enum DistributionChannelType: string
     case WORDPRESS = 'wordpress';
     case LARAVEL = 'laravel';
     case LINKEDIN = 'linkedin';
+    case INSTAGRAM = 'instagram';
     case X = 'x';
     case NEWSLETTER = 'newsletter';
     case API = 'api';

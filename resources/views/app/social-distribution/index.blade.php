@@ -3,6 +3,7 @@
 @section('content')
     @php
         $linkedinRenderer = app(\App\Services\SocialDistribution\LinkedInPostTextRenderer::class);
+        $capabilities = app(\App\Services\SocialDistribution\SocialPlatformCapabilities::class);
         $linkedinDisclaimerEnabled = $linkedinRenderer->disclaimerEnabled();
         $linkedinDisclaimerText = $linkedinRenderer->disclaimerText();
         $connectedAccounts = $accounts->filter(fn ($account) => $account->isConnected());
@@ -20,6 +21,13 @@
             return $translated === $key ? strtr($value, collect($replace)->mapWithKeys(fn ($replacement, $placeholder) => [':'.$placeholder => $replacement])->all()) : $translated;
         };
         $formatStatus = fn ($status) => $rt((string) str($status?->value ?? $status)->replace('_', ' ')->title());
+        $platformValue = fn ($model) => (string) ($model->platform?->value ?? $model->platform);
+        $platformLabel = fn ($platform) => $capabilities->label($platform);
+        $postLabel = fn ($platform) => $capabilities->postLabel($platform);
+        $publishingEnabled = fn ($platform) => match ((string) $platform) {
+            'instagram' => (bool) config('services.meta.enabled'),
+            default => (bool) config('services.linkedin.publishing_enabled'),
+        };
     @endphp
 
     <div class="space-y-6">
@@ -27,7 +35,7 @@
             <div>
                 <p class="text-sm text-textSecondary">{{ $rt('Agentic Marketing') }}</p>
                 <h1 class="text-xl font-semibold text-textPrimary">{{ $rt('Distribution') }}</h1>
-                <p class="mt-1 max-w-3xl text-sm text-textSecondary">{{ $rt('Plan LinkedIn variants, approvals, scheduling, account targeting, and campaign distribution without bypassing human review.') }}</p>
+                <p class="mt-1 max-w-3xl text-sm text-textSecondary">{{ $rt('Plan LinkedIn and Instagram variants, approvals, scheduling, account targeting, and campaign distribution without bypassing human review.') }}</p>
             </div>
             <form method="POST" action="{{ route('app.agentic-marketing.distribution.linkedin.connect') }}" class="grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_9rem_9rem_auto]">
                 @csrf
@@ -37,11 +45,15 @@
                     <option value="organization">{{ $rt('Company') }}</option>
                 </select>
                 <input name="labels" class="pl-input" placeholder="{{ $rt('Founder, Brand') }}">
-                <button class="pl-btn-primary">
+                <button class="pl-btn-primary min-w-40 justify-center whitespace-nowrap">
                     <i data-lucide="plus" class="h-4 w-4"></i>
                     <span>{{ $rt('Add LinkedIn') }}</span>
                 </button>
             </form>
+            <a href="{{ route('app.settings.integrations.instagram', ['workspace_id' => $workspace->id]) }}" class="pl-btn-primary min-w-40 justify-center whitespace-nowrap">
+                <i data-lucide="instagram" class="h-4 w-4"></i>
+                <span>{{ $rt('Connect Instagram') }}</span>
+            </a>
         </div>
 
         @if (session('status'))
@@ -98,7 +110,8 @@
         <section class="rounded-lg border border-border bg-surface">
             <div class="flex flex-col gap-2 border-b border-border p-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 class="text-base font-semibold text-textPrimary">{{ $rt('LinkedIn Accounts') }}</h2>
+                    <h2 class="text-base font-semibold text-textPrimary">{{ $rt('Social Accounts') }}</h2>
+                    <span class="sr-only">{{ $rt('LinkedIn Accounts') }}</span>
                     <p class="mt-1 text-sm text-textSecondary">{{ $rt('Manage workspace-owned identities for multi-actor distribution, approval, tone, and posting limits.') }}</p>
                 </div>
                 <span class="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-textSecondary">{{ $rt(':count account(s)', ['count' => $accounts->count()]) }}</span>
@@ -130,7 +143,7 @@
                             @endif
                             <div>
                                 <p class="text-sm font-semibold text-textPrimary">{{ $account->display_name }}</p>
-                                <p class="mt-1 text-xs text-textSecondary">{{ $formatStatus($account->status) }} · {{ $rt((string) str($account->account_type)->replace('_', ' ')->title()) }} · {{ $account->ownerLabel() }}</p>
+                                <p class="mt-1 text-xs text-textSecondary">{{ $platformLabel($account->platform) }} · {{ $formatStatus($account->status) }} · {{ $rt((string) str($account->account_type)->replace('_', ' ')->title()) }} · {{ $account->ownerLabel() }}</p>
                                 <p class="mt-1 text-xs text-textFaint">{{ $account->platform_account_id ?: $rt('OAuth placeholder') }}</p>
                                 @if ($accountLabels !== [])
                                     <div class="mt-2 flex flex-wrap gap-1.5">
@@ -155,6 +168,8 @@
                                         <select name="account_type" class="pl-input">
                                             <option value="person" @selected(old('account_type', $account->account_type) === 'person')>{{ $rt('Personal') }}</option>
                                             <option value="organization" @selected(old('account_type', $account->account_type) === 'organization')>{{ $rt('Company') }}</option>
+                                            <option value="business" @selected(old('account_type', $account->account_type) === 'business')>{{ $rt('Business') }}</option>
+                                            <option value="creator" @selected(old('account_type', $account->account_type) === 'creator')>{{ $rt('Creator') }}</option>
                                         </select>
                                     </label>
                                     <label>
@@ -211,7 +226,7 @@
                             <form method="POST" action="{{ route('app.agentic-marketing.distribution.accounts.destroy', ['account' => $account, 'workspace_id' => $workspace->id]) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button class="pl-btn-secondary text-danger hover:bg-danger/5" onclick="return confirm('{{ $rt('Remove this LinkedIn account? Scheduled publications keep their historical account reference.') }}')">
+                                <button class="pl-btn-secondary text-danger hover:bg-danger/5" onclick="return confirm('{{ $rt('Remove this social account? Scheduled publications keep their historical account reference.') }}')">
                                     <i data-lucide="trash-2" class="h-4 w-4"></i>
                                     <span>{{ $rt('Remove') }}</span>
                                 </button>
@@ -220,9 +235,9 @@
                     </div>
                 @empty
                     <div class="flex min-h-32 flex-col items-center justify-center px-4 text-center">
-                        <i data-lucide="linkedin" class="h-8 w-8 text-textFaint"></i>
-                        <p class="mt-3 text-sm font-medium text-textPrimary">{{ $rt('No LinkedIn accounts yet') }}</p>
-                        <p class="mt-1 max-w-md text-sm text-textSecondary">{{ $rt('Use the account name field above to add the first OAuth placeholder.') }}</p>
+                        <i data-lucide="send" class="h-8 w-8 text-textFaint"></i>
+                        <p class="mt-3 text-sm font-medium text-textPrimary">{{ $rt('No social accounts yet') }}</p>
+                        <p class="mt-1 max-w-md text-sm text-textSecondary">{{ $rt('Connect LinkedIn or Instagram before scheduling social distribution.') }}</p>
                     </div>
                 @endforelse
             </div>
@@ -230,21 +245,22 @@
 
         <section class="rounded-lg border border-border bg-surface">
             <div class="border-b border-border p-4">
-                <h2 class="text-base font-semibold text-textPrimary">{{ $rt('Create LinkedIn copy') }}</h2>
+                <h2 class="text-base font-semibold text-textPrimary">{{ $rt('Create social copy') }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ $rt('Choose one source for new variants. Both paths stay review-gated before publishing.') }}</p>
             </div>
             <div class="divide-y divide-border">
                 <details>
                     <summary class="flex cursor-pointer list-none items-center justify-between gap-3 p-4">
                         <div>
-                            <h3 class="text-sm font-semibold text-textPrimary">{{ $rt('Generate LinkedIn Variants') }}</h3>
+                            <h3 class="text-sm font-semibold text-textPrimary">{{ $rt('Generate Social Variants') }}</h3>
+                            <span class="sr-only">{{ $rt('Generate LinkedIn Variants') }}</span>
                             <p class="mt-1 text-sm text-textSecondary">{{ $rt('Create generation requests from approved campaign context. Copy remains review-gated.') }}</p>
                         </div>
                         <i data-lucide="chevron-down" class="h-4 w-4 text-textFaint"></i>
                     </summary>
                     <form method="POST" action="{{ route('app.agentic-marketing.distribution.variants.request') }}" class="grid gap-4 px-4 pb-4">
                         @csrf
-                        <div class="grid gap-4 lg:grid-cols-2">
+                        <div class="grid gap-4 lg:grid-cols-3">
                             <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Campaign') }}</span>
                                 <select name="campaign_id" class="pl-input mt-1" required>
@@ -255,7 +271,14 @@
                                 </select>
                             </label>
                             <label>
-                                <span class="text-xs font-medium text-textSecondary">{{ $rt('LinkedIn account') }}</span>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('Channel') }}</span>
+                                <select name="platform" class="pl-input mt-1" required>
+                                    <option value="linkedin">{{ $rt('LinkedIn Post') }}</option>
+                                    <option value="instagram">{{ $rt('Instagram Post') }}</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('Social account') }}</span>
                                 <select name="social_account_id" class="pl-input mt-1">
                                     <option value="">{{ $rt('Assign later') }}</option>
                                     @foreach ($accounts as $account)
@@ -293,6 +316,10 @@
                             <span class="text-xs font-medium text-textSecondary">{{ $rt('Hashtags') }}</span>
                             <input name="hashtags" class="pl-input mt-1" maxlength="240" placeholder="#AIVisibility #ContentMarketing #B2B">
                         </label>
+                        <label>
+                            <span class="text-xs font-medium text-textSecondary">{{ $rt('Image URL') }}</span>
+                            <input type="url" name="media_url" class="pl-input mt-1" maxlength="1000" placeholder="{{ $rt('Required for Instagram posts') }}">
+                        </label>
                         <details class="rounded-md border border-border bg-background p-3">
                             <summary class="cursor-pointer text-xs font-semibold text-textSecondary">Tracking parameters</summary>
                             <div class="mt-3 grid gap-3">
@@ -329,7 +356,7 @@
                     </form>
                     @if ($accounts->isEmpty())
                         <div class="border-t border-border px-4 py-3 text-sm text-textSecondary">
-                            {{ $rt('Add a LinkedIn account placeholder before scheduling. OAuth can be completed when credentials are configured.') }}
+                            {{ $rt('Connect or add a social account before scheduling. OAuth can be completed when credentials are configured.') }}
                         </div>
                     @endif
                 </details>
@@ -467,7 +494,7 @@
                                             $item->campaign?->name
                                             ?: $item->variant?->hook
                                             ?: data_get($item->payload_snapshot, 'title')
-                                            ?: $rt('LinkedIn post')
+                                            ?: $postLabel($item->platform)
                                         ));
                                         $timelineText = trim((string) data_get($item->payload_snapshot, 'publishing_text', ''));
                                         if ($timelineText === '' && $item->variant) {
@@ -493,7 +520,7 @@
                                         @if ($timelineUrl !== '')
                                             <a href="{{ $timelineUrl }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                                                 <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
-                                                <span>{{ $rt('View on LinkedIn') }}</span>
+                                                <span>{{ $rt('View on :platform', ['platform' => $platformLabel($item->platform)]) }}</span>
                                             </a>
                                         @endif
                                     </div>
@@ -504,7 +531,7 @@
                         <div class="flex min-h-52 flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 text-center">
                             <i data-lucide="calendar-clock" class="h-8 w-8 text-textFaint"></i>
                             <p class="mt-3 text-sm font-medium text-textPrimary">{{ $rt('No distribution activity yet') }}</p>
-                            <p class="mt-1 max-w-md text-sm text-textSecondary">{{ $rt('Scheduled and published LinkedIn posts will appear here once activity exists.') }}</p>
+                            <p class="mt-1 max-w-md text-sm text-textSecondary">{{ $rt('Scheduled and published social posts will appear here once activity exists.') }}</p>
                         </div>
                     @endforelse
                 </div>
@@ -559,7 +586,7 @@
         <section class="rounded-lg border border-border bg-surface">
             <div class="flex flex-col gap-2 border-b border-border p-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 class="text-base font-semibold text-textPrimary">{{ $rt('LinkedIn Variants') }}</h2>
+                    <h2 class="text-base font-semibold text-textPrimary">{{ $rt('Social Variants') }}</h2>
                     <p class="mt-1 text-sm text-textSecondary">{{ $rt('Review draft copy first. Setup and queued items are grouped separately so the board stays scannable.') }}</p>
                 </div>
                 @if ($attentionVariants->isNotEmpty())
@@ -613,7 +640,7 @@
                                 <form method="POST" action="{{ route('app.agentic-marketing.distribution.variants.destroy', $variant) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-textSecondary hover:bg-danger/5 hover:text-danger" onclick="return confirm('{{ $rt('Remove this LinkedIn variant? This only removes unscheduled suggestions.') }}')" aria-label="{{ $rt('Remove') }}">
+                                    <button class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-textSecondary hover:bg-danger/5 hover:text-danger" onclick="return confirm('{{ $rt('Remove this social variant? This only removes unscheduled suggestions.') }}')" aria-label="{{ $rt('Remove') }}">
                                         <i data-lucide="trash-2" class="h-4 w-4"></i>
                                     </button>
                                 </form>
@@ -627,10 +654,14 @@
                 @forelse ($copyVariants as $variant)
                     @php
                         $status = (string) ($variant->status?->value ?? $variant->status);
+                        $variantPlatform = $platformValue($variant);
+                        $variantPostLabel = $postLabel($variant->platform);
                         $variantBody = $variant->bodyWithoutRepeatedHook();
                         $hasCopy = trim($variantBody) !== '';
                         $canApprove = $hasCopy && ! in_array($status, ['approved', 'scheduled', 'published'], true);
-                        $canSchedule = $hasCopy && $status === 'approved' && $publishableAccounts->isNotEmpty();
+                        $variantPublishableAccounts = $publishableAccounts->filter(fn ($account) => $platformValue($account) === $variantPlatform);
+                        $blockedReason = $variant->publishingBlockedReason();
+                        $canSchedule = $hasCopy && $status === 'approved' && $variantPublishableAccounts->isNotEmpty() && $blockedReason === null;
                         $message = data_get($variant->generation_result, 'message');
                         $sourceUrl = $variant->sourceUrl();
                         $hashtagsLine = $variant->hashtagsLine();
@@ -644,7 +675,7 @@
                     <article class="rounded-md border border-border bg-background p-4 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4">
                         <div class="flex flex-wrap items-start justify-between gap-3 lg:block">
                             <div>
-                                <p class="font-semibold text-textPrimary">{{ $rt((string) str($variant->post_type?->value ?? $variant->post_type)->replace('_', ' ')->title()) }}</p>
+                                <p class="font-semibold text-textPrimary">{{ $variantPostLabel }}</p>
                                 <p class="mt-1 text-xs text-textSecondary">{{ $variant->campaign?->name ?? $rt('No campaign') }} · {{ $rt('Variant :number', ['number' => $variant->variant_number]) }}</p>
                             </div>
                             <div class="lg:mt-3">
@@ -681,7 +712,7 @@
                                 @csrf
                                 @method('PUT')
                                 <label>
-                                    <span class="sr-only">{{ $rt('LinkedIn post copy') }}</span>
+                                    <span class="sr-only">{{ $variantPostLabel }} {{ $rt('copy') }}</span>
                                     <textarea name="body" class="pl-textarea min-h-56" maxlength="3000" required>{{ old('body', $variantBody) }}</textarea>
                                 </label>
                                 <div class="grid gap-3 sm:grid-cols-[7rem_1fr]">
@@ -701,6 +732,15 @@
                                     <span class="text-xs font-medium text-textSecondary">{{ $rt('Hashtags') }}</span>
                                     <input name="hashtags" value="{{ old('hashtags', $hashtagsLine) }}" class="pl-input mt-1" maxlength="240" placeholder="#AIVisibility #ContentMarketing #B2B">
                                 </label>
+                                @if ($variant->requiresMedia())
+                                    <label>
+                                        <span class="text-xs font-medium text-textSecondary">{{ $rt('Image URL') }}</span>
+                                        <input type="url" name="media_url" value="{{ old('media_url', data_get($variant->media_refs, '0.url')) }}" class="pl-input mt-1" maxlength="1000" placeholder="{{ $rt('Instagram posts require an image before publishing.') }}">
+                                    </label>
+                                    @if ($blockedReason)
+                                        <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">{{ $blockedReason }}</p>
+                                    @endif
+                                @endif
                                 <label class="inline-flex items-center gap-2 text-sm text-textSecondary">
                                     <input type="checkbox" name="selected" value="1" @checked($variant->selected)>
                                     <span>{{ $rt('Select this variant for the draft') }}</span>
@@ -711,9 +751,9 @@
                                         class="pl-btn-secondary"
                                         data-linkedin-preview-trigger
                                         data-preview-mode="concept"
-                                        data-preview-title="{{ $variant->campaign?->name ?? 'LinkedIn post' }}"
+                                        data-preview-title="{{ $variant->campaign?->name ?? $variantPostLabel }}"
                                         data-preview-text="{{ $variant->publishingText() }}"
-                                        data-preview-account="{{ $variant->socialAccount?->display_name ?? 'LinkedIn account' }}"
+                                        data-preview-account="{{ $variant->socialAccount?->display_name ?? $platformLabel($variant->platform).' account' }}"
                                     >
                                         <i data-lucide="eye" class="h-4 w-4"></i>
                                         <span>Preview</span>
@@ -747,7 +787,7 @@
                             <form method="POST" action="{{ route('app.agentic-marketing.distribution.variants.destroy', $variant) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button class="pl-btn-secondary text-danger hover:bg-danger/5" onclick="return confirm('{{ $rt('Remove this LinkedIn variant? This only removes unscheduled suggestions.') }}')">
+                                <button class="pl-btn-secondary text-danger hover:bg-danger/5" onclick="return confirm('{{ $rt('Remove this social variant? This only removes unscheduled suggestions.') }}')">
                                     <i data-lucide="trash-2" class="h-4 w-4"></i>
                                     <span>{{ $rt('Remove') }}</span>
                                 </button>
@@ -758,14 +798,14 @@
                                 class="contents"
                                 data-linkedin-preview-form
                                 data-preview-mode="schedule"
-                                data-preview-title="{{ $variant->campaign?->name ?? 'LinkedIn post' }}"
+                                data-preview-title="{{ $variant->campaign?->name ?? $variantPostLabel }}"
                                 data-preview-text="{{ $variant->publishingText() }}"
                                 data-preview-account="{{ $variant->socialAccount?->display_name ?? '' }}"
                             >
                                 @csrf
                                 <div class="grid gap-2 sm:grid-cols-[minmax(9rem,1fr)_minmax(12rem,1.1fr)]">
                                     <select name="social_account_id" class="pl-input" required @disabled(! $canSchedule)>
-                                        @forelse ($publishableAccounts as $account)
+                                        @forelse ($variantPublishableAccounts as $account)
                                             <option value="{{ $account->id }}" @selected((string) $variant->social_account_id === (string) $account->id)>{{ $account->display_name }} · {{ $account->actorLabel() }}</option>
                                         @empty
                                             <option value="">{{ $rt('No connected account') }}</option>
@@ -785,7 +825,7 @@
                     <div class="col-span-full flex min-h-48 flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 text-center">
                         <i data-lucide="send" class="h-8 w-8 text-textFaint"></i>
                         <p class="mt-3 text-sm font-medium text-textPrimary">{{ $rt('No draft variants ready yet') }}</p>
-                        <p class="mt-1 max-w-md text-sm text-textSecondary">{{ $rt('Generated copy will appear here once a provider returns usable LinkedIn text.') }}</p>
+                            <p class="mt-1 max-w-md text-sm text-textSecondary">{{ $rt('Generated copy will appear here once a provider returns usable social text.') }}</p>
                     </div>
                 @endforelse
             </div>
@@ -799,12 +839,13 @@
                 @forelse ($publications as $publication)
                     @php
                         $publicationStatus = $publication->status?->value ?? $publication->status;
-                        $canPublishNow = config('services.linkedin.publishing_enabled') && in_array($publicationStatus, ['approved', 'scheduled', 'queued', 'failed'], true);
+                        $publicationPlatform = $platformValue($publication);
+                        $canPublishNow = $publishingEnabled($publicationPlatform) && in_array($publicationStatus, ['approved', 'scheduled', 'queued', 'failed'], true);
                         $publicationError = $publication->publicErrorMessage();
                     @endphp
                     <div class="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
                         <div>
-                            <p class="text-sm font-medium text-textPrimary">{{ $publication->variant?->campaign?->name ?? $publication->campaign?->name ?? $rt('LinkedIn post') }}</p>
+                            <p class="text-sm font-medium text-textPrimary">{{ $publication->variant?->campaign?->name ?? $publication->campaign?->name ?? $postLabel($publication->platform) }}</p>
                             <p class="mt-1 text-xs text-textSecondary">{{ $formatStatus($publication->status) }} · {{ $publication->scheduled_for?->copy()->timezone($scheduleTimezone)->format('d-m-Y H:i') ?: $rt('No schedule') }}</p>
                             @if ($publicationStatus === 'failed' && filled($publicationError))
                                 <p class="mt-1 max-w-xl text-xs text-danger">{{ $publicationError }}</p>
@@ -821,9 +862,9 @@
                             action="{{ route('app.agentic-marketing.distribution.publications.queue', $publication) }}"
                             data-linkedin-preview-form
                             data-preview-mode="publish"
-                            data-preview-title="{{ $publication->variant?->campaign?->name ?? $publication->campaign?->name ?? 'LinkedIn post' }}"
+                            data-preview-title="{{ $publication->variant?->campaign?->name ?? $publication->campaign?->name ?? $postLabel($publication->platform) }}"
                             data-preview-text="{{ $publicationPreviewText }}"
-                            data-preview-account="{{ $publication->socialAccount?->display_name ?? 'LinkedIn account' }}"
+                            data-preview-account="{{ $publication->socialAccount?->display_name ?? $platformLabel($publication->platform).' account' }}"
                             data-preview-scheduled="{{ $publication->scheduled_for?->copy()->timezone($scheduleTimezone)->format('d-m-Y H:i') ?: 'Manual publish' }}"
                         >
                             @csrf
@@ -844,7 +885,7 @@
         <div class="border-b border-border px-5 py-4">
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">LinkedIn preview</p>
+                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">Social preview</p>
                     <h2 class="mt-1 text-base font-semibold text-textPrimary">Check voordat je publiceert</h2>
                 </div>
                 <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-textSecondary hover:bg-surfaceMuted" data-linkedin-preview-close aria-label="Close preview">
@@ -860,7 +901,7 @@
                         <i data-lucide="linkedin" class="h-6 w-6"></i>
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-semibold" data-linkedin-preview-account>LinkedIn account</p>
+                        <p class="truncate text-sm font-semibold" data-linkedin-preview-account>Social account</p>
                         <p class="text-xs text-[#666]">Argusly · Preview</p>
                         <div class="mt-1 flex items-center gap-1 text-xs text-[#666]">
                             <span data-linkedin-preview-time>Now</span>
@@ -904,9 +945,9 @@
                 </div>
                 <div class="rounded-md border border-border bg-background p-3">
                     <p class="text-xs font-medium uppercase tracking-wide text-textFaint">Campagne</p>
-                    <p class="mt-1 text-sm text-textSecondary" data-linkedin-preview-title>LinkedIn post</p>
+                    <p class="mt-1 text-sm text-textSecondary" data-linkedin-preview-title>Social post</p>
                 </div>
-                <p class="text-xs leading-5 text-textSecondary">Dit is een benadering van hoe LinkedIn tekst, URL en hashtags toont. LinkedIn kan spacing, link cards en truncation zelf nog aanpassen.</p>
+                <p class="text-xs leading-5 text-textSecondary">Dit is een benadering van hoe het kanaal tekst, URL, media en hashtags toont. Het platform kan spacing, link cards en truncation zelf nog aanpassen.</p>
             </aside>
         </div>
 
@@ -1012,7 +1053,7 @@
                 pendingForm = source.matches('form') ? source : null;
                 const mode = source.dataset.previewMode || 'publish';
                 const scheduleValue = source.querySelector?.('[name="scheduled_for"]')?.value || '';
-                const account = selectedOptionText(source, 'social_account_id') || source.dataset.previewAccount || 'LinkedIn account';
+                const account = selectedOptionText(source, 'social_account_id') || source.dataset.previewAccount || 'Social account';
                 const scheduledLabel = formatSchedule(scheduleValue) || source.dataset.previewScheduled || 'Direct publish';
                 const previewText = withDisclaimer(mode === 'concept' ? composeConceptText(source) : source.dataset.previewText);
 
@@ -1020,7 +1061,7 @@
                     textNode.textContent = previewText || 'No preview text available.';
                 }
                 if (titleNode) {
-                    titleNode.textContent = source.dataset.previewTitle || 'LinkedIn post';
+                    titleNode.textContent = source.dataset.previewTitle || 'Social post';
                 }
                 if (accountNode) {
                     accountNode.textContent = account;

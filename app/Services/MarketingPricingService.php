@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\SupportedLanguage;
 use App\Models\CreditPack;
 use App\Models\Plan;
 use App\Support\LocalizedMarketingUrl;
@@ -225,8 +226,8 @@ class MarketingPricingService
 
     private function normalizeLocale(?string $locale): string
     {
-        $resolved = strtolower(trim((string) $locale));
+        $resolved = SupportedLanguage::tryFromString($locale)?->value;
 
-        return in_array($resolved, ['nl', 'en'], true) ? $resolved : strtolower((string) app()->getLocale() ?: 'en');
+        return $resolved ?: (SupportedLanguage::tryFromString((string) app()->getLocale())?->value ?? SupportedLanguage::EN->value);
     }
 }

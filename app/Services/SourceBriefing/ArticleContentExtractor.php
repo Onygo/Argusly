@@ -2,6 +2,7 @@
 
 namespace App\Services\SourceBriefing;
 
+use App\Enums\SupportedLanguage;
 use App\Services\SourceBriefing\Exceptions\SourceBriefingException;
 use DOMDocument;
 use DOMElement;
@@ -583,8 +584,8 @@ class ArticleContentExtractor
         $explicit = $this->metaContent($xpath, '/html/@lang')
             ?: $this->metaContent($xpath, "//meta[@property='og:locale']/@content");
 
-        $normalized = strtolower(substr((string) $explicit, 0, 2));
-        if (in_array($normalized, ['nl', 'en'], true)) {
+        $normalized = SupportedLanguage::tryFromString((string) $explicit)?->value;
+        if ($normalized !== null) {
             return $normalized;
         }
 

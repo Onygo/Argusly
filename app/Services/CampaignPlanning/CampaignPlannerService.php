@@ -7,6 +7,7 @@ use App\Enums\CampaignContentAssetType;
 use App\Enums\CampaignStatus;
 use App\Enums\DistributionChannelType;
 use App\Enums\DistributionPlanStatus;
+use App\Enums\SupportedLanguage;
 use App\Models\Campaign;
 use App\Models\CampaignContent;
 use App\Models\CampaignDistributionPlan;
@@ -55,6 +56,7 @@ class CampaignPlannerService
         $topic = $this->normalizeTopic($topic);
         $goals = $this->normalizeList($options['goals'] ?? []);
         $audience = $this->audienceMapping($topic, $goals, (string) ($options['audience'] ?? ''));
+        $languages = $this->campaignLanguages($workspace, (array) ($options['languages'] ?? []));
         $opportunities = $this->matchingOpportunities($workspace, $topic);
         $assets = $this->assets($topic, $goals, $audience, $opportunities);
         $dependencyGraph = $this->dependencyGraph($assets);
@@ -70,6 +72,7 @@ class CampaignPlannerService
             $topic,
             $goals,
             $audience,
+            $languages,
             $opportunities,
             $assets,
             $dependencyGraph,
@@ -87,6 +90,7 @@ class CampaignPlannerService
                 'funnel_stage_map' => $this->funnelStageMap($assets),
                 'audience_map' => $audience,
                 'content_sequence' => $publishingSchedule,
+                'campaign_languages' => $languages,
                 'approval_required_before_execution' => true,
                 'autonomous_execution_enabled' => false,
             ]);
@@ -116,6 +120,7 @@ class CampaignPlannerService
                 'ai_planning_context' => [
                     'mode' => 'deterministic_assisted_planning',
                     'source_topic' => $topic,
+                    'languages' => $languages,
                     'source_opportunity_ids' => $opportunities->pluck('id')->map(fn ($id): string => (string) $id)->all(),
                     'topic_clusters' => $this->topicClusters($topic, $assets, $opportunities),
                     'dependency_graph' => $dependencyGraph,
@@ -186,6 +191,7 @@ class CampaignPlannerService
                         'funnel_stage' => $asset['funnel_stage'],
                         'audience_segment' => $asset['audience_segment'],
                         'search_intent' => $asset['search_intent'],
+                        'languages' => $languages,
                         'acceptance_criteria' => $asset['acceptance_criteria'],
                     ],
                     'channel_requirements' => $asset['channel_requirements'],
@@ -246,6 +252,26 @@ class CampaignPlannerService
     }
 
     /**
+     * @param  list<string>  $selected
+     * @return list<string>
+     */
+    private function campaignLanguages(Workspace $workspace, array $selected): array
+    {
+        $enabled = $workspace->enabled_content_languages;
+        $default = $workspace->defaultContentLanguageCode();
+
+        $languages = collect($selected)
+            ->map(fn (mixed $language): string => SupportedLanguage::fromStringOrDefault((string) $language)->value)
+            ->filter(fn (string $language): bool => in_array($language, $enabled, true))
+            ->prepend($default)
+            ->unique()
+            ->values()
+            ->all();
+
+        return $languages !== [] ? $languages : [$default];
+    }
+
+    /**
      * @return Collection<int,Opportunity>
      */
     private function matchingOpportunities(Workspace $workspace, string $topic): Collection
@@ -279,7 +305,7 @@ class CampaignPlannerService
             $this->asset('supporting_operations', CampaignContentAssetType::ARTICLE, 3, 'supporting', 'How to operationalize '.Str::title($topic), 'Show workflows, ownership, governance, and measurement.', 'consideration', 'marketing operations', 'how_to', 'technical', $clusters),
             $this->asset('supporting_measurement', CampaignContentAssetType::ARTICLE, 4, 'supporting', Str::title($topic).' metrics and reporting', 'Define KPIs, signal quality, and reporting cadence.', 'decision', 'growth leaders', 'comparison', 'analytical', $clusters),
             $this->asset('linkedin_thought_leadership', CampaignContentAssetType::LINKEDIN_POST, 5, 'distribution', 'LinkedIn thought leadership: '.Str::title($topic), 'Frame the market shift and invite discussion.', 'awareness', 'executives', 'social', 'thought_leadership', $clusters),
-            $this->asset('founder_post', CampaignContentAssetType::FOUNDER_POST, 6, 'distribution', 'Founder post: why '.Str::title($topic).' matters', 'Founder perspective, belief, and strategic narrative.', 'awareness', 'founders', 'social', 'founder', $clusters),
+            $this->asset('instagram_visual_caption', CampaignContentAssetType::INSTAGRAM_POST, 6, 'distribution', 'Instagram Post: '.Str::title($topic), 'Turn the strongest campaign idea into a short visual-first caption.', 'awareness', 'marketing teams', 'social', 'visual', $clusters),
             $this->asset('linkedin_technical_deep_dive', CampaignContentAssetType::LINKEDIN_POST, 7, 'distribution', 'LinkedIn technical deep dive: '.Str::title($topic), 'Operational detail from the supporting guide.', 'consideration', 'practitioners', 'social', 'technical', $clusters),
             $this->asset('faq_block', CampaignContentAssetType::FAQ_BLOCK, 8, 'conversion', Str::title($topic).' FAQ block', 'Answer high-friction questions from prospects and AI answer surfaces.', 'decision', $primaryAudience, 'question_answer', 'concise', $clusters),
             $this->asset('answer_block', CampaignContentAssetType::ANSWER_BLOCK, 9, 'conversion', 'Answer block: what is '.Str::title($topic).'?', 'Short answer for AI visibility and structured content reuse.', 'awareness', 'AI answer surfaces', 'question_answer', 'direct', $clusters),
@@ -344,7 +370,7 @@ class CampaignPlannerService
                 continue;
             }
 
-            $parent = in_array($asset['asset_type'], [CampaignContentAssetType::LINKEDIN_POST->value, CampaignContentAssetType::FOUNDER_POST->value, CampaignContentAssetType::NEWSLETTER_SNIPPET->value], true)
+            $parent = in_array($asset['asset_type'], [CampaignContentAssetType::LINKEDIN_POST->value, CampaignContentAssetType::INSTAGRAM_POST->value, CampaignContentAssetType::FOUNDER_POST->value, CampaignContentAssetType::NEWSLETTER_SNIPPET->value], true)
                 ? 'supporting_strategy'
                 : 'pillar_article';
             $edge = [
@@ -507,6 +533,7 @@ class CampaignPlannerService
             $recommendations = match ($asset['asset_type']) {
                 CampaignContentAssetType::ARTICLE->value => [
                     ['target' => 'linkedin_post', 'reason' => 'Extract the strongest argument into a discussion post.'],
+                    ['target' => 'instagram_post', 'reason' => 'Turn the strongest visual idea into a short caption with hashtags.'],
                     ['target' => 'newsletter_snippet', 'reason' => 'Summarize the article for subscribers.'],
                     ['target' => 'faq_block', 'reason' => 'Convert objections and definitions into structured questions.'],
                 ],
@@ -586,6 +613,7 @@ class CampaignPlannerService
         return match ($type) {
             CampaignContentAssetType::ARTICLE => ['Definition', 'Why now', 'Operating model', 'Implementation steps', 'Measurement', 'Next action'],
             CampaignContentAssetType::LINKEDIN_POST, CampaignContentAssetType::FOUNDER_POST => ['Hook', 'Point of view', 'Concrete example', 'Question or CTA'],
+            CampaignContentAssetType::INSTAGRAM_POST => ['Visual hook', 'Caption', 'Hashtags', 'Media requirement'],
             CampaignContentAssetType::FAQ_BLOCK => ['Question', 'Direct answer', 'Decision context', 'Related internal link'],
             CampaignContentAssetType::ANSWER_BLOCK => ['One-sentence answer', 'Expanded answer', 'Entity/context notes'],
             CampaignContentAssetType::NEWSLETTER_SNIPPET => ['Opening insight', 'Campaign takeaway', 'Link CTA'],
@@ -601,6 +629,7 @@ class CampaignPlannerService
             'channel_types' => $this->channelTypesForAsset($type->value),
             'approval_required' => true,
             'execution_mode' => 'draft_only',
+            'requires_media' => $type === CampaignContentAssetType::INSTAGRAM_POST,
         ];
     }
 
@@ -612,6 +641,7 @@ class CampaignPlannerService
         return match ($assetType) {
             CampaignContentAssetType::ARTICLE->value, CampaignContentAssetType::FAQ_BLOCK->value, CampaignContentAssetType::ANSWER_BLOCK->value => [DistributionChannelType::WEBSITE->value],
             CampaignContentAssetType::LINKEDIN_POST->value, CampaignContentAssetType::FOUNDER_POST->value => [DistributionChannelType::LINKEDIN->value],
+            CampaignContentAssetType::INSTAGRAM_POST->value => [DistributionChannelType::INSTAGRAM->value],
             CampaignContentAssetType::NEWSLETTER_SNIPPET->value => [DistributionChannelType::NEWSLETTER->value],
             default => [DistributionChannelType::MANUAL->value],
         };
@@ -625,6 +655,7 @@ class CampaignPlannerService
         $required = [
             DistributionChannelType::WEBSITE->value => 'Website planning',
             DistributionChannelType::LINKEDIN->value => 'LinkedIn planning',
+            DistributionChannelType::INSTAGRAM->value => 'Instagram planning',
             DistributionChannelType::NEWSLETTER->value => 'Newsletter planning',
         ];
 
@@ -670,6 +701,7 @@ class CampaignPlannerService
             'authoritative' => ['use_for' => ['pillar_article'], 'note' => 'Define '.$topic.' with category-level confidence.'],
             'practical' => ['use_for' => ['supporting_strategy'], 'note' => 'Translate strategy into operating steps.'],
             'technical' => ['use_for' => ['supporting_operations', 'linkedin_technical_deep_dive'], 'note' => 'Use precise process language for practitioners.'],
+            'visual' => ['use_for' => ['instagram_visual_caption'], 'note' => 'Use short visual-first caption language with hashtags.'],
             'founder' => ['use_for' => ['founder_post'], 'note' => 'Use a point-of-view narrative without unsupported claims.'],
             'concise' => ['use_for' => ['faq_block', 'answer_block', 'newsletter_snippet'], 'note' => 'Lead with the answer and keep claims reusable.'],
             'audience_context' => $audience,

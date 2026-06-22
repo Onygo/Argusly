@@ -172,6 +172,8 @@ it('generates review gated suggested content and social drafts from an approved 
     $workspace = Workspace::query()->create([
         'organization_id' => $organization->id,
         'name' => 'Campaign Generation Workspace',
+        'default_content_language' => 'en',
+        'enabled_content_languages' => ['en', 'nl'],
     ]);
 
     $site = ClientSite::query()->create([
@@ -186,16 +188,31 @@ it('generates review gated suggested content and social drafts from an approved 
     $campaign = app(CampaignPlannerService::class)->plan($workspace, 'Agentic Marketing', [
         'goals' => ['Build topical authority'],
         'audience' => 'Marketing leaders',
+        'languages' => ['en', 'nl'],
         'client_site_id' => (string) $site->id,
         'owner_user_id' => $user->id,
     ]);
 
-    $summary = app(CampaignAssetGenerationService::class)->generate($campaign, $user);
+    $generator = app(CampaignAssetGenerationService::class);
+    $estimate = $generator->estimate($campaign);
+
+    expect($estimate)->toMatchArray([
+        'estimated_credits' => 100,
+        'pending_credits' => 100,
+        'credits_per_draft' => 10,
+        'draft_assets' => 5,
+        'pending_draft_assets' => 10,
+        'no_credit_assets' => 5,
+        'language_count' => 2,
+        'languages' => ['en', 'nl'],
+    ]);
+
+    $summary = $generator->generate($campaign, $user);
 
     expect($summary)->toBe([
-        'generated_content' => 5,
-        'generated_social' => 3,
-        'generated_answer_blocks' => 4,
+        'generated_content' => 10,
+        'generated_social' => 6,
+        'generated_answer_blocks' => 8,
         'skipped' => 0,
     ]);
 
@@ -204,13 +221,19 @@ it('generates review gated suggested content and social drafts from an approved 
     expect($campaign->approval_status)->toBe(CampaignApprovalStatus::APPROVED)
         ->and($campaign->status)->toBe(CampaignStatus::APPROVED);
 
-    expect(Content::query()->where('workspace_id', $workspace->id)->count())->toBe(5);
-    expect(Brief::query()->where('client_site_id', $site->id)->count())->toBe(5);
-    expect(Draft::query()->where('client_site_id', $site->id)->count())->toBe(5);
-    expect(Draft::query()->where('client_site_id', $site->id)->where('status', 'queued')->count())->toBe(5);
+    expect(Content::query()->where('workspace_id', $workspace->id)->count())->toBe(10);
+    expect(Content::query()->where('workspace_id', $workspace->id)->where('language', 'en')->count())->toBe(5);
+    expect(Content::query()->where('workspace_id', $workspace->id)->where('language', 'nl')->count())->toBe(5);
+    expect(Brief::query()->where('client_site_id', $site->id)->count())->toBe(10);
+    expect(Draft::query()->where('client_site_id', $site->id)->count())->toBe(10);
+    expect(Draft::query()->where('client_site_id', $site->id)->where('status', 'queued')->count())->toBe(10);
+    expect(Draft::query()->where('client_site_id', $site->id)->where('language', 'en')->count())->toBe(5);
+    expect(Draft::query()->where('client_site_id', $site->id)->where('language', 'nl')->count())->toBe(5);
+    expect(Draft::query()->where('client_site_id', $site->id)->pluck('credit_cost')->unique()->values()->all())->toBe([10]);
     expect(CampaignContent::query()->where('campaign_id', $campaign->id)->whereNotNull('content_id')->count())->toBe(7);
-    expect(SocialPostVariant::query()->where('campaign_id', $campaign->id)->where('status', SocialPostVariantStatus::DRAFT->value)->count())->toBe(3);
-    expect(StructuredAnswerBlock::query()->count())->toBe(4);
+    expect(SocialPostVariant::query()->where('campaign_id', $campaign->id)->where('status', SocialPostVariantStatus::DRAFT->value)->count())->toBe(6);
+    expect(SocialPostVariant::query()->where('campaign_id', $campaign->id)->get()->pluck('metadata.locale')->sort()->values()->all())->toBe(['en', 'en', 'en', 'nl', 'nl', 'nl']);
+    expect(StructuredAnswerBlock::query()->count())->toBe(8);
     expect(Content::query()->where('title', 'Pillar article: Agentic Marketing')->first()?->answerBlocks()->count())->toBe(4);
     SocialPostVariant::query()
         ->where('campaign_id', $campaign->id)
@@ -219,14 +242,23 @@ it('generates review gated suggested content and social drafts from an approved 
             expect($variant->body)->not->toStartWith((string) $variant->hook)
                 ->and($variant->publishingText())->not->toStartWith((string) $variant->hook);
         });
-    Queue::assertPushed(GenerateDraftJob::class, 5);
+    Queue::assertPushed(GenerateDraftJob::class, 10);
 
-    $secondRun = app(CampaignAssetGenerationService::class)->generate($campaign, $user);
+    $postGenerateEstimate = $generator->estimate($campaign->fresh());
+
+    expect($postGenerateEstimate)->toMatchArray([
+        'estimated_credits' => 100,
+        'pending_credits' => 0,
+        'draft_assets' => 5,
+        'pending_draft_assets' => 0,
+    ]);
+
+    $secondRun = $generator->generate($campaign, $user);
 
     expect($secondRun)->toBe([
         'generated_content' => 0,
         'generated_social' => 0,
         'generated_answer_blocks' => 0,
-        'skipped' => 10,
+        'skipped' => 20,
     ]);
 });

@@ -43,6 +43,7 @@ class FirstValueActivationService
             ->count();
         $eventCount = SignalEvent::query()->where('workspace_id', $workspace->id)->count();
         $detectionCount = SignalDetection::query()->where('workspace_id', $workspace->id)->count();
+        $openDetectionCount = SignalDetection::query()->where('workspace_id', $workspace->id)->open()->count();
         $candidateCount = SignalDetection::query()
             ->where('workspace_id', $workspace->id)
             ->open()
@@ -52,7 +53,8 @@ class FirstValueActivationService
             })
             ->count();
         $opportunityCount = Opportunity::query()->where('workspace_id', $workspace->id)->count();
-        $hasOpportunityCandidateProgress = $candidateCount > 0 || $opportunityCount > 0;
+        $hasProcessedDetectionProgress = $detectionCount > 0 && $openDetectionCount === 0;
+        $hasOpportunityCandidateProgress = $candidateCount > 0 || $opportunityCount > 0 || $hasProcessedDetectionProgress;
 
         $steps = collect([
             $this->step(
@@ -114,9 +116,11 @@ class FirstValueActivationService
             $this->step(
                 'first_opportunity_candidate',
                 'First Opportunity Candidate',
-                'Review a detection with enough opportunity score to decide whether it should become an opportunity.',
+                $hasProcessedDetectionProgress
+                    ? 'All detections are processed. No opportunity candidate is waiting until new evidence appears.'
+                    : 'Review a detection with enough opportunity score to decide whether it should become an opportunity.',
                 $hasOpportunityCandidateProgress,
-                $candidateCount > 0 ? 'Review Opportunity' : ($detectionCount > 0 ? 'Find Opportunity Candidate' : 'Create detection first'),
+                $candidateCount > 0 ? 'Review Opportunity' : ($openDetectionCount > 0 ? 'Find Opportunity Candidate' : 'Create detection first'),
                 $candidateCount > 0
                     ? $this->route('app.opportunity-review.index', ['workspace' => $workspace->id])
                     : $this->route('app.signal-intelligence.index', ['workspace' => $workspace->id]).'#priority',
@@ -146,6 +150,7 @@ class FirstValueActivationService
                 'runs' => $runCount,
                 'signal_events' => $eventCount,
                 'detections' => $detectionCount,
+                'open_detections' => $openDetectionCount,
                 'opportunity_candidates' => $candidateCount,
             ],
             'quick_actions' => $this->quickActions($workspace, $site, $next, $candidateCount),

@@ -10,6 +10,7 @@ use App\Models\Draft;
 use App\Models\Event;
 use App\Services\Integrations\LaravelConnectorPublishingService;
 use App\Services\Publication\ContentPublicationService;
+use App\Services\Seo\CanonicalUrlService;
 use App\Support\SeoMetadata;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -19,6 +20,7 @@ class SeriesPublishingService
     public function __construct(
         private readonly LaravelConnectorPublishingService $laravelPublishingService,
         private readonly ContentPublicationService $publicationService,
+        private readonly CanonicalUrlService $canonicals,
     ) {}
 
     /**
@@ -261,8 +263,10 @@ class SeriesPublishingService
 
         $base = rtrim((string) ($site->site_url ?? ''), '/');
         if ($base !== '') {
+            $slug = Str::slug((string) $content->title);
+
             return [
-                'url' => $base . '/blog/' . Str::slug((string) $content->title),
+                'url' => $this->canonicals->liveUrlForContent($content, $base . '/blog/' . $slug, $slug),
                 'source' => 'site.slug_guess',
             ];
         }

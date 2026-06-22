@@ -235,12 +235,12 @@
                 </div>
             @endif
             <div class="pl-work-topbar">
-                <div class="flex min-w-0 flex-1 items-center gap-3">
+                <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                     <button id="mobileMenuBtn" class="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-textSecondary hover:bg-surfaceMuted lg:hidden">
                         <i data-lucide="menu" class="h-4 w-4"></i>
                     </button>
                     <div class="flex min-w-0 items-center gap-2">
-                        <span class="pl-work-chip">{{ auth()->user()?->organization?->name ?? 'Workspace' }}</span>
+                        <span class="pl-work-chip max-w-[8.5rem] truncate sm:max-w-none">{{ auth()->user()?->organization?->name ?? 'Workspace' }}</span>
                         @if (! empty($appAccessOverrideBanner))
                             <span class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-primary/20 bg-primarySoftBg px-2.5 text-xs font-medium text-primary">
                                 <i data-lucide="shield-check" class="h-3.5 w-3.5"></i>
@@ -250,7 +250,7 @@
                         <span class="pl-work-chip-muted hidden max-w-[24rem] truncate sm:inline-flex" title="{{ $title ?? 'Workspace' }}">{{ $title ?? 'Workspace' }}</span>
                     </div>
                 </div>
-                <div class="flex w-full items-center justify-end gap-2 sm:w-auto sm:flex-1">
+                <div class="flex shrink-0 items-center justify-end gap-2 sm:flex-1">
                     @php
                         $notificationBell = $appNotificationBell ?? ['workspace_id' => null, 'unread_count' => 0, 'recent' => collect()];
                         $notificationBellUnreadCount = (int) ($notificationBell['unread_count'] ?? 0);
@@ -361,7 +361,7 @@
 
         <div id="mobileSidebar" class="hidden fixed inset-0 z-50 lg:hidden">
             <div class="fixed inset-0 bg-black/35" id="mobileOverlay"></div>
-            <div class="fixed inset-y-0 left-0 w-72 bg-surface border-r border-border z-50">
+            <div class="fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col border-r border-border bg-surface">
                 <div class="flex h-14 items-center justify-between border-b border-border px-4">
                     <div class="flex items-center gap-2">
                         <x-brand-logo :show-text="false" />
@@ -376,7 +376,7 @@
                         <i data-lucide="x" class="h-4 w-4"></i>
                     </button>
                 </div>
-                <nav class="space-y-3 p-4">
+                <nav class="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                     <div>
                         <p class="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-textFaint">GROWTH</p>
                         <div class="space-y-1">

@@ -267,7 +267,7 @@
 
         <div id="adminMobileSidebar" class="hidden fixed inset-0 z-50 lg:hidden">
             <div class="fixed inset-0 bg-black/35" id="adminMobileOverlay"></div>
-            <div class="fixed inset-y-0 left-0 w-72 bg-surface border-r border-border z-50">
+            <div class="fixed inset-y-0 left-0 z-50 flex h-dvh w-72 flex-col border-r border-border bg-surface">
                 <div class="flex h-14 items-center justify-between border-b border-border px-4">
                     <div class="flex items-center gap-2">
                         <x-brand-logo :show-text="false" />
@@ -277,7 +277,7 @@
                     </div>
                     <button id="adminCloseMobileMenu" class="pl-icon-btn border-0" aria-label="Close menu"><i data-lucide="x" class="h-4 w-4"></i></button>
                 </div>
-                <nav class="space-y-3 p-4">
+                <nav class="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                     <div>
                         <p class="mb-1 px-3 text-xs font-medium uppercase tracking-wide text-textFaint">Platform</p>
                         <div class="space-y-1">

@@ -12,6 +12,7 @@ use App\Models\ContentDestination;
 use App\Models\ContentDeliveryEvent;
 use App\Models\ContentPublication;
 use App\Services\Publication\ContentPublicationStateService;
+use App\Services\Seo\CanonicalUrlService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -318,7 +319,10 @@ class ContentStatusPresenter
 
     public function publishedUrl(): ?string
     {
-        return $this->publication?->remote_url ?? $this->content->published_url;
+        return app(CanonicalUrlService::class)->liveUrlForContent(
+            $this->content,
+            $this->publication?->remote_url ?? $this->content->published_url
+        );
     }
 
     public function remoteId(): ?string

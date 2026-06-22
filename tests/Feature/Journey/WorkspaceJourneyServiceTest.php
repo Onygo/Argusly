@@ -394,10 +394,11 @@ it('does not ask users to review processed opportunity candidates', function ():
     $candidateStep = $activation['steps']->firstWhere('key', 'first_opportunity_candidate');
 
     expect($activation['counts']['opportunity_candidates'])->toBe(0)
-        ->and($candidateStep['completed'])->toBeFalse()
-        ->and($candidateStep['action_label'])->toBe('Find Opportunity Candidate')
-        ->and(app(WorkspaceJourneyService::class)->getRecommendedAction($context['workspace'])->title)->toBe('Find Opportunity Candidate')
-        ->and(app(WorkspaceJourneyService::class)->getRecommendedAction($context['workspace'])->route)->toEndWith('#priority');
+        ->and($activation['counts']['open_detections'])->toBe(0)
+        ->and($candidateStep['completed'])->toBeTrue()
+        ->and($candidateStep['description'])->toBe('All detections are processed. No opportunity candidate is waiting until new evidence appears.')
+        ->and(app(WorkspaceJourneyService::class)->getRecommendedAction($context['workspace'])->title)->toBe('Monitor New Signals')
+        ->and(app(WorkspaceJourneyService::class)->getRecommendedAction($context['workspace'])->route)->not->toEndWith('#priority');
 });
 
 it('does not send users back to find a candidate after an opportunity already exists', function (): void {

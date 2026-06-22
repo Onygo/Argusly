@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Enums\SupportedLanguage;
 use App\Models\Campaign;
+use App\Models\ClientSite;
 use App\Models\Opportunity;
 use App\Models\Workspace;
 use App\Services\CampaignPlanning\CampaignAssetGenerationService;
 use App\Services\CampaignPlanning\CampaignPlannerService;
+use App\Services\CreditWalletService;
+use App\Support\ContentAssets\ContentAssetTaxonomy;
+use App\View\Presenters\CampaignContentAssetPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,7 +20,11 @@ use Illuminate\View\View;
 
 class AppCampaignPlannerController extends Controller
 {
-    public function index(Request $request): View
+    public function index(
+        Request $request,
+        CampaignAssetGenerationService $generator,
+        CreditWalletService $creditWalletService,
+    ): View
     {
         $workspace = $this->resolveWorkspace($request);
 
@@ -36,9 +45,50 @@ class AppCampaignPlannerController extends Controller
         $selectedCampaign = $request->query('campaign')
             ? Campaign::query()
                 ->where('workspace_id', $workspace->id)
-                ->with(['contents.distributionPlans.distributionChannel', 'opportunities'])
+                ->with(['contents.content.publications', 'contents.distributionPlans.distributionChannel', 'opportunities', 'workspace.clientSites'])
                 ->find($request->query('campaign'))
-            : $campaigns->first()?->load(['contents.distributionPlans.distributionChannel', 'opportunities']);
+            : $campaigns->first()?->load(['contents.content.publications', 'contents.distributionPlans.distributionChannel', 'opportunities', 'workspace.clientSites']);
+
+        $assetPresenters = collect();
+        $campaignAssetCards = collect();
+        $campaignAssetSummary = collect();
+        if ($selectedCampaign) {
+            $assetPresenters = $selectedCampaign->contents
+                ->mapWithKeys(fn ($asset): array => [(string) $asset->id => CampaignContentAssetPresenter::for($asset)->toArray()]);
+
+            $campaignAssetCards = $selectedCampaign->contents
+                ->sortBy('sequence_order')
+                ->filter(function ($asset) use ($assetPresenters, $request): bool {
+                    $ux = (array) $assetPresenters->get((string) $asset->id, []);
+
+                    return $this->matchesAssetFilters($ux, $request);
+                })
+                ->values();
+
+            $campaignAssetSummary = $assetPresenters
+                ->groupBy('type')
+                ->map(fn ($items, string $type): array => [
+                    'type' => $type,
+                    'label' => (string) data_get($items->first(), 'type_label', ucfirst($type)),
+                    'badge' => (string) data_get($items->first(), 'type_badge', strtoupper($type)),
+                    'icon' => (string) data_get($items->first(), 'type_icon', 'box'),
+                    'classes' => (string) data_get($items->first(), 'type_badge_classes', 'border-border bg-surfaceSubtle text-textSecondary'),
+                    'count' => $items->count(),
+                ])
+                ->sortBy('label')
+                ->values();
+        }
+
+        $generationEstimate = null;
+        $generationAvailableCredits = null;
+        if ($selectedCampaign) {
+            $generationEstimate = $generator->estimate($selectedCampaign);
+
+            $generationSite = $this->generationSite($selectedCampaign);
+            if ($generationSite) {
+                $generationAvailableCredits = $creditWalletService->getAvailableForClientSiteIncludingWorkspacePool((string) $generationSite->id);
+            }
+        }
 
         $opportunities = Opportunity::query()
             ->where('workspace_id', $workspace->id)
@@ -47,12 +97,34 @@ class AppCampaignPlannerController extends Controller
             ->limit(8)
             ->get();
 
+        $enabledCampaignLanguages = $this->enabledCampaignLanguages($workspace);
+
         return view('app.campaign-planner.index', [
             'workspace' => $workspace,
             'campaigns' => $campaigns,
             'baseCampaigns' => $baseCampaigns,
             'selectedCampaign' => $selectedCampaign,
             'opportunities' => $opportunities,
+            'generationEstimate' => $generationEstimate,
+            'generationAvailableCredits' => $generationAvailableCredits,
+            'enabledCampaignLanguages' => $enabledCampaignLanguages,
+            'assetPresenters' => $assetPresenters,
+            'campaignAssetCards' => $campaignAssetCards,
+            'campaignAssetSummary' => $campaignAssetSummary,
+            'assetFilterOptions' => [
+                'types' => ContentAssetTaxonomy::typeOptions(),
+                'purposes' => ContentAssetTaxonomy::purposeLabels(),
+                'workflow_states' => ContentAssetTaxonomy::workflowStateLabels(),
+                'publication_states' => ContentAssetTaxonomy::publicationStateLabels(),
+                'distribution_states' => ContentAssetTaxonomy::distributionStateLabels(),
+            ],
+            'activeAssetFilters' => $request->only([
+                'asset_type',
+                'purpose',
+                'workflow_state',
+                'publication_state',
+                'distribution_state',
+            ]),
         ]);
     }
 
@@ -65,6 +137,8 @@ class AppCampaignPlannerController extends Controller
             'topic' => ['nullable', 'string', 'max:180', 'required_without:base_campaign_id'],
             'goals' => ['nullable', 'string', 'max:2000'],
             'audience' => ['nullable', 'string', 'max:500'],
+            'languages' => ['nullable', 'array'],
+            'languages.*' => ['string', Rule::in($workspace->enabled_content_languages)],
             'start_date' => ['nullable', 'date'],
             'utm_source' => ['nullable', 'string', 'max:120'],
             'utm_medium' => ['nullable', 'string', 'max:120'],
@@ -76,6 +150,7 @@ class AppCampaignPlannerController extends Controller
         $options = [
             'goals' => $validated['goals'] ?? '',
             'audience' => $validated['audience'] ?? '',
+            'languages' => $this->normalizeSelectedLanguages($workspace, (array) ($validated['languages'] ?? [])),
             'start_date' => $validated['start_date'] ?? null,
             'owner_user_id' => $request->user()->id,
             'tracking_parameters' => $this->trackingParameters($validated),
@@ -127,6 +202,70 @@ class AppCampaignPlannerController extends Controller
             ->when($request->query('workspace_id'), fn ($query, $id) => $query->where('id', $id))
             ->orderBy('created_at')
             ->firstOrFail();
+    }
+
+    /**
+     * @param  array<string,mixed>  $ux
+     */
+    private function matchesAssetFilters(array $ux, Request $request): bool
+    {
+        foreach (['asset_type' => 'type', 'purpose' => 'purpose', 'workflow_state' => 'workflow_state', 'publication_state' => 'publication_state', 'distribution_state' => 'distribution_state'] as $queryKey => $uxKey) {
+            $value = trim((string) $request->query($queryKey, ''));
+
+            if ($value !== '' && (string) data_get($ux, $uxKey) !== $value) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function generationSite(Campaign $campaign): ?ClientSite
+    {
+        if ($campaign->client_site_id) {
+            return ClientSite::query()->find($campaign->client_site_id);
+        }
+
+        return $campaign->workspace?->clientSites
+            ->sortByDesc(fn (ClientSite $site): int => $site->is_active ? 1 : 0)
+            ->first();
+    }
+
+    /**
+     * @return list<array{value:string,label:string,is_default:bool}>
+     */
+    private function enabledCampaignLanguages(Workspace $workspace): array
+    {
+        $default = $workspace->defaultContentLanguageCode();
+
+        return collect($workspace->getEnabledLanguagesAsEnums())
+            ->sortBy(fn (SupportedLanguage $language): int => $language->value === $default ? 0 : 1)
+            ->map(fn (SupportedLanguage $language): array => [
+                'value' => $language->value,
+                'label' => $language->label(),
+                'is_default' => $language->value === $default,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $selected
+     * @return list<string>
+     */
+    private function normalizeSelectedLanguages(Workspace $workspace, array $selected): array
+    {
+        $enabled = $workspace->enabled_content_languages;
+        $default = $workspace->defaultContentLanguageCode();
+        $languages = collect($selected)
+            ->map(fn (mixed $language): string => SupportedLanguage::fromStringOrDefault((string) $language)->value)
+            ->filter(fn (string $language): bool => in_array($language, $enabled, true))
+            ->prepend($default)
+            ->unique()
+            ->values()
+            ->all();
+
+        return $languages !== [] ? $languages : [$default];
     }
 
     /**

@@ -5,6 +5,7 @@
         $destinationType = \App\Enums\ContentDestinationType::normalize($destination?->type?->value ?? $destination?->type);
         $destinationLabel = \App\Enums\ContentDestinationType::label($destinationType);
         $statusPresenter = \App\View\Presenters\ContentStatusPresenter::for($content);
+        $publicLiveUrl = app(\App\Services\Seo\CanonicalUrlService::class)->liveUrlForContent($content);
         $isWordPressDestination = $destinationType === \App\Enums\ContentDestinationType::WORDPRESS->value;
         $isLaravelDestination = $destinationType === \App\Enums\ContentDestinationType::LARAVEL->value;
         $hasLaravelConnectorDestination = isset($laravelDestination) && $laravelDestination;
@@ -124,10 +125,10 @@
                     'tone' => 'bg-emerald-500',
                 ]
                 : null,
-            $content->published_url
+            $publicLiveUrl
                 ? [
                     'label' => 'Live route',
-                    'value' => $content->published_url,
+                    'value' => $publicLiveUrl,
                     'hint' => 'Remote URL available',
                     'tone' => 'bg-emerald-500',
                 ]
@@ -261,8 +262,8 @@
                     <a href="{{ route('app.content.show', ['content' => $content, 'tab' => 'draft']) }}" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Open Draft</a>
                     <a href="{{ route('app.content.markdown-preview', $content) }}" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Preview</a>
                     <a href="#translation-operations" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Translate</a>
-                    @if ($content->published_url)
-                        <a href="{{ $content->published_url }}" target="_blank" rel="noopener" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Open Live</a>
+                    @if ($publicLiveUrl)
+                        <a href="{{ $publicLiveUrl }}" target="_blank" rel="noopener" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Open Live</a>
                     @endif
                     <a href="{{ route('app.content.markdown', $content) }}" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Open `.md`</a>
                     </div>
@@ -1020,8 +1021,8 @@
                     <div class="mt-3 rounded border border-border bg-background p-3 text-xs text-textSecondary">
                         <div class="mb-2 font-medium text-textPrimary">Laravel publishing</div>
                         <div>Republish to Laravel to refresh the live route and remote payload.</div>
-                        @if ($content->published_url)
-                            <div class="mt-1">Live URL: <a href="{{ $content->published_url }}" target="_blank" rel="noopener" class="underline">{{ $content->published_url }}</a></div>
+                        @if ($publicLiveUrl)
+                            <div class="mt-1">Live URL: <a href="{{ $publicLiveUrl }}" target="_blank" rel="noopener" class="underline">{{ $publicLiveUrl }}</a></div>
                         @endif
                     </div>
                     @elseif ($destination)
@@ -1796,8 +1797,8 @@
                         <div class="mt-1 text-xs text-textSecondary">
                             @if ($content->scheduled_publish_at)
                                 Scheduled for {{ $content->scheduled_publish_at->format('M j, H:i') }}
-                            @elseif ($content->published_url)
-                                Live route available at {{ $content->published_url }}
+                            @elseif ($publicLiveUrl)
+                                Live route available at {{ $publicLiveUrl }}
                             @else
                                 No schedule set yet. Use quick actions to translate, schedule, or publish.
                             @endif

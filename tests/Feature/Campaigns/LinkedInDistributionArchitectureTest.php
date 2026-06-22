@@ -7,6 +7,7 @@ use App\Enums\SocialPostVariantStatus;
 use App\Enums\SocialPublicationStatus;
 use App\Jobs\SocialDistribution\PublishSocialPostJob;
 use App\Models\Campaign;
+use App\Models\Content;
 use App\Models\Organization;
 use App\Models\SocialAccount;
 use App\Models\SocialDistributionAuditLog;
@@ -498,6 +499,90 @@ it('keeps language article links and requested hashtags with linkedin variants',
         ->and($variant->publishingText())->toContain('#AIVisibility #contentstrategie #B2B');
 });
 
+it('uses localized blog urls for dutch linkedin article links from content', function (): void {
+    config(['app.url' => 'https://argusly.com']);
+
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Localized URL Org',
+        'slug' => 'linkedin-localized-url-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Localized URL Workspace',
+    ]);
+
+    $content = Content::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'title' => 'Nederlandse blog',
+        'type' => 'article',
+        'language' => 'nl',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'publish_url_key' => 'nederlandse-blog',
+        'published_url' => 'https://argusly.com/blog/nederlandse-blog',
+        'seo_canonical' => 'https://argusly.com/blog/nederlandse-blog',
+    ]);
+
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'content_id' => $content->id,
+        'platform' => SocialPlatform::LINKEDIN->value,
+        'post_type' => SocialPostType::THOUGHT_LEADERSHIP->value,
+        'status' => SocialPostVariantStatus::DRAFT->value,
+        'variant_number' => 1,
+        'body' => 'Nederlandse distributietekst.',
+        'hashtags' => ['#AIVisibility'],
+        'generation_prompt_context' => [
+            'language' => 'nl',
+            'source_url' => 'https://argusly.com/blog/nederlandse-blog?utm_source=linkedin',
+        ],
+    ]);
+
+    expect($variant->sourceUrl())->toBe('https://argusly.com/nl/blog/nederlandse-blog?utm_source=linkedin')
+        ->and($variant->publishingText())->toContain('https://argusly.com/nl/blog/nederlandse-blog?utm_source=linkedin');
+});
+
+it('formats long target audience lists in dutch linkedin copy', function (): void {
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Audience Formatting Org',
+        'slug' => 'linkedin-audience-formatting-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Audience Formatting Workspace',
+    ]);
+
+    $content = Content::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'title' => 'Visibility answer engine optimization',
+        'type' => 'article',
+        'language' => 'nl',
+        'public_blog_excerpt' => 'Een praktische manier om zichtbaarheid in AI-systemen te verbeteren.',
+    ]);
+
+    $post = app(\App\Actions\Social\GenerateLinkedInPostFromContent::class)->handle($content, [
+        'language' => 'nl',
+        'source_url' => 'https://argusly.com/nl/blog/visibility-answer-engine-optimization',
+        'target_audience' => "Marketing Directors CMO's Growth Leaders Marketing Managers",
+    ]);
+
+    $body = (string) $post->variants
+        ->firstWhere('variant_type', 'thought_leadership')
+        ?->body;
+
+    expect($body)->toContain("De nuttige verschuiving voor marketing directors, cmo's, growth leaders en marketing managers:")
+        ->and($body)->not->toContain("Marketing Directors CMO's Growth Leaders Marketing Managers:");
+});
+
 it('lets users rename linkedin account placeholders from distribution', function (): void {
     config(['features.agentic_marketing' => true]);
 
@@ -963,8 +1048,9 @@ it('approving a linkedin variant also approves the linked publish record', funct
         'workspace_id' => $workspace->id,
         'social_account_id' => $account->id,
         'provider' => SocialPlatform::LINKEDIN->value,
-        'type' => 'text',
+        'type' => 'article',
         'body' => 'Old draft body.',
+        'url' => 'https://argusly.com/blog/stale-linkedin-url',
         'visibility' => 'public',
         'status' => 'draft',
         'error_message' => 'Human approval is required before publishing.',
@@ -1041,6 +1127,9 @@ it('repairs stale draft social posts before linkedin publication', function (): 
         'variant_number' => 1,
         'hook' => 'Publication repair',
         'body' => 'Retrying an approved variant should repair the linked draft post.',
+        'generation_prompt_context' => [
+            'source_url' => 'https://argusly.com/nl/blog/fixed-linkedin-url',
+        ],
         'approved_at' => now(),
     ]);
 
@@ -1062,7 +1151,9 @@ it('repairs stale draft social posts before linkedin publication', function (): 
     expect($resolvedPost)->toBeInstanceOf(SocialPost::class)
         ->and($post->refresh()->status)->toBe('approved')
         ->and($post->error_message)->toBeNull()
-        ->and($post->body)->toContain('Retrying an approved variant should repair the linked draft post.');
+        ->and($post->body)->toContain('Retrying an approved variant should repair the linked draft post.')
+        ->and($post->url)->toBe('https://argusly.com/nl/blog/fixed-linkedin-url')
+        ->and($post->type)->toBe('article');
 });
 
 it('hides published linkedin variants from active work while keeping publication history visible', function (): void {

@@ -3,6 +3,7 @@
 namespace App\Services\SocialDistribution;
 
 use App\Enums\SocialPlatform;
+use App\Services\SocialDistribution\Publishers\InstagramPublisher;
 use App\Services\SocialDistribution\Publishers\LinkedInPublisher;
 
 class SocialPublisherRegistry
@@ -14,6 +15,7 @@ class SocialPublisherRegistry
     {
         return [
             SocialPlatform::LINKEDIN->value => app(LinkedInPublisher::class),
+            SocialPlatform::INSTAGRAM->value => app(InstagramPublisher::class),
         ];
     }
 

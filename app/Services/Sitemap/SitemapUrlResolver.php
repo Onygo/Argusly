@@ -5,12 +5,17 @@ namespace App\Services\Sitemap;
 use App\Models\Content;
 use App\Models\ContentPublication;
 use App\Models\ContentVersion;
+use App\Services\Seo\CanonicalUrlService;
 use Carbon\CarbonInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Route;
 
 class SitemapUrlResolver
 {
+    public function __construct(
+        private readonly CanonicalUrlService $canonicals,
+    ) {}
+
     /**
      * @return array{loc:string,lastmod:?string}|null
      */
@@ -18,12 +23,12 @@ class SitemapUrlResolver
     {
         $meta = is_array($version?->meta) ? $version->meta : [];
 
-        $loc = $this->normalizeAbsoluteUrl($this->firstNonEmpty([
+        $loc = $this->normalizeAbsoluteUrl($this->canonicals->liveUrlForContent($content, $this->firstNonEmpty([
             (string) ($content->seo_canonical ?? ''),
             (string) ($content->published_url ?? ''),
             (string) ($publication?->remote_url ?? ''),
             (string) data_get($meta, 'canonical_url', ''),
-        ]));
+        ])));
 
         if ($loc === null) {
             return null;

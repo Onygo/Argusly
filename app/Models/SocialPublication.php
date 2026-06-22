@@ -101,9 +101,15 @@ class SocialPublication extends Model
 
     public function publicErrorMessage(): ?string
     {
+        $platform = $this->platform?->value ?? (string) $this->platform;
+        $fallback = match ($platform) {
+            SocialPlatform::INSTAGRAM->value => 'Instagram publishing failed. Check the account connection, media asset, and retry the publication.',
+            default => 'LinkedIn publishing failed. Check the account connection and retry the publication.',
+        };
+
         return PublicErrorMessageSanitizer::sanitize(
             $this->last_error_message,
-            'LinkedIn publishing failed. Check the account connection and retry the publication.'
+            $fallback
         );
     }
 }

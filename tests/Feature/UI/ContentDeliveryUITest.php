@@ -143,6 +143,27 @@ it('maps laravel draft publishing published and failed states for the UI', funct
     expect($failedPresenter->fullStatus()['delivery']['value'])->toBe('Failed');
 });
 
+it('shows localized public blog live urls on the content detail page', function (): void {
+    $user = createDeliveryUITestUser();
+    [$content] = createDeliveryUITestContext('delivered', user: $user, siteType: ClientSite::TYPE_LARAVEL);
+    $slug = 'privacy-regulations-and-crawling-mistakes-teams-should-avoid';
+
+    $content->forceFill([
+        'language' => SupportedLanguage::NL->value,
+        'translation_source_locale' => SupportedLanguage::EN->value,
+        'is_source_locale' => false,
+        'status' => 'published',
+        'publish_status' => 'published',
+        'published_url' => 'https://argusly.com/blog/' . $slug,
+    ])->save();
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', $content))
+        ->assertOk()
+        ->assertSee('https://argusly.com/nl/blog/' . $slug, false)
+        ->assertDontSee('https://argusly.com/blog/' . $slug, false);
+});
+
 // ============================================================================
 // Presenter Tests: errorCategory()
 // ============================================================================

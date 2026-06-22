@@ -70,6 +70,7 @@ use App\Services\Publication\WordPressPublicationDestinationResolver;
 use App\Services\Markdown\MarkdownArtifactService;
 use App\Services\Markdown\MarkdownRenderer;
 use App\Services\Seo\ContentIndexationHealthService;
+use App\Services\Seo\CanonicalUrlService;
 use App\Services\StockImages\UnsplashImageService;
 use App\Support\Database\RequestQueryProfiler;
 use App\Support\ContentIntentCatalog;
@@ -4271,8 +4272,14 @@ class AppContentController extends Controller
         $base = rtrim((string) ($content->clientSite?->site_url ?? ''), '/');
         if ($base !== '') {
             $postType = $content->wordPressPostType();
+            $slug = Str::slug((string) $content->title);
+
             return [
-                'url' => $postType->buildPlannedUrl($base, Str::slug((string) $content->title)),
+                'url' => app(CanonicalUrlService::class)->liveUrlForContent(
+                    $content,
+                    $postType->buildPlannedUrl($base, $slug),
+                    $slug
+                ),
                 'source' => 'site.slug_guess',
             ];
         }

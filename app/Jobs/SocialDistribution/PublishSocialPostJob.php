@@ -63,18 +63,14 @@ class PublishSocialPostJob implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        if (! config('services.linkedin.enabled') || ! config('services.linkedin.publishing_enabled')) {
-            $publication->forceFill([
-                'last_attempt_at' => now(),
-                'attempts' => ((int) $publication->attempts) + 1,
-            ])->save();
-            $this->markFailed($publication, 'PUBLISHING_DISABLED', 'LinkedIn publishing is disabled.', $audit);
+        if (! $publication->variant?->isApproved()) {
+            $this->markFailed($publication, 'APPROVAL_REQUIRED', 'Social post variant must be approved before publishing.', $audit);
 
             return;
         }
 
-        if (! $publication->variant?->isApproved()) {
-            $this->markFailed($publication, 'APPROVAL_REQUIRED', 'Social post variant must be approved before publishing.', $audit);
+        if ($reason = $publication->variant?->publishingBlockedReason()) {
+            $this->markFailed($publication, 'PUBLICATION_NOT_READY', $reason, $audit);
 
             return;
         }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\SupportedLanguage;
 use App\Http\Controllers\Controller;
 use App\Models\ClientSite;
 use App\Models\Organization;
@@ -109,7 +110,10 @@ class AdminOrganizationsController extends Controller
                     'name' => $data['workspace_name'],
                     'display_name' => $data['workspace_name'],
                     'default_content_language' => $data['default_content_language'] ?? 'en',
-                    'enabled_content_languages' => ['en', 'nl'],
+                    'enabled_content_languages' => array_values(array_unique([
+                        $data['default_content_language'] ?? SupportedLanguage::EN->value,
+                        ...SupportedLanguage::values(),
+                    ])),
                 ]);
             }
 

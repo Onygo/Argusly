@@ -144,6 +144,7 @@
                         <div class="flex justify-between gap-3"><dt class="text-textSecondary">AI runs</dt><dd class="font-medium text-textPrimary">{{ number_format((int) data_get($counts, 'runs')) }}</dd></div>
                         <div class="flex justify-between gap-3"><dt class="text-textSecondary">Signal Events</dt><dd class="font-medium text-textPrimary">{{ number_format((int) data_get($counts, 'signal_events')) }}</dd></div>
                         <div class="flex justify-between gap-3"><dt class="text-textSecondary">Detections</dt><dd class="font-medium text-textPrimary">{{ number_format((int) data_get($counts, 'detections')) }}</dd></div>
+                        <div class="flex justify-between gap-3"><dt class="text-textSecondary">Open detections</dt><dd class="font-medium text-textPrimary">{{ number_format((int) data_get($counts, 'open_detections')) }}</dd></div>
                         <div class="flex justify-between gap-3"><dt class="text-textSecondary">Opportunity candidates</dt><dd class="font-medium text-textPrimary">{{ number_format((int) data_get($counts, 'opportunity_candidates')) }}</dd></div>
                     </dl>
                 </div>

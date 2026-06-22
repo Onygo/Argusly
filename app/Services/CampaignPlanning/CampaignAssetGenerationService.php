@@ -9,6 +9,7 @@ use App\Enums\ContentLifecycleStatus;
 use App\Enums\ContentOriginType;
 use App\Enums\ContentSource;
 use App\Enums\ContentType;
+use App\Enums\SupportedLanguage;
 use App\Enums\SocialPlatform;
 use App\Enums\SocialPostType;
 use App\Enums\SocialPostVariantStatus;
@@ -22,6 +23,7 @@ use App\Models\SocialPostVariant;
 use App\Models\StructuredAnswerBlock;
 use App\Models\User;
 use App\Services\BriefProcessing\BriefToDraftService;
+use App\Services\Credits\GenerationPricing;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -29,6 +31,7 @@ class CampaignAssetGenerationService
 {
     public function __construct(
         private readonly BriefToDraftService $briefToDraftService,
+        private readonly GenerationPricing $pricing,
     ) {}
 
     /**
@@ -51,14 +54,19 @@ class CampaignAssetGenerationService
                 'skipped' => 0,
             ];
 
+            $languages = $this->campaignLanguages($campaign);
+
             foreach ($campaign->contents->sortBy('sequence_order') as $asset) {
                 $type = $asset->asset_type?->value ?? (string) $asset->asset_type;
 
                 if (in_array($type, [
                     CampaignContentAssetType::LINKEDIN_POST->value,
+                    CampaignContentAssetType::INSTAGRAM_POST->value,
                     CampaignContentAssetType::FOUNDER_POST->value,
                 ], true)) {
-                    $summary[$this->generateSocialVariant($campaign, $asset, $actor)]++;
+                    foreach ($languages as $language) {
+                        $summary[$this->generateSocialVariant($campaign, $asset, $actor, $language)]++;
+                    }
 
                     continue;
                 }
@@ -67,17 +75,85 @@ class CampaignAssetGenerationService
                     CampaignContentAssetType::FAQ_BLOCK->value,
                     CampaignContentAssetType::ANSWER_BLOCK->value,
                 ], true)) {
-                    $result = $this->generateStructuredAnswerBlocks($campaign, $asset);
-                    $summary[$result['status']] += $result['count'];
+                    foreach ($languages as $language) {
+                        $result = $this->generateStructuredAnswerBlocks($campaign, $asset, $language);
+                        $summary[$result['status']] += $result['count'];
+                    }
 
                     continue;
                 }
 
-                $summary[$this->generateContentDraft($campaign, $asset, $actor)]++;
+                foreach ($languages as $language) {
+                    $summary[$this->generateContentDraft($campaign, $asset, $actor, $language)]++;
+                }
             }
 
             return $summary;
         });
+    }
+
+    /**
+     * @return array{
+     *   estimated_credits:int,
+     *   pending_credits:int,
+     *   credits_per_draft:int,
+     *   draft_assets:int,
+     *   pending_draft_assets:int,
+     *   no_credit_assets:int,
+     *   already_generated_assets:int,
+     *   skipped_assets:int
+     * }
+     */
+    public function estimate(Campaign $campaign): array
+    {
+        $campaign->loadMissing(['contents']);
+
+        $languages = $this->campaignLanguages($campaign);
+        $languageCount = max(1, count($languages));
+        $creditsPerDraft = $this->creditsPerDraft();
+        $draftAssets = 0;
+        $pendingDraftAssets = 0;
+        $noCreditAssets = 0;
+        $alreadyGeneratedAssets = 0;
+        $skippedAssets = 0;
+
+        foreach ($campaign->contents->sortBy('sequence_order') as $asset) {
+            $type = $asset->asset_type?->value ?? (string) $asset->asset_type;
+
+            if ($this->isNoCreditAssetType($type)) {
+                $noCreditAssets++;
+
+                if ($this->assetAlreadyGeneratedForAllLanguages($asset, $type, $languages)) {
+                    $alreadyGeneratedAssets++;
+                }
+
+                continue;
+            }
+
+            $draftAssets++;
+
+            if ($this->assetAlreadyGeneratedForAllLanguages($asset, $type, $languages)) {
+                $alreadyGeneratedAssets++;
+                $skippedAssets++;
+
+                continue;
+            }
+
+            $pendingDraftAssets += $this->pendingLanguageCount($asset, $type, $languages);
+        }
+
+        return [
+            'estimated_credits' => $draftAssets * $languageCount * $creditsPerDraft,
+            'pending_credits' => $pendingDraftAssets * $creditsPerDraft,
+            'credits_per_draft' => $creditsPerDraft,
+            'draft_assets' => $draftAssets,
+            'pending_draft_assets' => $pendingDraftAssets,
+            'no_credit_assets' => $noCreditAssets,
+            'already_generated_assets' => $alreadyGeneratedAssets,
+            'skipped_assets' => $skippedAssets,
+            'language_count' => $languageCount,
+            'languages' => $languages,
+        ];
     }
 
     private function approveCampaignForGeneration(Campaign $campaign, User $actor): void
@@ -108,26 +184,42 @@ class CampaignAssetGenerationService
         ]);
     }
 
-    private function generateContentDraft(Campaign $campaign, CampaignContent $asset, User $actor): string
+    private function generateContentDraft(Campaign $campaign, CampaignContent $asset, User $actor, string $language): string
     {
         $site = $this->generationSite($campaign);
         if (! $site) {
             return 'skipped';
         }
 
-        if ($asset->content_id) {
-            return $this->queueDraftForExistingAsset($campaign, $asset, $actor, $site);
+        if ($this->generatedContentIdForLanguage($asset, $language)) {
+            return $this->queueDraftForExistingAsset($campaign, $asset, $actor, $site, $language);
         }
 
         $brief = (array) $asset->brief;
         $title = (string) $asset->working_title;
         $description = (string) data_get($brief, 'angle', $campaign->objective);
-        $language = $campaign->workspace?->defaultContentLanguageCode() ?? 'en';
+        $language = SupportedLanguage::fromStringOrDefault($language)->value;
+        $sourceContent = $this->sourceContentForAsset($asset, $campaign, $language);
+        if ($sourceContent && ! $sourceContent->family_id) {
+            $sourceContent->forceFill([
+                'family_id' => (string) $sourceContent->id,
+                'translation_source_locale' => null,
+                'is_source_locale' => true,
+            ])->save();
+        }
 
         $content = Content::query()->create([
             'workspace_id' => (string) $campaign->workspace_id,
             'client_site_id' => $site?->id,
             'title' => $title,
+            'language' => $language,
+            'family_id' => $sourceContent?->localizationRootId(),
+            'translation_source_content_id' => $sourceContent ? (string) $sourceContent->id : null,
+            'translation_source_locale' => $sourceContent?->localeCode(),
+            'is_source_locale' => $sourceContent ? false : true,
+            'sync_with_source' => (bool) $sourceContent,
+            'translation_generated_at' => $sourceContent ? now() : null,
+            'translation_source_updated_at' => $sourceContent?->updated_at,
             'primary_keyword' => (string) data_get($brief, 'topic', $campaign->name),
             'type' => ContentType::ARTICLE->value,
             'status' => 'brief',
@@ -146,16 +238,25 @@ class CampaignAssetGenerationService
             'schema_type' => $this->schemaTypeFor($asset),
         ]);
 
-        $briefModel = $this->createBrief($campaign, $asset, $actor, $site, $content);
+        $briefModel = $this->createBrief($campaign, $asset, $actor, $site, $content, $language);
         $draft = $this->briefToDraftService->claimAndCreateDraft((string) $briefModel->id);
 
         $asset->forceFill([
-            'content_id' => (string) $content->id,
+            'content_id' => $this->isPrimaryCampaignLanguage($campaign, $language) ? (string) $content->id : $asset->content_id,
             'status' => 'draft_queued',
-            'metadata' => array_replace((array) $asset->metadata, [
+            'metadata' => array_replace_recursive((array) $asset->metadata, [
                 'generated_content_id' => (string) $content->id,
                 'generated_brief_id' => (string) $briefModel->id,
                 'generated_draft_id' => $draft ? (string) $draft->id : null,
+                'generated_locale_content_ids' => [
+                    $language => (string) $content->id,
+                ],
+                'generated_locale_brief_ids' => [
+                    $language => (string) $briefModel->id,
+                ],
+                'generated_locale_draft_ids' => [
+                    $language => $draft ? (string) $draft->id : null,
+                ],
                 'generated_at' => now()->toIso8601String(),
             ]),
         ])->save();
@@ -163,13 +264,15 @@ class CampaignAssetGenerationService
         return 'generated_content';
     }
 
-    private function queueDraftForExistingAsset(Campaign $campaign, CampaignContent $asset, User $actor, ClientSite $site): string
+    private function queueDraftForExistingAsset(Campaign $campaign, CampaignContent $asset, User $actor, ClientSite $site, string $language): string
     {
-        $content = Content::query()->find($asset->content_id);
+        $content = Content::query()->find($this->generatedContentIdForLanguage($asset, $language));
         if (! $content) {
-            $asset->forceFill(['content_id' => null])->save();
+            $meta = (array) $asset->metadata;
+            data_forget($meta, 'generated_locale_content_ids.'.$language);
+            $asset->forceFill(['metadata' => $meta])->save();
 
-            return $this->generateContentDraft($campaign, $asset->fresh(), $actor);
+            return $this->generateContentDraft($campaign, $asset->fresh(), $actor, $language);
         }
 
         $brief = Brief::query()
@@ -178,7 +281,9 @@ class CampaignAssetGenerationService
             ->first();
 
         if (! $brief) {
-            $brief = $this->createBrief($campaign, $asset, $actor, $site, $content);
+            $brief = $this->createBrief($campaign, $asset, $actor, $site, $content, $language);
+        } else {
+            $this->ensureBriefRequiredCredits($brief);
         }
 
         $draft = Draft::query()
@@ -187,13 +292,13 @@ class CampaignAssetGenerationService
             ->first();
 
         if ($draft && in_array((string) $draft->status, ['queued', 'processing', 'generating'], true)) {
-            $this->markAssetQueued($asset, $brief, $draft);
+            $this->markAssetQueued($asset, $brief, $draft, 'draft_queued', $language);
 
             return 'skipped';
         }
 
         if ($draft && trim((string) $draft->content_html) !== '') {
-            $this->markAssetQueued($asset, $brief, $draft, 'draft_generated');
+            $this->markAssetQueued($asset, $brief, $draft, 'draft_generated', $language);
 
             return 'skipped';
         }
@@ -208,7 +313,7 @@ class CampaignAssetGenerationService
         $draft = $this->briefToDraftService->claimAndCreateDraft((string) $brief->id);
 
         if ($draft) {
-            $this->markAssetQueued($asset, $brief, $draft);
+            $this->markAssetQueued($asset, $brief, $draft, 'draft_queued', $language);
         }
 
         return $draft ? 'generated_content' : 'skipped';
@@ -217,19 +322,25 @@ class CampaignAssetGenerationService
     /**
      * @return array{status:'generated_answer_blocks'|'skipped',count:int}
      */
-    private function generateStructuredAnswerBlocks(Campaign $campaign, CampaignContent $asset): array
+    private function generateStructuredAnswerBlocks(Campaign $campaign, CampaignContent $asset, string $language): array
     {
-        $target = $this->answerBlockTargetContent($campaign, $asset);
+        $target = $this->answerBlockTargetContent($campaign, $asset, $language);
         if (! $target) {
             return ['status' => 'skipped', 'count' => 1];
         }
 
-        $existingIds = collect((array) data_get($asset->metadata, 'generated_answer_block_ids', []))
+        $existingIds = collect((array) data_get(
+            $asset->metadata,
+            'generated_answer_block_ids_by_locale.'.$language,
+            $this->isPrimaryCampaignLanguage($campaign, $language)
+                ? data_get($asset->metadata, 'generated_answer_block_ids', [])
+                : []
+        ))
             ->filter(fn (mixed $id): bool => StructuredAnswerBlock::query()->whereKey((string) $id)->exists())
             ->values();
 
         if ($existingIds->isNotEmpty()) {
-            $this->markAnswerBlocksCreated($asset, $target, $existingIds->all(), skipped: true);
+            $this->markAnswerBlocksCreated($asset, $target, $existingIds->all(), $language, skipped: true);
 
             return ['status' => 'skipped', 'count' => 1];
         }
@@ -284,12 +395,12 @@ class CampaignAssetGenerationService
             ]),
         ])->save();
 
-        $this->markAnswerBlocksCreated($asset, $target, $savedIds);
+        $this->markAnswerBlocksCreated($asset, $target, $savedIds, $language);
 
         return ['status' => 'generated_answer_blocks', 'count' => count($savedIds)];
     }
 
-    private function answerBlockTargetContent(Campaign $campaign, CampaignContent $asset): ?Content
+    private function answerBlockTargetContent(Campaign $campaign, CampaignContent $asset, string $language): ?Content
     {
         $targets = collect((array) $asset->internal_linking_targets)
             ->push('pillar_article')
@@ -305,7 +416,13 @@ class CampaignAssetGenerationService
                 return $targets->contains($key) && filled($candidate->content_id);
             });
 
-        return $targetAsset?->content_id ? Content::query()->find($targetAsset->content_id) : null;
+        if (! $targetAsset) {
+            return null;
+        }
+
+        $contentId = $this->generatedContentIdForLanguage($targetAsset, $language);
+
+        return $contentId ? Content::query()->find($contentId) : null;
     }
 
     /**
@@ -359,16 +476,22 @@ class CampaignAssetGenerationService
     /**
      * @param list<string> $savedIds
      */
-    private function markAnswerBlocksCreated(CampaignContent $asset, Content $target, array $savedIds, bool $skipped = false): void
+    private function markAnswerBlocksCreated(CampaignContent $asset, Content $target, array $savedIds, string $language, bool $skipped = false): void
     {
         $asset->forceFill([
-            'content_id' => (string) $target->id,
+            'content_id' => $asset->content_id ?: (string) $target->id,
             'status' => 'answer_blocks_created',
-            'metadata' => array_replace((array) $asset->metadata, [
+            'metadata' => array_replace_recursive((array) $asset->metadata, [
                 'generated_content_id' => (string) $target->id,
                 'generated_answer_block_ids' => array_values($savedIds),
                 'generated_answer_blocks_count' => count($savedIds),
                 'generated_answer_blocks_target_content_id' => (string) $target->id,
+                'generated_answer_block_ids_by_locale' => [
+                    $language => array_values($savedIds),
+                ],
+                'generated_answer_blocks_target_content_ids_by_locale' => [
+                    $language => (string) $target->id,
+                ],
                 'generated_at' => $skipped
                     ? data_get($asset->metadata, 'generated_at')
                     : now()->toIso8601String(),
@@ -376,23 +499,30 @@ class CampaignAssetGenerationService
         ])->save();
     }
 
-    private function markAssetQueued(CampaignContent $asset, Brief $brief, Draft $draft, string $status = 'draft_queued'): void
+    private function markAssetQueued(CampaignContent $asset, Brief $brief, Draft $draft, string $status = 'draft_queued', ?string $language = null): void
     {
+        $language = $language ?: SupportedLanguage::fromStringOrDefault($draft->language)->value;
         $asset->forceFill([
             'status' => $status,
-            'metadata' => array_replace((array) $asset->metadata, [
+            'metadata' => array_replace_recursive((array) $asset->metadata, [
                 'generated_brief_id' => (string) $brief->id,
                 'generated_draft_id' => (string) $draft->id,
+                'generated_locale_brief_ids' => [
+                    $language => (string) $brief->id,
+                ],
+                'generated_locale_draft_ids' => [
+                    $language => (string) $draft->id,
+                ],
                 'generated_at' => now()->toIso8601String(),
             ]),
         ])->save();
     }
 
-    private function createBrief(Campaign $campaign, CampaignContent $asset, User $actor, ClientSite $site, Content $content): Brief
+    private function createBrief(Campaign $campaign, CampaignContent $asset, User $actor, ClientSite $site, Content $content, string $language): Brief
     {
         $brief = (array) $asset->brief;
         $title = (string) $asset->working_title;
-        $language = $campaign->workspace?->defaultContentLanguageCode() ?? 'en';
+        $language = SupportedLanguage::fromStringOrDefault($language)->value;
 
         return Brief::query()->create([
             'client_site_id' => (string) $site->id,
@@ -423,22 +553,173 @@ class CampaignAssetGenerationService
                 'review_required' => true,
                 'auto_publish' => false,
                 'schema_type' => $this->schemaTypeFor($asset),
+                'required_credits' => $this->creditsPerDraft(),
+                'language' => $language,
             ],
         ]);
     }
 
-    private function generateSocialVariant(Campaign $campaign, CampaignContent $asset, User $actor): string
+    private function ensureBriefRequiredCredits(Brief $brief): void
     {
+        if ((int) data_get($brief->client_refs, 'required_credits', 0) > 0) {
+            return;
+        }
+
+        $brief->forceFill([
+            'client_refs' => array_replace((array) $brief->client_refs, [
+                'required_credits' => $this->creditsPerDraft(),
+            ]),
+        ])->save();
+    }
+
+    private function creditsPerDraft(): int
+    {
+        return $this->pricing->requiredCredits(GenerationPricing::TYPE_ARTICLE, null);
+    }
+
+    private function isNoCreditAssetType(string $type): bool
+    {
+        return in_array($type, [
+            CampaignContentAssetType::LINKEDIN_POST->value,
+            CampaignContentAssetType::INSTAGRAM_POST->value,
+            CampaignContentAssetType::FOUNDER_POST->value,
+            CampaignContentAssetType::FAQ_BLOCK->value,
+            CampaignContentAssetType::ANSWER_BLOCK->value,
+        ], true);
+    }
+
+    /**
+     * @param  list<string>  $languages
+     */
+    private function assetAlreadyGeneratedForAllLanguages(CampaignContent $asset, string $type, array $languages): bool
+    {
+        foreach ($languages as $language) {
+            if (! $this->assetAlreadyGeneratedForLanguage($asset, $type, $language)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  list<string>  $languages
+     */
+    private function pendingLanguageCount(CampaignContent $asset, string $type, array $languages): int
+    {
+        return collect($languages)
+            ->reject(fn (string $language): bool => $this->assetAlreadyGeneratedForLanguage($asset, $type, $language))
+            ->count();
+    }
+
+    private function assetAlreadyGeneratedForLanguage(CampaignContent $asset, string $type, string $language): bool
+    {
+        if (in_array($type, [
+            CampaignContentAssetType::LINKEDIN_POST->value,
+            CampaignContentAssetType::INSTAGRAM_POST->value,
+            CampaignContentAssetType::FOUNDER_POST->value,
+        ], true)) {
+            return (bool) data_get($asset->metadata, 'generated_social_variants_by_locale.'.$language)
+                || ($this->isPrimaryAssetLanguage($asset, $language) && (bool) data_get($asset->metadata, 'generated_social_variant'));
+        }
+
+        if (in_array($type, [
+            CampaignContentAssetType::FAQ_BLOCK->value,
+            CampaignContentAssetType::ANSWER_BLOCK->value,
+        ], true)) {
+            return ! empty(data_get($asset->metadata, 'generated_answer_block_ids_by_locale.'.$language, []))
+                || ($this->isPrimaryAssetLanguage($asset, $language) && ! empty(data_get($asset->metadata, 'generated_answer_block_ids', [])));
+        }
+
+        return filled($this->generatedContentIdForLanguage($asset, $language))
+            || filled(data_get($asset->metadata, 'generated_locale_draft_ids.'.$language));
+    }
+
+    private function generatedContentIdForLanguage(CampaignContent $asset, string $language): ?string
+    {
+        $language = SupportedLanguage::fromStringOrDefault($language)->value;
+        $contentId = trim((string) data_get($asset->metadata, 'generated_locale_content_ids.'.$language, ''));
+
+        if ($contentId !== '') {
+            return $contentId;
+        }
+
+        if ($this->isPrimaryAssetLanguage($asset, $language) && $asset->content_id) {
+            return (string) $asset->content_id;
+        }
+
+        return null;
+    }
+
+    private function isPrimaryAssetLanguage(CampaignContent $asset, string $language): bool
+    {
+        $campaign = $asset->relationLoaded('campaign') ? $asset->campaign : null;
+        if ($campaign instanceof Campaign) {
+            return $this->isPrimaryCampaignLanguage($campaign, $language);
+        }
+
+        return $language === SupportedLanguage::default()->value;
+    }
+
+    private function isPrimaryCampaignLanguage(Campaign $campaign, string $language): bool
+    {
+        $languages = $this->campaignLanguages($campaign);
+
+        return $language === ($languages[0] ?? $campaign->workspace?->defaultContentLanguageCode() ?? SupportedLanguage::default()->value);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function campaignLanguages(Campaign $campaign): array
+    {
+        $campaign->loadMissing('workspace');
+
+        $workspace = $campaign->workspace;
+        $enabled = $workspace?->enabled_content_languages ?: [SupportedLanguage::default()->value];
+        $default = $workspace?->defaultContentLanguageCode() ?: SupportedLanguage::default()->value;
+        $selected = (array) data_get($campaign->metadata, 'campaign_languages', data_get($campaign->ai_planning_context, 'languages', []));
+
+        $languages = collect($selected)
+            ->map(fn (mixed $language): string => SupportedLanguage::fromStringOrDefault((string) $language)->value)
+            ->filter(fn (string $language): bool => in_array($language, $enabled, true))
+            ->prepend($default)
+            ->unique()
+            ->values()
+            ->all();
+
+        return $languages !== [] ? $languages : [$default];
+    }
+
+    private function sourceContentForAsset(CampaignContent $asset, Campaign $campaign, string $language): ?Content
+    {
+        if ($this->isPrimaryCampaignLanguage($campaign, $language)) {
+            return null;
+        }
+
+        $primaryLanguage = $this->campaignLanguages($campaign)[0] ?? $campaign->workspace?->defaultContentLanguageCode() ?? SupportedLanguage::default()->value;
+        $primaryId = $this->generatedContentIdForLanguage($asset, $primaryLanguage);
+
+        return $primaryId ? Content::query()->find($primaryId) : null;
+    }
+
+    private function generateSocialVariant(Campaign $campaign, CampaignContent $asset, User $actor, string $language): string
+    {
+        $language = SupportedLanguage::fromStringOrDefault($language)->value;
         $existing = SocialPostVariant::query()
             ->where('campaign_content_id', $asset->id)
             ->where('variant_type', 'campaign_planner_suggestion')
-            ->exists();
+            ->get()
+            ->contains(fn (SocialPostVariant $variant): bool => SupportedLanguage::fromStringOrDefault((string) data_get($variant->metadata, 'locale', data_get($variant->generation_prompt_context, 'locale', '')))->value === $language);
 
         if ($existing) {
             $asset->forceFill([
                 'status' => 'social_draft_created',
-                'metadata' => array_replace((array) $asset->metadata, [
+                'metadata' => array_replace_recursive((array) $asset->metadata, [
                     'generated_social_variant' => true,
+                    'generated_social_variants_by_locale' => [
+                        $language => true,
+                    ],
                     'generated_at' => data_get($asset->metadata, 'generated_at') ?: now()->toIso8601String(),
                 ]),
             ])->save();
@@ -447,6 +728,7 @@ class CampaignAssetGenerationService
         }
 
         $brief = (array) $asset->brief;
+        $platform = $this->platformFor($asset);
         $body = $this->socialBody($campaign, $asset);
 
         SocialPostVariant::query()->create([
@@ -455,7 +737,7 @@ class CampaignAssetGenerationService
             'campaign_id' => (string) $campaign->id,
             'campaign_content_id' => (string) $asset->id,
             'content_id' => $asset->source_content_id ?: $asset->content_id,
-            'platform' => SocialPlatform::LINKEDIN->value,
+            'platform' => $platform,
             'post_type' => $this->postTypeFor($asset),
             'variant_type' => 'campaign_planner_suggestion',
             'status' => SocialPostVariantStatus::DRAFT->value,
@@ -467,7 +749,10 @@ class CampaignAssetGenerationService
                 'source' => 'campaign_planner',
                 'campaign_id' => (string) $campaign->id,
                 'campaign_content_id' => (string) $asset->id,
+                'platform' => $platform,
                 'asset_type' => $asset->asset_type?->value ?? $asset->asset_type,
+                'locale' => $language,
+                'media_required' => $platform === SocialPlatform::INSTAGRAM->value,
                 'brief' => $brief,
             ],
             'generation_result' => [
@@ -479,13 +764,17 @@ class CampaignAssetGenerationService
             'metadata' => [
                 'created_by' => $actor->id,
                 'auto_publish' => false,
+                'locale' => $language,
             ],
         ]);
 
         $asset->forceFill([
             'status' => 'social_draft_created',
-            'metadata' => array_replace((array) $asset->metadata, [
+            'metadata' => array_replace_recursive((array) $asset->metadata, [
                 'generated_social_variant' => true,
+                'generated_social_variants_by_locale' => [
+                    $language => true,
+                ],
                 'generated_at' => now()->toIso8601String(),
             ]),
         ])->save();
@@ -521,8 +810,18 @@ class CampaignAssetGenerationService
 
         return match ($type) {
             CampaignContentAssetType::FOUNDER_POST->value => SocialPostType::BUILDING_IN_PUBLIC->value,
+            CampaignContentAssetType::INSTAGRAM_POST->value => SocialPostType::IMAGE->value,
             default => SocialPostType::THOUGHT_LEADERSHIP->value,
         };
+    }
+
+    private function platformFor(CampaignContent $asset): string
+    {
+        $type = $asset->asset_type?->value ?? (string) $asset->asset_type;
+
+        return $type === CampaignContentAssetType::INSTAGRAM_POST->value
+            ? SocialPlatform::INSTAGRAM->value
+            : SocialPlatform::LINKEDIN->value;
     }
 
     private function briefNotes(Campaign $campaign, CampaignContent $asset): string
@@ -543,6 +842,15 @@ class CampaignAssetGenerationService
     {
         $brief = (array) $asset->brief;
         $audience = (string) data_get($brief, 'audience_segment', 'marketing teams');
+        $type = $asset->asset_type?->value ?? (string) $asset->asset_type;
+
+        if ($type === CampaignContentAssetType::INSTAGRAM_POST->value) {
+            return trim(implode("\n\n", [
+                'A sharper campaign idea starts with one visible moment.',
+                'Show the workflow, the before/after, or the decision point behind '.$campaign->name.'.',
+                'What would make this easier to approve and ship?',
+            ]));
+        }
 
         return trim(implode("\n\n", [
             'For '.$audience.', the practical question is not whether the topic matters. It is how to turn it into a repeatable operating model with clear review gates.',

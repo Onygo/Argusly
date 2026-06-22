@@ -228,7 +228,7 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
                         continue;
                     }
 
-                    Route::prefix($legacySegment)->name('public.markets.legacy.' . $locale . '.')->group(function () use ($locale) {
+                    Route::prefix($legacySegment)->name('public.markets.localized-legacy.' . $locale . '.')->group(function () use ($locale) {
                         foreach ((array) config('argusly_markets.pages', []) as $market => $page) {
                             Route::get('/' . data_get($page, 'slugs.' . $locale, $market), [LegacyLocalizedMarketingRedirectController::class, 'route'])
                                 ->defaults('marketing_route', 'public.markets.' . $market)

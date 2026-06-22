@@ -26,7 +26,7 @@ it('detects dutch content on an english route as misplaced en', function () {
         'body' => '<p>Dit artikel legt uit hoe je een schaalbaar contentplatform ontwerpt.</p>',
     ]));
 
-    $detector = new MarketingBlogLocaleDetector(new MarketingBlogRedirectService());
+    $detector = new MarketingBlogLocaleDetector(app(MarketingBlogRedirectService::class));
     $result = $detector->detect($content);
 
     expect($result['is_candidate_misplaced_en'])->toBeTrue()
@@ -56,7 +56,7 @@ it('marks translation-linked low-confidence mismatches for manual review', funct
         'body' => '<p>de en met</p>',
     ]));
 
-    $detector = new MarketingBlogLocaleDetector(new MarketingBlogRedirectService());
+    $detector = new MarketingBlogLocaleDetector(app(MarketingBlogRedirectService::class));
     $result = $detector->detect($content);
 
     expect($result['needs_review'])->toBeTrue()

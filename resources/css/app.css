@@ -849,7 +849,7 @@
     }
 
     .pl-work-topbar {
-        @apply flex min-h-16 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-2 md:px-6;
+        @apply flex min-h-14 flex-nowrap items-center justify-between gap-2 px-3 py-2 sm:min-h-16 sm:flex-wrap sm:gap-x-3 sm:gap-y-2 sm:px-4 md:px-6;
     }
 
     .pl-work-impersonation {
@@ -857,7 +857,7 @@
     }
 
     .pl-work-chip {
-        @apply inline-flex h-10 items-center justify-center rounded-md border border-border bg-white px-4 text-sm font-semibold text-textPrimary transition-colors hover:bg-surfaceSubtle;
+        @apply inline-flex h-9 items-center justify-center overflow-hidden rounded-md border border-border bg-white px-3 text-sm font-semibold text-textPrimary transition-colors hover:bg-surfaceSubtle sm:h-10 sm:px-4;
     }
 
     .pl-work-chip-muted {
@@ -865,7 +865,7 @@
     }
 
     .pl-work-avatar {
-        @apply inline-flex h-10 w-10 items-center justify-center rounded-full bg-textPrimary text-xs font-bold text-white;
+        @apply inline-flex h-9 w-9 items-center justify-center rounded-full bg-textPrimary text-xs font-bold text-white sm:h-10 sm:w-10;
     }
 
     .pl-work-select {
