@@ -203,22 +203,34 @@ class LaravelConnectorPublishingService
     {
         $contentPublishedUrl = trim((string) ($content->published_url ?? ''));
         if ($contentPublishedUrl !== '') {
-            return ['url' => $contentPublishedUrl, 'source' => 'content.published_url'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $contentPublishedUrl),
+                'source' => 'content.published_url',
+            ];
         }
 
         $draftCanonical = trim((string) ($draft->seo_canonical ?? ''));
         if ($draftCanonical !== '') {
-            return ['url' => $draftCanonical, 'source' => 'draft.seo_canonical'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $draftCanonical),
+                'source' => 'draft.seo_canonical',
+            ];
         }
 
         $metaCanonical = trim((string) data_get($draft->meta, 'canonical_url', ''));
         if ($metaCanonical !== '') {
-            return ['url' => $metaCanonical, 'source' => 'draft.meta.canonical_url'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $metaCanonical),
+                'source' => 'draft.meta.canonical_url',
+            ];
         }
 
         $metaPublishedUrl = trim((string) data_get($draft->meta, 'published_url', ''));
         if ($metaPublishedUrl !== '') {
-            return ['url' => $metaPublishedUrl, 'source' => 'draft.meta.published_url'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $metaPublishedUrl),
+                'source' => 'draft.meta.published_url',
+            ];
         }
 
         $base = rtrim((string) ($content->clientSite?->site_url ?? ''), '/');

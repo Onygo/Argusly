@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\View\Presenters\ContentStatusPresenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
@@ -161,6 +162,31 @@ it('shows localized public blog live urls on the content detail page', function 
         ->get(route('app.content.show', $content))
         ->assertOk()
         ->assertSee('https://argusly.com/nl/blog/' . $slug, false)
+        ->assertDontSee('https://argusly.com/blog/' . $slug, false);
+});
+
+it('shows english public blog live urls with the locale prefix on the content detail page', function (): void {
+    $user = createDeliveryUITestUser();
+    [$content] = createDeliveryUITestContext('delivered', user: $user, siteType: ClientSite::TYPE_LARAVEL);
+    $slug = 'privacy-regulations-and-crawling-mistakes-teams-should-avoid';
+
+    $content->forceFill([
+        'language' => SupportedLanguage::EN->value,
+        'translation_source_locale' => SupportedLanguage::EN->value,
+        'is_source_locale' => true,
+        'status' => 'published',
+        'publish_status' => 'published',
+        'published_url' => 'https://argusly.com/blog/' . $slug,
+    ])->save();
+
+    DB::table('contents')
+        ->where('id', (string) $content->id)
+        ->update(['type' => 'blog']);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', $content))
+        ->assertOk()
+        ->assertSee('https://argusly.com/en/blog/' . $slug, false)
         ->assertDontSee('https://argusly.com/blog/' . $slug, false);
 });
 

@@ -85,6 +85,71 @@ it('filters learnings data by scope', function () {
     expect($otherResponse->viewData('trending')->count())->toBe(1);
 });
 
+it('displays localized canonical urls for content-backed learnings rows', function () {
+    [$user, $site, $analyticsSite] = createLearningsScopeContext();
+
+    $english = Content::query()->create([
+        'workspace_id' => $site->workspace_id,
+        'client_site_id' => $site->id,
+        'title' => 'English Visibility Guide',
+        'type' => 'article',
+        'language' => 'en',
+        'publish_url_key' => 'english-visibility-guide',
+        'seo_canonical' => 'https://argusly.com/blog/english-visibility-guide',
+        'published_url' => 'https://argusly.com/blog/english-visibility-guide',
+    ]);
+
+    $dutch = Content::query()->create([
+        'workspace_id' => $site->workspace_id,
+        'client_site_id' => $site->id,
+        'title' => 'Nederlandse Visibility Gids',
+        'type' => 'article',
+        'language' => 'nl',
+        'publish_url_key' => 'nederlandse-visibility-gids',
+        'seo_canonical' => 'https://argusly.com/blog/nederlandse-visibility-gids',
+        'published_url' => 'https://argusly.com/blog/nederlandse-visibility-gids',
+    ]);
+
+    foreach ([$english, $dutch] as $index => $content) {
+        $slug = (string) $content->publish_url_key;
+        $now = now()->subMinutes(20 - $index);
+
+        AnalyticsEvent::query()->create([
+            'analytics_site_id' => $analyticsSite->id,
+            'event_type' => 'pageview',
+            'visitor_hash' => hash('sha256', 'localized-visitor-'.$index),
+            'session_hash' => hash('sha256', 'localized-session-'.$index),
+            'path' => '/blog/'.$slug,
+            'path_hash' => hash('sha256', '/blog/'.$slug),
+            'title' => $content->title,
+            'host' => 'argusly.com',
+            'url' => 'https://argusly.com/blog/'.$slug,
+            'canonical_url' => 'https://argusly.com/blog/'.$slug,
+            'canonical_url_hash' => hash('sha256', 'https://argusly.com/blog/'.$slug),
+            'url_key' => 'argusly.com/blog/'.$slug,
+            'article_id' => $content->id,
+            'content_id' => $content->id,
+            'page_type' => 'argusly_content',
+            'event_hash' => hash('sha256', 'localized-event-'.$index),
+            'event_time' => $now,
+            'received_at' => $now,
+        ]);
+    }
+
+    $response = $this->actingAs($user)
+        ->get(route('app.sites.learnings.index', $site).'?days=7');
+
+    $response->assertOk();
+
+    $paths = $response->viewData('trending')->pluck('path')->all();
+
+    expect($paths)
+        ->toContain('https://argusly.com/en/blog/english-visibility-guide')
+        ->toContain('https://argusly.com/nl/blog/nederlandse-visibility-gids')
+        ->not->toContain('https://argusly.com/blog/english-visibility-guide')
+        ->not->toContain('https://argusly.com/blog/nederlandse-visibility-gids');
+});
+
 function createLearningsScopeContext(): array
 {
     $organization = Organization::query()->create([

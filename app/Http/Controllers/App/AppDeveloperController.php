@@ -4,10 +4,12 @@ namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
 use App\Enums\ContentDestinationType;
+use App\Enums\EmailMarketingProvider;
 use App\Models\ApiKey;
 use App\Models\ApiRequestLog;
 use App\Models\ApiWebhook;
 use App\Models\ContentDestination;
+use App\Models\EmailMarketingConnection;
 use App\Models\Workspace;
 use App\Services\Api\ApiScopes;
 use App\Services\Integrations\ApiCapabilityService;
@@ -72,6 +74,11 @@ class AppDeveloperController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        $emailMarketingConnections = EmailMarketingConnection::query()
+            ->where('workspace_id', $workspace->id)
+            ->orderByDesc('created_at')
+            ->get();
+
         $usageLogs = ApiRequestLog::query()
             ->where('workspace_id', $workspace->id)
             ->orderByDesc('requested_at')
@@ -85,6 +92,8 @@ class AppDeveloperController extends Controller
             'linkedCredentials' => $linkedCredentials,
             'credentialSummary' => $credentialSummary,
             'webhooks' => $webhooks,
+            'emailMarketingConnections' => $emailMarketingConnections,
+            'emailMarketingProviders' => EmailMarketingProvider::cases(),
             'usageLogs' => $usageLogs,
             'availableScopes' => ApiScopes::all(),
             'createdApiKeySecret' => session('developer.created_api_key_secret'),
@@ -215,6 +224,58 @@ class AppDeveloperController extends Controller
         }
 
         return back()->withErrors(['destinations' => $message]);
+    }
+
+    public function storeEmailMarketingConnection(Request $request): RedirectResponse
+    {
+        Gate::authorize('manage-organization');
+
+        $workspace = $this->resolveWorkspace($request);
+        abort_if(! $workspace, 404);
+
+        $validated = $this->validateEmailMarketingConnection($request);
+
+        $connection = new EmailMarketingConnection([
+            'workspace_id' => $workspace->id,
+            'name' => $validated['name'],
+            'provider' => $validated['provider'],
+            'status' => $validated['status'] ?? 'active',
+            'config' => $this->emailMarketingConfig($validated),
+            'created_by' => optional($request->user())->id,
+        ]);
+        $connection->setCredentials([
+            'api_key' => (string) data_get($validated, 'credentials.api_key', ''),
+        ]);
+        $connection->save();
+
+        return back()->with('status', 'Email marketing connection created.');
+    }
+
+    public function updateEmailMarketingConnection(Request $request, EmailMarketingConnection $connection): RedirectResponse
+    {
+        Gate::authorize('manage-organization');
+
+        $workspace = $this->resolveWorkspace($request);
+        abort_if(! $workspace, 404);
+        abort_if((string) $connection->workspace_id !== (string) $workspace->id, 404);
+
+        $validated = $this->validateEmailMarketingConnection($request, updating: true);
+
+        $connection->fill([
+            'name' => $validated['name'],
+            'provider' => $validated['provider'],
+            'status' => $validated['status'] ?? 'active',
+            'config' => $this->emailMarketingConfig($validated),
+        ]);
+
+        $apiKey = trim((string) data_get($validated, 'credentials.api_key', ''));
+        if ($apiKey !== '') {
+            $connection->setCredentials(['api_key' => $apiKey]);
+        }
+
+        $connection->save();
+
+        return back()->with('status', 'Email marketing connection updated.');
     }
 
     public function storeApiKey(Request $request, ApiKeyService $apiKeyService, ApiCapabilityService $capabilities): RedirectResponse
@@ -387,5 +448,38 @@ class AppDeveloperController extends Controller
             'site_id.required' => 'Laravel connector site ID is required.',
             'api_key.required' => 'Laravel connector API key is required.',
         ])->validate();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateEmailMarketingConnection(Request $request, bool $updating = false): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'provider' => ['required', Rule::in(EmailMarketingProvider::values())],
+            'status' => ['nullable', Rule::in(['active', 'disabled'])],
+            'config.base_url' => ['nullable', 'url', 'max:2048'],
+            'config.draft_endpoint' => ['nullable', 'string', 'max:255'],
+            'config.default_template_id' => ['nullable', 'string', 'max:255'],
+            'config.default_audience_id' => ['nullable', 'string', 'max:255'],
+            'config.timeout_seconds' => ['nullable', 'integer', 'min:1', 'max:60'],
+            'credentials.api_key' => [$updating ? 'nullable' : 'required', 'string', 'max:2000'],
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function emailMarketingConfig(array $validated): array
+    {
+        return [
+            'base_url' => trim((string) data_get($validated, 'config.base_url', '')),
+            'draft_endpoint' => trim((string) data_get($validated, 'config.draft_endpoint', '/api/argusly/campaign-snippets')),
+            'default_template_id' => trim((string) data_get($validated, 'config.default_template_id', '')),
+            'default_audience_id' => trim((string) data_get($validated, 'config.default_audience_id', '')),
+            'timeout_seconds' => (int) data_get($validated, 'config.timeout_seconds', 20),
+        ];
     }
 }

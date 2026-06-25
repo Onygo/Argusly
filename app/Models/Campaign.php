@@ -149,6 +149,11 @@ class Campaign extends Model
         return $this->hasMany(SocialPublication::class);
     }
 
+    public function emailCampaignExports(): HasMany
+    {
+        return $this->hasMany(EmailCampaignExport::class);
+    }
+
     public function opportunities(): HasMany
     {
         return $this->hasMany(Opportunity::class);

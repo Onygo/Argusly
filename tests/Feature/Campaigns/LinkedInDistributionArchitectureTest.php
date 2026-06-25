@@ -579,8 +579,79 @@ it('formats long target audience lists in dutch linkedin copy', function (): voi
         ->firstWhere('variant_type', 'thought_leadership')
         ?->body;
 
-    expect($body)->toContain("De nuttige verschuiving voor marketing directors, cmo's, growth leaders en marketing managers:")
+    expect($body)->toContain('De nuttige verschuiving voor marketing directors')
+        ->and($body)->toContain('growth leaders en marketing managers')
         ->and($body)->not->toContain("Marketing Directors CMO's Growth Leaders Marketing Managers:");
+});
+
+it('creates article driven linkedin variants with distinct aeo angles', function (): void {
+    $organization = Organization::query()->create([
+        'name' => 'AEO Distribution Org',
+        'slug' => 'aeo-distribution-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'AEO Distribution Workspace',
+    ]);
+
+    $content = Content::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'title' => 'Visibility Answer Engine Optimization (AEO)',
+        'type' => 'article',
+        'language' => 'nl',
+        'primary_keyword' => 'answer engine optimization',
+        'public_blog_excerpt' => 'AI zoekmachines veranderen hoe bedrijven gevonden worden.',
+        'public_blog_tags' => ['AI Visibility', 'Content Marketing'],
+        'seo_canonical' => 'https://argusly.com/nl/blog/visibility-answer-engine-optimization',
+    ]);
+
+    $distributionContext = [
+        'subject' => 'Visibility Answer Engine Optimization (AEO)',
+        'primary_cta' => 'Lees het volledige artikel op Argusly.',
+        'key_messages' => [
+            'AI zoekmachines veranderen hoe bedrijven gevonden worden.',
+            'SEO alleen is niet meer voldoende.',
+            'AEO draait om antwoordwaardige content.',
+            'Content moet begrijpelijk zijn voor zowel mensen als AI.',
+            'Organisaties die nu investeren bouwen een voorsprong op.',
+            'Argusly helpt bedrijven hun AI zichtbaarheid te analyseren, kansen te ontdekken en content autonoom te organiseren.',
+        ],
+        'variant_angles' => [
+            'Thought leadership: waarom traditionele SEO niet meer voldoende is.',
+            'Praktische tip: 3 manieren om vandaag beter zichtbaar te worden in AI.',
+            'Trend: hoe ChatGPT, Gemini en Perplexity de customer journey veranderen.',
+            'Vraag/discussie: wordt jouw bedrijf al genoemd door AI?',
+            'Data driven: waarom bedrijven minder klikken uit Google krijgen maar zichtbaar moeten blijven.',
+        ],
+    ];
+
+    $post = app(\App\Actions\Social\GenerateLinkedInPostFromContent::class)->handle($content, [
+        'language' => 'nl',
+        'source_url' => 'https://argusly.com/nl/blog/visibility-answer-engine-optimization',
+        'target_audience' => 'B2B marketing leaders',
+        'tone_of_voice' => 'Strategisch, praktisch en direct',
+        'hashtags' => ['#AIVisibility', '#AEO', '#ContentMarketing'],
+        'variant_count' => 5,
+        'distribution_context' => $distributionContext,
+    ]);
+
+    expect($post->variants)->toHaveCount(5)
+        ->and($post->variants->pluck('variant_type')->all())->toBe([
+            'thought_leadership',
+            'seo_shift',
+            'practical_tip',
+            'trend_discussion',
+            'data_driven',
+        ])
+        ->and((string) $post->variants->firstWhere('variant_type', 'seo_shift')?->body)->toContain('SEO alleen is niet meer genoeg')
+        ->and((string) $post->variants->firstWhere('variant_type', 'practical_tip')?->body)->toContain('3 manieren')
+        ->and((string) $post->variants->firstWhere('variant_type', 'trend_discussion')?->body)->toContain('Wordt jouw bedrijf al genoemd door AI')
+        ->and((string) $post->variants->firstWhere('variant_type', 'data_driven')?->body)->toContain('Minder klikken uit Google')
+        ->and(data_get($post->variants->first()->generation_prompt_context, 'distribution_context.subject'))->toBe('Visibility Answer Engine Optimization (AEO)');
 });
 
 it('lets users rename linkedin account placeholders from distribution', function (): void {

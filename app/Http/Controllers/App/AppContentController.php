@@ -3049,23 +3049,36 @@ class AppContentController extends Controller
         $siteType = ClientSite::normalizeType((string) ($content->clientSite?->type ?? ''));
 
         if ($siteType === ClientSite::TYPE_WORDPRESS) {
-            $content->update([
-                'publish_status' => 'scheduled',
-                'scheduled_publish_at' => now(),
+            $publishContent = $requestedLocale !== null
+                ? $content->localizedVariantFor($requestedLocale)
+                : $content;
+
+            if (! $publishContent instanceof Content) {
+                return back()->withErrors([
+                    'publish' => sprintf('No %s locale variant is available to publish.', strtoupper((string) $requestedLocale)),
+                ]);
+            }
+
+            $this->assertContentInUserOrganization($request, $publishContent);
+
+            $publishContent->forceFill([
+                'scheduled_publish_at' => null,
                 'publish_error' => null,
-            ]);
+            ])->save();
 
-            $dispatch = $publicationService->dispatchWordPressPublication($content, null, [
+            $dispatch = $publicationService->dispatchWordPressPublication($publishContent, null, [
                 'source' => 'app.content.publish_now',
+                'locale' => $publishContent->localeCode(),
             ]);
 
-            $localePublishingSyncService->syncSourceSchedule(
-                $content->fresh(['clientSite', 'contentDestination', 'localizedVariants', 'translationSourceContent']) ?? $content,
-                now()
-            );
+            if (! $publishContent->isTranslationVariant()) {
+                $localePublishingSyncService->syncSourceImmediatePublish(
+                    $publishContent->fresh(['clientSite', 'contentDestination', 'localizedVariants', 'translationSourceContent']) ?? $publishContent
+                );
+            }
 
             return back()->with('status', (bool) ($dispatch['queued'] ?? false)
-                ? 'Publish job queued.'
+                ? sprintf('%s publish job queued.', strtoupper($publishContent->localeCode()))
                 : 'Publication was already queued or processed.');
         }
 
@@ -4251,22 +4264,34 @@ class AppContentController extends Controller
     {
         $contentPublishedUrl = trim((string) ($content->published_url ?? ''));
         if ($contentPublishedUrl !== '') {
-            return ['url' => $contentPublishedUrl, 'source' => 'content.published_url'];
+            return [
+                'url' => app(CanonicalUrlService::class)->liveUrlForContent($content, $contentPublishedUrl),
+                'source' => 'content.published_url',
+            ];
         }
 
         $draftCanonical = trim((string) ($draft->seo_canonical ?? ''));
         if ($draftCanonical !== '') {
-            return ['url' => $draftCanonical, 'source' => 'draft.seo_canonical'];
+            return [
+                'url' => app(CanonicalUrlService::class)->liveUrlForContent($content, $draftCanonical),
+                'source' => 'draft.seo_canonical',
+            ];
         }
 
         $metaCanonical = trim((string) data_get($draft->meta, 'canonical_url', ''));
         if ($metaCanonical !== '') {
-            return ['url' => $metaCanonical, 'source' => 'draft.meta.canonical_url'];
+            return [
+                'url' => app(CanonicalUrlService::class)->liveUrlForContent($content, $metaCanonical),
+                'source' => 'draft.meta.canonical_url',
+            ];
         }
 
         $metaPublishedUrl = trim((string) data_get($draft->meta, 'published_url', ''));
         if ($metaPublishedUrl !== '') {
-            return ['url' => $metaPublishedUrl, 'source' => 'draft.meta.published_url'];
+            return [
+                'url' => app(CanonicalUrlService::class)->liveUrlForContent($content, $metaPublishedUrl),
+                'source' => 'draft.meta.published_url',
+            ];
         }
 
         $base = rtrim((string) ($content->clientSite?->site_url ?? ''), '/');

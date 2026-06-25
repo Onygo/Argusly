@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\V1\ContentAnswerController;
 use App\Http\Controllers\Api\V1\ContentDeletionController;
 use App\Http\Controllers\Api\V1\CreditsController;
 use App\Http\Controllers\Api\V1\DraftController;
+use App\Http\Controllers\Api\V1\EmailCampaignExportController;
+use App\Http\Controllers\Api\V1\EmailMarketingConnectionController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\GenerationOptionsController;
 use App\Http\Controllers\Api\V1\HumanSignalController;
@@ -108,6 +110,18 @@ Route::prefix('v1')->group(function () {
             ->middleware('integration.scope:content:read');
         Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])
             ->middleware('integration.scope:content:read');
+        Route::get('/email-marketing/connections', [EmailMarketingConnectionController::class, 'index'])
+            ->middleware('integration.scope:destinations:read');
+        Route::post('/email-marketing/connections', [EmailMarketingConnectionController::class, 'store'])
+            ->middleware('integration.scope:destinations:write');
+        Route::get('/email-marketing/connections/{connection}', [EmailMarketingConnectionController::class, 'show'])
+            ->middleware('integration.scope:destinations:read');
+        Route::post('/campaign-contents/{campaignContent}/email-exports', [EmailCampaignExportController::class, 'store'])
+            ->middleware('integration.scope:content:publish');
+        Route::get('/email-campaign-exports/{emailCampaignExport}', [EmailCampaignExportController::class, 'show'])
+            ->middleware('integration.scope:content:read');
+        Route::post('/email-campaign-exports/{emailCampaignExport}/metrics', [EmailCampaignExportController::class, 'metrics'])
+            ->middleware('integration.scope:analytics:write');
         Route::get('/recommended-actions', [RecommendedActionController::class, 'index'])
             ->middleware('integration.scope:content:read');
         Route::get('/recommended-actions/{action}', [RecommendedActionController::class, 'show'])

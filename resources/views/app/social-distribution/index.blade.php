@@ -28,6 +28,7 @@
             'instagram' => (bool) config('services.meta.enabled'),
             default => (bool) config('services.linkedin.publishing_enabled'),
         };
+        $contentContextFor = fn ($contentItem): string => json_encode($contentDistributionContexts[(string) $contentItem->id] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
     @endphp
 
     <div class="space-y-6">
@@ -369,15 +370,15 @@
                         </div>
                         <i data-lucide="chevron-down" class="h-4 w-4 text-textFaint"></i>
                     </summary>
-                    <form method="POST" action="{{ route('app.agentic-marketing.distribution.content-drafts.store') }}" class="grid gap-4 px-4 pb-4">
+                    <form method="POST" action="{{ route('app.agentic-marketing.distribution.content-drafts.store') }}" class="grid gap-4 px-4 pb-4" data-content-distribution-form>
                         @csrf
                         <div class="grid gap-4 lg:grid-cols-2">
                             <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Content') }}</span>
-                                <select name="content_id" class="pl-input mt-1" required>
+                                <select name="content_id" class="pl-input mt-1" required data-content-context-select>
                                     <option value="">{{ $rt('Select content') }}</option>
                                     @foreach ($contentItems as $contentItem)
-                                        <option value="{{ $contentItem->id }}">{{ $contentItem->title }}</option>
+                                        <option value="{{ $contentItem->id }}" data-context='{{ $contentContextFor($contentItem) }}'>{{ $contentItem->title }}</option>
                                     @endforeach
                                 </select>
                             </label>
@@ -405,55 +406,73 @@
                         <div class="grid gap-4 lg:grid-cols-2">
                             <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Audience') }}</span>
-                                <input name="target_audience" class="pl-input mt-1" maxlength="180" placeholder="{{ $rt('B2B marketing leaders') }}">
+                                <input name="target_audience" class="pl-input mt-1" maxlength="180" placeholder="{{ $rt('B2B marketing leaders') }}" data-content-context-field="target_audience">
                             </label>
                             <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Tone') }}</span>
-                                <input name="tone_of_voice" class="pl-input mt-1" maxlength="180" placeholder="{{ $rt('Practical and direct') }}">
+                                <input name="tone_of_voice" class="pl-input mt-1" maxlength="180" placeholder="{{ $rt('Practical and direct') }}" data-content-context-field="tone_of_voice">
                             </label>
                         </div>
-                        <div class="grid gap-4 lg:grid-cols-[8rem_1fr]">
+                        <div class="grid gap-4 lg:grid-cols-[8rem_8rem_10rem_1fr]">
                             <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Language') }}</span>
-                                <select name="language" class="pl-input mt-1" required>
+                                <select name="language" class="pl-input mt-1" required data-content-context-field="language">
                                     <option value="nl" selected>NL</option>
                                     <option value="en">EN</option>
                                 </select>
                             </label>
                             <label>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('Variants') }}</span>
+                                <input type="number" name="variant_count" min="3" max="5" value="5" class="pl-input mt-1" data-content-context-field="variant_count">
+                            </label>
+                            <label>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('Length') }}</span>
+                                <select name="desired_post_length" class="pl-input mt-1" data-content-context-field="desired_post_length">
+                                    <option value="standard">{{ $rt('Standard') }}</option>
+                                    <option value="short">{{ $rt('Short') }}</option>
+                                    <option value="long">{{ $rt('Long') }}</option>
+                                </select>
+                            </label>
+                            <label>
                                 <span class="text-xs font-medium text-textSecondary">{{ $rt('Article URL') }}</span>
-                                <input type="url" name="source_url" class="pl-input mt-1" maxlength="500" placeholder="{{ $rt('Defaults to the selected article canonical URL') }}">
+                                <input type="url" name="source_url" class="pl-input mt-1" maxlength="500" placeholder="{{ $rt('Defaults to the selected article canonical URL') }}" data-content-context-field="canonical_url">
                             </label>
                         </div>
-                        <label>
-                            <span class="text-xs font-medium text-textSecondary">{{ $rt('Hashtags') }}</span>
-                            <input name="hashtags" class="pl-input mt-1" maxlength="240" placeholder="#AIVisibility #ContentMarketing #B2B">
-                        </label>
+                        <div class="grid gap-4 lg:grid-cols-[1fr_14rem]">
+                            <label>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('Hashtags') }}</span>
+                                <input name="hashtags" class="pl-input mt-1" maxlength="240" placeholder="#AIVisibility #ContentMarketing #B2B" data-content-context-field="recommended_hashtags">
+                            </label>
+                            <label>
+                                <span class="text-xs font-medium text-textSecondary">{{ $rt('Publish date') }}</span>
+                                <input type="date" name="desired_publication_date" class="pl-input mt-1">
+                            </label>
+                        </div>
                         <details class="rounded-md border border-border bg-background p-3">
                             <summary class="cursor-pointer text-xs font-semibold text-textSecondary">Tracking parameters</summary>
                             <div class="mt-3 grid gap-3">
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <label>
                                         <span class="text-xs font-medium text-textSecondary">UTM source</span>
-                                        <input name="utm_source" class="pl-input mt-1" maxlength="120" placeholder="linkedin">
+                                        <input name="utm_source" class="pl-input mt-1" maxlength="120" placeholder="linkedin" data-content-context-field="utm_parameters.utm_source">
                                     </label>
                                     <label>
                                         <span class="text-xs font-medium text-textSecondary">UTM medium</span>
-                                        <input name="utm_medium" class="pl-input mt-1" maxlength="120" placeholder="social">
+                                        <input name="utm_medium" class="pl-input mt-1" maxlength="120" placeholder="social" data-content-context-field="utm_parameters.utm_medium">
                                     </label>
                                 </div>
                                 <label>
                                     <span class="text-xs font-medium text-textSecondary">UTM campaign</span>
-                                    <input name="utm_campaign" class="pl-input mt-1" maxlength="180" placeholder="q3-ai-authority">
+                                    <input name="utm_campaign" class="pl-input mt-1" maxlength="180" placeholder="q3-ai-authority" data-content-context-field="utm_parameters.utm_campaign">
                                 </label>
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <label>
                                         <span class="text-xs font-medium text-textSecondary">UTM content</span>
-                                        <input name="utm_content" class="pl-input mt-1" maxlength="180" placeholder="article-variant">
+                                        <input name="utm_content" class="pl-input mt-1" maxlength="180" placeholder="article-variant" data-content-context-field="utm_parameters.utm_content">
                                     </label>
                                     <label>
                                         <span class="text-xs font-medium text-textSecondary">UTM term</span>
-                                        <input name="utm_term" class="pl-input mt-1" maxlength="180" placeholder="agentic-marketing">
+                                        <input name="utm_term" class="pl-input mt-1" maxlength="180" placeholder="agentic-marketing" data-content-context-field="seo_keywords.0">
                                     </label>
                                 </div>
                             </div>
@@ -466,6 +485,37 @@
                 </details>
             </div>
         </section>
+        <script>
+            document.querySelectorAll('[data-content-distribution-form]').forEach((form) => {
+                const select = form.querySelector('[data-content-context-select]');
+                const valueAtPath = (source, path) => path.split('.').reduce((value, key) => value && value[key] !== undefined ? value[key] : null, source);
+                const normalize = (value) => Array.isArray(value) ? value.join(' ') : (value ?? '');
+                const applyContext = () => {
+                    const raw = select?.selectedOptions?.[0]?.dataset?.context || '{}';
+                    let context = {};
+                    try {
+                        context = JSON.parse(raw);
+                    } catch (error) {
+                        context = {};
+                    }
+
+                    form.querySelectorAll('[data-content-context-field]').forEach((field) => {
+                        const value = normalize(valueAtPath(context, field.dataset.contentContextField || ''));
+
+                        if (value === '') {
+                            return;
+                        }
+
+                        field.value = value;
+                    });
+                };
+
+                select?.addEventListener('change', applyContext);
+                if (select?.value) {
+                    applyContext();
+                }
+            });
+        </script>
 
         <div class="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
 
@@ -671,6 +721,9 @@
                             ->sortByDesc(fn ($publication) => $publication->scheduled_for?->timestamp ?? 0)
                             ->first();
                         $scheduledAt = $scheduledPublication?->scheduled_for?->copy()->timezone($scheduleTimezone)->format('d-m-Y H:i');
+                        $plannerScheduledFor = $variant->campaignContent?->scheduled_for
+                            ? $variant->campaignContent->scheduled_for->copy()->timezone($scheduleTimezone)->format('Y-m-d\TH:i')
+                            : '';
                     @endphp
                     <article class="rounded-md border border-border bg-background p-4 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4">
                         <div class="flex flex-wrap items-start justify-between gap-3 lg:block">
@@ -811,7 +864,7 @@
                                             <option value="">{{ $rt('No connected account') }}</option>
                                         @endforelse
                                     </select>
-                                    <input type="datetime-local" name="scheduled_for" class="pl-input" required @disabled(! $canSchedule)>
+                                    <input type="datetime-local" name="scheduled_for" value="{{ old('scheduled_for', $plannerScheduledFor) }}" class="pl-input" required @disabled(! $canSchedule)>
                                     <input type="hidden" name="timezone" value="{{ $scheduleTimezone }}" data-browser-timezone>
                                 </div>
                                 <button @class(['pl-btn-secondary', 'opacity-50 cursor-not-allowed' => ! $canSchedule]) @disabled(! $canSchedule)>
@@ -898,7 +951,7 @@
             <div class="rounded-lg border border-[#d0d7de] bg-white text-[#191919]">
                 <div class="flex items-start gap-3 px-4 pt-4">
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-sm bg-[#0a66c2] text-white">
-                        <i data-lucide="linkedin" class="h-6 w-6"></i>
+                        <x-app.icon name="linkedin" class="h-6 w-6" />
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-semibold" data-linkedin-preview-account>Social account</p>

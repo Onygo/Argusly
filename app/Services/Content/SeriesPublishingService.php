@@ -28,10 +28,10 @@ class SeriesPublishingService
      */
     public function publish(ContentSeries $series): array
     {
-        $series->loadMissing('site', 'contents.seriesArticle');
+        $series->loadMissing('site', 'contents.seriesArticle', 'contents.localizedVariants.seriesArticle');
 
-        if ($series->isLocked() || in_array($series->normalizedStatus(), [ContentSeries::STATUS_PUBLISHED, ContentSeries::STATUS_ARCHIVED], true)) {
-            throw new RuntimeException('Published or archived series are read-only.');
+        if ($series->isArchived()) {
+            throw new RuntimeException('Archived series are read-only.');
         }
 
         $site = $series->site;
@@ -39,7 +39,7 @@ class SeriesPublishingService
             throw new RuntimeException('Series site is missing.');
         }
 
-        $contents = $series->contents()
+        $seriesContents = $series->contents()
             ->with('seriesArticle:id,series_id,content_id,article_number,is_pillar')
             ->orderByRaw("CASE WHEN EXISTS (
                 SELECT 1 FROM content_series_articles
@@ -48,8 +48,16 @@ class SeriesPublishingService
             ) THEN 0 ELSE 1 END")
             ->orderBy('created_at')
             ->get();
-        if ($contents->isEmpty()) {
+        if ($seriesContents->isEmpty()) {
             throw new RuntimeException('Generate series articles before publishing.');
+        }
+
+        $contents = $this->publishableContentsForSeries($seriesContents)
+            ->reject(fn (Content $content): bool => (string) ($content->publish_status ?? '') === 'published')
+            ->values();
+
+        if ($contents->isEmpty()) {
+            throw new RuntimeException('All generated articles and translations are already published.');
         }
 
         $siteType = ClientSite::normalizeType((string) $site->type);
@@ -79,8 +87,7 @@ class SeriesPublishingService
             if ($siteType === ClientSite::TYPE_WORDPRESS) {
                 $content->update([
                     'client_site_id' => $site->id,
-                    'publish_status' => 'scheduled',
-                    'scheduled_publish_at' => now(),
+                    'scheduled_publish_at' => null,
                     'publish_error' => null,
                 ]);
 
@@ -109,9 +116,15 @@ class SeriesPublishingService
 
         $nextStatus = ContentSeries::STATUS_READY;
         if ($siteType === ClientSite::TYPE_WORDPRESS && $queued > 0) {
-            $nextStatus = ContentSeries::STATUS_SCHEDULED;
+            $nextStatus = $series->isPublished()
+                ? ContentSeries::STATUS_PUBLISHED
+                : ContentSeries::STATUS_SCHEDULED;
         }
-        if ($siteType === ClientSite::TYPE_LARAVEL && $published > 0 && $failed === 0) {
+        $allPublishableContent = $this->publishableContentsForSeries($seriesContents);
+        $allPublished = $allPublishableContent->isNotEmpty()
+            && $allPublishableContent->every(fn (Content $content): bool => (string) ($content->publish_status ?? '') === 'published');
+
+        if ($siteType === ClientSite::TYPE_LARAVEL && $allPublished && $failed === 0) {
             $nextStatus = ContentSeries::STATUS_PUBLISHED;
         }
 
@@ -152,6 +165,30 @@ class SeriesPublishingService
             'published' => $published,
             'failed' => $failed,
         ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int,Content>  $seriesContents
+     * @return \Illuminate\Support\Collection<int,Content>
+     */
+    private function publishableContentsForSeries(\Illuminate\Support\Collection $seriesContents): \Illuminate\Support\Collection
+    {
+        return $seriesContents
+            ->flatMap(function (Content $content): array {
+                $content->loadMissing('familyRoot', 'translationSourceContent', 'localizedVariants');
+
+                return $content->normalizedLocalizationFamily()->all();
+            })
+            ->unique(fn (Content $content): string => (string) $content->id)
+            ->sortBy(function (Content $content): array {
+                return [
+                    (int) ($content->seriesArticle?->article_number ?? 999999),
+                    (bool) $content->is_source_locale ? 0 : 1,
+                    $content->localeCode(),
+                    (string) $content->id,
+                ];
+            })
+            ->values();
     }
 
     private function publishNowToLaravel(Content $content, Draft $draft, ClientSite $site): void
@@ -243,22 +280,34 @@ class SeriesPublishingService
     {
         $contentPublishedUrl = trim((string) ($content->published_url ?? ''));
         if ($contentPublishedUrl !== '') {
-            return ['url' => $contentPublishedUrl, 'source' => 'content.published_url'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $contentPublishedUrl),
+                'source' => 'content.published_url',
+            ];
         }
 
         $draftCanonical = trim((string) ($draft->seo_canonical ?? ''));
         if ($draftCanonical !== '') {
-            return ['url' => $draftCanonical, 'source' => 'draft.seo_canonical'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $draftCanonical),
+                'source' => 'draft.seo_canonical',
+            ];
         }
 
         $metaCanonical = trim((string) data_get($draft->meta, 'canonical_url', ''));
         if ($metaCanonical !== '') {
-            return ['url' => $metaCanonical, 'source' => 'draft.meta.canonical_url'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $metaCanonical),
+                'source' => 'draft.meta.canonical_url',
+            ];
         }
 
         $metaPublishedUrl = trim((string) data_get($draft->meta, 'published_url', ''));
         if ($metaPublishedUrl !== '') {
-            return ['url' => $metaPublishedUrl, 'source' => 'draft.meta.published_url'];
+            return [
+                'url' => $this->canonicals->liveUrlForContent($content, $metaPublishedUrl),
+                'source' => 'draft.meta.published_url',
+            ];
         }
 
         $base = rtrim((string) ($site->site_url ?? ''), '/');

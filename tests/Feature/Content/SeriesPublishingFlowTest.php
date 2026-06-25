@@ -166,6 +166,83 @@ it('queues wordpress publishing for series articles on wordpress sites', functio
     expect($publication)->not->toBeNull();
 });
 
+it('publishes the requested wordpress locale variant without rescheduling the source', function () use ($makeSeriesPublishContext) {
+    [$user, $series, $content, $site] = $makeSeriesPublishContext('wordpress');
+
+    $content->forceFill([
+        'family_id' => (string) $content->id,
+        'language' => 'en',
+        'is_source_locale' => true,
+        'status' => 'published',
+        'publish_status' => 'published',
+        'scheduled_publish_at' => null,
+    ])->save();
+
+    $translatedContent = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $content->workspace_id,
+        'client_site_id' => $site->id,
+        'series_id' => $series->id,
+        'title' => 'Serie publicatie content',
+        'type' => 'article',
+        'status' => 'draft',
+        'source' => 'manual',
+        'language' => 'nl',
+        'family_id' => (string) $content->id,
+        'translation_source_content_id' => (string) $content->id,
+        'translation_source_locale' => 'en',
+        'is_source_locale' => false,
+        'delivery_status' => 'pending',
+        'publish_status' => 'draft',
+    ]);
+
+    $brief = Brief::query()->create([
+        'id' => (string) Str::uuid(),
+        'client_site_id' => $site->id,
+        'content_id' => $translatedContent->id,
+        'status' => 'done',
+        'progress' => 1,
+        'title' => 'Serie publicatie brief',
+        'language' => 'nl',
+        'output_type' => 'kb_article',
+    ]);
+
+    Draft::query()->create([
+        'id' => (string) Str::uuid(),
+        'brief_id' => $brief->id,
+        'content_id' => $translatedContent->id,
+        'client_site_id' => $site->id,
+        'status' => 'ready',
+        'delivery_status' => 'pending',
+        'title' => 'Serie publicatie draft',
+        'output_type' => 'kb_article',
+        'content_html' => '<p>Vertaalde tekst</p>',
+    ]);
+
+    Bus::fake();
+
+    $this->actingAs($user)
+        ->post(route('app.content.publish-now', $content), ['locale' => 'nl'])
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    Bus::assertDispatched(PublishToWordPressJob::class, function (PublishToWordPressJob $job) use ($translatedContent): bool {
+        return (string) $job->contentId === (string) $translatedContent->id;
+    });
+
+    Bus::assertNotDispatched(PublishToWordPressJob::class, function (PublishToWordPressJob $job) use ($content): bool {
+        return (string) $job->contentId === (string) $content->id;
+    });
+
+    $content->refresh();
+    $translatedContent->refresh();
+
+    expect((string) $content->publish_status)->toBe('published')
+        ->and($content->scheduled_publish_at)->toBeNull()
+        ->and((string) $translatedContent->publish_status)->toBe('publishing')
+        ->and($translatedContent->scheduled_publish_at)->toBeNull();
+});
+
 it('publishes series articles immediately for laravel sites', function () use ($makeSeriesPublishContext) {
     [$user, $series, $content, $site] = $makeSeriesPublishContext('laravel');
 
@@ -198,4 +275,76 @@ it('publishes series articles immediately for laravel sites', function () use ($
         ->and((string) $target?->seo_sync_mode)->toBe('pull')
         ->and((string) data_get($target?->meta, 'publish_confirmation'))->toBe('local_only')
         ->and((string) data_get($target?->meta, 'remote_sync_status'))->toBe('pending');
+});
+
+it('publishes remaining translated variants for locked published series', function () use ($makeSeriesPublishContext) {
+    [$user, $series, $content, $site] = $makeSeriesPublishContext('laravel');
+
+    $content->forceFill([
+        'family_id' => (string) $content->id,
+        'language' => 'en',
+        'is_source_locale' => true,
+        'status' => 'published',
+        'publish_status' => 'published',
+    ])->save();
+
+    $translatedContent = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $content->workspace_id,
+        'client_site_id' => $site->id,
+        'title' => 'Serie publicatie content',
+        'type' => 'article',
+        'status' => 'draft',
+        'source' => 'manual',
+        'language' => 'nl',
+        'family_id' => (string) $content->id,
+        'translation_source_content_id' => (string) $content->id,
+        'translation_source_locale' => 'en',
+        'is_source_locale' => false,
+        'delivery_status' => 'pending',
+        'publish_status' => 'draft',
+    ]);
+
+    $brief = Brief::query()->create([
+        'id' => (string) Str::uuid(),
+        'client_site_id' => $site->id,
+        'content_id' => $translatedContent->id,
+        'status' => 'done',
+        'progress' => 1,
+        'title' => 'Serie publicatie brief',
+        'language' => 'nl',
+        'output_type' => 'kb_article',
+    ]);
+
+    Draft::query()->create([
+        'id' => (string) Str::uuid(),
+        'brief_id' => $brief->id,
+        'content_id' => $translatedContent->id,
+        'client_site_id' => $site->id,
+        'status' => 'ready',
+        'delivery_status' => 'pending',
+        'title' => 'Serie publicatie draft',
+        'output_type' => 'kb_article',
+        'content_html' => '<p>Vertaalde tekst</p>',
+    ]);
+
+    $series->forceFill([
+        'status' => ContentSeries::STATUS_PUBLISHED,
+        'is_locked' => true,
+    ])->save();
+
+    $this->actingAs($user)
+        ->post(route('app.content.series.publish', $series))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $content->refresh();
+    $translatedContent->refresh();
+    $series->refresh();
+
+    expect((string) $content->publish_status)->toBe('published')
+        ->and((string) $translatedContent->publish_status)->toBe('published')
+        ->and((string) $translatedContent->status)->toBe('published')
+        ->and((string) $series->status)->toBe(ContentSeries::STATUS_PUBLISHED)
+        ->and((bool) $series->is_locked)->toBeTrue();
 });

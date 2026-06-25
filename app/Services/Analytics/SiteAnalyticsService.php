@@ -3,6 +3,8 @@
 namespace App\Services\Analytics;
 
 use App\Models\AnalyticsSite;
+use App\Models\Content;
+use App\Services\Seo\CanonicalUrlService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -17,6 +19,11 @@ class SiteAnalyticsService
     public const SCOPE_ARGUSLY_CONTENT = 'argusly_content';
     public const SCOPE_ALL = 'all';
     public const SCOPE_OTHER_PAGE = 'other_page';
+
+    public function __construct(
+        private readonly CanonicalUrlService $canonicalUrlService,
+    ) {
+    }
 
     /**
      * @return array{pageviews_7d:int,pageviews_30d:int,article_daily:Collection<int,object>}
@@ -136,6 +143,7 @@ class SiteAnalyticsService
             ->selectRaw('MAX(resolved_url) as path')
             ->selectRaw('MAX(title) as title')
             ->selectRaw('MAX(article_id) as article_id')
+            ->selectRaw('MAX(content_id) as content_id')
             ->selectRaw('COUNT(*) as total_views')
             ->selectRaw('COUNT(DISTINCT visitor_hash) as total_uniques')
             ->selectRaw('MAX(event_time) as last_seen')
@@ -174,6 +182,7 @@ class SiteAnalyticsService
                     'path' => $path,
                     'title' => (string) ($row->title ?: $path),
                     'article_id' => $row->article_id,
+                    'content_id' => $row->content_id,
                     'views' => $views,
                     'uniques' => (int) ($row->total_uniques ?? 0),
                     'engaged' => $engaged,
@@ -193,7 +202,7 @@ class SiteAnalyticsService
                 ];
             });
 
-        $trending = $this->attachAdvancedMetrics($analyticsSite->id, $trending);
+        $trending = $this->attachAdvancedMetrics($analyticsSite, $trending);
 
         $summary = (clone $baseQuery)
             ->selectRaw('COUNT(*) as total_views')
@@ -300,7 +309,7 @@ class SiteAnalyticsService
             ->addSelect('event_time');
 
         if ($includeMetadata) {
-            $baseQuery->addSelect(['title', 'article_id', 'visitor_hash']);
+            $baseQuery->addSelect(['title', 'article_id', 'content_id', 'visitor_hash']);
         }
 
         return DB::query()->fromSub($baseQuery, 'analytics_event_pages');
@@ -310,12 +319,13 @@ class SiteAnalyticsService
      * @param  Collection<int,array<string,mixed>>  $trending
      * @return Collection<int,array<string,mixed>>
      */
-    private function attachAdvancedMetrics(string $analyticsSiteId, Collection $trending): Collection
+    private function attachAdvancedMetrics(AnalyticsSite $analyticsSite, Collection $trending): Collection
     {
         if ($trending->isEmpty()) {
             return $trending;
         }
 
+        $analyticsSiteId = (string) $analyticsSite->id;
         $keys = $trending
             ->pluck('page_key')
             ->filter(fn ($value): bool => is_string($value) && trim($value) !== '')
@@ -328,6 +338,7 @@ class SiteAnalyticsService
             return $trending;
         }
 
+        $contentById = $this->contentByTrendingIdentity($analyticsSite, $trending);
         $contentMetrics = collect();
         if (Schema::hasTable('content_metrics')) {
             $contentMetrics = DB::table('content_metrics')
@@ -436,8 +447,22 @@ class SiteAnalyticsService
             }
         }
 
-        return $trending->map(function (array $row) use ($contentMetrics, $liveScrollMetrics, $liveReadMetrics, $aiMetrics, $aiSeoScoresByKey, $aiSeoScoresByUrl): array {
+        return $trending->map(function (array $row) use ($contentById, $contentMetrics, $liveScrollMetrics, $liveReadMetrics, $aiMetrics, $aiSeoScoresByKey, $aiSeoScoresByUrl): array {
             $pageKey = trim((string) ($row['page_key'] ?? ''));
+            $content = $this->contentForTrendingRow($row, $contentById);
+            if ($content) {
+                $candidate = trim((string) ($row['path'] ?? ''));
+                if (str_starts_with($candidate, '/')) {
+                    $candidate = '';
+                }
+
+                $row['path'] = $this->canonicalUrlService->liveUrlForContent(
+                    $content,
+                    $candidate !== '' ? $candidate : null,
+                    (string) ($content->publish_url_key ?: $content->canonical_url_key)
+                ) ?? $row['path'];
+            }
+
             $contentMetric = $contentMetrics->get($pageKey);
             $liveScroll = $liveScrollMetrics->get($pageKey);
             /** @var array{avg:float,median:float}|null $liveRead */
@@ -488,6 +513,116 @@ class SiteAnalyticsService
 
             return $row;
         });
+    }
+
+    /**
+     * @param  Collection<int,array<string,mixed>>  $trending
+     * @return Collection<string,Content>
+     */
+    private function contentByTrendingIdentity(AnalyticsSite $analyticsSite, Collection $trending): Collection
+    {
+        $contentIds = $trending
+            ->flatMap(fn (array $row): array => [
+                trim((string) ($row['content_id'] ?? '')),
+                trim((string) ($row['article_id'] ?? '')),
+            ])
+            ->filter()
+            ->unique()
+            ->values();
+
+        $slugs = $trending
+            ->map(fn (array $row): ?string => $this->slugFromPageKeyOrPath(
+                (string) ($row['page_key'] ?? ''),
+                (string) ($row['path'] ?? '')
+            ))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($contentIds->isEmpty() && $slugs->isEmpty()) {
+            return collect();
+        }
+
+        return Content::query()
+            ->where('client_site_id', $analyticsSite->client_site_id)
+            ->where(function ($query) use ($contentIds, $slugs): void {
+                if ($contentIds->isNotEmpty()) {
+                    $query->whereIn('id', $contentIds->all());
+                }
+
+                if ($slugs->isNotEmpty()) {
+                    $method = $contentIds->isNotEmpty() ? 'orWhereIn' : 'whereIn';
+                    $query->{$method}('publish_url_key', $slugs->all())
+                        ->orWhereIn('canonical_url_key', $slugs->all());
+                }
+            })
+            ->get()
+            ->flatMap(function (Content $content): array {
+                $keys = [
+                    (string) $content->id,
+                    trim((string) $content->publish_url_key),
+                    trim((string) $content->canonical_url_key),
+                ];
+
+                return collect($keys)
+                    ->filter()
+                    ->unique()
+                    ->mapWithKeys(fn (string $key): array => [$key => $content])
+                    ->all();
+            });
+    }
+
+    /**
+     * @param  array<string,mixed>  $row
+     * @param  Collection<string,Content>  $contentById
+     */
+    private function contentForTrendingRow(array $row, Collection $contentById): ?Content
+    {
+        $keys = [
+            trim((string) ($row['content_id'] ?? '')),
+            trim((string) ($row['article_id'] ?? '')),
+            $this->slugFromPageKeyOrPath((string) ($row['page_key'] ?? ''), (string) ($row['path'] ?? '')),
+        ];
+
+        foreach ($keys as $key) {
+            if (is_string($key) && $key !== '') {
+                $content = $contentById->get($key);
+                if ($content instanceof Content) {
+                    return $content;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function slugFromPageKeyOrPath(string $pageKey, string $path): ?string
+    {
+        foreach ([$pageKey, $path] as $candidate) {
+            $segments = array_values(array_filter(
+                explode('/', trim((string) parse_url($candidate, PHP_URL_PATH) ?: $candidate, '/')),
+                fn (string $segment): bool => $segment !== ''
+            ));
+
+            if ($segments === []) {
+                continue;
+            }
+
+            $blogSegments = array_values(array_unique(array_filter(array_map(
+                fn (mixed $segment): string => trim((string) $segment, '/'),
+                (array) config('marketing_routing.segments.blog', ['en' => 'blog'])
+            ))));
+
+            if (count($segments) >= 2 && in_array($segments[0], $blogSegments, true)) {
+                return $segments[1];
+            }
+
+            if (count($segments) >= 3 && in_array($segments[1], $blogSegments, true)) {
+                return $segments[2];
+            }
+        }
+
+        return null;
     }
 
     /**

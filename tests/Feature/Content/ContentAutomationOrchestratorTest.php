@@ -263,6 +263,62 @@ it('repair command recalculates stale counters and status from database truth', 
         ->and($run->error_message)->toBe('Provider failed.');
 });
 
+it('repair command clears stale run and automation failures when all items are healthy', function () {
+    [, $automation] = makeContentAutomationOrchestratorContext();
+    $run = ContentAutomationRun::query()->create([
+        'automation_id' => (string) $automation->id,
+        'organization_id' => (int) $automation->organization_id,
+        'workspace_id' => (string) $automation->workspace_id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'status' => 'completed',
+        'triggered_by' => 'manual',
+        'started_at' => now()->subMinute(),
+        'finished_at' => now(),
+        'error_message' => "A translation to 'Dutch' is already processing.",
+        'generated_content_ids' => [],
+        'generated_draft_ids' => [],
+        'published_content_ids' => [],
+        'metadata' => [
+            'last_error_code' => 'translation_queue_failed',
+            'last_error_message' => "A translation to 'Dutch' is already processing.",
+        ],
+    ]);
+    $content = createAutomationRunContent($automation, (string) $run->id, 'Healthy article');
+
+    ContentAutomationRunItem::query()->create([
+        'automation_run_id' => (string) $run->id,
+        'automation_id' => (string) $automation->id,
+        'chain_index' => 1,
+        'item_type' => ContentAutomationRunItem::TYPE_SOURCE,
+        'status' => ContentAutomationRunItem::STATUS_COMPLETED,
+        'content_id' => (string) $content->id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'locale' => 'en',
+        'generation_status' => 'completed',
+        'translation_status' => ContentAutomationRunItem::TRANSLATION_STATUS_NOT_REQUIRED,
+    ]);
+
+    $automation->forceFill([
+        'last_failure_message' => "A translation to 'Dutch' is already processing.",
+        'last_failure_code' => 'translation_queue_failed',
+        'last_failure_run_id' => (string) $run->id,
+        'last_failure_at' => now(),
+    ])->save();
+
+    $this->artisan('automations:repair-run-state', ['--run-id' => (string) $run->id])
+        ->assertSuccessful();
+
+    $run->refresh();
+    $automation->refresh();
+
+    expect($run->status->value)->toBe('completed')
+        ->and($run->generated_content_ids)->toBe([(string) $content->id])
+        ->and($run->error_message)->toBeNull()
+        ->and($automation->last_failure_message)->toBeNull()
+        ->and($automation->last_failure_code)->toBeNull()
+        ->and($automation->last_failure_run_id)->toBeNull();
+});
+
 it('skips execution when max runs has already been reached', function () {
     [$user, $automation] = makeContentAutomationOrchestratorContext([
         'max_runs' => 1,

@@ -707,6 +707,15 @@ it('returns 404 for a locale route when that locale variant does not exist', fun
         ->assertNotFound();
 });
 
+it('redirects the mistaken english campaign blog URL to the dutch article while keeping attribution', function () {
+    $slug = 'visibility-answer-engine-optimization-aeo-b2b-marketing-verbeteren-met-ai-gedreven-strategieen';
+    $query = 'utm_source=linkedin&utm_medium=social&utm_campaign=ai_visibility_2026&utm_content=personal_linkedin&utm_term=ai_visibility';
+
+    $this->get('/en/blog/' . $slug . '?' . $query)
+        ->assertMovedPermanently()
+        ->assertRedirect('/nl/blog/' . $slug . '?' . $query);
+});
+
 it('only outputs hreflang and language switch links for published variants', function () {
     $source = makePublishedBlog($this->workspace, [
         'title' => 'Bronpost',

@@ -167,8 +167,7 @@ class LocalePublishingSyncService
 
         if ($siteType === ClientSite::TYPE_WORDPRESS) {
             $translation->forceFill([
-                'scheduled_publish_at' => now(),
-                'publish_status' => 'scheduled',
+                'scheduled_publish_at' => null,
                 'publish_error' => null,
             ])->saveQuietly();
 

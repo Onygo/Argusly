@@ -6,6 +6,7 @@ use App\Jobs\GenerateSeriesRunArticleJob;
 use App\Models\ClientSite;
 use App\Models\Content;
 use App\Models\ContentAutomation;
+use App\Models\ContentAutomationRun;
 use App\Models\ContentPublication;
 use App\Models\Organization;
 use App\Models\Workspace;
@@ -59,6 +60,77 @@ it('creates one generated content row for the same stable automation item', func
     Log::shouldHaveReceived('notice')
         ->with('content.dedupe_duplicate_prevented', Mockery::type('array'))
         ->once();
+});
+
+it('keeps separate automation chain slots distinct even with the same title and keyword', function () {
+    [$workspace, $site] = makeContentDedupeContext();
+    $service = app(ContentDeduplicationService::class);
+    $automation = ContentAutomation::query()->create([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'name' => 'Distinct chain slot automation',
+        'is_active' => true,
+        'mode' => 'chain',
+        'publication_mode' => 'draft_only',
+        'generation_frequency_value' => 1,
+        'generation_frequency_unit' => 'days',
+        'next_run_at' => now()->addDay(),
+        'chain_size' => 2,
+        'locale' => 'en',
+        'locales' => ['en'],
+        'topic_scope' => 'Distinct chain slot topic',
+    ]);
+    $run = ContentAutomationRun::query()->create([
+        'automation_id' => (string) $automation->id,
+        'organization_id' => (int) $workspace->organization_id,
+        'workspace_id' => (string) $workspace->id,
+        'client_site_id' => (string) $site->id,
+        'status' => 'running',
+        'triggered_by' => 'manual',
+        'started_at' => now(),
+        'metadata' => [],
+    ]);
+
+    $basePayload = [
+        'workspace_id' => (string) $workspace->id,
+        'client_site_id' => (string) $site->id,
+        'title' => 'Same chain topic',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'brief',
+        'source' => 'automation',
+        'automation_id' => (string) $automation->id,
+        'automation_run_id' => (string) $run->id,
+        'primary_keyword' => 'same chain keyword',
+    ];
+    $baseScope = [
+        'workspace_id' => (string) $workspace->id,
+        'client_site_id' => (string) $site->id,
+        'automation_id' => (string) $automation->id,
+        'automation_run_id' => (string) $run->id,
+        'language' => 'en',
+        'type' => 'article',
+        'primary_keyword' => 'same chain keyword',
+        'title' => 'Same chain topic',
+    ];
+
+    $first = $service->createOrReuse(array_merge($basePayload, [
+        'id' => (string) Str::uuid(),
+        'external_key' => 'automation-1-item-1',
+    ]), array_merge($baseScope, [
+        'external_key' => 'automation-1-item-1',
+    ]));
+    $second = $service->createOrReuse(array_merge($basePayload, [
+        'id' => (string) Str::uuid(),
+        'external_key' => 'automation-1-item-2',
+    ]), array_merge($baseScope, [
+        'external_key' => 'automation-1-item-2',
+    ]));
+
+    expect((string) $second->id)->not->toBe((string) $first->id)
+        ->and(Content::query()->where('automation_run_id', (string) $run->id)->count())->toBe(2)
+        ->and($second->getAttribute('dedupe_was_reused'))->not->toBeTrue();
 });
 
 it('reuses automation content across reruns when title locale and keyword match', function () {

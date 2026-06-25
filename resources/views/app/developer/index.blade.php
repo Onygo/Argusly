@@ -5,13 +5,19 @@
         use App\View\Presenters\PublicationDestinationPresenter;
 
         $tab = in_array($activeTab, ['overview', 'destinations', 'keys', 'webhooks', 'usage', 'docs'], true) ? $activeTab : 'overview';
-        $section = in_array($tab, ['webhooks', 'docs'], true) ? $tab : 'api';
+        $section = in_array($tab, ['destinations', 'webhooks', 'docs'], true) ? $tab : 'api';
         $sectionNavItems = [
             [
                 'id' => 'api',
                 'label' => 'API',
                 'url' => route('app.developer.api'),
                 'active' => $section === 'api',
+            ],
+            [
+                'id' => 'destinations',
+                'label' => 'Destinations',
+                'url' => route('app.developer.index', ['tab' => 'destinations']),
+                'active' => $section === 'destinations',
             ],
             [
                 'id' => 'webhooks',
@@ -153,6 +159,100 @@
                         <button class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Create destination</button>
                     </div>
                 </form>
+            </x-settings.section-card>
+
+            <x-settings.section-card title="Email marketing connections" description="Connect DMT now; Mailchimp and Mailjet can use the same export layer later.">
+                <form method="POST" action="{{ route('app.developer.email-marketing-connections.store') }}" class="grid gap-3 md:grid-cols-2">
+                    @csrf
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Name</label>
+                        <input name="name" value="{{ old('name', 'DMT') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Provider</label>
+                        <select name="provider" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            @foreach ($emailMarketingProviders as $provider)
+                                <option value="{{ $provider->value }}" @selected(old('provider', 'dmt') === $provider->value)>{{ $provider->label() }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Base URL</label>
+                        <input name="config[base_url]" value="{{ old('config.base_url', 'https://digitalmarketingtools.nl') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" placeholder="https://digitalmarketingtools.nl">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Draft endpoint</label>
+                        <input name="config[draft_endpoint]" value="{{ old('config.draft_endpoint', '/api/argusly/campaign-snippets') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Default template ID</label>
+                        <input name="config[default_template_id]" value="{{ old('config.default_template_id') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Default audience/list ID</label>
+                        <input name="config[default_audience_id]" value="{{ old('config.default_audience_id') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">Timeout seconds</label>
+                        <input type="number" min="1" max="60" name="config[timeout_seconds]" value="{{ old('config.timeout_seconds', 20) }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs text-textSecondary">DMT API key</label>
+                        <input name="credentials[api_key]" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <button class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Create email connection</button>
+                    </div>
+                </form>
+
+                <div class="mt-5 space-y-3">
+                    @forelse($emailMarketingConnections as $connection)
+                        @php($sanitized = $connection->sanitizedConfig())
+                        <form method="POST" action="{{ route('app.developer.email-marketing-connections.update', $connection) }}" class="grid gap-2 rounded-lg border border-border bg-background p-3 md:grid-cols-4">
+                            @csrf
+                            <input name="name" value="{{ $connection->name }}" class="rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            <select name="provider" class="rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                                @foreach ($emailMarketingProviders as $provider)
+                                    <option value="{{ $provider->value }}" @selected(($connection->provider?->value ?? $connection->provider) === $provider->value)>{{ $provider->label() }}</option>
+                                @endforeach
+                            </select>
+                            <select name="status" class="rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                                <option value="active" @selected(($connection->status?->value ?? $connection->status) === 'active')>active</option>
+                                <option value="disabled" @selected(($connection->status?->value ?? $connection->status) === 'disabled')>disabled</option>
+                            </select>
+                            <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Save</button>
+                            <div class="md:col-span-2">
+                                <label class="mb-1 block text-xs text-textSecondary">Base URL</label>
+                                <input name="config[base_url]" value="{{ data_get($sanitized, 'config.base_url') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs text-textSecondary">Draft endpoint</label>
+                                <input name="config[draft_endpoint]" value="{{ data_get($sanitized, 'config.draft_endpoint', '/api/argusly/campaign-snippets') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs text-textSecondary">API key</label>
+                                <input name="credentials[api_key]" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm" placeholder="{{ data_get($sanitized, 'credentials.has_api_key') ? 'Stored securely. Leave blank to keep.' : 'Set API key' }}">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs text-textSecondary">Template ID</label>
+                                <input name="config[default_template_id]" value="{{ data_get($sanitized, 'config.default_template_id') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs text-textSecondary">Audience/list ID</label>
+                                <input name="config[default_audience_id]" value="{{ data_get($sanitized, 'config.default_audience_id') }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="mb-1 block text-xs text-textSecondary">Timeout seconds</label>
+                                <input type="number" min="1" max="60" name="config[timeout_seconds]" value="{{ data_get($sanitized, 'config.timeout_seconds', 20) }}" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                            </div>
+                            <div class="rounded-md border border-border bg-surfaceSubtle px-3 py-2 text-xs text-textSecondary">
+                                Last used: {{ optional($connection->last_used_at)->diffForHumans() ?? 'never' }}
+                            </div>
+                        </form>
+                    @empty
+                        <x-settings.empty-state title="No email connections yet" description="Create a DMT connection to export newsletter snippets as campaign drafts." />
+                    @endforelse
+                </div>
             </x-settings.section-card>
 
             <x-settings.section-card title="Existing destinations" description="Update status and naming.">

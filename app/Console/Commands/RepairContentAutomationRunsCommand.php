@@ -192,6 +192,12 @@ class RepairContentAutomationRunsCommand extends Command
         $contentIds = Content::query()
             ->where('automation_run_id', (string) $run->id)
             ->pluck('id')
+            ->merge(
+                $run->items
+                    ->pluck('content_id')
+                    ->filter()
+                    ->map(fn ($id): string => (string) $id)
+            )
             ->map(fn ($id): string => (string) $id)
             ->unique()
             ->values()

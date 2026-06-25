@@ -27,7 +27,7 @@ it('renders onboarding email in html and text with system footer', function () {
 
     $mail->assertHasSubject('Confirm your email address');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
-    $mail->assertSeeInHtml('argusly-logo-standalone.png');
+    $mail->assertSeeInHtml('argusly-logo.png');
     $mail->assertSeeInText('This is a system email from Argusly.');
 });
 
@@ -50,7 +50,7 @@ it('renders contact submission email in html and text with system footer', funct
 
     $mail->assertHasSubject('Argusly contact: Enterprise pricing');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
-    $mail->assertSeeInHtml('argusly-logo-standalone.png');
+    $mail->assertSeeInHtml('argusly-logo.png');
     $mail->assertSeeInText('This is a system email from Argusly.');
 });
 
@@ -79,7 +79,7 @@ it('renders early access invitation email in html and text with system footer', 
 
     $mail->assertHasSubject('Your Argusly Pilot Program invite');
     $mail->assertSeeInHtml('This is a system email from Argusly.');
-    $mail->assertSeeInHtml('argusly-logo-standalone.png');
+    $mail->assertSeeInHtml('argusly-logo.png');
     $mail->assertSeeInText('This is a system email from Argusly.');
 });
 
@@ -99,7 +99,7 @@ it('renders organization approval notification with html and text views', functi
     $text = view((string) $message->view['text'], $message->data())->render();
 
     expect($html)->toContain('This is a system email from Argusly.')
-        ->and($html)->toContain('argusly-logo-standalone.png')
+        ->and($html)->toContain('argusly-logo.png')
         ->and($text)->toContain('This is a system email from Argusly.')
         ->and($text)->toContain('Argusly is a product by Onygo.');
 });
@@ -120,7 +120,7 @@ it('renders user approval notification with html and text views', function () {
     $text = view((string) $message->view['text'], $message->data())->render();
 
     expect($html)->toContain('This is a system email from Argusly.')
-        ->and($html)->toContain('argusly-logo-standalone.png')
+        ->and($html)->toContain('argusly-logo.png')
         ->and($text)->toContain('This is a system email from Argusly.')
         ->and($text)->toContain('Argusly is a product by Onygo.');
 });
@@ -154,11 +154,31 @@ it('renders low credit warning notification with Argusly mail layout', function 
     $html = view((string) $message->view['html'], $message->data())->render();
     $text = view((string) $message->view['text'], $message->data())->render();
 
-    expect($html)->toContain('argusly-logo-standalone.png')
+    expect($html)->toContain('argusly-logo.png')
         ->and($html)->toContain('Available credits')
         ->and($html)->toContain('8')
         ->and($text)->toContain('This is a system email from Argusly.')
         ->and($text)->toContain('Available credits: 8');
+});
+
+it('renders the email logo from the public mail asset host instead of the local app url', function () {
+    config()->set('app.url', 'https://app.argusly.local');
+    config()->set('argusly.mail.asset_url', 'https://app.argusly.com');
+
+    $html = view('emails.notifications.low-credit-warning', [
+        'subjectLine' => 'Credits are running low',
+        'headline' => 'Heads up,',
+        'intro' => 'Credits are running low',
+        'body' => 'Your available credits are running low.',
+        'availableCredits' => 8,
+        'automationHint' => null,
+        'cta_url' => 'https://app.argusly.com/billing',
+        'cta_label' => 'View credits',
+    ])->render();
+
+    expect($html)->toContain('src="https://app.argusly.com/images/argusly-logo.png"')
+        ->and($html)->not->toContain('https://app.argusly.local/images/argusly-logo.png')
+        ->and($html)->toContain('width="124" height="35"');
 });
 
 /**

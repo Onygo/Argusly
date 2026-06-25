@@ -5,6 +5,7 @@ use App\Enums\CampaignContentAssetType;
 use App\Enums\DistributionPlanStatus;
 use App\Models\CampaignContent;
 use App\Models\CampaignDistributionPlan;
+use App\Models\Content;
 use App\View\Presenters\CampaignContentAssetPresenter;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
@@ -58,3 +59,55 @@ it('separates non publishable newsletter placement from publication state', func
     ]);
 });
 
+it('does not treat campaign planning dates as scheduled publication dates', function (): void {
+    $asset = new CampaignContent([
+        'asset_type' => CampaignContentAssetType::ARTICLE,
+        'status' => 'draft_queued',
+        'approval_status' => CampaignApprovalStatus::APPROVED,
+        'scheduled_for' => now()->subHour(),
+        'content_id' => 'content-1',
+        'metadata' => ['generated_draft_id' => 'draft-1'],
+    ]);
+
+    $asset->setRelation('content', new Content([
+        'id' => 'content-1',
+        'status' => 'brief',
+        'publish_status' => 'draft',
+        'scheduled_publish_at' => null,
+    ]));
+    $asset->setRelation('distributionPlans', new EloquentCollection());
+
+    $presented = CampaignContentAssetPresenter::for($asset)->toArray();
+
+    expect($presented)->toMatchArray([
+        'publication_state' => 'ready_to_publish',
+        'publication_state_label' => 'Ready to Publish',
+        'required_action' => 'Schedule publication',
+    ]);
+});
+
+it('shows scheduled publication only when content has a publish schedule', function (): void {
+    $asset = new CampaignContent([
+        'asset_type' => CampaignContentAssetType::ARTICLE,
+        'status' => 'draft_queued',
+        'approval_status' => CampaignApprovalStatus::APPROVED,
+        'scheduled_for' => now()->subHour(),
+        'content_id' => 'content-1',
+        'metadata' => ['generated_draft_id' => 'draft-1'],
+    ]);
+
+    $asset->setRelation('content', new Content([
+        'id' => 'content-1',
+        'status' => 'approved',
+        'publish_status' => 'scheduled',
+        'scheduled_publish_at' => now()->addHour(),
+    ]));
+    $asset->setRelation('distributionPlans', new EloquentCollection());
+
+    $presented = CampaignContentAssetPresenter::for($asset)->toArray();
+
+    expect($presented)->toMatchArray([
+        'publication_state' => 'scheduled',
+        'publication_state_label' => 'Scheduled',
+    ]);
+});

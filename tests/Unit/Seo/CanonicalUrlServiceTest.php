@@ -19,6 +19,48 @@ it('localizes legacy public blog live urls for non-default content locales', fun
     expect($url)->toBe('https://argusly.com/nl/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid?utm_source=test');
 });
 
+it('localizes legacy public blog live urls for english content', function (): void {
+    $content = (new Content())->forceFill([
+        'type' => 'article',
+        'language' => SupportedLanguage::EN->value,
+        'publish_url_key' => 'privacy-regulations-and-crawling-mistakes-teams-should-avoid',
+    ]);
+
+    $url = app(CanonicalUrlService::class)->liveUrlForContent(
+        $content,
+        'https://argusly.com/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid'
+    );
+
+    expect($url)->toBe('https://argusly.com/en/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid');
+});
+
+it('localizes legacy public blog live urls for raw legacy blog content types', function (): void {
+    $content = new Content();
+    $content->setRawAttributes([
+        'type' => 'blog',
+        'language' => SupportedLanguage::EN->value,
+        'publish_url_key' => 'privacy-regulations-and-crawling-mistakes-teams-should-avoid',
+        'published_url' => 'https://argusly.com/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid',
+    ], true);
+
+    $url = app(CanonicalUrlService::class)->liveUrlForContent($content);
+
+    expect($url)->toBe('https://argusly.com/en/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid');
+});
+
+it('localizes known public blog urls even when the content type is not article-like', function (): void {
+    $content = new Content();
+    $content->setRawAttributes([
+        'type' => 'seo_page',
+        'language' => SupportedLanguage::EN->value,
+        'published_url' => 'https://argusly.com/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid',
+    ], true);
+
+    $url = app(CanonicalUrlService::class)->liveUrlForContent($content);
+
+    expect($url)->toBe('https://argusly.com/en/blog/privacy-regulations-and-crawling-mistakes-teams-should-avoid');
+});
+
 it('infers the slug from legacy public blog live urls when publish metadata is missing', function (): void {
     $content = (new Content())->forceFill([
         'type' => 'article',

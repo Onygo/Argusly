@@ -126,7 +126,7 @@ class ContentTranslationCoordinator
     }
 
     /**
-     * @return array{mode:string,source_content:Content,source_draft:\App\Models\Draft,existing_variant:?Content,target_language:SupportedLanguage}
+     * @return array{mode:string,source_content:Content,source_draft:\App\Models\Draft,existing_variant:?Content,target_language:SupportedLanguage,translation_request?:ContentTranslation}
      */
     public function queue(Content $content, string $targetLocale, ?string $userId = null, bool $skipLocaleValidation = false): array
     {
@@ -159,6 +159,9 @@ class ContentTranslationCoordinator
             $sourceDraft = $sourceSelection['draft'];
             $sourceType = $sourceSelection['source_type'];
             $normalizedSourceLocale = $this->translations->resolveSourceLanguage($sourceDraft)->value;
+            $existingVariant = $existingVariant instanceof Content
+                ? $existingVariant
+                : $this->translations->resolveExistingTargetVariantForRefresh($sourceDraft, $targetLanguage);
         } catch (RuntimeException $exception) {
             Log::warning('content.translation.queue_rejected', [
                 'content_id' => (string) $content->id,
@@ -198,10 +201,35 @@ class ContentTranslationCoordinator
 
         try {
             $this->translations->validateSourceDraft($sourceDraft);
+            $activeTranslationRequest = $this->activeTranslationRequest($source, $targetLanguage);
+
+            if ($activeTranslationRequest instanceof ContentTranslation) {
+                Log::info('content.translation.queue_reused_active_request', [
+                    'content_id' => (string) $content->id,
+                    'source_content_id' => (string) $source->id,
+                    'source_draft_id' => (string) $sourceDraft->id,
+                    'translation_request_id' => (string) $activeTranslationRequest->id,
+                    'target_locale' => $targetLanguage->value,
+                    'status' => (string) $activeTranslationRequest->status,
+                    'processing_job_uuid' => $activeTranslationRequest->processing_job_uuid,
+                    'validation_stage' => 'before_target_availability',
+                ]);
+
+                return [
+                    'mode' => $existingVariant instanceof Content ? 'refresh' : 'translate',
+                    'source_content' => $source,
+                    'source_draft' => $sourceDraft,
+                    'existing_variant' => $existingVariant,
+                    'target_language' => $targetLanguage,
+                    'translation_request' => $activeTranslationRequest,
+                ];
+            }
+
             $this->translations->validateTargetLanguageAvailabilityForDispatch(
                 $sourceDraft,
                 $targetLanguage,
-                $existingVariant instanceof Content
+                $existingVariant instanceof Content,
+                currentTargetContentId: $existingVariant instanceof Content ? (string) $existingVariant->id : null,
             );
         } catch (RuntimeException $exception) {
             Log::warning('content.translation.queue_rejected', [
@@ -312,11 +340,11 @@ class ContentTranslationCoordinator
                 $cleanup = $this->translationLocks->cleanupStaleLocks(collect([$translationRequest]), force: true)->first();
                 $translationRequest = $translationRequest->fresh() ?? $translationRequest;
 
-                if ($translationRequest->status !== ContentTranslation::STATUS_FAILED
-                    && (bool) ($cleanup['running'] ?? $this->translationLocks->translationIsActuallyRunning($translationRequest))) {
-                    throw new RuntimeException(
-                        "A translation to '{$targetLanguage->englishLabel()}' is already {$translationRequest->status}."
-                    );
+                if (in_array((string) $translationRequest->status, [
+                    ContentTranslation::STATUS_QUEUED,
+                    ContentTranslation::STATUS_PROCESSING,
+                ], true)) {
+                    return $translationRequest;
                 }
             } else {
                 $translationRequest = new ContentTranslation([
@@ -348,6 +376,28 @@ class ContentTranslationCoordinator
 
             return $translationRequest;
         });
+
+        if ($translationRequest->status !== ContentTranslation::STATUS_QUEUED
+            || (string) $translationRequest->processing_job_uuid !== $dispatchJobUuid) {
+            Log::info('content.translation.queue_reused_active_request', [
+                'content_id' => (string) $content->id,
+                'source_content_id' => (string) $source->id,
+                'source_draft_id' => (string) $sourceDraft->id,
+                'translation_request_id' => (string) $translationRequest->id,
+                'target_locale' => $targetLanguage->value,
+                'status' => (string) $translationRequest->status,
+                'processing_job_uuid' => $translationRequest->processing_job_uuid,
+            ]);
+
+            return [
+                'mode' => $existingVariant instanceof Content ? 'refresh' : 'translate',
+                'source_content' => $source,
+                'source_draft' => $sourceDraft,
+                'existing_variant' => $existingVariant,
+                'target_language' => $targetLanguage,
+                'translation_request' => $translationRequest,
+            ];
+        }
 
         $this->translationDebug->logStateSnapshot(
             'Translation state queued before dispatch.',
@@ -447,5 +497,25 @@ class ContentTranslationCoordinator
             'target_language' => $targetLanguage,
             'translation_request' => $translationRequest,
         ];
+    }
+
+    private function activeTranslationRequest(Content $source, SupportedLanguage $targetLanguage): ?ContentTranslation
+    {
+        $translationRequest = ContentTranslation::query()
+            ->where('content_id', (string) $source->id)
+            ->where('target_locale', $targetLanguage->value)
+            ->first();
+
+        if (! $translationRequest instanceof ContentTranslation) {
+            return null;
+        }
+
+        $this->translationLocks->cleanupStaleLocks(collect([$translationRequest]), force: true);
+        $translationRequest = $translationRequest->fresh() ?? $translationRequest;
+
+        return in_array((string) $translationRequest->status, [
+            ContentTranslation::STATUS_QUEUED,
+            ContentTranslation::STATUS_PROCESSING,
+        ], true) ? $translationRequest : null;
     }
 }

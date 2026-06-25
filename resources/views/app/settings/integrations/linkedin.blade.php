@@ -19,7 +19,7 @@
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-3">
                     <span class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background">
-                        <i data-lucide="linkedin" class="h-4 w-4 text-textSecondary"></i>
+                        <x-app.icon name="linkedin" class="h-4 w-4 text-textSecondary" />
                     </span>
                     <div>
                         <h2 class="text-base font-semibold text-textPrimary">Connection</h2>

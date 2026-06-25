@@ -242,7 +242,9 @@ it('records structured proposal details before execution', function () {
     $action = AgenticMarketingAction::query()->where('action_type', 'add_answer_block')->firstOrFail();
     $details = data_get($action->payload, 'proposal_details');
 
-    expect(data_get($details, 'schema'))->toBe('agentic_marketing.action_proposal_details.v1')
+    expect($action->estimated_credits)->toBe(2)
+        ->and(data_get($action->payload, 'planning.estimated_credits'))->toBe(2)
+        ->and(data_get($details, 'schema'))->toBe('agentic_marketing.action_proposal_details.v1')
         ->and(data_get($details, 'estimated_impact'))->toBe('High')
         ->and(collect(data_get($details, 'items'))->pluck('type')->all())->toContain(
             'generated_answer_block',
@@ -257,6 +259,7 @@ it('records structured proposal details before execution', function () {
         ->and(data_get($details, 'items.1.schema.@type'))->toBe('FAQPage')
         ->and(data_get($details, 'items.3.links.0.target'))->toBe('AI visibility checklist')
         ->and(data_get($details, 'items.4.entities'))->toContain('Generative Engine Optimization', 'GEO', 'HubSpot')
+        ->and(data_get($details, 'items.5.signals'))->toContain('estimated_credits: 2')
         ->and(data_get($details, 'items.5.reason'))->toContain('answer-ready content');
 });
 

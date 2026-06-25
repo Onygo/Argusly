@@ -262,6 +262,52 @@ it('scores higher impact stored-signal opportunities ahead of lower impact work'
         ->and(data_get($seoIssue->payload, 'score_explanation.reasons'))->toContain('SEO/indexability checks found stored issue signals.');
 });
 
+it('keeps detecting opportunities when one stored-signal detector fails', function () {
+    [$org, $workspace] = makeOpportunityDetectionTenant('am-partial-detector-failure');
+    $objective = makeOpportunityDetectionObjective($org, $workspace);
+
+    $workingDetector = new class implements \App\Services\AgenticMarketing\OpportunityDetection\AgenticMarketingOpportunityDetector
+    {
+        public function detect(AgenticMarketingObjective $objective): array
+        {
+            return [
+                new DetectedOpportunity(
+                    title: 'Recover answer coverage from healthy detector',
+                    type: AgenticMarketingOpportunityType::AnswerCoverage,
+                    priorityScore: 70,
+                    payload: [
+                        'detector' => 'working_test_detector',
+                        'signals' => ['answer_block_score' => 20],
+                    ],
+                ),
+            ];
+        }
+    };
+
+    $failingDetector = new class implements \App\Services\AgenticMarketing\OpportunityDetection\AgenticMarketingOpportunityDetector
+    {
+        public function detect(AgenticMarketingObjective $objective): array
+        {
+            throw new RuntimeException('Stored signal source is temporarily unavailable.');
+        }
+    };
+
+    $service = new AgenticMarketingOpportunityDetectionService(
+        detectors: [$failingDetector, $workingDetector],
+        decisionEngine: app(AgenticMarketingDecisionEngine::class),
+    );
+
+    $result = $service->detect($objective->id);
+
+    expect($result['failed'])->toBe(0)
+        ->and(data_get($result, 'runs.0.status'))->toBe('completed_with_warnings')
+        ->and(data_get($result, 'runs.0.failed_detectors'))->toBe(1)
+        ->and(data_get($result, 'runs.0.created'))->toBe(1)
+        ->and(AgenticMarketingOpportunity::query()->where('objective_id', $objective->id)->count())->toBe(1)
+        ->and(AgenticMarketingRun::query()->where('objective_id', $objective->id)->where('status', 'completed')->exists())->toBeTrue()
+        ->and(\App\Models\AgenticMarketingRunItem::query()->where('objective_id', $objective->id)->where('status', 'failed')->exists())->toBeTrue();
+});
+
 it('runs detection from the artisan command and can dispatch the queue job', function () {
     [$org, $workspace] = makeOpportunityDetectionTenant('am-command');
     $objective = makeOpportunityDetectionObjective($org, $workspace);

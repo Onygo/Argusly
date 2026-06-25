@@ -183,7 +183,7 @@
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-start gap-3">
                         <span class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface">
-                            <i data-lucide="linkedin" class="h-4 w-4 text-textSecondary"></i>
+                            <x-app.icon name="linkedin" class="h-4 w-4 text-textSecondary" />
                         </span>
                         <div>
                             <h3 class="text-sm font-semibold text-textPrimary">LinkedIn</h3>
@@ -200,7 +200,7 @@
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-start gap-3">
                         <span class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface">
-                            <i data-lucide="instagram" class="h-4 w-4 text-textSecondary"></i>
+                            <x-app.icon name="instagram" class="h-4 w-4 text-textSecondary" />
                         </span>
                         <div>
                             <h3 class="text-sm font-semibold text-textPrimary">Instagram</h3>

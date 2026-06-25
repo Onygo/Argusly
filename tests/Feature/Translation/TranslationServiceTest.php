@@ -344,6 +344,26 @@ class TranslationServiceTest extends TestCase
         );
     }
 
+    public function test_validate_target_language_for_dispatch_allows_existing_linked_target_when_existing_is_allowed(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::EN->value,
+            'status' => 'ready',
+            'content_html' => '<p>Test content</p>',
+        ]);
+
+        $this->createUsableTranslatedDraft($sourceDraft, SupportedLanguage::NL);
+
+        $this->service->validateTargetLanguageAvailabilityForDispatch(
+            $sourceDraft,
+            SupportedLanguage::NL,
+            true
+        );
+
+        $this->assertTrue(true);
+    }
+
     public function test_validate_target_language_for_job_allows_existing_target_content_for_exact_owned_target(): void
     {
         $sourceDraft = $this->createDraft([

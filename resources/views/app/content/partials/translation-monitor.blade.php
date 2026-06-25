@@ -35,12 +35,15 @@
         $queueState = (string) ($translation['queue_state'] ?? '');
         $status = (string) ($translation['status'] ?? '');
         $heartbeatAge = isset($translation['heartbeat_age_seconds']) ? (int) $translation['heartbeat_age_seconds'] : null;
-        $isStale = in_array($queueState, ['stale', 'stale_recovered'], true)
+        $isCompleted = $status === 'completed' || $queueState === 'completed';
+        $isStale = ! $isCompleted && (
+            in_array($queueState, ['stale', 'stale_recovered'], true)
             || (filled($translation['stale_reason'] ?? null))
-            || ($heartbeatAge !== null && $heartbeatAge > $staleThresholdSeconds);
+            || ($heartbeatAge !== null && $heartbeatAge > $staleThresholdSeconds)
+        );
 
         $code = match (true) {
-            $status === 'completed' || $queueState === 'completed' => 'completed',
+            $isCompleted => 'completed',
             $status === 'failed' || $queueState === 'failed' || $isStale => 'failed',
             $status === 'processing' || in_array($queueState, ['processing', 'running'], true) => 'running',
             $status === 'queued' || $queueState === 'queued' => 'queued',

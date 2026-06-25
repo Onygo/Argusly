@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
-it('queues content translation once, shows queued state, and blocks duplicate submit', function () {
+it('queues content translation once, shows queued state, and reuses duplicate submit', function () {
     [$user, $content] = makeContentTranslationContext();
 
     Queue::fake();
@@ -46,10 +46,12 @@ it('queues content translation once, shows queued state, and blocks duplicate su
         ->and($target['state'] ?? null)->toBe(ContentTranslation::STATUS_QUEUED)
         ->and($target['state_label'] ?? null)->toBe('Queued');
 
-    $this->expectException(RuntimeException::class);
-    $this->expectExceptionMessage("A translation to 'Dutch'");
+    $duplicate = app(ContentTranslationCoordinator::class)->queue($content, 'nl', (string) $user->id);
 
-    app(ContentTranslationCoordinator::class)->queue($content, 'nl', (string) $user->id);
+    expect((string) $duplicate['translation_request']->id)->toBe((string) $result['translation_request']->id)
+        ->and($duplicate['translation_request']->status)->toBe(ContentTranslation::STATUS_QUEUED);
+
+    Queue::assertPushed(TranslateDraftJob::class, 1);
 });
 
 it('retries a failed translation using the same row and existing locale content', function () {
@@ -88,6 +90,23 @@ it('retries a failed translation using the same row and existing locale content'
     });
 
     $this->assertDatabaseCount('contents', 2);
+});
+
+it('queues a refresh when translated locale content already exists', function () {
+    [$user, $content, $translatedContent] = makeContentTranslationContext(withTranslation: true);
+
+    Queue::fake();
+
+    $result = app(ContentTranslationCoordinator::class)->queue($content, 'nl', (string) $user->id);
+
+    expect($result['mode'])->toBe('refresh')
+        ->and((string) $result['existing_variant']->id)->toBe((string) $translatedContent->id)
+        ->and($result['translation_request']->target_content_id)->toBe((string) $translatedContent->id);
+
+    Queue::assertPushed(TranslateDraftJob::class, function (TranslateDraftJob $job) use ($translatedContent): bool {
+        return $job->targetContentId === (string) $translatedContent->id
+            && $job->translationRequestId !== null;
+    });
 });
 
 it('marks the translation request as failed when the job throws on last retry', function () {

@@ -8,6 +8,7 @@ use App\Enums\ContentAutomationPublicationMode;
 use App\Enums\ContentOriginType;
 use App\Enums\ContentSource;
 use App\Enums\DraftType;
+use App\Enums\SupportedLanguage;
 use App\Jobs\GenerateDraftJob;
 use App\Models\Brief;
 use App\Models\ClientSite;
@@ -25,6 +26,7 @@ use App\Services\Content\LocalePublishingSyncService;
 use App\Services\Integrations\LaravelConnectorDestinationResolver;
 use App\Services\Integrations\LaravelConnectorPublishingService;
 use App\Services\Publication\ContentPublicationService;
+use App\Services\Translation\TranslationService;
 use App\Support\ContentPersistencePayloadNormalizer;
 use App\Support\KeywordSanitizer;
 use App\Support\TitleSanitizer;
@@ -45,6 +47,7 @@ class ContentAutomationArticleService
         private readonly LaravelConnectorDestinationResolver $laravelDestinationResolver,
         private readonly AutomationLocaleResolver $localeResolver,
         private readonly LocalePublishingSyncService $localePublishingSyncService,
+        private readonly TranslationService $translationService,
     ) {}
 
     /**
@@ -145,8 +148,37 @@ class ContentAutomationArticleService
                         'existing_variant_id' => $queued['existing_variant']?->id ? (string) $queued['existing_variant']->id : null,
                         'source_content_id' => (string) $content->id,
                         'family_id' => $content->localizationRootId(),
+                        'translation_request_id' => $queued['translation_request']?->id ? (string) $queued['translation_request']->id : null,
+                        'translation_request_status' => (string) ($queued['translation_request']?->status ?? ''),
                     ];
                 } catch (\Throwable $exception) {
+                    $existingVariant = $this->existingTranslationVariantForQueueFailure($draft, (string) $locale, $exception);
+
+                    if ($existingVariant instanceof Content) {
+                        Log::info('content_automation.translation_existing_variant_reused', [
+                            'automation_id' => (string) $automation->id,
+                            'run_id' => (string) $run->id,
+                            'content_id' => (string) $content->id,
+                            'target_locale' => (string) $locale,
+                            'existing_variant_id' => (string) $existingVariant->id,
+                            'message' => $exception->getMessage(),
+                        ]);
+
+                        $result['queued_translation_locales'][] = (string) $existingVariant->localeCode();
+                        $result['translation_queue_results'][] = [
+                            'locale' => (string) $existingVariant->localeCode(),
+                            'mode' => 'existing_reused',
+                            'existing_variant_id' => (string) $existingVariant->id,
+                            'source_content_id' => (string) $content->id,
+                            'family_id' => $content->localizationRootId(),
+                            'translation_request_id' => null,
+                            'translation_request_status' => 'existing_reused',
+                            'reused_after_queue_failure' => true,
+                        ];
+
+                        continue;
+                    }
+
                     Log::warning('content_automation.translation_queue_failed', [
                         'automation_id' => (string) $automation->id,
                         'run_id' => (string) $run->id,
@@ -340,6 +372,8 @@ class ContentAutomationArticleService
                 'workspace_id' => (string) $workspace->id,
                 'client_site_id' => (string) $site->id,
                 'automation_id' => (string) $automation->id,
+                'automation_run_id' => (string) $run->id,
+                'external_key' => $externalKey,
                 'language' => $language,
                 'type' => 'article',
                 'primary_keyword' => $primaryKeyword,
@@ -613,6 +647,53 @@ class ContentAutomationArticleService
         }
 
         return $content->fresh(['clientSite', 'contentDestination']) ?? $content;
+    }
+
+    private function existingTranslationVariantForQueueFailure(Draft $sourceDraft, string $locale, \Throwable $exception): ?Content
+    {
+        $message = strtolower($exception->getMessage());
+
+        if (! str_contains($message, 'already exists for this draft')
+            && ! str_contains($message, 'already processing')) {
+            return null;
+        }
+
+        $targetLanguage = SupportedLanguage::fromStringOrDefault($locale);
+
+        try {
+            $existingVariant = $this->translationService->resolveExistingTargetVariantForRefresh(
+                $sourceDraft,
+                $targetLanguage
+            );
+
+            if ($existingVariant instanceof Content) {
+                return $existingVariant;
+            }
+        } catch (\Throwable $resolverException) {
+            Log::warning('content_automation.translation_existing_variant_resolver_failed', [
+                'source_draft_id' => (string) $sourceDraft->id,
+                'target_locale' => $targetLanguage->value,
+                'queue_failure_message' => $exception->getMessage(),
+                'resolver_failure_message' => $resolverException->getMessage(),
+            ]);
+        }
+
+        $originalSourceDraft = $sourceDraft->getOriginalSourceDraft() ?? $sourceDraft;
+        $originalSourceDraft->loadMissing('content.translationSourceContent', 'content.familyRoot', 'content.localizedVariants');
+
+        $sourceContent = $originalSourceDraft->content;
+
+        if (! $sourceContent instanceof Content) {
+            return null;
+        }
+
+        $existingVariant = $sourceContent->localizedVariantFor($targetLanguage->value);
+
+        if ($existingVariant instanceof Content && (string) $existingVariant->id !== (string) $sourceContent->id) {
+            return $existingVariant;
+        }
+
+        return null;
     }
 
     /**

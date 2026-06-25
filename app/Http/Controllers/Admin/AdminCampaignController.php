@@ -36,7 +36,7 @@ class AdminCampaignController extends Controller
             'clientSite',
             'toneProfile',
             'ctaPreset',
-            'contents.content',
+            'contents.content.publications',
             'distributionPlans.distributionChannel',
             'socialPostVariants.socialAccount',
             'socialPublications.socialAccount',

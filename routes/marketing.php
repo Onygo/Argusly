@@ -270,6 +270,16 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
                         Route::get('/' . $marketingSegments->segment('tag', $locale) . '/{tag}', [PublicBlogController::class, 'tag'])->name('tag');
                         Route::get('/' . $marketingSegments->segment('category', $locale) . '/{category}', [PublicBlogController::class, 'category'])->name('category');
                         Route::get('/{slug}.md', [PublicAiDiscoveryController::class, 'blogMarkdown'])->name('markdown');
+
+                        if ($locale === 'en') {
+                            Route::get('/visibility-answer-engine-optimization-aeo-b2b-marketing-verbeteren-met-ai-gedreven-strategieen', function (\Illuminate\Http\Request $request) {
+                                $target = '/nl/blog/visibility-answer-engine-optimization-aeo-b2b-marketing-verbeteren-met-ai-gedreven-strategieen';
+                                $query = (string) $request->server->get('QUERY_STRING', '');
+
+                                return redirect()->to($query ? $target . '?' . $query : $target, 301);
+                            })->name('visibility-aeo-b2b-marketing-nl-redirect');
+                        }
+
                         Route::get('/{slug}', [PublicBlogController::class, 'show'])->name('show');
                     });
 

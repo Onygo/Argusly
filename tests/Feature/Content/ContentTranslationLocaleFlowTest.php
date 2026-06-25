@@ -607,6 +607,50 @@ it('shows failed and stale translation states with retry actions on the content 
         ->assertDontSee('A translation to Dutch is already processing');
 });
 
+it('does not show a stale lock warning for completed translations with an old heartbeat', function () {
+    [$workspace, $site, $user] = makeContentTranslationLocaleContext();
+    [$content] = makeMigratedDutchSourceContent($workspace, $site, $user);
+
+    $translated = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'client_site_id' => (string) $site->id,
+        'title' => 'English translation draft',
+        'language' => 'en',
+        'translation_source_content_id' => (string) $content->id,
+        'translation_source_locale' => 'nl',
+        'is_source_locale' => false,
+        'type' => 'article',
+        'status' => 'draft',
+        'source' => 'translation',
+        'external_key' => (string) Str::uuid(),
+        'delivery_status' => 'pending',
+    ]);
+
+    ContentTranslation::query()->create([
+        'content_id' => (string) $content->id,
+        'target_content_id' => (string) $translated->id,
+        'target_locale' => 'en',
+        'status' => ContentTranslation::STATUS_COMPLETED,
+        'requested_by_user_id' => $user->id,
+        'processing_job_uuid' => (string) Str::uuid(),
+        'processing_started_at' => now()->subHour(),
+        'processing_last_heartbeat_at' => now()->subHour(),
+        'updated_at' => now()->subHour(),
+        'created_at' => now()->subHour(),
+    ]);
+
+    config()->set('translation.processing_lock_ttl_seconds', 60);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', ['content' => $content]))
+        ->assertOk()
+        ->assertSee('English translation completed.')
+        ->assertDontSee('Stale lock warning')
+        ->assertDontSee('translation lock looks stale')
+        ->assertDontSee('Retry translation');
+});
+
 it('renders translation monitor technical details and recent events in a compact view', function () {
     [$workspace, $site, $user] = makeContentTranslationLocaleContext();
     [$content] = makeMigratedDutchSourceContent($workspace, $site, $user);

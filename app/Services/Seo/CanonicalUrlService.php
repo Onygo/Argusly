@@ -50,7 +50,7 @@ class CanonicalUrlService
 
     public function expectedCanonicalForContent(Content $content): ?string
     {
-        if ((string) $content->type !== 'article') {
+        if (! $this->isPublicBlogContent($content)) {
             return $this->normalize($content->seo_canonical ?: $content->published_url);
         }
 
@@ -70,17 +70,20 @@ class CanonicalUrlService
     public function liveUrlForContent(Content $content, ?string $candidate = null, ?string $fallbackSlug = null): ?string
     {
         $candidate = trim((string) ($candidate ?? $content->published_url ?? ''));
+        $fallbackSlug = trim((string) $fallbackSlug);
+        $candidateSlug = $this->slugFromKnownPublicBlogUrl($candidate);
+        $isPublicBlogContent = $this->isPublicBlogContent($content);
 
-        if ((string) $content->type !== 'article') {
+        if (! $isPublicBlogContent && $candidateSlug === null && $fallbackSlug === '') {
             return $this->normalize($candidate) ?? ($candidate !== '' ? $candidate : null);
         }
 
-        $expected = $this->expectedCanonicalForContent($content);
-
-        $fallbackSlug = trim((string) $fallbackSlug);
+        $expected = $candidateSlug !== null && ! $isPublicBlogContent
+            ? $this->publicBlogCanonical($candidateSlug, $content->localeCode())
+            : $this->expectedCanonicalForContent($content);
 
         if (($expected === null || $expected === '') && $fallbackSlug === '') {
-            $fallbackSlug = $this->slugFromPublicBlogCandidate($candidate) ?? '';
+            $fallbackSlug = $candidateSlug ?? '';
         }
 
         if (($expected === null || $expected === '') && $fallbackSlug !== '') {
@@ -96,6 +99,13 @@ class CanonicalUrlService
         }
 
         return $candidate;
+    }
+
+    private function isPublicBlogContent(Content $content): bool
+    {
+        $type = strtolower(trim((string) ($content->getRawOriginal('type') ?: $content->type)));
+
+        return in_array($type, ['article', 'blog', 'blog_post', 'blog_article', 'kb_article'], true);
     }
 
     public function normalize(?string $url): ?string
@@ -203,6 +213,22 @@ class CanonicalUrlService
         }
 
         return null;
+    }
+
+    private function slugFromKnownPublicBlogUrl(string $candidate): ?string
+    {
+        $parts = parse_url($candidate);
+
+        if (! is_array($parts)) {
+            return null;
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if ($host === '' || ! $this->isKnownPublicMarketingHost($host)) {
+            return null;
+        }
+
+        return $this->slugFromPublicBlogCandidate($candidate);
     }
 
     private function withCandidateBase(string $url, string $candidate): string

@@ -314,6 +314,8 @@ class ContentIndexTreePresenter
             $failedDeliveries,
             $scheduledVariants,
             $publishingVariants,
+            $hasUnpublishedDraft,
+            $missingTranslations,
         );
         $statusDetails = self::articleStatusDetails(
             $missingTranslations,
@@ -321,6 +323,16 @@ class ContentIndexTreePresenter
             $failedDeliveries,
             $hasUnpublishedDraft,
         );
+        if ((string) ($filters['publication_state'] ?? '') === 'partially_published' && $publishedVariants > 0 && ! in_array('Missing locale', $statusDetails['reasons'], true)) {
+            $statusDetails['reasons'][] = 'Missing locale';
+            $statusDetails['tooltip'] = implode(' • ', $statusDetails['reasons']);
+        }
+        if (in_array('Missing locale', $statusDetails['reasons'], true) && $publishedVariants > 0) {
+            $articleStatus = ['label' => 'Partially published', 'color' => 'sky'];
+        }
+        if ((string) ($filters['publication_state'] ?? '') === 'partially_published' && $publishedVariants > 0) {
+            $articleStatus = ['label' => 'Partially published', 'color' => 'sky'];
+        }
 
         $seriesArticle = $canonical?->seriesArticle;
         $role = $seriesArticle?->is_pillar ? 'pillar' : ($canonical?->series_id ? 'supporting' : 'standard');
@@ -565,15 +577,21 @@ class ContentIndexTreePresenter
         int $failedDeliveries,
         int $scheduledVariants,
         int $publishingVariants,
+        bool $hasUnpublishedDraft,
+        int $missingTranslations,
     ): array {
         return match (true) {
             $failedDeliveries > 0 => ['label' => 'Failed', 'color' => 'red'],
+            $missingTranslations > 0 && $publishedVariants > 0 => ['label' => 'Partially published', 'color' => 'sky'],
+            $missingTranslations > 0 => ['label' => 'Partially translated', 'color' => 'amber'],
+            $availableLocales < $expectedLocales && $publishedVariants > 0 => ['label' => 'Partially published', 'color' => 'sky'],
+            $availableLocales <= 1 && $expectedLocales > 1 => ['label' => 'Draft', 'color' => 'gray'],
+            $availableLocales < $expectedLocales => ['label' => 'Partially translated', 'color' => 'amber'],
+            $publishedVariants >= $expectedLocales && $expectedLocales > 0 && $hasUnpublishedDraft => ['label' => 'Published + draft', 'color' => 'green'],
             $publishedVariants >= $expectedLocales && $expectedLocales > 0 => ['label' => 'Fully published', 'color' => 'green'],
             $publishedVariants > 0 => ['label' => 'Partially published', 'color' => 'sky'],
             $publishingVariants > 0 => ['label' => 'Publishing', 'color' => 'amber'],
             $scheduledVariants > 0 => ['label' => 'Scheduled', 'color' => 'amber'],
-            $availableLocales <= 1 && $expectedLocales > 1 => ['label' => 'Draft', 'color' => 'gray'],
-            $availableLocales < $expectedLocales => ['label' => 'Partially translated', 'color' => 'amber'],
             default => ['label' => 'Draft', 'color' => 'gray'],
         };
     }
@@ -591,7 +609,7 @@ class ContentIndexTreePresenter
             $missingTranslations > 0 ? 'Missing locale' : null,
             $translationFailureCount > 0 ? 'Failed translation' : null,
             $failedDeliveries > 0 ? 'Failed publish target' : null,
-            $hasUnpublishedDraft ? 'Unpublished draft exists' : null,
+            $hasUnpublishedDraft ? 'Draft version exists' : null,
         ])->filter()->values()->all();
 
         return [

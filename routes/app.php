@@ -305,6 +305,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
             Route::get('/agentic-marketing/campaign-planner', [App\Http\Controllers\App\AppCampaignPlannerController::class, 'index'])->name('app.agentic-marketing.campaign-planner.index');
             Route::post('/agentic-marketing/campaign-planner', [App\Http\Controllers\App\AppCampaignPlannerController::class, 'store'])->name('app.agentic-marketing.campaign-planner.store');
             Route::post('/agentic-marketing/campaign-planner/{campaign}/generate', [App\Http\Controllers\App\AppCampaignPlannerController::class, 'generate'])->name('app.agentic-marketing.campaign-planner.generate');
+            Route::post('/agentic-marketing/campaign-planner/assets/{campaignContent}/email-export', [App\Http\Controllers\App\AppCampaignPlannerController::class, 'exportEmailAsset'])->name('app.agentic-marketing.campaign-planner.assets.email-export');
             Route::get('/agentic-marketing/learning', [App\Http\Controllers\App\AppLearningOptimizationController::class, 'index'])->name('app.agentic-marketing.learning.index');
             Route::post('/agentic-marketing/learning/run', [App\Http\Controllers\App\AppLearningOptimizationController::class, 'run'])->name('app.agentic-marketing.learning.run');
             Route::get('/agentic-marketing/workflows', [App\Http\Controllers\App\AppAutonomousMarketingWorkflowController::class, 'index'])->name('app.agentic-marketing.workflows.index');
@@ -731,6 +732,8 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/developer/destinations', [AppDeveloperController::class, 'storeDestination'])->name('app.developer.destinations.store');
         Route::post('/developer/destinations/{destination}', [AppDeveloperController::class, 'updateDestination'])->name('app.developer.destinations.update');
         Route::post('/developer/destinations/{destination}/test-connection', [AppDeveloperController::class, 'testDestinationConnection'])->middleware('protect.heavy:heavy')->name('app.developer.destinations.test-connection');
+        Route::post('/developer/email-marketing-connections', [AppDeveloperController::class, 'storeEmailMarketingConnection'])->name('app.developer.email-marketing-connections.store');
+        Route::post('/developer/email-marketing-connections/{connection}', [AppDeveloperController::class, 'updateEmailMarketingConnection'])->name('app.developer.email-marketing-connections.update');
         Route::post('/developer/api-keys', [AppDeveloperController::class, 'storeApiKey'])->name('app.developer.api-keys.store');
         Route::post('/developer/api-keys/{apiKey}/revoke', [AppDeveloperController::class, 'revokeApiKey'])->name('app.developer.api-keys.revoke');
         Route::post('/developer/webhooks', [AppDeveloperController::class, 'storeWebhook'])->name('app.developer.webhooks.store');

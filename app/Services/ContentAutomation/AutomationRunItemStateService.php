@@ -222,6 +222,7 @@ class AutomationRunItemStateService
             if (filled($item->content_id)) {
                 $existingContent = Content::query()->with(['drafts', 'publications'])->find((string) $item->content_id);
                 if ($existingContent instanceof Content) {
+                    $this->applyContentStateToItem($item->fresh() ?? $item, $existingContent);
                     $this->syncFromContent($existingContent);
                 }
             }
@@ -395,13 +396,19 @@ class AutomationRunItemStateService
         $contentIds = Content::query()
             ->where('automation_run_id', (string) $run->id)
             ->pluck('id')
+            ->merge(
+                $items
+                    ->pluck('content_id')
+                    ->filter()
+                    ->map(fn ($id): string => (string) $id)
+            )
             ->map(fn ($id): string => (string) $id)
             ->unique()
             ->values()
             ->all();
 
         $publishedContentIds = Content::query()
-            ->where('automation_run_id', (string) $run->id)
+            ->whereIn('id', $contentIds)
             ->where(function ($query): void {
                 $query->where('publish_status', 'published')
                     ->orWhere('status', 'published');
@@ -441,15 +448,35 @@ class AutomationRunItemStateService
         $metadata['failure_pattern'] = data_get($lastError?->metadata, 'failure_pattern');
         $metadata['failure_code'] = data_get($lastError?->metadata, 'failure_code');
         $metadata['failure_details'] = data_get($lastError?->metadata, 'failure_details');
+        $errorMessage = $lastError instanceof ContentAutomationRunItem
+            ? data_get($lastError->metadata, 'failure_details.user_safe_message', $lastError->last_error_message)
+            : null;
 
         $run->forceFill([
             'status' => $status->value,
             'generated_content_ids' => $contentIds,
             'published_content_ids' => $publishedContentIds,
             'result_summary' => $this->summaryFromTruth($truth),
-            'error_message' => data_get($lastError?->metadata, 'failure_details.user_safe_message', $lastError?->last_error_message ?? $run->error_message),
+            'error_message' => $errorMessage,
             'metadata' => $metadata,
         ])->save();
+
+        if (in_array($status, [
+            ContentAutomationRunStatus::COMPLETED,
+            ContentAutomationRunStatus::SKIPPED,
+        ], true)) {
+            $automation = $run->automation;
+
+            if ($automation instanceof ContentAutomation
+                && (string) ($automation->last_failure_run_id ?? '') === (string) $run->id) {
+                $automation->forceFill([
+                    'last_failure_message' => null,
+                    'last_failure_code' => null,
+                    'last_failure_run_id' => null,
+                    'last_failure_at' => null,
+                ])->save();
+            }
+        }
     }
 
     private function applyContentStateToItem(ContentAutomationRunItem $item, Content $content): void
@@ -477,7 +504,9 @@ class AutomationRunItemStateService
             'delivery_status' => $deliveryStatus,
             'publication_status' => $publicationStatus,
             'status' => $status,
-            'failure_stage' => $status === ContentAutomationRunItem::STATUS_FAILED ? ($item->failure_stage ?: 'content_state') : $item->failure_stage,
+            'failure_stage' => $status === ContentAutomationRunItem::STATUS_FAILED ? ($item->failure_stage ?: 'content_state') : null,
+            'last_error_code' => $status === ContentAutomationRunItem::STATUS_FAILED ? $item->last_error_code : null,
+            'last_error_message' => $status === ContentAutomationRunItem::STATUS_FAILED ? $item->last_error_message : null,
             'finished_at' => $status === ContentAutomationRunItem::STATUS_COMPLETED ? now() : $item->finished_at,
         ])->save();
 

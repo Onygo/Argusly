@@ -214,6 +214,8 @@ it('generates review gated suggested content and social drafts from an approved 
         'generated_social' => 6,
         'generated_answer_blocks' => 8,
         'skipped' => 0,
+        'scheduled_articles' => 8,
+        'due_publications_queued' => 0,
     ]);
 
     $campaign->refresh();
@@ -224,6 +226,9 @@ it('generates review gated suggested content and social drafts from an approved 
     expect(Content::query()->where('workspace_id', $workspace->id)->count())->toBe(10);
     expect(Content::query()->where('workspace_id', $workspace->id)->where('language', 'en')->count())->toBe(5);
     expect(Content::query()->where('workspace_id', $workspace->id)->where('language', 'nl')->count())->toBe(5);
+    expect(Content::query()->where('workspace_id', $workspace->id)->where('title', '!=', 'Newsletter snippet: Agentic Marketing')->where('publish_status', 'scheduled')->whereNotNull('scheduled_publish_at')->count())->toBe(8);
+    expect(Content::query()->where('workspace_id', $workspace->id)->where('title', '!=', 'Newsletter snippet: Agentic Marketing')->where('auto_publish', true)->count())->toBe(8);
+    expect(Content::query()->where('workspace_id', $workspace->id)->where('title', 'Newsletter snippet: Agentic Marketing')->whereNull('scheduled_publish_at')->where('publish_status', 'draft')->count())->toBe(2);
     expect(Brief::query()->where('client_site_id', $site->id)->count())->toBe(10);
     expect(Draft::query()->where('client_site_id', $site->id)->count())->toBe(10);
     expect(Draft::query()->where('client_site_id', $site->id)->where('status', 'queued')->count())->toBe(10);
@@ -233,6 +238,7 @@ it('generates review gated suggested content and social drafts from an approved 
     expect(CampaignContent::query()->where('campaign_id', $campaign->id)->whereNotNull('content_id')->count())->toBe(7);
     expect(SocialPostVariant::query()->where('campaign_id', $campaign->id)->where('status', SocialPostVariantStatus::DRAFT->value)->count())->toBe(6);
     expect(SocialPostVariant::query()->where('campaign_id', $campaign->id)->get()->pluck('metadata.locale')->sort()->values()->all())->toBe(['en', 'en', 'en', 'nl', 'nl', 'nl']);
+    expect(SocialPostVariant::query()->where('campaign_id', $campaign->id)->get()->pluck('metadata.planner_scheduled_for')->filter()->count())->toBe(6);
     expect(StructuredAnswerBlock::query()->count())->toBe(8);
     expect(Content::query()->where('title', 'Pillar article: Agentic Marketing')->first()?->answerBlocks()->count())->toBe(4);
     SocialPostVariant::query()
@@ -260,5 +266,7 @@ it('generates review gated suggested content and social drafts from an approved 
         'generated_social' => 0,
         'generated_answer_blocks' => 0,
         'skipped' => 20,
+        'scheduled_articles' => 8,
+        'due_publications_queued' => 0,
     ]);
 });

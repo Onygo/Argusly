@@ -74,7 +74,8 @@ class AgenticMarketingOpportunityDetectionService
             $run->markRunning();
             app(AgenticMarketingAuditLogger::class)->record($run->loadMissing('objective'), 'run.started', null, $run->attributesToArray());
 
-            $candidates = $this->rankedCandidates($objective, $run);
+            $detectorFailures = [];
+            $candidates = $this->rankedCandidates($objective, $run, $detectorFailures);
             $created = 0;
             $reused = 0;
             $opportunityIds = [];
@@ -95,12 +96,14 @@ class AgenticMarketingOpportunityDetectionService
             }
 
             $result = [
-                'status' => 'completed',
+                'status' => $detectorFailures === [] ? 'completed' : 'completed_with_warnings',
                 'objective_id' => (string) $objective->id,
                 'run_id' => (string) $run->id,
                 'detected' => $candidates->count(),
                 'created' => $created,
                 'reused' => $reused,
+                'failed_detectors' => count($detectorFailures),
+                'detector_failures' => $detectorFailures,
                 'opportunity_ids' => array_values(array_unique($opportunityIds)),
             ];
 
@@ -134,10 +137,10 @@ class AgenticMarketingOpportunityDetectionService
     /**
      * @return Collection<int,DetectedOpportunity>
      */
-    private function rankedCandidates(AgenticMarketingObjective $objective, AgenticMarketingRun $run): Collection
+    private function rankedCandidates(AgenticMarketingObjective $objective, AgenticMarketingRun $run, array &$detectorFailures = []): Collection
     {
         return collect($this->detectors())
-            ->flatMap(function (AgenticMarketingOpportunityDetector $detector) use ($objective, $run): array {
+            ->flatMap(function (AgenticMarketingOpportunityDetector $detector) use ($objective, $run, &$detectorFailures): array {
                 $item = AgenticMarketingRunItem::query()->create([
                     'run_id' => $run->id,
                     'objective_id' => $objective->id,
@@ -155,8 +158,18 @@ class AgenticMarketingOpportunityDetectionService
                     return $candidates;
                 } catch (Throwable $exception) {
                     $item->markFailed($exception->getMessage());
+                    $detectorFailures[] = [
+                        'detector' => $detector::class,
+                        'message' => $exception->getMessage(),
+                    ];
+                    Log::warning('Agentic Marketing opportunity detector failed', [
+                        'objective_id' => (string) $objective->id,
+                        'run_id' => (string) $run->id,
+                        'detector' => $detector::class,
+                        'error' => $exception->getMessage(),
+                    ]);
 
-                    throw $exception;
+                    return [];
                 }
             })
             ->map(fn (DetectedOpportunity $candidate): DetectedOpportunity => $this->decisionEngine()->score($candidate))

@@ -71,6 +71,10 @@ return [
         'disk' => env('ARGUSLY_IMAGES_DISK', env('ARGUSLY_AI_IMAGE_STORAGE_DISK', 'public')),
     ],
 
+    'mail' => [
+        'asset_url' => env('ARGUSLY_MAIL_ASSET_URL', 'https://app.argusly.com'),
+    ],
+
     'stock_images' => [
         'unsplash' => [
             'access_key' => env('UNSPLASH_ACCESS_KEY', ''),

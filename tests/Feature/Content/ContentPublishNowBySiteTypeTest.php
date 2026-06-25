@@ -190,6 +190,27 @@ it('publishes immediately for laravel sites without wordpress job', function () 
     expect((bool) data_get($target?->meta, 'published_url_confirmed'))->toBeFalse();
 });
 
+it('normalizes legacy laravel blog urls before storing publish now URLs', function () {
+    [$user, , $content, $draft] = makePublishNowContext('laravel');
+
+    $content->forceFill([
+        'published_url' => 'https://argusly.com/blog/immediate-publish-content',
+    ])->save();
+
+    $draft->forceFill([
+        'seo_canonical' => null,
+        'meta' => [],
+    ])->save();
+
+    $this->actingAs($user)
+        ->post(route('app.content.publish-now', $content))
+        ->assertRedirect();
+
+    $content->refresh();
+
+    expect((string) $content->published_url)->toBe('https://argusly.com/en/blog/immediate-publish-content');
+});
+
 it('tracks guessed laravel published urls as local-only pending sync', function () {
     [$user, $site, $content, $draft] = makePublishNowContext('laravel');
 

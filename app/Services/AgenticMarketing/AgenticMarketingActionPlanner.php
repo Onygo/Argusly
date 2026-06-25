@@ -368,7 +368,7 @@ class AgenticMarketingActionPlanner
         $base = match ($actionType) {
             AgenticMarketingActionType::ImproveInternalLinks => 3,
             AgenticMarketingActionType::UpdateMeta => 4,
-            AgenticMarketingActionType::AddAnswerBlock => 6,
+            AgenticMarketingActionType::AddAnswerBlock => 2,
             AgenticMarketingActionType::RefreshArticle => 12,
             AgenticMarketingActionType::CreateLocaleVariant => 18,
             AgenticMarketingActionType::CreateArticle => 24,

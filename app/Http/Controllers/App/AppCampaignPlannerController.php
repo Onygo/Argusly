@@ -5,12 +5,16 @@ namespace App\Http\Controllers\App;
 use App\Http\Controllers\Controller;
 use App\Enums\SupportedLanguage;
 use App\Models\Campaign;
+use App\Models\CampaignContent;
 use App\Models\ClientSite;
+use App\Models\EmailMarketingConnection;
 use App\Models\Opportunity;
 use App\Models\Workspace;
 use App\Services\CampaignPlanning\CampaignAssetGenerationService;
 use App\Services\CampaignPlanning\CampaignPlannerService;
 use App\Services\CreditWalletService;
+use App\Services\EmailMarketing\EmailCampaignExportService;
+use App\Services\EmailMarketing\EmailMarketingProviderException;
 use App\Support\ContentAssets\ContentAssetTaxonomy;
 use App\View\Presenters\CampaignContentAssetPresenter;
 use Illuminate\Http\RedirectResponse;
@@ -45,9 +49,9 @@ class AppCampaignPlannerController extends Controller
         $selectedCampaign = $request->query('campaign')
             ? Campaign::query()
                 ->where('workspace_id', $workspace->id)
-                ->with(['contents.content.publications', 'contents.distributionPlans.distributionChannel', 'opportunities', 'workspace.clientSites'])
+                ->with(['contents.content.publications', 'contents.distributionPlans.distributionChannel', 'contents.emailCampaignExports.connection', 'opportunities', 'workspace.clientSites'])
                 ->find($request->query('campaign'))
-            : $campaigns->first()?->load(['contents.content.publications', 'contents.distributionPlans.distributionChannel', 'opportunities', 'workspace.clientSites']);
+            : $campaigns->first()?->load(['contents.content.publications', 'contents.distributionPlans.distributionChannel', 'contents.emailCampaignExports.connection', 'opportunities', 'workspace.clientSites']);
 
         $assetPresenters = collect();
         $campaignAssetCards = collect();
@@ -98,6 +102,11 @@ class AppCampaignPlannerController extends Controller
             ->get();
 
         $enabledCampaignLanguages = $this->enabledCampaignLanguages($workspace);
+        $emailMarketingConnections = EmailMarketingConnection::query()
+            ->where('workspace_id', $workspace->id)
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
 
         return view('app.campaign-planner.index', [
             'workspace' => $workspace,
@@ -108,6 +117,7 @@ class AppCampaignPlannerController extends Controller
             'generationEstimate' => $generationEstimate,
             'generationAvailableCredits' => $generationAvailableCredits,
             'enabledCampaignLanguages' => $enabledCampaignLanguages,
+            'emailMarketingConnections' => $emailMarketingConnections,
             'assetPresenters' => $assetPresenters,
             'campaignAssetCards' => $campaignAssetCards,
             'campaignAssetSummary' => $campaignAssetSummary,
@@ -187,12 +197,58 @@ class AppCampaignPlannerController extends Controller
         return redirect()
             ->route('app.agentic-marketing.campaign-planner.index', ['campaign' => $campaign->id])
             ->with('status', sprintf(
-                'Suggested content queued: %d draft generation job(s), %d social draft(s), %d structured answer block(s), %d skipped.',
+                'Suggested content queued: %d draft generation job(s), %d social draft(s), %d structured answer block(s), %d skipped. %d article(s) scheduled for automatic publishing, %d due publication flow(s) queued.',
                 $summary['generated_content'],
                 $summary['generated_social'],
                 $summary['generated_answer_blocks'],
                 $summary['skipped'],
+                $summary['scheduled_articles'] ?? 0,
+                $summary['due_publications_queued'] ?? 0,
             ));
+    }
+
+    public function exportEmailAsset(
+        Request $request,
+        CampaignContent $campaignContent,
+        EmailCampaignExportService $exports,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        $campaignContent->loadMissing('campaign');
+        abort_unless((string) $campaignContent->campaign?->workspace_id === (string) $workspace->id, 404);
+
+        $validated = $request->validate([
+            'connection_id' => ['required', 'uuid'],
+            'subject' => ['nullable', 'string', 'max:255'],
+            'preheader' => ['nullable', 'string', 'max:255'],
+            'body' => ['nullable', 'string', 'max:10000'],
+            'cta_label' => ['nullable', 'string', 'max:120'],
+            'cta_url' => ['nullable', 'url', 'max:2048'],
+            'locale' => ['nullable', 'string', 'max:10'],
+            'template_id' => ['nullable', 'string', 'max:255'],
+            'audience_id' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $connection = EmailMarketingConnection::query()
+            ->where('workspace_id', $workspace->id)
+            ->findOrFail($validated['connection_id']);
+
+        try {
+            $export = $exports->export($campaignContent, $connection, collect($validated)->except('connection_id')->all());
+        } catch (EmailMarketingProviderException $exception) {
+            return back()->withErrors(['email_export' => $exception->getMessage()]);
+        }
+
+        $message = 'Newsletter snippet exported to '.$connection->name.'.';
+        if ($export->remote_url) {
+            $message .= ' Remote draft: '.$export->remote_url;
+        }
+
+        return redirect()
+            ->route('app.agentic-marketing.campaign-planner.index', [
+                'campaign' => $campaignContent->campaign_id,
+                'workspace_id' => $workspace->id,
+            ])
+            ->with('status', $message);
     }
 
     private function resolveWorkspace(Request $request): Workspace

@@ -51,6 +51,19 @@ class ContentSeriesPolicy
         return ! $series->isLocked() && ! $series->isArchived();
     }
 
+    public function publish(User $user, ContentSeries $series): bool
+    {
+        if (! $this->view($user, $series)) {
+            return false;
+        }
+
+        if (! $this->create($user)) {
+            return false;
+        }
+
+        return ! $series->isArchived();
+    }
+
     public function duplicate(User $user, ContentSeries $series): bool
     {
         return $this->view($user, $series) && $this->create($user);

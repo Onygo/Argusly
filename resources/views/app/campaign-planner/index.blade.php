@@ -243,7 +243,7 @@
                             <div class="rounded-md border border-border bg-background p-3">
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $summaryItem['classes'] }}">
-                                        <i data-lucide="{{ $summaryItem['icon'] }}" class="h-3 w-3"></i>
+                                        <x-app.icon :name="$summaryItem['icon']" class="h-3 w-3" />
                                         {{ $summaryItem['badge'] }}
                                     </span>
                                     <span class="text-sm font-semibold text-textPrimary">{{ $summaryItem['count'] }}</span>
@@ -335,7 +335,7 @@
                                             </div>
                                             <div class="mt-2 flex flex-wrap gap-1.5">
                                                 <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold {{ $nodeBadgeClasses }}">
-                                                    <i data-lucide="{{ $nodeDefinition['icon'] ?? 'box' }}" class="h-3 w-3"></i>
+                                                    <x-app.icon :name="$nodeDefinition['icon'] ?? 'box'" class="h-3 w-3" />
                                                     {{ $nodeDefinition['badge'] ?? Str::upper((string) ($node['type'] ?? 'asset')) }}
                                                 </span>
                                                 <span class="rounded-full bg-surfaceSubtle px-2 py-0.5 text-[11px] text-textSecondary">{{ $node['funnel_stage'] ?? 'stage' }}</span>
@@ -371,7 +371,7 @@
                                             <div class="flex flex-wrap gap-2">
                                                 <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">#{{ $asset->sequence_order }}</span>
                                                 <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold {{ $assetUx['type_badge_classes'] ?? 'border-border bg-surfaceSubtle text-textSecondary' }}">
-                                                    <i data-lucide="{{ $assetUx['type_icon'] ?? 'box' }}" class="h-3.5 w-3.5"></i>
+                                                    <x-app.icon :name="$assetUx['type_icon'] ?? 'box'" class="h-3.5 w-3.5" />
                                                     {{ $assetUx['type_badge'] ?? str_replace('_', ' ', $asset->asset_type?->value ?? $asset->asset_type) }}
                                                 </span>
                                                 <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ $assetUx['purpose_label'] ?? 'Primary Content' }}</span>
@@ -414,6 +414,39 @@
                                             <p class="mt-1 text-sm text-textPrimary">{{ $asset->distributionPlans->pluck('distributionChannel.name')->filter()->implode(', ') ?: 'Draft' }}</p>
                                         </div>
                                     </div>
+                                    @if (($asset->asset_type?->value ?? $asset->asset_type) === 'newsletter_snippet')
+                                        @php($latestEmailExport = $asset->emailCampaignExports->sortByDesc('created_at')->first())
+                                        <div class="mt-3 rounded-md border border-border bg-background p-3">
+                                            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                                <div>
+                                                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">Email marketing</p>
+                                                    <p class="mt-1 text-sm text-textPrimary">
+                                                        {{ $latestEmailExport ? 'Last export: '.str_replace('_', ' ', $latestEmailExport->status?->value ?? $latestEmailExport->status) : 'Ready for email placement' }}
+                                                    </p>
+                                                    @if ($latestEmailExport?->remote_url)
+                                                        <a href="{{ $latestEmailExport->remote_url }}" target="_blank" rel="noopener" class="mt-1 inline-flex text-xs font-medium text-primary">Open remote draft</a>
+                                                    @endif
+                                                </div>
+                                                @if ($emailMarketingConnections->isNotEmpty())
+                                                    <form method="POST" action="{{ route('app.agentic-marketing.campaign-planner.assets.email-export', ['campaignContent' => $asset->id, 'workspace_id' => $workspace->id]) }}" class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                                        @csrf
+                                                        <select name="connection_id" class="pl-input h-9 min-w-44 text-sm">
+                                                            @foreach ($emailMarketingConnections as $connection)
+                                                                <option value="{{ $connection->id }}">{{ $connection->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        <input type="hidden" name="subject" value="{{ $asset->working_title }}">
+                                                        <button class="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-sm font-medium text-textInverse" type="submit">
+                                                            <i data-lucide="mail-plus" class="h-4 w-4"></i>
+                                                            <span>Push to email tool</span>
+                                                        </button>
+                                                    </form>
+                                                @else
+                                                    <a href="{{ route('app.developer.index', ['tab' => 'destinations', 'workspace_id' => $workspace->id]) }}" class="inline-flex h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Connect email tool</a>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endif
                                     @if (! empty($repurposing[$assetKey]))
                                         <div class="mt-3 rounded-md border border-border bg-background p-3">
                                             <p class="text-xs font-medium uppercase tracking-wide text-textFaint">Repurposing</p>

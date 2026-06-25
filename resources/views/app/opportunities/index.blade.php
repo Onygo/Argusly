@@ -45,6 +45,7 @@
     <div class="mb-5 flex flex-wrap items-center gap-2">
         <a href="{{ route('app.opportunities.inbox', ['workspace' => $workspace->id]) }}" class="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium {{ $mode === 'inbox' ? 'bg-primary text-white' : 'border border-border bg-surface text-textPrimary hover:bg-surfaceMuted' }}">Opportunity Inbox</a>
         <a href="{{ route('app.opportunities.decisions', ['workspace' => $workspace->id]) }}" class="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium {{ $mode === 'decisions' ? 'bg-primary text-white' : 'border border-border bg-surface text-textPrimary hover:bg-surfaceMuted' }}">Decision Queue</a>
+        <a href="{{ route('app.recommended-actions.index') }}" class="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Next Actions</a>
     </div>
 
     <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -118,14 +119,16 @@
                 </div>
             </section>
 
-            <section class="rounded-lg border border-border bg-surface p-5">
-                <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Advanced Compatibility</p>
-                <p class="mt-1 text-sm text-textSecondary">Existing specialist workspaces remain available for advanced review.</p>
-                <div class="mt-4 space-y-2">
-                    <a href="{{ route('app.opportunity-review.index', ['workspace' => $workspace->id]) }}" class="block rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Open advanced review</a>
-                    <a href="{{ route('app.agentic-marketing.intelligence.index', ['workspace' => $workspace->id]) }}" class="block rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Open advanced opportunities</a>
-                </div>
-            </section>
+            @if (\App\Support\AdvancedMode::enabled(request()))
+                <section class="rounded-lg border border-border bg-surface p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Specialist Tools</p>
+                    <p class="mt-1 text-sm text-textSecondary">Use these when you need to inspect raw signals or legacy opportunity evidence.</p>
+                    <div class="mt-4 space-y-2">
+                        <a href="{{ route('app.signal-intelligence.index', ['workspace' => $workspace->id]) }}" class="block rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Signal intelligence</a>
+                        <a href="{{ route('app.opportunity-review.index', ['workspace' => $workspace->id]) }}" class="block rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">Signal candidates</a>
+                    </div>
+                </section>
+            @endif
         </aside>
     </div>
 @endsection

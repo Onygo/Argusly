@@ -68,7 +68,11 @@
 
     @if ($isReadOnly)
         <div class="mb-4 rounded border border-border bg-surfaceMuted px-4 py-3 text-sm text-textPrimary">
-            This series has been published and is locked.
+            @if (($progress['unpublished'] ?? 0) > 0)
+                This series structure is locked, but remaining draft locale articles can still be published.
+            @else
+                This series has been published and is locked.
+            @endif
         </div>
     @endif
 
@@ -95,7 +99,10 @@
         </div>
         <div class="rounded border border-border bg-surface p-3">
             <p class="text-xs text-textSecondary">Step 5 Publishing</p>
-            <p class="mt-1 text-sm text-textPrimary">{{ $progress['published'] }} published article(s)</p>
+            <p class="mt-1 text-sm text-textPrimary">{{ $progress['published'] }} / {{ $progress['locales'] }} locale article(s) published</p>
+            @if (($progress['translated'] ?? 0) > 0)
+                <p class="mt-1 text-xs text-textSecondary">{{ $progress['translated'] }} translation(s) exist, {{ $progress['unpublished'] }} locale article(s) still draft.</p>
+            @endif
         </div>
     </div>
 
@@ -246,6 +253,9 @@
 
             <div class="rounded border border-border bg-background p-3 text-sm">
                 <p class="text-textSecondary">Generated: {{ $progress['generated'] }} / {{ $progress['planned'] }}</p>
+                @if (($progress['translated'] ?? 0) > 0)
+                    <p class="mt-1 text-textSecondary">Translations: {{ $progress['translated'] }} existing · {{ $progress['unpublished'] }} locale article(s) not published</p>
+                @endif
                 <p class="mt-1 text-textSecondary">Run status: <span class="inline-flex items-center rounded border px-2 py-0.5 text-xs {{ $generationBadge[1] }}">{{ $generationBadge[0] }}</span></p>
                 @if ($generationRun)
                     <p class="mt-1 text-xs text-textSecondary">
@@ -269,6 +279,7 @@
                             <th class="pb-2 font-medium">Title</th>
                             <th class="pb-2 font-medium">Status</th>
                             <th class="pb-2 font-medium">Publish</th>
+                            <th class="pb-2 font-medium">Locales</th>
                             <th class="pb-2 font-medium">Links to</th>
                             <th class="pb-2 font-medium">Publishing date</th>
                             <th class="pb-2 font-medium">Action</th>
@@ -286,6 +297,20 @@
                                 <td class="py-2 text-textPrimary">{{ (string) $row['title'] }}</td>
                                 <td class="py-2"><span class="pl-badge">{{ (string) $row['status'] }}</span></td>
                                 <td class="py-2"><span class="pl-badge">{{ (string) $row['publish_status'] }}</span></td>
+                                <td class="py-2">
+                                    @if ($row['locales']->isNotEmpty())
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach ($row['locales'] as $localeRow)
+                                                <span title="{{ $localeRow['language_label'] }} {{ $localeRow['status_label'] }}" class="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-xs {{ $localeRow['publish_status'] === 'published' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-amber-300 bg-amber-50 text-amber-700' }}">
+                                                    {{ $localeRow['label'] }}
+                                                    <span>{{ $localeRow['publish_status'] === 'published' ? 'published' : 'draft' }}</span>
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-textSecondary">-</span>
+                                    @endif
+                                </td>
                                 <td class="py-2 text-textSecondary">{{ implode(', ', (array) $row['links_to']) ?: '-' }}</td>
                                 <td class="py-2 text-textSecondary">
                                     {{ $row['published_at']?->format('Y-m-d H:i') ?: '-' }}
@@ -309,7 +334,7 @@
                             </tr>
                             @if (!empty($row['error_message']))
                                 <tr>
-                                    <td colspan="8" class="pb-2 text-xs text-rose-700">{{ (string) $row['error_message'] }}</td>
+                                    <td colspan="9" class="pb-2 text-xs text-rose-700">{{ (string) $row['error_message'] }}</td>
                                 </tr>
                             @endif
                         @endforeach
@@ -329,11 +354,11 @@
                 </div>
                 <form method="POST" action="{{ route('app.content.series.publish', $series) }}">
                     @csrf
-                    <button @disabled($isReadOnly) class="rounded border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50">Publish series</button>
+                    <button @disabled(($progress['unpublished'] ?? 0) === 0) class="rounded border border-border px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50">Publish remaining</button>
                 </form>
             </div>
 
-            <p class="text-sm text-textSecondary">Published: {{ $progress['published'] }} article(s).</p>
+            <p class="text-sm text-textSecondary">Published: {{ $progress['published'] }} / {{ $progress['locales'] }} locale article(s). Existing translations are included in the next publish run.</p>
 
             @if ($publishHistory->isEmpty())
                 <p class="mt-3 text-sm text-textSecondary">No publish history yet.</p>

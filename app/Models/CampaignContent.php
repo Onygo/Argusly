@@ -96,4 +96,9 @@ class CampaignContent extends Model
     {
         return $this->hasMany(SocialPostVariant::class);
     }
+
+    public function emailCampaignExports(): HasMany
+    {
+        return $this->hasMany(EmailCampaignExport::class);
+    }
 }

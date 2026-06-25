@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\ContentAutomationRunStatus;
 use App\Models\Content;
+use App\Models\ContentAutomation;
 use App\Models\ContentAutomationRun;
 use App\Models\ContentAutomationRunItem;
 use Illuminate\Console\Command;
@@ -53,11 +54,22 @@ class RepairAutomationRunStateCommand extends Command
                 && $truth['generated_count'] === 0
                 && $truth['failed_count'] === 0
                 && trim((string) $run->error_message) === '';
+            $lastError = $this->lastError($run);
+            $hasStaleRunError = $lastError === '' && trim((string) $run->error_message) !== '';
+            $hasStaleAutomationFailure = ContentAutomation::query()
+                ->whereKey((string) $run->automation_id)
+                ->where('last_failure_run_id', (string) $run->id)
+                ->exists();
 
             $currentStatus = (string) ($run->status?->value ?? $run->status);
             $affected = $currentStatus !== $newStatus->value
                 || $run->generated_content_ids !== $contentIds
-                || $needsPlaceholder;
+                || $needsPlaceholder
+                || $hasStaleRunError
+                || (in_array($newStatus, [
+                    ContentAutomationRunStatus::COMPLETED,
+                    ContentAutomationRunStatus::SKIPPED,
+                ], true) && $hasStaleAutomationFailure);
 
             if (! $affected) {
                 continue;
@@ -108,10 +120,27 @@ class RepairAutomationRunStateCommand extends Command
                 'status' => $newStatus->value,
                 'generated_content_ids' => $contentIds,
                 'generated_draft_ids' => $draftIds,
-                'error_message' => $this->lastError($run) ?: $run->error_message,
+                'error_message' => $lastError ?: null,
                 'result_summary' => $this->summary($truth),
                 'metadata' => $metadata,
             ])->save();
+
+            if (in_array($newStatus, [
+                ContentAutomationRunStatus::COMPLETED,
+                ContentAutomationRunStatus::SKIPPED,
+            ], true)) {
+                $automation = ContentAutomation::query()->find((string) $run->automation_id);
+
+                if ($automation instanceof ContentAutomation
+                    && (string) ($automation->last_failure_run_id ?? '') === (string) $run->id) {
+                    $automation->forceFill([
+                        'last_failure_message' => null,
+                        'last_failure_code' => null,
+                        'last_failure_run_id' => null,
+                        'last_failure_at' => null,
+                    ])->save();
+                }
+            }
 
             $report['repaired']++;
         }
@@ -131,6 +160,12 @@ class RepairAutomationRunStateCommand extends Command
         $contentIds = Content::query()
             ->where('automation_run_id', (string) $run->id)
             ->pluck('id')
+            ->merge(
+                $run->items
+                    ->pluck('content_id')
+                    ->filter()
+                    ->map(fn ($id): string => (string) $id)
+            )
             ->map(fn ($id): string => (string) $id)
             ->unique()
             ->values()

@@ -134,7 +134,13 @@ class CampaignContentAssetPresenter
             }
         }
 
-        if ($this->asset->scheduled_for) {
+        if (
+            $content
+            && (
+                $content->scheduled_publish_at
+                || (string) ($content->publish_status ?? '') === 'scheduled'
+            )
+        ) {
             return 'scheduled';
         }
 

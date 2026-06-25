@@ -1,5 +1,6 @@
 @php
-    $mailLogoUrl = rtrim((string) config('app.url'), '/') . '/images/argusly-logo-standalone.png';
+    $mailAssetUrl = trim((string) config('argusly.mail.asset_url', config('app.url')));
+    $mailLogoUrl = rtrim($mailAssetUrl !== '' ? $mailAssetUrl : (string) config('app.url'), '/') . '/images/argusly-logo.png';
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -19,7 +20,7 @@
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td align="left" style="vertical-align:middle;">
-                                    <img src="{{ $mailLogoUrl }}" width="124" alt="Argusly" style="display:block; width:124px; max-width:124px; height:auto; border:0;">
+                                    <img src="{{ $mailLogoUrl }}" width="124" height="35" alt="Argusly" style="display:block; width:124px; max-width:124px; height:35px; border:0; outline:none; text-decoration:none;">
                                 </td>
                                 <td align="right" style="vertical-align:middle;">
                                     <span style="display:inline-block; border:1px solid #e4e8f0; border-radius:999px; padding:7px 11px; background:#ffffff; color:#64748b; font-size:12px; font-weight:700; letter-spacing:0.02em;">{{ $eyebrow ?? 'Argusly' }}</span>

@@ -36,11 +36,18 @@
                     <th class="px-3 py-2">Asset</th>
                     <th class="px-3 py-2">Content</th>
                     <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2">Scheduled</th>
+                    <th class="px-3 py-2">Campaign Date</th>
+                    <th class="px-3 py-2">Publish State</th>
+                    <th class="px-3 py-2">Live URL</th>
                 </tr>
                 </thead>
                 <tbody class="divide-y divide-border">
                 @forelse ($campaign->contents as $asset)
+                    @php
+                        $content = $asset->content;
+                        $deliveredPublication = $content?->publications
+                            ?->first(fn ($publication) => (string) $publication->delivery_status === \App\Models\ContentPublication::STATUS_DELIVERED);
+                    @endphp
                     <tr>
                         <td class="px-3 py-2 text-textSecondary">{{ $asset->sequence_order }}</td>
                         <td class="px-3 py-2">
@@ -50,10 +57,26 @@
                         <td class="px-3 py-2 text-textSecondary">{{ $asset->content?->title ?? $asset->content_id ?? '-' }}</td>
                         <td class="px-3 py-2 text-textSecondary">{{ $asset->status }} / {{ str_replace('_', ' ', $asset->approval_status?->value ?? $asset->approval_status) }}</td>
                         <td class="px-3 py-2 text-textSecondary">{{ $asset->scheduled_for?->format('Y-m-d H:i') ?? '-' }}</td>
+                        <td class="px-3 py-2 text-textSecondary">
+                            @if ($content)
+                                <div>{{ str_replace('_', ' ', (string) ($content->publish_status ?: $content->status ?: 'draft')) }}</div>
+                                <div class="text-xs">{{ $content->scheduled_publish_at ? 'Publish at '.$content->scheduled_publish_at->format('Y-m-d H:i') : 'No publish schedule' }}</div>
+                            @else
+                                -
+                            @endif
+                        </td>
+                        <td class="px-3 py-2 text-textSecondary">
+                            @php($liveUrl = $deliveredPublication?->remote_url ?: $content?->published_url)
+                            @if ($liveUrl)
+                                <a href="{{ $liveUrl }}" target="_blank" rel="noopener" class="text-primary hover:underline">Open</a>
+                            @else
+                                -
+                            @endif
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-3 py-6 text-center text-textSecondary">No content assets attached.</td>
+                        <td colspan="7" class="px-3 py-6 text-center text-textSecondary">No content assets attached.</td>
                     </tr>
                 @endforelse
                 </tbody>

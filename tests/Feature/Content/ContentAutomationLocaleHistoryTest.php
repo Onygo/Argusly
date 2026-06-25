@@ -188,6 +188,21 @@ it('syncs a completed EN translation back into run history and recent content fr
 
     $run = app(ContentAutomationOrchestrator::class)->run($automation, \App\Enums\ContentAutomationTriggerType::MANUAL, $user->id);
     $sourceContent = Content::query()->where('automation_run_id', (string) $run->id)->where('language', 'nl')->firstOrFail();
+    $staleFailureItem = $run->fresh('items')->items->firstWhere('locale', 'en');
+    $staleFailureItem->forceFill([
+        'failure_stage' => 'translation_queue',
+        'last_error_code' => 'translation_queue_failed',
+        'last_error_message' => "A translation to 'English' is already processing.",
+    ])->save();
+    $run->forceFill([
+        'error_message' => "A translation to 'English' is already processing.",
+    ])->save();
+    $automation->forceFill([
+        'last_failure_message' => "A translation to 'English' is already processing.",
+        'last_failure_code' => 'translation_queue_failed',
+        'last_failure_run_id' => (string) $run->id,
+        'last_failure_at' => now(),
+    ])->save();
 
     [$translatedContent] = createAutomationContentBundle(
         $automation,
@@ -211,6 +226,13 @@ it('syncs a completed EN translation back into run history and recent content fr
         ->and($run->generated_content_ids)->toHaveCount(2)
         ->and($items['en']->status)->toBe('completed')
         ->and($items['en']->translation_status)->toBe('completed')
+        ->and($items['en']->failure_stage)->toBeNull()
+        ->and($items['en']->last_error_code)->toBeNull()
+        ->and($items['en']->last_error_message)->toBeNull()
+        ->and($run->error_message)->toBeNull()
+        ->and($automation->fresh()->last_failure_message)->toBeNull()
+        ->and($automation->fresh()->last_failure_code)->toBeNull()
+        ->and($automation->fresh()->last_failure_run_id)->toBeNull()
         ->and($items['en']->content_id)->toBe((string) $translatedContent->id);
 
     $this->actingAs($user)
@@ -282,6 +304,296 @@ it('marks the EN locale item as failed when translation processing fails after s
         ->and($translationItem->translation_status)->toBe('failed')
         ->and($translationItem->last_error_message)->toBe('Translation provider failed.')
         ->and($run->fresh()->status->value)->toBe('partial');
+});
+
+it('marks reused translation content from a previous run as completed on the current run item', function () {
+    [$user, $automation] = makeAutomationLocaleHistoryContext([
+        'locale' => 'en',
+        'locales' => ['en', 'nl'],
+        'include_translation' => true,
+    ]);
+
+    $previousRun = ContentAutomationRun::query()->create([
+        'automation_id' => (string) $automation->id,
+        'organization_id' => (int) $automation->organization_id,
+        'workspace_id' => (string) $automation->workspace_id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'status' => 'completed',
+        'triggered_by' => 'scheduled',
+        'started_at' => now()->subDay(),
+        'finished_at' => now()->subDay(),
+        'metadata' => [],
+    ]);
+
+    [$sourceContent, , $sourceDraft] = createAutomationContentBundle(
+        $automation,
+        (string) $previousRun->id,
+        'Existing EN source',
+        'en',
+        $user->id,
+        [
+            'is_source_locale' => true,
+            'publish_status' => 'published',
+            'delivery_status' => 'delivered',
+        ],
+    );
+    [$translatedContent] = createAutomationContentBundle(
+        $automation,
+        (string) $previousRun->id,
+        'Existing NL translation',
+        'nl',
+        $user->id,
+        [
+            'translation_source_content_id' => (string) $sourceContent->id,
+            'translation_source_locale' => 'en',
+            'is_source_locale' => false,
+            'publish_status' => 'published',
+            'delivery_status' => 'delivered',
+        ],
+    );
+
+    $run = ContentAutomationRun::query()->create([
+        'automation_id' => (string) $automation->id,
+        'organization_id' => (int) $automation->organization_id,
+        'workspace_id' => (string) $automation->workspace_id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'status' => 'running',
+        'triggered_by' => 'manual',
+        'started_at' => now(),
+        'metadata' => [],
+    ]);
+    $sourceItem = ContentAutomationRunItem::query()->create([
+        'automation_run_id' => (string) $run->id,
+        'automation_id' => (string) $automation->id,
+        'chain_index' => 1,
+        'item_type' => ContentAutomationRunItem::TYPE_SOURCE,
+        'status' => ContentAutomationRunItem::STATUS_COMPLETED,
+        'content_id' => (string) $sourceContent->id,
+        'draft_id' => (string) $sourceDraft->id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'locale' => 'en',
+        'source_locale' => 'en',
+        'is_source_locale' => true,
+        'generation_status' => 'completed',
+        'translation_status' => ContentAutomationRunItem::TRANSLATION_STATUS_NOT_REQUIRED,
+    ]);
+    $translationItem = ContentAutomationRunItem::query()->create([
+        'automation_run_id' => (string) $run->id,
+        'automation_id' => (string) $automation->id,
+        'source_run_item_id' => (string) $sourceItem->id,
+        'chain_index' => 101,
+        'item_type' => ContentAutomationRunItem::TYPE_TRANSLATION,
+        'status' => ContentAutomationRunItem::STATUS_PLANNED,
+        'client_site_id' => (string) $automation->client_site_id,
+        'locale' => 'nl',
+        'source_locale' => 'en',
+        'is_source_locale' => false,
+        'generation_status' => 'pending',
+        'translation_status' => 'pending',
+    ]);
+
+    app(AutomationRunItemStateService::class)->recordSourceResult($automation, $run, $sourceItem, [
+        'content_id' => (string) $sourceContent->id,
+        'draft_id' => (string) $sourceDraft->id,
+        'published_content_ids' => [],
+        'translation_queue_results' => [
+            [
+                'locale' => 'nl',
+                'mode' => 'existing_reused',
+                'existing_variant_id' => (string) $translatedContent->id,
+                'source_content_id' => (string) $sourceContent->id,
+            ],
+        ],
+    ]);
+
+    $translationItem->refresh();
+
+    expect($translationItem->content_id)->toBe((string) $translatedContent->id)
+        ->and($translationItem->status)->toBe(ContentAutomationRunItem::STATUS_COMPLETED)
+        ->and($translationItem->translation_status)->toBe('completed')
+        ->and($translationItem->delivery_status)->toBe('delivered')
+        ->and($translationItem->publication_status)->toBe('published')
+        ->and($translationItem->last_error_message)->toBeNull();
+});
+
+it('recovers an existing translation variant when the queue reports a duplicate target', function () {
+    [$user, $automation] = makeAutomationLocaleHistoryContext([
+        'locale' => 'en',
+        'locales' => ['en', 'nl'],
+        'include_translation' => true,
+    ]);
+    $run = ContentAutomationRun::query()->create([
+        'automation_id' => (string) $automation->id,
+        'organization_id' => (int) $automation->organization_id,
+        'workspace_id' => (string) $automation->workspace_id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'status' => 'running',
+        'triggered_by' => 'manual',
+        'started_at' => now(),
+        'metadata' => [],
+    ]);
+
+    [$sourceContent, , $sourceDraft] = createAutomationContentBundle(
+        $automation,
+        (string) $run->id,
+        'Existing EN source',
+        'en',
+        $user->id,
+        [
+            'is_source_locale' => true,
+            'publish_status' => 'published',
+            'delivery_status' => 'delivered',
+        ],
+    );
+    [$translatedContent] = createAutomationContentBundle(
+        $automation,
+        (string) $run->id,
+        'Existing NL translation',
+        'nl',
+        $user->id,
+        [
+            'translation_source_content_id' => (string) $sourceContent->id,
+            'translation_source_locale' => 'en',
+            'is_source_locale' => false,
+            'publish_status' => 'published',
+            'delivery_status' => 'delivered',
+        ],
+    );
+
+    $translationService = \Mockery::mock(\App\Services\Translation\TranslationService::class);
+    $translationService
+        ->shouldReceive('resolveExistingTargetVariantForRefresh')
+        ->once()
+        ->andThrow(new \RuntimeException("A translation to 'Dutch' already exists for this draft."));
+    $this->app->instance(\App\Services\Translation\TranslationService::class, $translationService);
+
+    $articleService = app(ContentAutomationArticleService::class);
+    $method = new ReflectionMethod($articleService, 'existingTranslationVariantForQueueFailure');
+    $method->setAccessible(true);
+
+    $existingVariant = $method->invoke(
+        $articleService,
+        $sourceDraft,
+        'nl',
+        new \RuntimeException("A translation to 'Dutch' already exists for this draft.")
+    );
+
+    expect($existingVariant)->toBeInstanceOf(Content::class)
+        ->and((string) $existingVariant->id)->toBe((string) $translatedContent->id);
+});
+
+it('repairs duplicate translation automation failures from existing locale variants', function () {
+    [$user, $automation] = makeAutomationLocaleHistoryContext([
+        'locale' => 'en',
+        'locales' => ['en', 'nl'],
+        'include_translation' => true,
+    ]);
+    $run = ContentAutomationRun::query()->create([
+        'automation_id' => (string) $automation->id,
+        'organization_id' => (int) $automation->organization_id,
+        'workspace_id' => (string) $automation->workspace_id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'status' => 'failed',
+        'triggered_by' => 'manual',
+        'started_at' => now()->subHour(),
+        'finished_at' => now()->subMinutes(30),
+        'error_message' => "A translation to 'Dutch' already exists for this draft.",
+        'metadata' => [
+            'last_error_code' => 'translation_queue_failed',
+            'last_error_message' => "A translation to 'Dutch' already exists for this draft.",
+        ],
+    ]);
+
+    [$sourceContent, , $sourceDraft] = createAutomationContentBundle(
+        $automation,
+        (string) $run->id,
+        'Existing EN source',
+        'en',
+        $user->id,
+        [
+            'is_source_locale' => true,
+            'publish_status' => 'published',
+            'delivery_status' => 'delivered',
+        ],
+    );
+    [$translatedContent] = createAutomationContentBundle(
+        $automation,
+        (string) $run->id,
+        'Existing NL translation',
+        'nl',
+        $user->id,
+        [
+            'translation_source_content_id' => (string) $sourceContent->id,
+            'translation_source_locale' => 'en',
+            'is_source_locale' => false,
+            'publish_status' => 'published',
+            'delivery_status' => 'delivered',
+        ],
+    );
+
+    $sourceItem = ContentAutomationRunItem::query()->create([
+        'automation_run_id' => (string) $run->id,
+        'automation_id' => (string) $automation->id,
+        'chain_index' => 1,
+        'item_type' => ContentAutomationRunItem::TYPE_SOURCE,
+        'status' => ContentAutomationRunItem::STATUS_COMPLETED,
+        'content_id' => (string) $sourceContent->id,
+        'draft_id' => (string) $sourceDraft->id,
+        'client_site_id' => (string) $automation->client_site_id,
+        'locale' => 'en',
+        'source_locale' => 'en',
+        'is_source_locale' => true,
+        'generation_status' => 'completed',
+        'translation_status' => ContentAutomationRunItem::TRANSLATION_STATUS_NOT_REQUIRED,
+    ]);
+    $translationItem = ContentAutomationRunItem::query()->create([
+        'automation_run_id' => (string) $run->id,
+        'automation_id' => (string) $automation->id,
+        'source_run_item_id' => (string) $sourceItem->id,
+        'chain_index' => 101,
+        'item_type' => ContentAutomationRunItem::TYPE_TRANSLATION,
+        'status' => ContentAutomationRunItem::STATUS_FAILED,
+        'failure_stage' => 'translation_queue',
+        'last_error_code' => 'translation_queue_failed',
+        'last_error_message' => "A translation to 'Dutch' already exists for this draft.",
+        'client_site_id' => (string) $automation->client_site_id,
+        'locale' => 'nl',
+        'source_locale' => 'en',
+        'is_source_locale' => false,
+        'generation_status' => 'pending',
+        'translation_status' => 'failed',
+    ]);
+
+    $automation->forceFill([
+        'last_failure_message' => "A translation to 'Dutch' already exists for this draft.",
+        'last_failure_code' => 'translation_queue_failed',
+        'last_failure_run_id' => (string) $run->id,
+        'last_failure_at' => now(),
+    ])->save();
+
+    $this->artisan('automations:repair-duplicate-translation-failures', [
+        '--run-id' => (string) $run->id,
+    ])->assertSuccessful();
+
+    expect($translationItem->fresh()->status)->toBe(ContentAutomationRunItem::STATUS_FAILED);
+
+    $this->artisan('automations:repair-duplicate-translation-failures', [
+        '--run-id' => (string) $run->id,
+        '--apply' => true,
+    ])->assertSuccessful();
+
+    $translationItem->refresh();
+    $run->refresh();
+    $automation->refresh();
+
+    expect($translationItem->content_id)->toBe((string) $translatedContent->id)
+        ->and($translationItem->status)->toBe(ContentAutomationRunItem::STATUS_COMPLETED)
+        ->and($translationItem->translation_status)->toBe('completed')
+        ->and($translationItem->last_error_message)->toBeNull()
+        ->and($run->status->value)->toBe('completed')
+        ->and($run->error_message)->toBeNull()
+        ->and($automation->last_failure_message)->toBeNull()
+        ->and($automation->last_failure_run_id)->toBeNull();
 });
 
 it('repairs historical locale labels from real content records and supports dry run', function () {

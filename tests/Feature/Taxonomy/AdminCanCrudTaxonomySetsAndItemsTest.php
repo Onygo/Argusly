@@ -79,6 +79,37 @@ it('allows admin to crud taxonomy sets and items', function () {
     expect(TaxonomySet::query()->whereKey($set->id)->exists())->toBeFalse();
 });
 
+it('does not recreate a deleted default taxonomy set on the admin index', function () {
+    $admin = makeTaxonomyAdminUser();
+
+    $set = TaxonomySet::query()->create([
+        'name' => 'PL Basis',
+        'description' => 'Default Argusly editorial taxonomy',
+        'is_default' => true,
+    ]);
+
+    TaxonomyItem::query()->create([
+        'taxonomy_set_id' => $set->id,
+        'type' => TaxonomyItem::TYPE_INTENT,
+        'name' => 'Commercial',
+        'slug' => 'commercial',
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->delete(route('admin.editorial-taxonomy.sets.destroy', $set))
+        ->assertRedirect(route('admin.editorial-taxonomy.index'));
+
+    expect(TaxonomySet::query()->where('name', 'PL Basis')->exists())->toBeFalse();
+
+    $this->actingAs($admin)
+        ->get(route('admin.editorial-taxonomy.index'))
+        ->assertOk()
+        ->assertDontSee('PL Basis');
+
+    expect(TaxonomySet::query()->where('name', 'PL Basis')->exists())->toBeFalse();
+});
+
 function makeTaxonomyAdminUser(): User
 {
     $organization = Organization::query()->create([
@@ -100,4 +131,3 @@ function makeTaxonomyAdminUser(): User
         'admin_role' => 'admin',
     ]);
 }
-

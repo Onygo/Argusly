@@ -27,6 +27,7 @@ use App\Services\SocialDistribution\SocialPlatformCapabilities;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -103,7 +104,19 @@ class AppSocialDistributionController extends Controller
             ->where('workspace_id', $workspace->id)
             ->latest()
             ->limit(20)
-            ->get(['id', 'title', 'workspace_id', 'seo_canonical', 'public_blog_excerpt', 'seo_meta_description']);
+            ->get([
+                'id',
+                'title',
+                'workspace_id',
+                'language',
+                'seo_canonical',
+                'published_url',
+                'public_blog_excerpt',
+                'seo_meta_description',
+                'public_blog_tags',
+                'primary_keyword',
+                'aeo_breakdown',
+            ]);
 
         $timeline = $timelinePublications
             ->filter(fn (SocialPublication $publication): bool => $publication->scheduled_for !== null || $publication->published_at !== null)
@@ -119,6 +132,9 @@ class AppSocialDistributionController extends Controller
             'variants' => $variants,
             'publications' => $publications,
             'contentItems' => $contentItems,
+            'contentDistributionContexts' => $contentItems->mapWithKeys(fn (Content $content): array => [
+                (string) $content->id => $this->contentDistributionContext($content),
+            ]),
             'timeline' => $timeline,
             'postTypes' => SocialPostType::values(),
             'scheduleTimezone' => $scheduleTimezone,
@@ -142,6 +158,9 @@ class AppSocialDistributionController extends Controller
             'utm_campaign' => ['nullable', 'string', 'max:180'],
             'utm_content' => ['nullable', 'string', 'max:180'],
             'utm_term' => ['nullable', 'string', 'max:180'],
+            'variant_count' => ['nullable', 'integer', 'min:3', 'max:5'],
+            'desired_post_length' => ['nullable', 'string', Rule::in(['short', 'standard', 'long'])],
+            'desired_publication_date' => ['nullable', 'date'],
         ]);
 
         $content = Content::query()->where('workspace_id', $workspace->id)->findOrFail($data['content_id']);
@@ -163,6 +182,10 @@ class AppSocialDistributionController extends Controller
             'hashtags' => $this->parseHashtags($data['hashtags'] ?? ''),
             'target_audience' => $data['target_audience'] ?? null,
             'tone_of_voice' => $data['tone_of_voice'] ?? null,
+            'variant_count' => $data['variant_count'] ?? 5,
+            'desired_post_length' => $data['desired_post_length'] ?? 'standard',
+            'desired_publication_date' => $data['desired_publication_date'] ?? null,
+            'distribution_context' => $this->contentDistributionContext($content),
         ]);
 
         $audit->record($post, 'social_post.draft_created', null, $post->attributesToArray());
@@ -618,6 +641,91 @@ class AppSocialDistributionController extends Controller
             ->when($request->query('workspace_id'), fn ($query, $id) => $query->where('id', $id))
             ->orderBy('created_at')
             ->firstOrFail();
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function contentDistributionContext(Content $content): array
+    {
+        $keywords = collect([
+            $content->primary_keyword,
+            ...((array) $content->public_blog_tags),
+        ])
+            ->map(fn (mixed $keyword): string => Str::of((string) $keyword)->stripTags()->squish()->toString())
+            ->filter()
+            ->unique(fn (string $keyword): string => Str::lower($keyword))
+            ->take(8)
+            ->values();
+
+        $summary = Str::of((string) ($content->public_blog_excerpt ?: $content->seo_meta_description ?: $content->title))
+            ->stripTags()
+            ->squish()
+            ->limit(260, '')
+            ->toString();
+
+        $titleText = Str::lower($content->title.' '.$content->primary_keyword.' '.$keywords->implode(' '));
+        $isAeo = Str::contains($titleText, ['aeo', 'answer engine', 'ai visibility', 'ai zichtbaarheid', 'visibility answer']);
+
+        $defaultHashtags = $isAeo
+            ? ['#AIVisibility', '#AEO', '#ContentMarketing', '#B2B']
+            : $keywords
+                ->map(fn (string $keyword): string => '#'.Str::of($keyword)->replaceMatches('/[^A-Za-z0-9]+/', '')->limit(32, '')->toString())
+                ->filter(fn (string $tag): bool => strlen($tag) > 1)
+                ->take(4)
+                ->values()
+                ->all();
+
+        return [
+            'subject' => $isAeo ? 'Visibility Answer Engine Optimization (AEO)' : $content->title,
+            'goal' => $isAeo ? 'Thought leadership opbouwen en verkeer naar het artikel genereren.' : 'Thought leadership opbouwen en verkeer naar het artikel genereren.',
+            'primary_cta' => 'Lees het volledige artikel op Argusly.',
+            'target_audience' => $isAeo ? 'B2B marketing leaders, content teams en growth teams' : 'B2B marketing leaders',
+            'tone_of_voice' => 'Strategisch, praktisch en direct',
+            'language' => $content->localeCode(),
+            'canonical_url' => $content->seo_canonical ?: $content->published_url,
+            'summary' => $summary,
+            'seo_keywords' => $keywords->all(),
+            'ai_keywords' => $isAeo
+                ? ['AI zoekmachines', 'antwoordwaardige content', 'ChatGPT', 'Gemini', 'Perplexity', 'AI zichtbaarheid']
+                : $keywords->all(),
+            'recommended_hashtags' => $defaultHashtags !== [] ? $defaultHashtags : ['#ContentMarketing', '#B2B'],
+            'utm_parameters' => [
+                'utm_source' => 'linkedin',
+                'utm_medium' => 'social',
+                'utm_campaign' => Str::slug((string) ($content->primary_keyword ?: $content->title)) ?: 'article-distribution',
+                'utm_content' => 'article-variant',
+            ],
+            'desired_post_length' => 'standard',
+            'variant_count' => 5,
+            'account_type' => 'company',
+            'key_messages' => $isAeo ? [
+                'AI zoekmachines veranderen hoe bedrijven gevonden worden.',
+                'SEO alleen is niet meer voldoende.',
+                'AEO draait om antwoordwaardige content.',
+                'Content moet begrijpelijk zijn voor zowel mensen als AI.',
+                'Organisaties die nu investeren bouwen een voorsprong op.',
+                'Argusly helpt bedrijven hun AI zichtbaarheid te analyseren, kansen te ontdekken en content autonoom te organiseren.',
+            ] : [
+                $summary,
+                'Maak het inzicht praktisch genoeg om op te volgen.',
+                'Verbind de post duidelijk met het volledige artikel.',
+            ],
+            'desired_structure' => ['Hook', 'Probleem', 'Inzicht', 'Praktisch advies', 'CTA naar artikel'],
+            'variant_angles' => $isAeo ? [
+                'Thought leadership: waarom traditionele SEO niet meer voldoende is.',
+                'Praktische tip: 3 manieren om vandaag beter zichtbaar te worden in AI.',
+                'Trend: hoe ChatGPT, Gemini en Perplexity de customer journey veranderen.',
+                'Vraag/discussie: wordt jouw bedrijf al genoemd door AI?',
+                'Data driven: waarom bedrijven minder klikken uit Google krijgen maar zichtbaar moeten blijven.',
+            ] : [
+                'Thought leadership',
+                'Praktische tip',
+                'Trend',
+                'Vraag/discussie',
+                'Data driven',
+            ],
+        ];
     }
 
     private function authorizeVariant(Request $request, SocialPostVariant $variant): void

@@ -15,10 +15,8 @@ use Illuminate\View\View;
 
 class AdminEditorialTaxonomyController extends Controller
 {
-    public function index(Request $request, EditorialTaxonomyService $taxonomyService): View
+    public function index(Request $request): View
     {
-        $taxonomyService->ensureDefaults(0);
-
         $setFilter = trim((string) $request->query('set', ''));
         $typeFilter = strtolower(trim((string) $request->query('type', '')));
         if (! in_array($typeFilter, TaxonomyItem::allowedTypes(), true)) {

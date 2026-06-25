@@ -618,6 +618,25 @@ class TranslationService
                     )
                 )
             ));
+        } elseif ($allowExisting && ! $insideActiveJob && $sourceContent instanceof Content) {
+            $blockingRecords = array_values(array_filter(
+                $blockingRecords,
+                function (array $record) use ($sourceContent, $targetLanguage): bool {
+                    $modelType = (string) ($record['model_type'] ?? '');
+
+                    if (! in_array($modelType, ['content', 'draft'], true)) {
+                        return true;
+                    }
+
+                    $locale = (string) ($record['locale'] ?? $record['content_locale'] ?? '');
+                    $linkedSourceId = (string) ($record['linked_source_content_id'] ?? $record['source_content_id'] ?? '');
+
+                    return ! (
+                        $locale === $targetLanguage->value
+                        && $linkedSourceId === (string) $sourceContent->id
+                    );
+                }
+            ));
         }
 
         $blockingTargetContentRecords = array_values(array_filter(
@@ -982,6 +1001,51 @@ class TranslationService
             null,
             $preferredContent
         )['content'];
+    }
+
+    public function resolveExistingTargetVariantForRefresh(
+        Draft $sourceDraft,
+        SupportedLanguage $targetLanguage,
+        ?Content $preferredContent = null
+    ): ?Content {
+        $target = $this->resolveTargetVariantContent($sourceDraft, $targetLanguage, $preferredContent);
+
+        if ($target instanceof Content) {
+            return $target;
+        }
+
+        $blockingRecords = collect($this->inspectTargetLanguageAvailability($sourceDraft, $targetLanguage)['blocking_records'] ?? []);
+        $blockingContent = $blockingRecords
+            ->first(fn (array $record): bool => (string) ($record['model_type'] ?? '') === 'content');
+        $blockingContentId = is_array($blockingContent) ? ($blockingContent['id'] ?? null) : null;
+
+        if (filled($blockingContentId)) {
+            $content = Content::query()
+                ->with(['currentVersion', 'drafts', 'brief'])
+                ->whereKey((string) $blockingContentId)
+                ->first();
+
+            if ($content instanceof Content && $this->isResolvableTranslationTarget($content, $targetLanguage)) {
+                return $content;
+            }
+        }
+
+        $blockingDraft = $blockingRecords
+            ->first(fn (array $record): bool => (string) ($record['model_type'] ?? '') === 'draft' && filled($record['content_id'] ?? null));
+        $blockingDraftContentId = is_array($blockingDraft) ? ($blockingDraft['content_id'] ?? null) : null;
+
+        if (filled($blockingDraftContentId)) {
+            $content = Content::query()
+                ->with(['currentVersion', 'drafts', 'brief'])
+                ->whereKey((string) $blockingDraftContentId)
+                ->first();
+
+            if ($content instanceof Content && $this->isResolvableTranslationTarget($content, $targetLanguage)) {
+                return $content;
+            }
+        }
+
+        return null;
     }
 
     /**

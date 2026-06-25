@@ -152,8 +152,10 @@ class AppContentSeriesController extends Controller
             'site',
             'creator',
             'seriesArticles.content.currentVersion',
+            'seriesArticles.content.localizedVariants.currentVersion',
             'contents' => fn ($query) => $query->orderBy('created_at'),
             'contents.currentVersion',
+            'contents.localizedVariants.currentVersion',
         ]);
 
         $displayData = $this->buildSeriesDisplayData($series);
@@ -166,7 +168,10 @@ class AppContentSeriesController extends Controller
         $progress = [
             'planned' => max($strategyArticles->count(), (int) $series->articles_count, $articleRows->count()),
             'generated' => $generatedCount,
-            'published' => (int) $series->contents->where('publish_status', 'published')->count(),
+            'published' => (int) $articleRows->sum(fn (array $row): int => (int) data_get($row, 'locale_summary.published', 0)),
+            'translated' => (int) $articleRows->sum(fn (array $row): int => (int) data_get($row, 'locale_summary.translated', 0)),
+            'unpublished' => (int) $articleRows->sum(fn (array $row): int => (int) data_get($row, 'locale_summary.unpublished', 0)),
+            'locales' => (int) $articleRows->sum(fn (array $row): int => (int) data_get($row, 'locale_summary.total', 0)),
         ];
 
         return view('app.content.series.show', [
@@ -302,7 +307,7 @@ class AppContentSeriesController extends Controller
         ContentSeries $series,
         SeriesPublishingService $publishingService
     ): RedirectResponse {
-        $this->authorize('update', $series);
+        $this->authorize('publish', $series);
         $this->assertSeriesInOrganization($request, $series);
 
         try {
@@ -691,6 +696,15 @@ class AppContentSeriesController extends Controller
             }
 
             $isPillar = (bool) ($seriesArticle?->is_pillar ?? data_get($strategyArticle, 'is_pillar', false));
+            $locales = $content
+                ? $this->buildLocaleRowsForSeriesContent($content)
+                : collect();
+            $localeSummary = [
+                'total' => $locales->count(),
+                'translated' => $locales->filter(fn (array $localeRow): bool => ! (bool) $localeRow['is_source'])->count(),
+                'published' => $locales->filter(fn (array $localeRow): bool => (string) $localeRow['publish_status'] === 'published')->count(),
+                'unpublished' => $locales->filter(fn (array $localeRow): bool => (string) $localeRow['publish_status'] !== 'published')->count(),
+            ];
 
             return [
                 'article_number' => $articleNumber,
@@ -703,6 +717,8 @@ class AppContentSeriesController extends Controller
                 'role_label' => $isPillar ? 'Pillar' : 'Supporting',
                 'series_article' => $seriesArticle,
                 'published_at' => (($content?->publish_status ?? '') === 'published') ? $content?->updated_at : null,
+                'locales' => $locales,
+                'locale_summary' => $localeSummary,
                 'content' => $content,
                 'can_retry' => $status === ContentSeriesGenerationRunArticle::STATUS_FAILED,
                 'error_message' => $errorMessage,
@@ -714,6 +730,33 @@ class AppContentSeriesController extends Controller
             'generation_run' => $displayRun,
             'article_rows' => $articleRows,
         ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int,array<string,mixed>>
+     */
+    private function buildLocaleRowsForSeriesContent(Content $content): \Illuminate\Support\Collection
+    {
+        $content->loadMissing('familyRoot', 'translationSourceContent', 'localizedVariants');
+
+        return $content->normalizedLocalizationFamily()
+            ->map(function (Content $variant) use ($content): array {
+                $locale = SupportedLanguage::fromStringOrDefault($variant->localeCode());
+                $publishStatus = (string) ($variant->publish_status ?? 'draft');
+
+                return [
+                    'content' => $variant,
+                    'content_id' => (string) $variant->id,
+                    'locale' => $locale->value,
+                    'label' => strtoupper($locale->value),
+                    'language_label' => $locale->englishLabel(),
+                    'is_source' => (string) $variant->id === (string) $content->localizationSource()->id,
+                    'publish_status' => $publishStatus,
+                    'status_label' => $publishStatus === 'published' ? 'published' : 'draft',
+                    'published_at' => $publishStatus === 'published' ? $variant->updated_at : null,
+                ];
+            })
+            ->values();
     }
 
     /**

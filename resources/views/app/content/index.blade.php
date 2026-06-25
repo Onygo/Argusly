@@ -68,6 +68,12 @@
             'author' => ['label' => 'Author', 'value' => collect($authors ?? [])->firstWhere('id', $filters['author'] ?? '')?->name],
             'inbox' => ['label' => 'Workflow lane', 'value' => $inboxFilters[$filters['inbox'] ?? ''] ?? null],
         ])->filter(fn ($chip) => filled($chip['value'] ?? null));
+        $actionableTranslationStates = [
+            'ready',
+            'stale_recovered',
+            \App\Models\ContentTranslation::STATUS_FAILED,
+            \App\Models\ContentTranslation::STATUS_INSUFFICIENT_CREDITS,
+        ];
     @endphp
 
     <x-app.content-area-header mode="sites" :sites="$sites" :selected-site-id="$filters['site'] ?? null" :filters="$filters" compact>
@@ -373,7 +379,7 @@
                         @endif
                         articles
                     </span>
-                    <span class="ml-2">{{ data_get($group, 'summary.available_locales', 0) }}/{{ data_get($group, 'summary.expected_locales', 0) }} locales</span>
+                    <span class="ml-2">{{ data_get($group, 'summary.available_locales', 0) }}/{{ data_get($group, 'summary.expected_locales', 0) }} languages ready</span>
                 </div>
             @endif
 
@@ -417,7 +423,7 @@
                     </div>
 
                     <div class="pl-mobile-card__meta">
-                        <x-metadata-row label="Publish" :value="data_get($article, 'summary.published_variants', 0) . '/' . (data_get($article, 'summary.available_locales', 0) ?: data_get($article, 'summary.expected_locales', 0)) . ' published'" />
+                        <x-metadata-row label="Published languages" :value="data_get($article, 'summary.published_variants', 0) . '/' . (data_get($article, 'summary.available_locales', 0) ?: data_get($article, 'summary.expected_locales', 0))" />
                         <x-metadata-row label="Site" :value="$article['site_label']" />
                         <x-metadata-row label="Created" :value="$canonical->created_at?->format('M j') ?? '-'" />
                         <x-metadata-row label="Published" :value="$canonical->first_published_at?->format('M j') ?? '-'" />
@@ -520,15 +526,15 @@
     </x-mobile-card-list>
 
     <div class="pl-desktop-table mt-6">
-    <div class="overflow-x-auto rounded-lg border border-border/80 bg-surface p-3 md:p-4">
+    <div class="overflow-x-auto rounded-lg border border-border/80 bg-surface p-3 md:p-4 xl:overflow-visible">
         <table class="w-full min-w-[1120px] table-auto text-sm">
             <thead>
                 <tr class="text-left text-xs uppercase tracking-wide text-textSecondary">
-                    <th class="w-14 pb-2 pr-4 font-medium whitespace-nowrap">Item</th>
-                    <th class="min-w-[24rem] pb-2 pr-4 font-medium">Content</th>
-                    <th class="min-w-[9rem] pb-2 pr-3 font-medium whitespace-nowrap">Locales</th>
-                    <th class="min-w-[7rem] pb-2 pr-3 font-medium whitespace-nowrap">Status</th>
-                    <th class="min-w-[9rem] pb-2 pr-3 font-medium whitespace-nowrap">Publish</th>
+                    <th class="w-14 pb-2 pr-4 font-medium whitespace-nowrap">Set</th>
+                    <th class="min-w-[24rem] pb-2 pr-4 font-medium">Article</th>
+                    <th class="min-w-[9rem] pb-2 pr-3 font-medium whitespace-nowrap">Languages</th>
+                    <th class="min-w-[7rem] pb-2 pr-3 font-medium whitespace-nowrap">Readiness</th>
+                    <th class="min-w-[9rem] pb-2 pr-3 font-medium whitespace-nowrap">Published languages</th>
                     <th class="min-w-[8rem] pb-2 pr-3 font-medium whitespace-nowrap">Site</th>
                     <th class="min-w-[6rem] pb-2 pr-3 font-medium whitespace-nowrap">Created</th>
                     <th class="min-w-[6rem] pb-2 pr-3 font-medium whitespace-nowrap">Published</th>
@@ -548,7 +554,8 @@
                                     @endif
                                     articles
                                 </span>
-                                <span class="ml-2 rounded-full bg-surfaceSubtle px-2 py-0.5">{{ data_get($group, 'summary.available_locales', 0) }}/{{ data_get($group, 'summary.expected_locales', 0) }} locales</span>
+                                <span class="ml-2 rounded-full bg-surfaceSubtle px-2 py-0.5">{{ data_get($group, 'summary.available_locales', 0) }}/{{ data_get($group, 'summary.expected_locales', 0) }} languages ready</span>
+                                <span class="ml-1 rounded-full bg-surfaceSubtle px-2 py-0.5">{{ data_get($group, 'summary.published_variants', 0) }}/{{ data_get($group, 'summary.available_locales', 0) ?: data_get($group, 'summary.expected_locales', 0) }} published</span>
                             </td>
                         </tr>
                     @endif
@@ -598,6 +605,9 @@
                                     {{ $article['title'] }}
                                 </a>
                                 <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                    @if ($hasChildren)
+                                        <span class="inline-flex items-center rounded-full border border-border bg-surface px-2 py-0.5 text-[11px] font-medium text-textPrimary">Article set</span>
+                                    @endif
                                     <span class="inline-flex items-center rounded-full bg-surfaceSubtle px-2 py-0.5 text-[11px] font-medium text-textSecondary">{{ $article['role_label'] }}</span>
                                     <span class="inline-flex items-center rounded-full bg-surfaceSubtle px-2 py-0.5 text-[11px] font-medium text-textSecondary">{{ $originType->label() }}</span>
                                     @if ($canonical->series)
@@ -660,7 +670,7 @@
                                     @if (! $canonical->trashed())
                                         <a class="text-link underline hover:text-linkHover" href="{{ route('app.content.show', $canonical) }}">Open</a>
                                     @endif
-                                    @foreach (collect($article['translation_targets'] ?? [])->take(2) as $target)
+                                    @foreach (collect($article['translation_targets'] ?? [])->filter(fn ($target) => in_array((string) ($target['state'] ?? 'ready'), $actionableTranslationStates, true))->take(2) as $target)
                                         @if (! $canonical->trashed())
                                             <div class="rounded border border-border px-2 py-1 text-xs text-textPrimary">
                                                 <div class="flex items-center gap-1">
@@ -687,44 +697,41 @@
                                             </div>
                                         @endif
                                     @endforeach
-                                    <details class="relative">
-                                        <summary class="cursor-pointer rounded border border-border px-2 py-1 text-xs text-textPrimary hover:bg-surfaceSubtle list-none [&::-webkit-details-marker]:hidden">...</summary>
-                                        <div class="absolute right-0 z-20 mt-2 w-52 rounded-md border border-border bg-surface p-2">
-                                            @if ($canonical->trashed())
-                                                <form method="POST" action="{{ route('app.content.restore', $canonical->id) }}">
-                                                    @csrf
-                                                    <button class="w-full rounded px-2 py-2 text-left text-xs text-textPrimary hover:bg-surfaceSubtle">Restore item</button>
-                                                </form>
-                                            @else
-                                                <button
-                                                    type="button"
-                                                    class="w-full rounded px-2 py-2 text-left text-xs text-textPrimary hover:bg-surfaceSubtle"
-                                                    data-delete-trigger
-                                                    data-action="{{ route('app.content.delete', $canonical->id) }}"
-                                                    data-scope="single"
-                                                    data-count="1"
-                                                    data-title="{{ $canonical->title }}"
-                                                    data-published="{{ ((string) $canonical->publish_status === 'published' || (string) $canonical->status === 'published') ? '1' : '0' }}"
-                                                    data-automation="{{ filled($canonical->automation_id) ? '1' : '0' }}"
-                                                >
-                                                    Delete item
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    class="w-full rounded px-2 py-2 text-left text-xs text-textPrimary hover:bg-surfaceSubtle"
-                                                    data-delete-trigger
-                                                    data-action="{{ route('app.content.delete', $canonical->id) }}"
-                                                    data-scope="family"
-                                                    data-count="{{ max(1, $allVariants->count()) }}"
-                                                    data-title="{{ $canonical->title }}"
-                                                    data-published="{{ $allVariants->contains(fn ($variant) => ((string) data_get($variant, 'content.publish_status') === 'published' || (string) data_get($variant, 'content.status') === 'published')) ? '1' : '0' }}"
-                                                    data-automation="{{ $allVariants->contains(fn ($variant) => filled(data_get($variant, 'content.automation_id'))) ? '1' : '0' }}"
-                                                >
-                                                    Delete all variants
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </details>
+                                    <x-action-menu>
+                                        @if ($canonical->trashed())
+                                            <form method="POST" action="{{ route('app.content.restore', $canonical->id) }}">
+                                                @csrf
+                                                <button class="pl-action-menu__item text-xs">Restore item</button>
+                                            </form>
+                                        @else
+                                            <button
+                                                type="button"
+                                                class="pl-action-menu__item text-xs"
+                                                data-delete-trigger
+                                                data-action="{{ route('app.content.delete', $canonical->id) }}"
+                                                data-scope="single"
+                                                data-count="1"
+                                                data-title="{{ $canonical->title }}"
+                                                data-published="{{ ((string) $canonical->publish_status === 'published' || (string) $canonical->status === 'published') ? '1' : '0' }}"
+                                                data-automation="{{ filled($canonical->automation_id) ? '1' : '0' }}"
+                                            >
+                                                Delete item
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="pl-action-menu__item text-xs"
+                                                data-delete-trigger
+                                                data-action="{{ route('app.content.delete', $canonical->id) }}"
+                                                data-scope="family"
+                                                data-count="{{ max(1, $allVariants->count()) }}"
+                                                data-title="{{ $canonical->title }}"
+                                                data-published="{{ $allVariants->contains(fn ($variant) => ((string) data_get($variant, 'content.publish_status') === 'published' || (string) data_get($variant, 'content.status') === 'published')) ? '1' : '0' }}"
+                                                data-automation="{{ $allVariants->contains(fn ($variant) => filled(data_get($variant, 'content.automation_id'))) ? '1' : '0' }}"
+                                            >
+                                                Delete all variants
+                                            </button>
+                                        @endif
+                                    </x-action-menu>
                                 </div>
                             </td>
                         </tr>
@@ -804,44 +811,41 @@
                                                         @if (! $variantContent->trashed())
                                                             <a class="text-link underline hover:text-linkHover" href="{{ route('app.content.show', $variantContent) }}">Open</a>
                                                         @endif
-                                                        <details class="relative">
-                                                            <summary class="cursor-pointer rounded border border-border px-2 py-1 text-[11px] text-textPrimary hover:bg-surfaceSubtle list-none [&::-webkit-details-marker]:hidden">...</summary>
-                                                            <div class="absolute right-0 z-20 mt-2 w-52 rounded-md border border-border bg-surface p-2">
-                                                                @if ($variantContent->trashed())
-                                                                    <form method="POST" action="{{ route('app.content.restore', $variantContent->id) }}">
-                                                                        @csrf
-                                                                        <button class="w-full rounded px-2 py-2 text-left text-[11px] text-textPrimary hover:bg-surfaceSubtle">Restore item</button>
-                                                                    </form>
-                                                                @else
-                                                                    <button
-                                                                        type="button"
-                                                                        class="w-full rounded px-2 py-2 text-left text-[11px] text-textPrimary hover:bg-surfaceSubtle"
-                                                                        data-delete-trigger
-                                                                        data-action="{{ route('app.content.delete', $variantContent->id) }}"
-                                                                        data-scope="single"
-                                                                        data-count="1"
-                                                                        data-title="{{ $variantContent->title }}"
-                                                                        data-published="{{ ((string) $variantContent->publish_status === 'published' || (string) $variantContent->status === 'published') ? '1' : '0' }}"
-                                                                        data-automation="{{ filled($variantContent->automation_id) ? '1' : '0' }}"
-                                                                    >
-                                                                        Delete item
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        class="w-full rounded px-2 py-2 text-left text-[11px] text-textPrimary hover:bg-surfaceSubtle"
-                                                                        data-delete-trigger
-                                                                        data-action="{{ route('app.content.delete', $variantContent->id) }}"
-                                                                        data-scope="family"
-                                                                        data-count="{{ max(1, $allVariants->count()) }}"
-                                                                        data-title="{{ $variantContent->title }}"
-                                                                        data-published="{{ $allVariants->contains(fn ($variant) => ((string) data_get($variant, 'content.publish_status') === 'published' || (string) data_get($variant, 'content.status') === 'published')) ? '1' : '0' }}"
-                                                                        data-automation="{{ $allVariants->contains(fn ($variant) => filled(data_get($variant, 'content.automation_id'))) ? '1' : '0' }}"
-                                                                    >
-                                                                        Delete all variants
-                                                                    </button>
-                                                                @endif
-                                                            </div>
-                                                        </details>
+                                                        <x-action-menu>
+                                                            @if ($variantContent->trashed())
+                                                                <form method="POST" action="{{ route('app.content.restore', $variantContent->id) }}">
+                                                                    @csrf
+                                                                    <button class="pl-action-menu__item text-[11px]">Restore item</button>
+                                                                </form>
+                                                            @else
+                                                                <button
+                                                                    type="button"
+                                                                    class="pl-action-menu__item text-[11px]"
+                                                                    data-delete-trigger
+                                                                    data-action="{{ route('app.content.delete', $variantContent->id) }}"
+                                                                    data-scope="single"
+                                                                    data-count="1"
+                                                                    data-title="{{ $variantContent->title }}"
+                                                                    data-published="{{ ((string) $variantContent->publish_status === 'published' || (string) $variantContent->status === 'published') ? '1' : '0' }}"
+                                                                    data-automation="{{ filled($variantContent->automation_id) ? '1' : '0' }}"
+                                                                >
+                                                                    Delete item
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    class="pl-action-menu__item text-[11px]"
+                                                                    data-delete-trigger
+                                                                    data-action="{{ route('app.content.delete', $variantContent->id) }}"
+                                                                    data-scope="family"
+                                                                    data-count="{{ max(1, $allVariants->count()) }}"
+                                                                    data-title="{{ $variantContent->title }}"
+                                                                    data-published="{{ $allVariants->contains(fn ($variant) => ((string) data_get($variant, 'content.publish_status') === 'published' || (string) data_get($variant, 'content.status') === 'published')) ? '1' : '0' }}"
+                                                                    data-automation="{{ $allVariants->contains(fn ($variant) => filled(data_get($variant, 'content.automation_id'))) ? '1' : '0' }}"
+                                                                >
+                                                                    Delete all variants
+                                                                </button>
+                                                            @endif
+                                                        </x-action-menu>
                                                     </div>
                                                 </div>
                                             </div>

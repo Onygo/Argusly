@@ -24,18 +24,26 @@ use App\Models\StructuredAnswerBlock;
 use App\Models\User;
 use App\Services\BriefProcessing\BriefToDraftService;
 use App\Services\Credits\GenerationPricing;
+use App\Services\Integrations\LaravelConnectorDestinationResolver;
+use App\Services\Integrations\LaravelConnectorPublishingService;
+use App\Services\Publication\ContentPublicationService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class CampaignAssetGenerationService
 {
     public function __construct(
         private readonly BriefToDraftService $briefToDraftService,
         private readonly GenerationPricing $pricing,
+        private readonly ContentPublicationService $publicationService,
+        private readonly LaravelConnectorDestinationResolver $laravelDestinationResolver,
+        private readonly LaravelConnectorPublishingService $laravelPublishingService,
     ) {}
 
     /**
-     * @return array{generated_content:int,generated_social:int,generated_answer_blocks:int,skipped:int}
+     * @return array{generated_content:int,generated_social:int,generated_answer_blocks:int,skipped:int,scheduled_articles:int,due_publications_queued:int}
      */
     public function generate(Campaign $campaign, User $actor): array
     {
@@ -52,6 +60,8 @@ class CampaignAssetGenerationService
                 'generated_social' => 0,
                 'generated_answer_blocks' => 0,
                 'skipped' => 0,
+                'scheduled_articles' => 0,
+                'due_publications_queued' => 0,
             ];
 
             $languages = $this->campaignLanguages($campaign);
@@ -87,6 +97,8 @@ class CampaignAssetGenerationService
                     $summary[$this->generateContentDraft($campaign, $asset, $actor, $language)]++;
                 }
             }
+
+            $summary = array_replace($summary, $this->publicationSummary($campaign));
 
             return $summary;
         });
@@ -199,6 +211,8 @@ class CampaignAssetGenerationService
         $title = (string) $asset->working_title;
         $description = (string) data_get($brief, 'angle', $campaign->objective);
         $language = SupportedLanguage::fromStringOrDefault($language)->value;
+        $autoPublishArticle = $this->shouldAutoPublishArticle($asset);
+        $scheduledPublishAt = $autoPublishArticle ? $this->plannerScheduledFor($asset) : null;
         $sourceContent = $this->sourceContentForAsset($asset, $campaign, $language);
         if ($sourceContent && ! $sourceContent->family_id) {
             $sourceContent->forceFill([
@@ -227,9 +241,11 @@ class CampaignAssetGenerationService
             'source' => ContentSource::AUTOMATION->value,
             'origin_type' => ContentOriginType::AUTOMATION->value,
             'delivery_status' => 'pending',
+            'scheduled_publish_at' => $scheduledPublishAt,
+            'publish_status' => $scheduledPublishAt ? 'scheduled' : 'draft',
             'generation_mode' => 'balanced',
             'language' => $language,
-            'auto_publish' => false,
+            'auto_publish' => $autoPublishArticle,
             'created_by' => $actor->id,
             'updated_by' => $actor->id,
             'seo_title' => Str::limit($title, 68, ''),
@@ -257,6 +273,8 @@ class CampaignAssetGenerationService
                 'generated_locale_draft_ids' => [
                     $language => $draft ? (string) $draft->id : null,
                 ],
+                'auto_publish' => $autoPublishArticle,
+                'scheduled_publish_at' => $scheduledPublishAt?->toIso8601String(),
                 'generated_at' => now()->toIso8601String(),
             ]),
         ])->save();
@@ -274,6 +292,8 @@ class CampaignAssetGenerationService
 
             return $this->generateContentDraft($campaign, $asset->fresh(), $actor, $language);
         }
+
+        $this->syncPlannerPublishSchedule($asset, $content);
 
         $brief = Brief::query()
             ->where('content_id', $content->id)
@@ -555,6 +575,7 @@ class CampaignAssetGenerationService
                 'schema_type' => $this->schemaTypeFor($asset),
                 'required_credits' => $this->creditsPerDraft(),
                 'language' => $language,
+                'planner_scheduled_for' => $asset->scheduled_for?->toIso8601String(),
             ],
         ]);
     }
@@ -753,6 +774,7 @@ class CampaignAssetGenerationService
                 'asset_type' => $asset->asset_type?->value ?? $asset->asset_type,
                 'locale' => $language,
                 'media_required' => $platform === SocialPlatform::INSTAGRAM->value,
+                'planner_scheduled_for' => $asset->scheduled_for?->toIso8601String(),
                 'brief' => $brief,
             ],
             'generation_result' => [
@@ -765,6 +787,7 @@ class CampaignAssetGenerationService
                 'created_by' => $actor->id,
                 'auto_publish' => false,
                 'locale' => $language,
+                'planner_scheduled_for' => $asset->scheduled_for?->toIso8601String(),
             ],
         ]);
 
@@ -780,6 +803,125 @@ class CampaignAssetGenerationService
         ])->save();
 
         return 'generated_social';
+    }
+
+    private function shouldAutoPublishArticle(CampaignContent $asset): bool
+    {
+        return ($asset->asset_type?->value ?? (string) $asset->asset_type) === CampaignContentAssetType::ARTICLE->value
+            && $this->plannerScheduledFor($asset) !== null;
+    }
+
+    private function plannerScheduledFor(CampaignContent $asset): ?\Illuminate\Support\Carbon
+    {
+        return $asset->scheduled_for?->copy();
+    }
+
+    private function syncPlannerPublishSchedule(CampaignContent $asset, Content $content): void
+    {
+        if (! $this->shouldAutoPublishArticle($asset)) {
+            return;
+        }
+
+        $scheduledPublishAt = $this->plannerScheduledFor($asset);
+        $content->forceFill([
+            'scheduled_publish_at' => $scheduledPublishAt,
+            'publish_status' => 'scheduled',
+            'publish_error' => null,
+            'auto_publish' => true,
+        ])->save();
+
+        $this->dispatchDuePlannerPublication($content->fresh(['clientSite']) ?? $content);
+    }
+
+    private function dispatchDuePlannerPublication(Content $content): bool
+    {
+        if (! $content->scheduled_publish_at || $content->scheduled_publish_at->isFuture()) {
+            return false;
+        }
+
+        $draft = Draft::query()
+            ->where('content_id', $content->id)
+            ->latest('created_at')
+            ->first();
+
+        if (! $draft || trim((string) $draft->content_html) === '') {
+            return false;
+        }
+
+        $content->loadMissing('clientSite');
+        $siteType = ClientSite::normalizeType((string) ($content->clientSite?->type ?? ''));
+        if (! in_array($siteType, [ClientSite::TYPE_WORDPRESS, ClientSite::TYPE_LARAVEL], true)) {
+            return false;
+        }
+
+        try {
+            if ($siteType === ClientSite::TYPE_LARAVEL && ! $this->laravelDestinationResolver->resolveForContent($content)) {
+                $this->laravelPublishingService->publish($content, $draft, 'scheduled_publish', 'campaign_planner.auto_publish');
+
+                return true;
+            }
+
+            $dispatch = $this->publicationService->dispatchPublication($content, $draft, [
+                'source' => 'campaign_planner.auto_publish',
+                'allow_stale_reclaim' => true,
+            ]);
+
+            return (bool) ($dispatch['queued'] ?? false);
+        } catch (Throwable $exception) {
+            Log::warning('campaign_planner.auto_publish_dispatch_failed', [
+                'content_id' => (string) $content->id,
+                'scheduled_publish_at' => $content->scheduled_publish_at?->toIso8601String(),
+                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * @return array{scheduled_articles:int,due_publications_queued:int}
+     */
+    private function publicationSummary(Campaign $campaign): array
+    {
+        $articleContentIds = $campaign->contents()
+            ->where('asset_type', CampaignContentAssetType::ARTICLE->value)
+            ->get()
+            ->flatMap(function (CampaignContent $asset): array {
+                $ids = collect((array) data_get($asset->metadata, 'generated_locale_content_ids', []))
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($asset->content_id) {
+                    $ids[] = (string) $asset->content_id;
+                }
+
+                return $ids;
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($articleContentIds->isEmpty()) {
+            return [
+                'scheduled_articles' => 0,
+                'due_publications_queued' => 0,
+            ];
+        }
+
+        $articles = Content::query()
+            ->whereIn('id', $articleContentIds->all())
+            ->get();
+
+        return [
+            'scheduled_articles' => $articles
+                ->filter(fn (Content $content): bool => $content->scheduled_publish_at !== null && (string) $content->publish_status === 'scheduled')
+                ->count(),
+            'due_publications_queued' => $articles
+                ->filter(fn (Content $content): bool => in_array((string) $content->publish_status, ['publishing', 'published'], true))
+                ->count(),
+        ];
     }
 
     private function generationSite(Campaign $campaign): ?ClientSite
