@@ -43,6 +43,7 @@ use App\Http\Controllers\App\ContentAnswerBlockController;
 use App\Http\Controllers\App\AppImagePresetController;
 use App\Http\Controllers\App\AppGrowthProgramController;
 use App\Http\Controllers\App\AppGrowthAutopilotQueueController;
+use App\Http\Controllers\App\AppHumanContentDashboardController;
 use App\Http\Controllers\App\AppProgrammaticBriefBlueprintController;
 use App\Http\Controllers\App\AppProgrammaticDraftRequestController;
 use App\Http\Controllers\App\AppProgrammaticDraftReviewController;
@@ -167,6 +168,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::get('/onboarding/scan/{scan}', [OnboardingScanController::class, 'show'])->name('app.onboarding.scan.show');
         Route::post('/onboarding/scan/{scan}/confirm', [OnboardingScanController::class, 'confirm'])->name('app.onboarding.scan.confirm');
         Route::get('/insights', [AppInsightsController::class, 'index'])->name('app.insights.index');
+        Route::get('/insights/human-content', [AppHumanContentDashboardController::class, 'index'])->name('app.insights.human-content.index');
         Route::middleware(['ensure.feature.enabled:signal_intelligence'])->group(function () {
             Route::get('/signal-intelligence', [SignalIntelligenceController::class, 'index'])->name('app.signal-intelligence.index');
             Route::post('/signal-intelligence/run', [SignalIntelligenceController::class, 'run'])->middleware('protect.heavy:report')->name('app.signal-intelligence.run');
@@ -635,6 +637,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/drafts/{draft}/internal-linking', [AppDraftsController::class, 'runInternalLinking'])->name('app.drafts.internal-linking.run');
         Route::post('/drafts/{draft}/internal-linking/apply', [AppDraftsController::class, 'applyInternalLinkSuggestion'])->name('app.drafts.internal-linking.apply');
         Route::post('/drafts/{draft}/analyze', [AppDraftsController::class, 'analyze'])->name('app.drafts.analyze');
+        Route::post('/drafts/{draft}/humanize', [AppDraftsController::class, 'humanize'])->name('app.drafts.humanize');
         Route::post('/drafts/{draft}/improve', [AppDraftsController::class, 'improve'])->name('app.drafts.improve');
         Route::post('/drafts/{draft}/translate', [AppDraftsController::class, 'translate'])->name('app.drafts.translate');
         Route::post('/drafts/{draft}/ready-for-review', [AppDraftsController::class, 'markReadyForReview'])->name('app.drafts.ready-for-review');

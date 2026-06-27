@@ -30,7 +30,8 @@ describe('BriefDefaultBuilder', function () {
             ->and($result['audience']['level'])->toBe('general')
             ->and($result['audience']['persona'])->toBe('website visitor')
             ->and($result['search_context']['stage'])->toBe('awareness')
-            ->and($result['structure']['type'])->toBe('blog_article');
+            ->and($result['editorial_plan_seed']['type'])->toBe('blog_article')
+            ->and($result['editorial_plan_seed']['intentions'])->toContain('Answer the reader question directly');
     });
 
     it('builds valid brief structure from title and keyword', function () {
@@ -54,8 +55,8 @@ describe('BriefDefaultBuilder', function () {
             ->and($result['audience'])->toBe('website visitor')
             ->and($result['funnel_stage'])->toBe('awareness')
             ->and($result['search_intent'])->toBe('informational')
-            ->and($result['structure'])->toBeArray()
-            ->and($result['structure'])->toContain('Opening');
+            ->and($result['editorial_intentions'])->toBeArray()
+            ->and($result['editorial_intentions'])->toContain('Answer the reader question directly');
     });
 
     it('detects incomplete brief data', function () {
@@ -83,7 +84,7 @@ describe('BriefDefaultBuilder', function () {
 
         expect($merged['audience'])->toBe('developers') // Should keep existing
             ->and($merged['intent']['keys'])->toBe(['test keyword']) // Should add missing
-            ->and($merged['structure'])->toBeArray(); // Should add missing
+            ->and($merged['editorial_intentions'])->toBeArray(); // Should add missing
     });
 });
 
@@ -103,7 +104,9 @@ describe('Draft generation from minimal content', function () {
             ->and(data_get($draft->meta, 'intent_keys'))->toBeArray()
             ->and(data_get($draft->meta, 'intent_keys'))->not->toBeEmpty()
             ->and(data_get($draft->meta, 'audience'))->not->toBeNull()
-            ->and(data_get($draft->meta, 'structure'))->toBeArray();
+            ->and(data_get($draft->meta, 'editorial_plan.central_thesis'))->not->toBeEmpty()
+            ->and(data_get($draft->meta, 'editorial_plan.section_intentions'))->toBeArray()
+            ->and(data_get($draft->meta, 'structure'))->toBeNull();
 
         Queue::assertPushed(GenerateDraftJob::class);
     });
@@ -128,6 +131,7 @@ describe('Draft generation from minimal content', function () {
             ->and(data_get($draft->meta, 'audience'))->not->toBeNull()
             ->and(data_get($draft->meta, 'funnel_stage'))->not->toBeNull()
             ->and(data_get($draft->meta, 'search_intent'))->not->toBeNull()
+            ->and(data_get($draft->meta, 'editorial_plan.expected_reader_takeaway'))->not->toBeEmpty()
             ->and(data_get($draft->meta, 'brief_defaults_applied'))->toBeTrue();
     });
 
@@ -172,7 +176,7 @@ describe('NormalizeContentBrief service', function () {
             'meta' => [
                 'language' => 'en',
                 'primary_keyword' => 'test keyword',
-                // Missing: intent_keys, audience, structure
+                // Missing: intent_keys, audience, editorial_intentions
             ],
         ]);
 
@@ -183,10 +187,10 @@ describe('NormalizeContentBrief service', function () {
         expect($result['normalized'])->toBeTrue()
             ->and($result['fields_added'])->toContain('intent_keys')
             ->and($result['fields_added'])->toContain('audience')
-            ->and($result['fields_added'])->toContain('structure')
+            ->and($result['fields_added'])->toContain('editorial_intentions')
             ->and(data_get($result['meta'], 'intent_keys'))->not->toBeEmpty()
             ->and(data_get($result['meta'], 'audience'))->not->toBeNull()
-            ->and(data_get($result['meta'], 'structure'))->toBeArray()
+            ->and(data_get($result['meta'], 'editorial_intentions'))->toBeArray()
             ->and(data_get($result['meta'], '_normalized'))->toBeTrue()
             ->and(data_get($result['meta'], '_normalized_at'))->not->toBeNull();
     });
@@ -204,7 +208,7 @@ describe('NormalizeContentBrief service', function () {
             'audience_tags' => ['tag1'],
             'funnel_stage' => 'consideration',
             'search_intent' => 'commercial',
-            'structure' => ['Custom structure'],
+            'editorial_intentions' => ['Custom editorial intention'],
             'content_type' => 'landing_page',
             'preferred_length' => 'long',
             'secondary_keywords' => ['secondary1'],
@@ -228,7 +232,7 @@ describe('NormalizeContentBrief service', function () {
             ->and($result['fields_added'])->toBeEmpty()
             ->and(data_get($result['meta'], 'intent_keys'))->toBe(['existing intent'])
             ->and(data_get($result['meta'], 'audience'))->toBe('existing audience')
-            ->and(data_get($result['meta'], 'structure'))->toBe(['Custom structure'])
+            ->and(data_get($result['meta'], 'editorial_intentions'))->toBe(['Custom editorial intention'])
             ->and(data_get($result['meta'], '_normalized'))->toBeNull();
     });
 

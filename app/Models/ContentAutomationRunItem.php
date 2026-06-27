@@ -21,6 +21,7 @@ class ContentAutomationRunItem extends Model
     public const STATUS_PARTIAL = 'partial';
     public const STATUS_FAILED = 'failed';
     public const STATUS_SKIPPED = 'skipped';
+    public const STATUS_NEEDS_EDITORIAL_REVIEW = 'needs_editorial_review';
 
     public const TRANSLATION_STATUS_NOT_REQUIRED = 'not_required';
 

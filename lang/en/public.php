@@ -102,6 +102,7 @@ return [
         'llm_visibility' => 'LLM visibility',
         'ai_visibility_score' => 'AI Visibility Score',
         'ai_visibility_agentic_marketing' => 'AI Visibility & Agentic Marketing',
+        'agentic_marketing_os' => 'Agentic Marketing OS',
         'ai_search_optimization' => 'AI search optimization',
         'agentic_marketing' => 'Agentic Marketing',
     ],

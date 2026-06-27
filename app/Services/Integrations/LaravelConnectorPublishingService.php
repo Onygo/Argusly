@@ -11,6 +11,7 @@ use App\Models\ContentPublishTarget;
 use App\Models\Draft;
 use App\Models\Event;
 use App\Services\Content\ContentLifecycleService;
+use App\Services\HumanContent\HumanContentGate;
 use App\Services\Publication\LaravelPublicationBridge;
 use App\Services\Publication\PublicationLegacyCompatibilityService;
 use App\Services\Seo\CanonicalUrlService;
@@ -25,6 +26,7 @@ class LaravelConnectorPublishingService
         private readonly LaravelPublicationBridge $publicationBridge,
         private readonly PublicationLegacyCompatibilityService $legacyCompatibility,
         private readonly CanonicalUrlService $canonicals,
+        private readonly HumanContentGate $humanContentGate,
     ) {}
 
     public function publish(Content $content, ?Draft $draft = null, string $mode = 'publish_now', string $source = 'app.content.publish-now'): ContentPublishTarget
@@ -37,6 +39,13 @@ class LaravelConnectorPublishingService
 
         if (! $draft) {
             throw new RuntimeException('No draft found for Laravel publishing.');
+        }
+
+        $gate = $this->humanContentGate->evaluate($draft, $content);
+        if (! $gate['passed']) {
+            $this->humanContentGate->markDraft($draft, $content);
+
+            throw new RuntimeException($this->humanContentGate->message($gate));
         }
 
         $destination = $this->destinationResolver->resolveForContent($content);

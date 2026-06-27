@@ -32,6 +32,24 @@ class SeriesStrategyService
             ->values()
             ->all();
         $intentKeys = $this->resolveIntentKeys($series, $supportingKeywords);
+        $editorialPlanArticles = collect((array) data_get($series->strategy_json, 'articles', []))
+            ->filter(fn ($row): bool => is_array($row) && trim((string) data_get($row, 'title', '')) !== '')
+            ->values()
+            ->all();
+        $editorialPlanText = $editorialPlanArticles !== []
+            ? json_encode($editorialPlanArticles, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+            : '';
+        $existingMeta = is_array(data_get($series->strategy_json, 'meta')) ? (array) data_get($series->strategy_json, 'meta') : [];
+        $sourceUrl = trim((string) ($existingMeta['source_url'] ?? ''));
+        $sourceReferences = collect((array) ($existingMeta['source_references'] ?? []))
+            ->map(fn ($value): string => trim((string) $value))
+            ->filter()
+            ->values()
+            ->all();
+        if ($sourceReferences === [] && $sourceUrl !== '') {
+            $sourceReferences = [$sourceUrl];
+        }
+        $strategicPositioning = trim((string) ($existingMeta['strategic_positioning'] ?? ''));
 
         $prompt = implode("\n", [
             'Create a chained SEO content strategy as strict JSON.',
@@ -44,13 +62,20 @@ class SeriesStrategyService
             'Tone: ' . (string) ($series->tone ?: 'professional'),
             'Funnel stage: ' . (string) ($series->funnel_stage ?: 'consideration'),
             'Generate exactly ' . $articleCount . ' articles.',
+            $sourceReferences !== [] ? 'Source references: ' . implode(' | ', $sourceReferences) : null,
+            $sourceReferences !== [] ? 'Use these sources as strategic context and market signals only. Do not summarize, copy, or mirror any source; create an original Argusly-led perspective.' : null,
+            $strategicPositioning !== '' ? 'Strategic positioning: ' . $strategicPositioning : null,
+            $strategicPositioning !== '' ? 'Every article should reflect this positioning with original insights, practical examples, and a distinct point of view.' : null,
+            $editorialPlanText !== '' ? 'Editorial article plan supplied by the user: ' . $editorialPlanText : null,
+            $editorialPlanText !== '' ? 'Preserve supplied article titles exactly. Use supplied editorial_angle values as article-specific guidance. Fill missing keywords, secondary keywords, and internal links around those titles.' : null,
             'Each article must include:',
             '- title',
             '- primary_keyword',
             '- secondary_keywords (array)',
+            '- editorial_angle (string, when useful)',
             '- internal_links_to (array of article numbers that this article should link to)',
             'Return JSON only with this shape:',
-            '{"angle":"...","articles":[{"title":"...","primary_keyword":"...","secondary_keywords":["..."],"internal_links_to":[2,3]}]}',
+            '{"angle":"...","articles":[{"title":"...","primary_keyword":"...","secondary_keywords":["..."],"editorial_angle":"...","internal_links_to":[2,3]}]}',
         ]);
 
         $response = $this->llmManager->generateJson(
@@ -80,20 +105,21 @@ class SeriesStrategyService
             payload: is_array($response->json) ? $response->json : [],
             articleCount: $articleCount,
             series: $series,
-            supportingKeywords: $supportingKeywords
+            supportingKeywords: $supportingKeywords,
+            editorialPlanArticles: $editorialPlanArticles
         );
 
         $series->update([
             'status' => ContentSeries::STATUS_STRATEGY_GENERATED,
             'strategy_json' => array_merge($normalized, [
-                'meta' => [
+                'meta' => array_merge($existingMeta, [
                     'generated_at' => now()->toIso8601String(),
                     'provider' => (string) $response->providerName,
                     'model' => (string) $response->modelUsed,
                     'request_id' => (string) $response->requestId,
                     'usage' => $response->usage->toArray(),
                     'intent_keys' => $intentKeys,
-                ],
+                ]),
             ]),
         ]);
 
@@ -107,7 +133,7 @@ class SeriesStrategyService
      * @param array<int,string> $supportingKeywords
      * @return array{angle:string,articles:array<int,array{article_number:int,title:string,primary_keyword:string,secondary_keywords:array<int,string>,internal_links_to:array<int,int>,is_pillar:bool}>}
      */
-    private function normalizeStrategy(array $payload, int $articleCount, ContentSeries $series, array $supportingKeywords): array
+    private function normalizeStrategy(array $payload, int $articleCount, ContentSeries $series, array $supportingKeywords, array $editorialPlanArticles = []): array
     {
         $articles = [];
         $rawArticles = is_array($payload['articles'] ?? null) ? $payload['articles'] : [];
@@ -115,13 +141,15 @@ class SeriesStrategyService
 
         for ($i = 1; $i <= $articleCount; $i++) {
             $raw = is_array($rawArticles[$i - 1] ?? null) ? $rawArticles[$i - 1] : [];
+            $planned = is_array($editorialPlanArticles[$i - 1] ?? null) ? $editorialPlanArticles[$i - 1] : [];
 
             $primaryKeyword = trim((string) ($raw['primary_keyword'] ?? ''));
             if ($primaryKeyword === '') {
-                $primaryKeyword = $supportingKeywords[$i - 1] ?? ((string) $series->primary_keyword . ' ' . $i);
+                $primaryKeyword = trim((string) data_get($planned, 'primary_keyword', ''))
+                    ?: ($supportingKeywords[$i - 1] ?? ((string) $series->primary_keyword . ' ' . $i));
             }
 
-            $title = trim((string) ($raw['title'] ?? ''));
+            $title = trim((string) data_get($planned, 'title', '')) ?: trim((string) ($raw['title'] ?? ''));
             if ($title === '') {
                 $title = ucfirst($primaryKeyword);
             }
@@ -163,6 +191,8 @@ class SeriesStrategyService
                 'title' => $title,
                 'primary_keyword' => $primaryKeyword,
                 'secondary_keywords' => $secondaryKeywords,
+                'editorial_angle' => trim((string) data_get($planned, 'editorial_angle', ''))
+                    ?: trim((string) data_get($raw, 'editorial_angle', '')),
                 'is_pillar' => false,
                 'internal_links_to' => [],
             ];

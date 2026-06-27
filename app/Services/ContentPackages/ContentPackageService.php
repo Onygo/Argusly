@@ -237,7 +237,7 @@ class ContentPackageService
             'label' => 'Primary CTA',
             'text' => 'Turn this insight into your next measurable growth action.',
             'rationale' => 'The CTA asks for a concrete next step while staying aligned with the opportunity.',
-            'placement' => 'Conclusion and LinkedIn post ending',
+            'placement' => 'Article ending and LinkedIn post ending',
         ];
     }
 

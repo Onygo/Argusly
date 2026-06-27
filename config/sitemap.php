@@ -46,6 +46,7 @@ return [
         'public.solutions.competitive-intelligence',
         'public.solutions.marketing-without-large-team',
         'public.agentic-marketing',
+        'public.agentic-marketing-operating-system',
         'public.markets.it-services-saas',
         'public.markets.consulting-professional-services',
         'public.markets.recruitment-staffing',

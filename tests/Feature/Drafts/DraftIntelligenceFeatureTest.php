@@ -20,6 +20,8 @@ use App\Services\CreditWalletService;
 use App\Services\Drafts\DraftIntelligenceBillingService;
 use App\Services\Drafts\Exceptions\DraftImprovementException;
 use App\Services\Drafts\DraftIntelligenceService;
+use App\Services\HumanContent\HumanContentScoreService;
+use App\Services\HumanContent\HumanizationService;
 use App\Services\Llm\Data\LlmRequest;
 use App\Services\Llm\Data\LlmResponse;
 use App\Services\Llm\Data\LlmUsage;
@@ -195,8 +197,226 @@ it('renders intelligence tabs and latest draft analysis details', function () {
         ->assertSee('History')
         ->assertSee('Strong draft with CTA gaps')
         ->assertSee('Primary keyword coverage is solid.')
+        ->assertSee('No Human Content score yet')
+        ->assertSee('Human Content metrics are not available for this older draft analysis yet.')
         ->assertSee('Content strategy guide');
 });
+
+it('renders human content metrics in the draft intelligence view', function () {
+    Queue::fake();
+
+    [$user, $draft] = makeDraftIntelligenceContext('draft-human-metrics');
+    $draft->forceFill([
+        'meta' => array_merge(is_array($draft->meta) ? $draft->meta : [], [
+            'human_content' => [
+                'before' => [
+                    'human_content_score' => 54,
+                    'editorial_quality_score' => 57,
+                    'originality_score' => 58,
+                    'ai_fingerprint_score' => 71,
+                ],
+            ],
+            'humanization' => [
+                'status' => 'applied',
+                'change_summary' => 'Reworked generic sections and varied paragraph rhythm.',
+                'before_after_notes' => ['Replaced a generic opening with reader tension.'],
+                'preserved_validation' => ['passed' => true],
+            ],
+            'human_content_gate' => [
+                'passed' => true,
+                'status' => 'passed',
+                'reasons' => [],
+            ],
+        ]),
+    ])->save();
+
+    DraftAnalysis::query()->create([
+        'id' => (string) Str::uuid(),
+        'draft_id' => $draft->id,
+        'seo_score' => 82,
+        'readability_score' => 77,
+        'analysis_model' => 'deterministic:human-content',
+        'suggestions' => [
+            'summary' => ['headline' => 'Human content ready', 'overall_explanation' => 'The article has a clear thesis and human rhythm.'],
+            'human_content' => [
+                'status' => 'pass',
+                'passed' => true,
+                'human_content_score' => 83,
+                'editorial_quality_score' => 81,
+                'originality_score' => 79,
+                'ai_fingerprint_score' => 22,
+                'narrative_flow_score' => 78,
+                'human_voice_score' => 84,
+                'expertise_score' => 76,
+                'rhythm_score' => 80,
+                'curiosity_score' => 74,
+                'findings' => ['The draft carries a recognizable thesis.'],
+                'recommendations' => ['Keep the current editorial direction.'],
+                'suggested_humanization_actions' => ['Preserve the concrete examples.'],
+                'dimension_breakdown' => [
+                    'editorial_quality_score' => ['score' => 81, 'band' => 'Strong'],
+                    'originality_score' => ['score' => 79, 'band' => 'Strong'],
+                    'ai_fingerprint_score' => ['score' => 22, 'band' => 'Low risk'],
+                    'narrative_flow_score' => ['score' => 78, 'band' => 'Strong'],
+                    'human_voice_score' => ['score' => 84, 'band' => 'Strong'],
+                    'expertise_score' => ['score' => 76, 'band' => 'Strong'],
+                    'rhythm_score' => ['score' => 80, 'band' => 'Strong'],
+                    'curiosity_score' => ['score' => 74, 'band' => 'Developing'],
+                ],
+            ],
+            'sections' => [
+                'human_content' => [
+                    'score' => 83,
+                    'status_label' => 'pass',
+                    'explanation' => 'Human content signals are strong.',
+                    'findings' => ['The draft carries a recognizable thesis.'],
+                    'improvements' => ['Keep the current editorial direction.'],
+                    'suggested_humanization_actions' => ['Preserve the concrete examples.'],
+                ],
+                'seo' => ['score' => 82, 'explanation' => 'SEO is intact.', 'improvements' => []],
+                'publish_readiness' => ['score' => 86, 'status_label' => 'Ready to publish', 'blocking_issues' => [], 'recommended_next_actions' => []],
+            ],
+            'top_improvements' => ['Keep the current editorial direction.'],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.drafts.show', ['draft' => $draft, 'tab' => 'intelligence']))
+        ->assertOk()
+        ->assertSee('Human Content metrics')
+        ->assertSee('Human Content Score')
+        ->assertSee('Editorial Quality')
+        ->assertSee('Originality')
+        ->assertSee('AI Fingerprint')
+        ->assertSee('Narrative Flow')
+        ->assertSee('Human Voice')
+        ->assertSee('Expertise')
+        ->assertSee('Rhythm')
+        ->assertSee('Curiosity')
+        ->assertSee('Publish Gate Status')
+        ->assertSee('Before 54')
+        ->assertSee('After 83')
+        ->assertSee('Run Humanization')
+        ->assertSee('Apply Human Content fixes')
+        ->assertSee('Re-score Human Content')
+        ->assertSee('Reworked generic sections and varied paragraph rhythm.');
+});
+
+it('shows failed human content publish gate reasons in the intelligence view', function () {
+    Queue::fake();
+
+    [$user, $draft] = makeDraftIntelligenceContext('draft-human-gate-blocked');
+    $draft->forceFill([
+        'meta' => array_merge(is_array($draft->meta) ? $draft->meta : [], [
+            'publish_gate_status' => 'needs_editorial_review',
+            'human_content_gate' => [
+                'passed' => false,
+                'status' => 'needs_editorial_review',
+                'reasons' => ['Human content score is below 70.', 'Generated article is missing a usable Editorial Plan.'],
+            ],
+        ]),
+    ])->save();
+
+    DraftAnalysis::query()->create([
+        'id' => (string) Str::uuid(),
+        'draft_id' => $draft->id,
+        'seo_score' => 72,
+        'suggestions' => [
+            'summary' => ['headline' => 'Needs review', 'overall_explanation' => 'Publication is blocked by Human Content gate.'],
+            'sections' => [
+                'seo' => ['score' => 72, 'explanation' => 'SEO is adequate.', 'improvements' => []],
+                'publish_readiness' => [
+                    'score' => 54,
+                    'status_label' => 'Needs editorial review',
+                    'blocking_issues' => ['Human content score is below 70.'],
+                    'recommended_next_actions' => ['Review the Human Content gate findings before publication.'],
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.drafts.show', ['draft' => $draft, 'tab' => 'intelligence']))
+        ->assertOk()
+        ->assertSee('Human Content publish gate')
+        ->assertSee('Needs Editorial Review')
+        ->assertSee('Human content score is below 70.')
+        ->assertSee('Generated article is missing a usable Editorial Plan.');
+});
+
+it('runs humanization from the draft intelligence view action', function () {
+    Queue::fake([AnalyzeDraftJob::class]);
+
+    [$user, $draft] = makeDraftIntelligenceContext('draft-humanize-action');
+    $draft->forceFill([
+        'content_html' => '<h1>Introduction</h1><p>In today\'s digital landscape, content is a game changer.</p>',
+        'meta' => array_merge(is_array($draft->meta) ? $draft->meta : [], [
+            'editorial_plan' => [
+                'central_thesis' => 'Humanized content should replace generic framing with practical judgment.',
+                'primary_pattern' => ['name' => 'Problem to Discovery', 'article_movement' => 'Move from generic phrasing to practical editorial judgment.'],
+            ],
+        ]),
+    ])->save();
+
+    $before = draftHumanizationScorePayload(48, 50, 46, 82, false);
+    $after = draftHumanizationScorePayload(78, 76, 75, 24, true);
+
+    $scorer = Mockery::mock(HumanContentScoreService::class);
+    $scorer->shouldReceive('scoreForDraft')->twice()->andReturn($before, $after);
+    $this->app->instance(HumanContentScoreService::class, $scorer);
+
+    $humanizer = Mockery::mock(HumanizationService::class);
+    $humanizer->shouldReceive('shouldHumanize')->once()->with($before)->andReturnTrue();
+    $humanizer->shouldReceive('humanize')->once()->andReturn([
+        'version' => HumanizationService::VERSION,
+        'changed' => true,
+        'improved_html' => '<h1>Why practical judgment changes content</h1><p>Content improves when teams replace generic claims with observed constraints.</p>',
+        'change_summary' => 'Replaced generic framing with practical judgment.',
+        'before_after_notes' => ['Rewrote the opening around reader tension.'],
+        'preserved_validation' => ['passed' => true],
+        'status' => 'applied',
+    ]);
+    $this->app->instance(HumanizationService::class, $humanizer);
+
+    $this->actingAs($user)
+        ->post(route('app.drafts.humanize', $draft))
+        ->assertRedirect(route('app.drafts.show', ['draft' => $draft, 'tab' => 'intelligence']))
+        ->assertSessionHas('status', 'Humanization completed and Human Content re-score queued.');
+
+    $draft->refresh();
+
+    expect($draft->content_html)->toContain('Why practical judgment changes content')
+        ->and(data_get($draft->meta, 'humanization_status'))->toBe('applied')
+        ->and(data_get($draft->meta, 'human_content_score_before'))->toBe(48)
+        ->and(data_get($draft->meta, 'human_content_score_after'))->toBe(78)
+        ->and(data_get($draft->meta, 'publish_gate_status'))->toBe('passed');
+
+    Queue::assertPushed(AnalyzeDraftJob::class);
+});
+
+function draftHumanizationScorePayload(int $humanScore, int $editorialScore, int $originalityScore, int $fingerprintScore, bool $passed): array
+{
+    return [
+        'status' => $passed ? 'pass' : 'fail',
+        'passed' => $passed,
+        'human_content_score' => $humanScore,
+        'editorial_quality_score' => $editorialScore,
+        'originality_score' => $originalityScore,
+        'narrative_flow_score' => $editorialScore,
+        'human_voice_score' => $editorialScore,
+        'expertise_score' => $editorialScore,
+        'rhythm_score' => $editorialScore,
+        'curiosity_score' => $editorialScore,
+        'ai_fingerprint_score' => $fingerprintScore,
+        'findings' => ['Humanization test finding.'],
+        'ai_fingerprint' => [
+            'severity' => $fingerprintScore > 45 ? 'high' : 'low',
+            'findings' => $fingerprintScore > 45 ? [
+                ['type' => 'generic_headings', 'severity' => 'high', 'humanization_action' => 'Rewrite generic headings.'],
+            ] : [],
+        ],
+    ];
+}
 
 it('queues manual analyze action from the draft workspace', function () {
     Queue::fake();
@@ -228,6 +448,7 @@ it('queues each supported draft improvement action from the draft workspace', fu
     });
 })->with([
     'improve_full_draft' => 'improve_full_draft',
+    'human_content' => 'human_content',
     'seo' => 'seo',
     'readability' => 'readability',
     'cta' => 'cta',

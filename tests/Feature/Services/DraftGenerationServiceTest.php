@@ -91,12 +91,12 @@ function validOpenAiResponse(): array
             ],
             'sections' => [
                 [
-                    'heading' => 'Introduction',
+                    'heading' => 'What testing workflows need before automation',
                     'html' => '<p>This is the introduction paragraph with enough content to pass validation. ' .
                         str_repeat('Lorem ipsum dolor sit amet. ', 20) . '</p>',
                 ],
                 [
-                    'heading' => 'Main Content',
+                    'heading' => 'How testing improves unit test reliability',
                     'html' => '<p>This is the main content section with detailed information. ' .
                         str_repeat('Consectetur adipiscing elit. ', 20) . '</p>',
                 ],
@@ -128,7 +128,8 @@ describe('generate', function () {
 
         expect($result['title'])->toBe('Test Article Title');
         expect($result['content_html'])->not->toContain('<h2>Introduction</h2>');
-        expect($result['content_html'])->toContain('<h2>Main Content</h2>');
+        expect($result['content_html'])->toContain('<h2>How testing improves unit test reliability</h2>');
+        expect($result['meta']['heading_quality']['passed'])->toBeTrue();
     });
 
     it('throws exception when OpenAI API key is not set', function () {
@@ -236,7 +237,7 @@ describe('generate', function () {
                     ],
                     'sections' => [
                         [
-                            'heading' => 'Intro',
+                            'heading' => 'How testing supports reliable content workflows',
                             'html' => '<p>' . str_repeat('Content here. ', 50) . '</p>',
                         ],
                     ],
@@ -269,7 +270,7 @@ describe('generate', function () {
             'meta' => ['description' => 'Description', 'keywords' => []],
             'sections' => [
                 [
-                    'heading' => 'Intro',
+                    'heading' => 'How testing supports reliable content workflows',
                     'html' => '<p>' . str_repeat('Content text here. ', 30) . '</p>',
                 ],
             ],
@@ -296,7 +297,7 @@ describe('generate', function () {
             'meta' => ['description' => 'Description', 'keywords' => []],
             'sections' => [
                 [
-                    'heading' => 'Section',
+                    'heading' => 'How testing signals improve content quality',
                     'html' => '<p>' . str_repeat('Long content here. ', 30) . '</p>',
                 ],
             ],
@@ -361,7 +362,7 @@ describe('generate', function () {
                             'html' => '<p>' . str_repeat('Opening paragraph content. ', 30) . '</p>',
                         ],
                         [
-                            'heading' => 'Main Content',
+                            'heading' => 'How testing examples guide implementation',
                             'html' => '<p>' . str_repeat('Main body content. ', 30) . '</p>',
                         ],
                     ],
@@ -374,8 +375,36 @@ describe('generate', function () {
         $result = $this->service->generate($draft);
 
         expect($result['content_html'])->not->toContain('<h2>Opening</h2>');
-        expect($result['content_html'])->toContain('<h2>Main Content</h2>');
+        expect($result['content_html'])->toContain('<h2>How testing examples guide implementation</h2>');
     });
+
+    it('rejects generic headings through the draft generation quality gate', function () {
+        config(['llm.providers.openai.api_key' => 'test-api-key']);
+
+        Http::fake([
+            '*/v1/responses' => Http::response([
+                'output_text' => json_encode([
+                    'title' => 'Generic Heading Test',
+                    'meta' => ['description' => 'Description', 'keywords' => []],
+                    'sections' => [
+                        [
+                            'heading' => 'Main Section',
+                            'html' => '<p>' . str_repeat('This paragraph has enough content to pass length validation. ', 30) . '</p>',
+                        ],
+                        [
+                            'heading' => 'How testing improves implementation performance',
+                            'html' => '<p>' . str_repeat('This second paragraph has enough context for validation. ', 30) . '</p>',
+                        ],
+                    ],
+                    'links' => [],
+                ]),
+            ]),
+        ]);
+
+        $draft = createMockedDraft();
+
+        $this->service->generate($draft);
+    })->throws(RuntimeException::class, 'Heading Quality Score failed');
 
     it('uses default values when draft meta is incomplete', function () {
         config(['llm.providers.openai.api_key' => 'test-api-key']);
@@ -498,6 +527,85 @@ describe('payload building', function () {
             $userPrompt = collect($request['input'])->firstWhere('role', 'user')['content'] ?? '';
             return str_contains($userPrompt, 'My Custom Topic');
         });
+    });
+
+    it('uses the editorial plan as the main generation input in the prompt', function () {
+        config(['llm.providers.openai.api_key' => 'test-api-key']);
+
+        Http::fake([
+            '*/v1/responses' => Http::response(validOpenAiResponse()),
+        ]);
+
+        $draft = createMockedDraft([
+            'meta' => [
+                'language' => 'en',
+                'tone' => 'professional',
+                'primary_keyword' => 'testing',
+                'intent_keys' => ['guide'],
+                'editorial_plan' => [
+                    'version' => 'editorial_plan_v1',
+                    'central_thesis' => 'Testing strategy needs editorial judgment before automation.',
+                    'reader_misconception' => 'Readers may think testing is only a tool selection issue.',
+                    'primary_pattern' => [
+                        'name' => 'Decision Guide',
+                        'article_movement' => 'Define the decision, name criteria, compare tradeoffs, and recommend a path.',
+                        'heading_guidance' => 'Headings should name decisions and tradeoffs directly.',
+                    ],
+                    'evidence_plan' => ['Use implementation constraints as evidence.'],
+                    'expert_observations' => ['Senior teams review failure modes before choosing tooling.'],
+                    'counterarguments' => ['Some teams need simpler coverage before advanced automation.'],
+                    'rhythm_plan' => 'Use criteria blocks followed by consultative recommendations.',
+                    'section_intentions' => [
+                        ['intention' => 'Frame the decision', 'job' => 'Show what the reader must decide.'],
+                    ],
+                    'things_to_avoid' => ['Avoid generic SEO article shape.'],
+                ],
+            ],
+        ]);
+
+        $payload = $this->service->buildGenerationPayloadForDraft($draft);
+
+        expect($payload['system'])->toContain('senior editor, subject matter interviewer, and practical consultant')
+            ->and($payload['system'])->toContain('Use the Editorial Plan as the main generation input')
+            ->and($payload['user'])->toContain('EDITORIAL PLAN')
+            ->and($payload['user'])->toContain('Central thesis')
+            ->and($payload['user'])->toContain('Testing strategy needs editorial judgment before automation.')
+            ->and($payload['user'])->toContain('reader tension')
+            ->and($payload['user'])->toContain('expert judgment')
+            ->and($payload['user'])->toContain('Use evidence')
+            ->and($payload['user'])->toContain('practical implications')
+            ->and($payload['user'])->toContain('counterargument, caveat, or nuance')
+            ->and($payload['user'])->toContain('Vary rhythm naturally')
+            ->and($payload['user'])->toContain('non-generic h2/h3 headings')
+            ->and($payload['user'])->toContain('do not use a template-like conclusion')
+            ->and($payload['user'])->toContain('Return JSON only, exactly matching this schema description:');
+    });
+
+    it('does not include banned fallback article structures in generated prompts', function () {
+        $draft = createMockedDraft();
+
+        $payload = $this->service->buildGenerationPayloadForDraft($draft);
+        $combinedPrompt = $payload['system'] . "\n" . $payload['user'];
+
+        expect($combinedPrompt)->not->toContain('Requested structure:')
+            ->and($combinedPrompt)->not->toContain("- Opening\n")
+            ->and($combinedPrompt)->not->toContain("- Main section\n")
+            ->and($combinedPrompt)->not->toContain("- Practical examples\n")
+            ->and($combinedPrompt)->not->toContain("- Conclusion\n")
+            ->and($combinedPrompt)->not->toContain('SEO friendly content')
+            ->and($combinedPrompt)->not->toContain('Write factual, structured')
+            ->and($combinedPrompt)->not->toContain('expert B2B content writer');
+    });
+
+    it('persists generated editorial plan metadata while building the generation payload', function () {
+        $draft = createMockedDraft(['meta' => ['language' => 'en', 'primary_keyword' => 'testing']]);
+
+        $payload = $this->service->buildGenerationPayloadForDraft($draft);
+
+        expect($payload['user'])->toContain('EDITORIAL PLAN')
+            ->and(data_get($draft->meta, 'editorial_plan.version'))->toBe('editorial_plan_v1')
+            ->and(data_get($draft->meta, 'editorial_plan.central_thesis'))->not->toBeEmpty()
+            ->and(data_get($draft->meta, 'editorial_plan.primary_pattern.name'))->not->toBeEmpty();
     });
 
     it('includes primary keyword in user prompt when set', function () {

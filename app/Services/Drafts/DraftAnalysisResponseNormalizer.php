@@ -36,6 +36,8 @@ class DraftAnalysisResponseNormalizer
         'entities_score' => 'sections.entities.score',
         'entitiesScore' => 'sections.entities.score',
         'entity_score' => 'sections.entities.score',
+        'human_content_score' => 'sections.human_content.score',
+        'humanContentScore' => 'sections.human_content.score',
 
         // Top-level explanation alternatives
         'seo_explanation' => 'sections.seo.explanation',
@@ -58,6 +60,8 @@ class DraftAnalysisResponseNormalizer
         'publishReadinessExplanation' => 'sections.publish_readiness.explanation',
         'entities_explanation' => 'sections.entities.explanation',
         'entitiesExplanation' => 'sections.entities.explanation',
+        'human_content_explanation' => 'sections.human_content.explanation',
+        'humanContentExplanation' => 'sections.human_content.explanation',
 
         // Top-level improvement alternatives
         'seo_improvements' => 'sections.seo.improvements',
@@ -84,6 +88,8 @@ class DraftAnalysisResponseNormalizer
         'publishReadinessNextActions' => 'sections.publish_readiness.recommended_next_actions',
         'entities_improvements' => 'sections.entities.improvements',
         'entitiesImprovements' => 'sections.entities.improvements',
+        'human_content_improvements' => 'sections.human_content.improvements',
+        'humanContentImprovements' => 'sections.human_content.improvements',
 
         // Internal link alternatives
         'links' => 'internal_link_opportunities',
@@ -193,6 +199,7 @@ class DraftAnalysisResponseNormalizer
                 'trust_evidence' => $emptySection,
                 'publish_readiness' => $publishReadinessSection,
                 'entities' => $emptySection,
+                'human_content' => $emptySection,
             ],
             'keyword_coverage' => [
                 'score' => null,
@@ -221,7 +228,7 @@ class DraftAnalysisResponseNormalizer
         }
 
         // Check if section keys are at top level
-        $sectionKeys = ['seo', 'readability', 'cta', 'structure', 'llm_visibility', 'brand_voice_fit', 'conversion_fit', 'trust_evidence', 'publish_readiness', 'entities'];
+        $sectionKeys = ['seo', 'readability', 'cta', 'structure', 'llm_visibility', 'brand_voice_fit', 'conversion_fit', 'trust_evidence', 'publish_readiness', 'entities', 'human_content'];
         $foundSections = [];
 
         foreach ($sectionKeys as $key) {
@@ -287,7 +294,7 @@ class DraftAnalysisResponseNormalizer
         $sections = [];
         $rawSections = is_array($value) ? $value : [];
 
-        foreach (['seo', 'readability', 'cta', 'structure', 'llm_visibility', 'brand_voice_fit', 'conversion_fit', 'trust_evidence', 'publish_readiness', 'entities'] as $key) {
+        foreach (['seo', 'readability', 'cta', 'structure', 'llm_visibility', 'brand_voice_fit', 'conversion_fit', 'trust_evidence', 'publish_readiness', 'entities', 'human_content'] as $key) {
             $raw = data_get($rawSections, $key, []);
             $sections[$key] = $this->normalizeSection($raw);
         }

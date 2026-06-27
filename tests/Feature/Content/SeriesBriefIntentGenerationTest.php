@@ -36,11 +36,11 @@ it('completes the full series happy path for 1 pillar and 3 supporting articles 
             ],
             'sections' => [
                 [
-                    'heading' => 'Intro',
+                    'heading' => 'Why automation strategy matters to the buying team',
                     'html' => '<p>' . str_repeat('This article explains the topic with practical implementation detail. ', 22) . '</p>',
                 ],
                 [
-                    'heading' => 'Execution',
+                    'heading' => 'How implementation choices reduce automation risk',
                     'html' => '<p>' . str_repeat('It also includes execution detail and next steps for the reader. ', 22) . '</p>',
                 ],
             ],
@@ -268,11 +268,11 @@ it('handles series with no user configured intent keys by using output type defa
             'meta' => ['description' => 'Comprehensive KB article covering essential topics.'],
             'sections' => [
                 [
-                    'heading' => 'Introduction',
+                    'heading' => 'What content context clarifies before choosing an approach',
                     'html' => '<p>' . str_repeat('This knowledge base article explains the fundamentals and best practices. ', 25) . '</p>',
                 ],
                 [
-                    'heading' => 'Core Concepts',
+                    'heading' => 'How automation concepts shape the operating model',
                     'html' => '<p>' . str_repeat('Understanding these core concepts is essential for implementation success. ', 25) . '</p>',
                 ],
             ],

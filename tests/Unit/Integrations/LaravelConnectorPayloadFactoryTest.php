@@ -56,6 +56,17 @@ it('maps knowledge article payloads for laravel connector destinations', functio
                 'sync_endpoint' => '/argusly/sync',
                 'enabled' => true,
                 'mode' => 'hosted_views',
+                'taxonomy' => [
+                    'topic_map' => [
+                        'llm-integration' => [
+                            'id' => 'topic-ai-integration',
+                            'name' => 'AI Integration',
+                            'slug' => 'ai-integration',
+                            'description' => 'Mapped client topic',
+                        ],
+                    ],
+                    'default_topics' => ['Fallback Topic'],
+                ],
             ],
         ],
     ]);
@@ -111,6 +122,14 @@ it('maps knowledge article payloads for laravel connector destinations', functio
                 'name' => 'Knowledge',
                 'slug' => 'knowledge',
                 'description' => 'Knowledge content',
+            ],
+            'categories' => [
+                'Engineering',
+                ['name' => 'AI', 'slug' => 'ai'],
+            ],
+            'topics' => [
+                'LLM integration',
+                ['name' => 'Automation', 'slug' => 'automation'],
             ],
             'related_articles' => [
                 [
@@ -196,6 +215,49 @@ it('maps knowledge article payloads for laravel connector destinations', functio
         'slug' => 'knowledge',
         'description' => 'Knowledge content',
     ]);
+    expect(data_get($payload, 'article.categories'))->toBe([
+        [
+            'id' => 'cat-knowledge',
+            'name' => 'Knowledge',
+            'slug' => 'knowledge',
+            'description' => 'Knowledge content',
+        ],
+        [
+            'id' => 'engineering',
+            'name' => 'Engineering',
+            'slug' => 'engineering',
+            'description' => '',
+        ],
+        [
+            'id' => 'ai',
+            'name' => 'AI',
+            'slug' => 'ai',
+            'description' => '',
+        ],
+    ]);
+    expect(data_get($payload, 'article.topics'))->toBe([
+        [
+            'id' => 'topic-ai-integration',
+            'name' => 'AI Integration',
+            'slug' => 'ai-integration',
+            'description' => 'Mapped client topic',
+        ],
+        [
+            'id' => 'automation',
+            'name' => 'Automation',
+            'slug' => 'automation',
+            'description' => '',
+        ],
+        [
+            'id' => 'laravel-connector',
+            'name' => 'laravel connector',
+            'slug' => 'laravel-connector',
+            'description' => '',
+        ],
+    ]);
+    expect(data_get($payload, 'article.taxonomy.category.slug'))->toBe('knowledge');
+    expect(data_get($payload, 'article.taxonomy.categories.1.slug'))->toBe('engineering');
+    expect(data_get($payload, 'article.taxonomy.topics.0.slug'))->toBe('ai-integration');
 
     expect(data_get($payload, 'article.related_articles'))->toBe([]);
 });

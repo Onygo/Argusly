@@ -35,10 +35,14 @@ class LaravelConnectorPayloadFactory
             'answerBlocks',
             'series:id,name',
             'seriesArticle:id,series_id,content_id,article_number,is_pillar',
+            'workspace.defaultCompanyIntelligenceProfile',
         ]);
 
         $draft = $content->drafts->first();
         $category = $this->resolveCategory($content, $draft);
+        $categories = $this->resolveCategories($content, $draft, $destination, $category);
+        $category ??= Arr::first($categories);
+        $topics = $this->resolveTopics($content, $draft, $destination, $categories);
         $sourceUpdatedAt = $draft?->updated_at ?: $content->updated_at;
         $status = $articleStatus ?: 'published';
 
@@ -77,6 +81,13 @@ class LaravelConnectorPayloadFactory
                 'source_updated_at' => optional($sourceUpdatedAt)->toIso8601String(),
                 'argusly' => $this->resolveArguslyMetadata($content),
                 'category' => $category,
+                'categories' => $categories,
+                'topics' => $topics,
+                'taxonomy' => [
+                    'category' => $category,
+                    'categories' => $categories,
+                    'topics' => $topics,
+                ],
                 'chain' => $content->series_id ? [
                     'series_id' => (string) $content->series_id,
                     'series_name' => (string) ($content->series?->name ?? ''),
@@ -116,6 +127,71 @@ class LaravelConnectorPayloadFactory
         }
 
         return null;
+    }
+
+    /**
+     * @param array<string, string>|null $primaryCategory
+     * @return array<int, array<string, string>>
+     */
+    private function resolveCategories(Content $content, ?Draft $draft, ContentDestination $destination, ?array $primaryCategory): array
+    {
+        $settings = $this->taxonomySettings($destination);
+        $candidates = [
+            $primaryCategory,
+            data_get($draft?->meta, 'categories', []),
+            data_get($draft?->meta, 'taxonomy.categories', []),
+            data_get($content->draftVersion?->meta, 'categories', []),
+            data_get($content->draftVersion?->meta, 'taxonomy.categories', []),
+            $content->public_blog_category,
+        ];
+
+        $categories = $this->normalizeTaxonomyList($candidates, data_get($settings, 'category_map', []));
+
+        if ($categories === []) {
+            $categories = $this->normalizeTaxonomyList(data_get($settings, 'default_categories', []), data_get($settings, 'category_map', []));
+        }
+
+        return $this->uniqueTaxonomy($categories);
+    }
+
+    /**
+     * @param array<int, array<string, string>> $categories
+     * @return array<int, array<string, string>>
+     */
+    private function resolveTopics(Content $content, ?Draft $draft, ContentDestination $destination, array $categories): array
+    {
+        $settings = $this->taxonomySettings($destination);
+        $profile = $content->workspace?->defaultCompanyIntelligenceProfile;
+        $candidates = [
+            data_get($draft?->meta, 'topics', []),
+            data_get($draft?->meta, 'topic'),
+            data_get($draft?->meta, 'taxonomy.topics', []),
+            data_get($content->draftVersion?->meta, 'topics', []),
+            data_get($content->draftVersion?->meta, 'topic'),
+            data_get($content->draftVersion?->meta, 'taxonomy.topics', []),
+            $content->public_blog_tags,
+            $content->primary_keyword,
+        ];
+
+        $topics = $this->normalizeTaxonomyList($candidates, data_get($settings, 'topic_map', []));
+
+        if ($topics === []) {
+            $topics = $this->normalizeTaxonomyList(data_get($settings, 'default_topics', []), data_get($settings, 'topic_map', []));
+        }
+
+        if ($topics === [] && $profile) {
+            $topics = $this->normalizeTaxonomyList([
+                $profile->primary_topics,
+                $profile->authority_areas,
+                $profile->strategic_keywords,
+            ], data_get($settings, 'topic_map', []));
+        }
+
+        if ($topics === []) {
+            $topics = $categories;
+        }
+
+        return $this->uniqueTaxonomy($topics);
     }
 
     /**
@@ -394,6 +470,110 @@ class LaravelConnectorPayloadFactory
             'slug' => $resolvedSlug,
             'description' => trim((string) ($candidate['description'] ?? '')),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function taxonomySettings(ContentDestination $destination): array
+    {
+        $settings = $destination->laravelConnectorSettings();
+        $taxonomy = data_get($settings, 'taxonomy', []);
+
+        return is_array($taxonomy) ? $taxonomy : [];
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function normalizeTaxonomyList(mixed $value, mixed $map = []): array
+    {
+        $items = [];
+
+        foreach ($this->flattenTaxonomyCandidates($value) as $candidate) {
+            $normalized = $this->normalizeCategoryCandidate($this->mappedTaxonomyCandidate($candidate, $map));
+
+            if ($normalized !== null) {
+                $items[] = $normalized;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function flattenTaxonomyCandidates(mixed $value): array
+    {
+        if (is_string($value)) {
+            return collect(explode(',', $value))
+                ->map(fn (string $item): string => trim($item))
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        if (! is_array($value)) {
+            return $value === null ? [] : [$value];
+        }
+
+        if ($this->looksLikeTaxonomyItem($value)) {
+            return [$value];
+        }
+
+        return collect($value)
+            ->flatMap(fn (mixed $item): array => $this->flattenTaxonomyCandidates($item))
+            ->values()
+            ->all();
+    }
+
+    private function looksLikeTaxonomyItem(array $value): bool
+    {
+        return array_key_exists('name', $value)
+            || array_key_exists('label', $value)
+            || array_key_exists('slug', $value)
+            || array_key_exists('description', $value);
+    }
+
+    private function mappedTaxonomyCandidate(mixed $candidate, mixed $map): mixed
+    {
+        if (! is_array($map) || $map === []) {
+            return $candidate;
+        }
+
+        $normalized = $this->normalizeCategoryCandidate($candidate);
+        if ($normalized === null) {
+            return $candidate;
+        }
+
+        $keys = array_filter([
+            $normalized['id'] ?? null,
+            $normalized['slug'] ?? null,
+            $normalized['name'] ?? null,
+            Str::slug($normalized['name'] ?? ''),
+        ]);
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $map)) {
+                return $map[$key];
+            }
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * @param array<int, array<string, string>> $items
+     * @return array<int, array<string, string>>
+     */
+    private function uniqueTaxonomy(array $items): array
+    {
+        return collect($items)
+            ->filter(fn (array $item): bool => trim((string) ($item['slug'] ?? '')) !== '')
+            ->unique(fn (array $item): string => (string) $item['slug'])
+            ->values()
+            ->all();
     }
 
     /**

@@ -13,6 +13,8 @@ use App\Services\Drafts\Intelligence\DraftImprovementPromptBuilder;
 use App\Services\Drafts\Intelligence\DraftIntelligenceRubricRegistry;
 use App\Services\Drafts\Intelligence\DraftIntelligenceScanService;
 use App\Services\LinkIntelligence\DefaultLinkSuggestionService;
+use App\Services\HumanContent\HumanContentGate;
+use App\Services\HumanContent\HumanContentScoreService;
 use App\Services\Llm\Data\LlmMessage;
 use App\Services\Llm\Data\LlmRequest;
 use App\Services\Llm\Data\LlmResponse;
@@ -44,6 +46,8 @@ class DraftIntelligenceService
         private readonly DraftIntelligenceScanService $scanService,
         private readonly DraftImprovementPromptBuilder $improvementPromptBuilder,
         private readonly DraftIntelligenceRubricRegistry $rubricRegistry,
+        private readonly HumanContentScoreService $humanContentScore,
+        private readonly HumanContentGate $humanContentGate,
     ) {}
 
     public function analyze(Draft $draft, bool $force = false): DraftAnalysisDTO
@@ -271,7 +275,7 @@ class DraftIntelligenceService
 
     public static function improvementPromptVersionForAction(DraftImprovementAction $action): string
     {
-        return $action === DraftImprovementAction::FULL_DRAFT
+        return in_array($action, [DraftImprovementAction::FULL_DRAFT, DraftImprovementAction::HUMAN_CONTENT], true)
             ? self::FULL_IMPROVEMENT_PROMPT_VERSION
             : self::IMPROVEMENT_PROMPT_VERSION;
     }
@@ -540,7 +544,7 @@ class DraftIntelligenceService
             $errors[] = 'change_notes must be an array or null';
         }
 
-        if ($action === DraftImprovementAction::FULL_DRAFT) {
+        if (in_array($action, [DraftImprovementAction::FULL_DRAFT, DraftImprovementAction::HUMAN_CONTENT], true)) {
             if (! array_key_exists('change_notes', $payload)) {
                 $errors[] = 'missing change_notes key';
             } elseif (! is_array($payload['change_notes'])) {
@@ -613,6 +617,9 @@ class DraftIntelligenceService
         return match ($action) {
             DraftImprovementAction::FULL_DRAFT => [
                 'Improved the draft holistically across SEO, readability, headings, and CTA.',
+            ],
+            DraftImprovementAction::HUMAN_CONTENT => [
+                'Improved the draft for Human Content quality, editorial specificity, rhythm, and AI-fingerprint resistance.',
             ],
             DraftImprovementAction::SEO => ['Improved SEO metadata and supporting copy.'],
             DraftImprovementAction::READABILITY => ['Improved readability and sentence flow.'],
@@ -807,6 +814,7 @@ class DraftIntelligenceService
         $normalizedLlm = $normalizationResult['normalized'];
         $parserErrors = $normalizationResult['errors'];
         $normalized = $this->scanService->mergeWithLlm($normalized, $normalizedLlm, $snapshot, $signals);
+        $normalized = $this->enrichHumanContentScore($draft, $normalized);
         $normalized['context'] = array_merge((array) ($normalized['context'] ?? []), $this->analysisContext($draft, $snapshot), [
             'provider' => $response->providerName,
             'model' => $response->modelUsed,
@@ -902,6 +910,7 @@ class DraftIntelligenceService
             'headline' => 'Deterministic draft intelligence baseline',
             'overall_explanation' => Str::limit($errorMessage, 240),
         ];
+        $normalized = $this->enrichHumanContentScore($draft, $normalized);
         $normalized['context'] = array_merge((array) ($normalized['context'] ?? []), $this->analysisContext($draft, $snapshot), [
             'provider' => 'deterministic',
             'model' => 'deterministic:phase4',
@@ -936,6 +945,129 @@ class DraftIntelligenceService
             parserErrors: [],
             validationErrors: ['LLM analysis failed, using deterministic baseline: ' . Str::limit($errorMessage, 100)],
         );
+    }
+
+    /**
+     * @param array<string,mixed> $normalized
+     * @return array<string,mixed>
+     */
+    private function enrichHumanContentScore(Draft $draft, array $normalized): array
+    {
+        $score = $this->humanContentScore->scoreForDraft($draft);
+        $actions = array_values((array) data_get($score, 'suggested_humanization_actions', []));
+        $recommendations = array_values((array) data_get($score, 'recommendations', []));
+
+        data_set($normalized, 'human_content', $score);
+        data_set($normalized, 'sections.human_content', [
+            'score' => data_get($score, 'human_content_score'),
+            'explanation' => $this->humanContentExplanation($score),
+            'improvements' => $recommendations,
+            'status_label' => data_get($score, 'status'),
+            'findings' => array_values((array) data_get($score, 'findings', [])),
+            'suggested_humanization_actions' => $actions,
+            'dimension_breakdown' => (array) data_get($score, 'dimension_breakdown', []),
+        ]);
+        data_set($normalized, 'context.human_content_score_version', HumanContentScoreService::VERSION);
+
+        if (! (bool) data_get($score, 'passed', false)) {
+            $publishReadiness = (array) data_get($normalized, 'sections.publish_readiness', []);
+            $currentScore = data_get($publishReadiness, 'score');
+            $publishReadiness['score'] = is_numeric($currentScore) ? min((int) $currentScore, 64) : 64;
+            $publishReadiness['status_label'] = 'Needs human review';
+            $publishReadiness['blocking_issues'] = $this->mergeUniqueStrings(
+                (array) data_get($publishReadiness, 'blocking_issues', []),
+                ['Human content score did not pass editorial quality thresholds.']
+            );
+            $publishReadiness['recommended_next_actions'] = $this->mergeUniqueStrings(
+                (array) data_get($publishReadiness, 'recommended_next_actions', []),
+                $actions
+            );
+            $publishReadiness['improvements'] = $this->mergeUniqueStrings(
+                (array) data_get($publishReadiness, 'improvements', []),
+                ['Run a humanization pass before publication.']
+            );
+            data_set($normalized, 'sections.publish_readiness', $publishReadiness);
+        }
+
+        $meta = is_array($draft->meta) ? $draft->meta : [];
+        $meta['human_content_score_after'] = (int) data_get($score, 'human_content_score', 0);
+        $meta['ai_fingerprint_score_after'] = (int) data_get($score, 'ai_fingerprint_score', 0);
+        $meta['fingerprint_findings'] = (array) data_get($score, 'ai_fingerprint.findings', []);
+        $meta['corpus_diversity_findings'] = (array) data_get($score, 'corpus_diversity.findings', []);
+        data_set($meta, 'human_content.after', [
+            'status' => (string) data_get($score, 'status', ''),
+            'passed' => (bool) data_get($score, 'passed', false),
+            'human_content_score' => (int) data_get($score, 'human_content_score', 0),
+            'editorial_quality_score' => (int) data_get($score, 'editorial_quality_score', 0),
+            'originality_score' => (int) data_get($score, 'originality_score', 0),
+            'uniqueness_score' => (int) data_get($score, 'uniqueness_score', 0),
+            'ai_fingerprint_score' => (int) data_get($score, 'ai_fingerprint_score', 0),
+            'corpus_diversity_score' => (int) data_get($score, 'corpus_diversity.score', 100),
+            'corpus_diversity_risk_score' => (int) data_get($score, 'corpus_diversity.risk_score', 0),
+            'corpus_diversity_status' => (string) data_get($score, 'corpus_diversity.status', ''),
+            'corpus_diversity_findings' => (array) data_get($score, 'corpus_diversity.findings', []),
+        ]);
+        $draft->forceFill(['meta' => $meta])->save();
+
+        $gate = $this->humanContentGate->markDraft($draft->fresh(['content']), $draft->content);
+        data_set($normalized, 'human_content_gate', $gate);
+        data_set($normalized, 'context.human_content_gate_status', $gate['status']);
+
+        if (! (bool) data_get($gate, 'passed', false)) {
+            $publishReadiness = (array) data_get($normalized, 'sections.publish_readiness', []);
+            $currentScore = data_get($publishReadiness, 'score');
+            $publishReadiness['score'] = is_numeric($currentScore) ? min((int) $currentScore, 64) : 64;
+            $publishReadiness['status_label'] = 'Needs editorial review';
+            $publishReadiness['blocking_issues'] = $this->mergeUniqueStrings(
+                (array) data_get($publishReadiness, 'blocking_issues', []),
+                (array) data_get($gate, 'reasons', [])
+            );
+            $publishReadiness['recommended_next_actions'] = $this->mergeUniqueStrings(
+                (array) data_get($publishReadiness, 'recommended_next_actions', []),
+                ['Review the Human Content gate findings before publication.']
+            );
+            $publishReadiness['improvements'] = $this->mergeUniqueStrings(
+                (array) data_get($publishReadiness, 'improvements', []),
+                ['Resolve Human Content publishing gate blockers.']
+            );
+            data_set($normalized, 'sections.publish_readiness', $publishReadiness);
+        }
+
+        $normalized['top_improvements'] = $this->mergeUniqueStrings(
+            (array) data_get($normalized, 'top_improvements', []),
+            array_slice($actions, 0, 2)
+        );
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string,mixed> $score
+     */
+    private function humanContentExplanation(array $score): string
+    {
+        $status = (bool) data_get($score, 'passed', false) ? 'passes' : 'needs work';
+        $humanScore = (int) data_get($score, 'human_content_score', 0);
+        $editorialScore = (int) data_get($score, 'editorial_quality_score', 0);
+        $evidenceScore = (int) data_get($score, 'evidence_usage_score', 0);
+        $fingerprintScore = (int) data_get($score, 'ai_fingerprint_score', 0);
+
+        return "Human content {$status}: overall {$humanScore}, editorial quality {$editorialScore}, evidence {$evidenceScore}, AI fingerprint {$fingerprintScore}.";
+    }
+
+    /**
+     * @param array<int,mixed> ...$lists
+     * @return array<int,string>
+     */
+    private function mergeUniqueStrings(array ...$lists): array
+    {
+        return collect($lists)
+            ->flatten()
+            ->map(fn (mixed $value): string => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function findReusableAnalysis(Draft $draft): ?DraftAnalysis

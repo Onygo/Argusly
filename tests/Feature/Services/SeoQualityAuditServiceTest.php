@@ -2,6 +2,7 @@
 
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Models\ContentVersion;
 use App\Models\Organization;
 use App\Models\Workspace;
 use App\Services\Seo\SeoQualityAuditService;
@@ -133,4 +134,57 @@ it('keeps seo quality audit queries scoped to a workspace when provided', functi
     expect($result['summary']['audited'])->toBe(1)
         ->and(collect($result['items'])->pluck('title')->all())->toContain('Scoped AI Visibility Article')
         ->and(collect($result['items'])->pluck('title')->all())->not->toContain('Other Workspace Article');
+});
+
+it('includes AI fingerprint findings in the seo quality audit', function () {
+    $organization = Organization::query()->create([
+        'name' => 'SEO AI Fingerprint Org',
+        'slug' => 'seo-ai-fingerprint-' . Str::lower(Str::random(6)),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'name' => 'SEO AI Fingerprint Workspace',
+        'organization_id' => $organization->id,
+    ]);
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'SEO AI Fingerprint Site',
+        'site_url' => 'https://seo-ai-fingerprint.example.test',
+        'base_url' => 'https://seo-ai-fingerprint.example.test',
+        'allowed_domains' => ['seo-ai-fingerprint.example.test'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $content = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'client_site_id' => (string) $site->id,
+        'title' => 'Generic AI article',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+    ]);
+
+    $version = ContentVersion::query()->create([
+        'content_id' => (string) $content->id,
+        'type' => ContentVersion::TYPE_DRAFT,
+        'source' => ContentVersion::SOURCE_ARGUSLY,
+        'body' => '<h1>Introduction</h1><p>In today\'s digital landscape, it is important to note that teams can unlock the power of a robust solution.</p><h2>Main Section</h2><p>Moreover, this game changer helps businesses stay ahead of the curve.</p><h2>Conclusion</h2><p>In conclusion, get started today.</p>',
+        'meta' => [],
+    ]);
+    $content->update(['current_version_id' => (string) $version->id]);
+
+    $result = app(SeoQualityAuditService::class)->auditContent($content->fresh('currentVersion'));
+
+    expect($result['issue_types'])->toContain('ai_readiness')
+        ->and($result['issues'])->toContain('Headings are too generic.')
+        ->and(data_get($result, 'ai_fingerprint.score'))->toBeGreaterThanOrEqual(45)
+        ->and(collect(data_get($result, 'ai_fingerprint.findings'))->pluck('type')->all())->toContain('generic_headings');
 });

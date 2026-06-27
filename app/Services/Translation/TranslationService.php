@@ -14,6 +14,8 @@ use App\Models\Draft;
 use App\Models\Workspace;
 use App\Services\Content\TranslationDebugService;
 use App\Services\Content\TranslationLockService;
+use App\Services\HumanContent\HumanContentScoreService;
+use App\Services\HumanContent\HumanizationService;
 use App\Services\Llm\Data\LlmMessage;
 use App\Services\Llm\Data\LlmRequest;
 use App\Services\Llm\LlmManager;
@@ -33,6 +35,8 @@ class TranslationService
         protected SeoLocalizationService $seoLocalizationService,
         protected TranslationLockService $translationLocks,
         protected TranslationDebugService $translationDebug,
+        protected HumanContentScoreService $humanContentScoreService,
+        protected HumanizationService $humanizationService,
     ) {}
 
     public function translate(
@@ -135,6 +139,7 @@ class TranslationService
         }
 
         $result = $this->normalizeTranslationResultForLanguage($response->json, $targetLanguage);
+        $this->validateTranslatedLinks($sourceDraft, (string) data_get($result, 'content_html', ''));
 
         return [
             'title' => $result['title'] ?? $sourceDraft->title,
@@ -197,6 +202,36 @@ class TranslationService
 
             return $matches[1].DutchTextCasingNormalizer::normalizeText($inner).$matches[3];
         }, $html) ?? $html;
+    }
+
+    private function validateTranslatedLinks(Draft $sourceDraft, string $translatedHtml): void
+    {
+        $sourceLinks = $this->extractHrefs((string) $sourceDraft->content_html);
+        if ($sourceLinks === []) {
+            return;
+        }
+
+        $translatedLinks = $this->extractHrefs($translatedHtml);
+        $missing = array_values(array_diff($sourceLinks, $translatedLinks));
+
+        if ($missing !== []) {
+            throw new RuntimeException('Translation response removed or changed required link URLs: ' . implode(', ', array_slice($missing, 0, 3)));
+        }
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function extractHrefs(string $html): array
+    {
+        preg_match_all('/<a\b[^>]*\bhref=(["\'])(.*?)\1/iu', $html, $matches);
+
+        return collect($matches[2] ?? [])
+            ->map(fn (string $href): string => trim(html_entity_decode($href, ENT_QUOTES | ENT_HTML5)))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public function createTranslatedDraft(
@@ -339,7 +374,10 @@ class TranslationService
             'target_language' => $targetLanguage->value,
         ]);
 
-        return $translatedDraft->fresh(['content.seo', 'brief']) ?? $translatedDraft;
+        return $this->applyTranslationHumanContentReview(
+            $translatedDraft->fresh(['content.seo', 'brief', 'content.brandVoice', 'content.writerProfile']) ?? $translatedDraft,
+            $targetLanguage
+        );
     }
 
     public function validateSourceDraft(Draft $sourceDraft): void
@@ -943,7 +981,139 @@ class TranslationService
             ]);
         });
 
+        return $this->applyTranslationHumanContentReview(
+            $translatedDraft->fresh(['content.seo', 'brief', 'content.brandVoice', 'content.writerProfile']) ?? $translatedDraft,
+            $targetLanguage
+        );
+    }
+
+    private function applyTranslationHumanContentReview(Draft $translatedDraft, SupportedLanguage $targetLanguage): Draft
+    {
+        $translatedDraft->loadMissing(['brief', 'content.brandVoice', 'content.writerProfile']);
+
+        $beforeScore = $this->humanContentScoreService->scoreForDraft($translatedDraft);
+        $humanized = [
+            'version' => HumanizationService::VERSION,
+            'status' => 'skipped',
+            'changed' => false,
+            'improved_html' => (string) $translatedDraft->content_html,
+            'change_summary' => 'Translation humanization skipped because the target-language draft passed the human content threshold.',
+            'before_after_notes' => [],
+            'preserved_validation' => ['passed' => true],
+        ];
+
+        if ($this->humanizationService->shouldHumanize($beforeScore)) {
+            try {
+                $humanized = $this->humanizationService->humanize(
+                    html: (string) $translatedDraft->content_html,
+                    humanFindings: (array) data_get($beforeScore, 'findings', []),
+                    aiFingerprintFindings: (array) data_get($beforeScore, 'ai_fingerprint.findings', []),
+                    editorialPlan: (array) data_get($translatedDraft->meta, 'editorial_plan', []),
+                    brief: $translatedDraft->brief,
+                    brandVoice: $this->brandVoicePayload($translatedDraft),
+                    writerProfile: $this->writerProfilePayload($translatedDraft),
+                    corpusDiversityFindings: (array) data_get($beforeScore, 'corpus_diversity.findings', []),
+                );
+            } catch (\Throwable $exception) {
+                Log::warning('translation.humanization_failed', [
+                    'draft_id' => (string) $translatedDraft->id,
+                    'target_locale' => $targetLanguage->value,
+                    'error' => $exception->getMessage(),
+                ]);
+
+                $humanized = [
+                    'version' => HumanizationService::VERSION,
+                    'status' => 'failed',
+                    'changed' => false,
+                    'improved_html' => (string) $translatedDraft->content_html,
+                    'change_summary' => 'Translation humanization failed; original translated draft was preserved.',
+                    'before_after_notes' => [$exception->getMessage()],
+                    'preserved_validation' => ['passed' => true, 'original_preserved' => true],
+                ];
+            }
+        }
+
+        if ((bool) data_get($humanized, 'changed', false)) {
+            $translatedDraft->forceFill([
+                'content_html' => (string) data_get($humanized, 'improved_html', $translatedDraft->content_html),
+            ])->save();
+            $translatedDraft->refresh();
+        }
+
+        $afterScore = $this->humanContentScoreService->scoreForDraft($translatedDraft);
+        $meta = is_array($translatedDraft->meta) ? $translatedDraft->meta : [];
+        $locale = $targetLanguage->value;
+
+        data_set($meta, "human_content.locales.{$locale}.before", $this->humanScoreSummary($beforeScore));
+        data_set($meta, "human_content.locales.{$locale}.after", $this->humanScoreSummary($afterScore));
+        data_set($meta, 'human_content.after', $this->humanScoreSummary($afterScore));
+        data_set($meta, 'translation.human_content', [
+            'locale' => $locale,
+            'before' => $this->humanScoreSummary($beforeScore),
+            'after' => $this->humanScoreSummary($afterScore),
+            'humanization_status' => (string) data_get($humanized, 'status', ((bool) data_get($humanized, 'changed', false) ? 'applied' : 'not_changed')),
+            'humanization_changes' => [
+                'version' => HumanizationService::VERSION,
+                'change_summary' => (string) data_get($humanized, 'change_summary', ''),
+                'before_after_notes' => (array) data_get($humanized, 'before_after_notes', []),
+                'preserved_validation' => (array) data_get($humanized, 'preserved_validation', []),
+                'score_delta' => [
+                    'human_content_score' => (int) data_get($afterScore, 'human_content_score', 0) - (int) data_get($beforeScore, 'human_content_score', 0),
+                    'ai_fingerprint_score' => (int) data_get($afterScore, 'ai_fingerprint_score', 0) - (int) data_get($beforeScore, 'ai_fingerprint_score', 0),
+                ],
+            ],
+        ]);
+
+        $translatedDraft->forceFill([
+            'meta' => $meta,
+        ])->save();
+
         return $translatedDraft->fresh(['content.seo', 'brief']) ?? $translatedDraft;
+    }
+
+    /**
+     * @param array<string,mixed> $score
+     * @return array<string,mixed>
+     */
+    private function humanScoreSummary(array $score): array
+    {
+        return [
+            'status' => (string) data_get($score, 'status', ''),
+            'passed' => (bool) data_get($score, 'passed', false),
+            'human_content_score' => (int) data_get($score, 'human_content_score', 0),
+            'editorial_quality_score' => (int) data_get($score, 'editorial_quality_score', 0),
+            'originality_score' => (int) data_get($score, 'originality_score', 0),
+            'uniqueness_score' => (int) data_get($score, 'uniqueness_score', 0),
+            'ai_fingerprint_score' => (int) data_get($score, 'ai_fingerprint_score', 0),
+            'finding_count' => count((array) data_get($score, 'findings', [])),
+            'corpus_diversity_score' => (int) data_get($score, 'corpus_diversity.score', 100),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function brandVoicePayload(Draft $draft): array
+    {
+        $brandVoice = $draft->content?->brandVoice;
+
+        return [
+            'tone' => (string) ($brandVoice?->tone_of_voice ?? $brandVoice?->default_tone ?? ''),
+            'style' => (string) ($brandVoice?->writing_style ?? $brandVoice?->style_guide ?? ''),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function writerProfilePayload(Draft $draft): array
+    {
+        $writerProfile = $draft->content?->writerProfile;
+
+        return [
+            'summary' => (string) ($writerProfile?->tone_summary ?? $writerProfile?->writing_style_summary ?? ''),
+            'structure' => (string) ($writerProfile?->structure_summary ?? ''),
+        ];
     }
 
     public function resolveTranslationModel(): string

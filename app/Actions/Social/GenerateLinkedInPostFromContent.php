@@ -34,7 +34,7 @@ class GenerateLinkedInPostFromContent
         $sourceUrl = $sourceUrl !== '' ? $sourceUrl : $this->defaultSourceUrl($sourceContent);
         $trackingParameters = $this->cleanTrackingParameters((array) ($options['tracking_parameters'] ?? []));
         $trackedSourceUrl = $campaign?->trackedUrl($sourceUrl) ?? $this->trackedUrl($sourceUrl, $trackingParameters) ?? $sourceUrl;
-        $hashtags = $this->cleanHashtags((array) ($options['hashtags'] ?? []));
+        $hashtags = $this->cleanHashtags((array) ($options['hashtags'] ?? []), $sourceContent);
         $audience = $this->audienceForCopy(
             trim((string) ($options['target_audience'] ?? $socialAccount?->actorLabel() ?? '')),
             $language,
@@ -259,10 +259,10 @@ class GenerateLinkedInPostFromContent
      */
     private function variantBody(string $type, string $title, string $summary, string $audience, string $tone, string $language, array $distributionContext = []): string
     {
-        $subject = trim((string) data_get($distributionContext, 'subject', $title)) ?: $title;
-        $cta = trim((string) data_get($distributionContext, 'primary_cta', 'Lees het volledige artikel op Argusly.'));
+        $subject = $this->localizedCopy(trim((string) data_get($distributionContext, 'subject', $title)) ?: $title, $language);
+        $cta = $this->localizedCopy(trim((string) data_get($distributionContext, 'primary_cta', $this->defaultCta($language))), $language);
         $messages = collect((array) data_get($distributionContext, 'key_messages', []))
-            ->map(fn (mixed $message): string => Str::of((string) $message)->stripTags()->squish()->toString())
+            ->map(fn (mixed $message): string => $this->localizedCopy(Str::of((string) $message)->stripTags()->squish()->toString(), $language))
             ->filter()
             ->values();
         $firstMessage = $messages->get(0, $summary);
@@ -270,7 +270,7 @@ class GenerateLinkedInPostFromContent
         $thirdMessage = $messages->get(2, $summary);
         $fourthMessage = $messages->get(3, $summary);
         $fifthMessage = $messages->get(4, $summary);
-        $sixthMessage = $messages->get(5, 'Argusly helpt bedrijven AI zichtbaarheid te analyseren, kansen te ontdekken en content autonoom te organiseren.');
+        $sixthMessage = $messages->get(5, $this->defaultCompanyMessage($language));
 
         $body = $language === 'nl'
             ? match ($type) {
@@ -295,6 +295,41 @@ class GenerateLinkedInPostFromContent
         return $this->languageAgent->review('', $body, $language)['body'];
     }
 
+    private function defaultCta(string $language): string
+    {
+        return $language === 'nl'
+            ? 'Lees het volledige artikel op Argusly.'
+            : 'Read the full article on Argusly.';
+    }
+
+    private function defaultCompanyMessage(string $language): string
+    {
+        return $language === 'nl'
+            ? 'Argusly helpt bedrijven AI zichtbaarheid te analyseren, kansen te ontdekken en content autonoom te organiseren.'
+            : 'Argusly helps companies analyze AI visibility, discover opportunities, and organize content autonomously.';
+    }
+
+    private function localizedCopy(string $value, string $language): string
+    {
+        $value = Str::of($value)->stripTags()->squish()->toString();
+
+        if ($language !== 'en') {
+            return $value;
+        }
+
+        return str_replace([
+            'Lees het volledige artikel op Argusly.',
+            'Maak het inzicht praktisch genoeg om op te volgen.',
+            'Maak elk inzicht praktisch genoeg om op te volgen.',
+            'Argusly helpt bedrijven AI zichtbaarheid te analyseren, kansen te ontdekken en content autonoom te organiseren.',
+        ], [
+            'Read the full article on Argusly.',
+            'Make the insight practical enough to act on.',
+            'Make every insight practical enough to act on.',
+            'Argusly helps companies analyze AI visibility, discover opportunities, and organize content autonomously.',
+        ], $value);
+    }
+
     /**
      * @param array<int,string> $hashtags
      */
@@ -311,15 +346,60 @@ class GenerateLinkedInPostFromContent
      * @param array<int,mixed> $hashtags
      * @return list<string>
      */
-    private function cleanHashtags(array $hashtags): array
+    private function cleanHashtags(array $hashtags, Content $content): array
     {
-        return collect($hashtags)
-            ->map(fn (mixed $tag): string => trim((string) $tag))
-            ->filter()
-            ->map(fn (string $tag): string => Str::startsWith($tag, '#') ? $tag : '#'.$tag)
+        $contextTags = collect([
+            $content->primary_keyword,
+            ...((array) $content->public_blog_tags),
+        ])->all();
+
+        $tags = collect(['#Argusly', ...$hashtags, ...$contextTags])
+            ->map(fn (mixed $tag): string => $this->hashtagFromText((string) $tag))
+            ->filter(fn (string $tag): bool => $tag !== '')
             ->unique()
             ->take(8)
             ->values()
             ->all();
+
+        return collect($tags)
+            ->merge(['#Argusly', '#AIVisibility', '#B2B', '#ContentMarketing'])
+            ->unique()
+            ->take(8)
+            ->values()
+            ->all();
+    }
+
+    private function hashtagFromText(string $value): string
+    {
+        $words = collect(preg_split('/[^A-Za-z0-9]+/', Str::of($value)->stripTags()->squish()->toString()) ?: [])
+            ->map(fn (string $word): string => trim($word))
+            ->filter(fn (string $word): bool => strlen($word) > 1)
+            ->reject(fn (string $word): bool => in_array(Str::lower($word), ['and', 'the', 'for', 'met', 'van', 'voor', 'een', 'het', 'de'], true))
+            ->take(3)
+            ->values()
+            ->all();
+
+        if ($words === []) {
+            return '';
+        }
+
+        $tag = collect($words)
+            ->map(fn (string $word): string => $this->hashtagWord($word))
+            ->implode('');
+
+        return strlen($tag) > 1 ? '#'.Str::limit($tag, 32, '') : '';
+    }
+
+    private function hashtagWord(string $word): string
+    {
+        if (ctype_upper($word) && strlen($word) <= 5) {
+            return $word;
+        }
+
+        if (preg_match('/[A-Z]/', substr($word, 1)) === 1) {
+            return Str::ucfirst($word);
+        }
+
+        return Str::ucfirst(Str::lower($word));
     }
 }

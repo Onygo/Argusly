@@ -175,6 +175,10 @@ final class MarketingNavigation
                 'page_key' => 'ai_visibility_agentic_marketing',
             ],
             [
+                'label' => __('public.resources.agentic_marketing_os'),
+                'route' => 'public.agentic-marketing-operating-system',
+            ],
+            [
                 'label' => __('public.nav.blog'),
                 'route' => 'public.blog.index',
             ],

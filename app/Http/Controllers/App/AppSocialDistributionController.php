@@ -23,6 +23,7 @@ use App\Models\SocialPublication;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\SocialDistribution\SocialDistributionAuditLogger;
+use App\Services\SocialDistribution\SocialArticleUrlResolver;
 use App\Services\SocialDistribution\SocialPlatformCapabilities;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -108,9 +109,12 @@ class AppSocialDistributionController extends Controller
                 'id',
                 'title',
                 'workspace_id',
+                'type',
                 'language',
                 'seo_canonical',
                 'published_url',
+                'publish_url_key',
+                'canonical_url_key',
                 'public_blog_excerpt',
                 'seo_meta_description',
                 'public_blog_tags',
@@ -667,14 +671,7 @@ class AppSocialDistributionController extends Controller
         $titleText = Str::lower($content->title.' '.$content->primary_keyword.' '.$keywords->implode(' '));
         $isAeo = Str::contains($titleText, ['aeo', 'answer engine', 'ai visibility', 'ai zichtbaarheid', 'visibility answer']);
 
-        $defaultHashtags = $isAeo
-            ? ['#AIVisibility', '#AEO', '#ContentMarketing', '#B2B']
-            : $keywords
-                ->map(fn (string $keyword): string => '#'.Str::of($keyword)->replaceMatches('/[^A-Za-z0-9]+/', '')->limit(32, '')->toString())
-                ->filter(fn (string $tag): bool => strlen($tag) > 1)
-                ->take(4)
-                ->values()
-                ->all();
+        $defaultHashtags = $this->suggestedHashtags($keywords->all(), $isAeo);
 
         return [
             'subject' => $isAeo ? 'Visibility Answer Engine Optimization (AEO)' : $content->title,
@@ -683,13 +680,13 @@ class AppSocialDistributionController extends Controller
             'target_audience' => $isAeo ? 'B2B marketing leaders, content teams en growth teams' : 'B2B marketing leaders',
             'tone_of_voice' => 'Strategisch, praktisch en direct',
             'language' => $content->localeCode(),
-            'canonical_url' => $content->seo_canonical ?: $content->published_url,
+            'canonical_url' => app(SocialArticleUrlResolver::class)->forContent($content),
             'summary' => $summary,
             'seo_keywords' => $keywords->all(),
             'ai_keywords' => $isAeo
                 ? ['AI zoekmachines', 'antwoordwaardige content', 'ChatGPT', 'Gemini', 'Perplexity', 'AI zichtbaarheid']
                 : $keywords->all(),
-            'recommended_hashtags' => $defaultHashtags !== [] ? $defaultHashtags : ['#ContentMarketing', '#B2B'],
+            'recommended_hashtags' => $defaultHashtags,
             'utm_parameters' => [
                 'utm_source' => 'linkedin',
                 'utm_medium' => 'social',
@@ -777,16 +774,78 @@ class AppSocialDistributionController extends Controller
      */
     private function parseHashtags(?string $value): array
     {
-        return collect(preg_split('/[\s,]+/', (string) $value) ?: [])
-            ->map(fn (string $tag): string => trim($tag))
-            ->filter()
-            ->map(fn (string $tag): string => preg_replace('/[^A-Za-z0-9_#]/', '', $tag) ?: '')
-            ->filter()
-            ->map(fn (string $tag): string => str_starts_with($tag, '#') ? $tag : '#'.$tag)
+        $tags = collect(preg_split('/[\s,]+/', (string) $value) ?: [])
+            ->map(fn (string $tag): string => $this->hashtagFromText($tag))
+            ->filter(fn (string $tag): bool => $tag !== '')
             ->unique()
             ->take(8)
             ->values()
             ->all();
+
+        return collect($tags)
+            ->merge(['#Argusly', '#AIVisibility', '#B2B', '#ContentMarketing'])
+            ->unique()
+            ->take(8)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param array<int,string> $keywords
+     * @return list<string>
+     */
+    private function suggestedHashtags(array $keywords, bool $isAeo): array
+    {
+        $priorityTags = $isAeo
+            ? ['#Argusly', '#AIVisibility', '#AEO', '#ContentMarketing', '#B2B']
+            : ['#Argusly'];
+
+        $keywordTags = collect($keywords)
+            ->map(fn (string $keyword): string => $this->hashtagFromText($keyword))
+            ->filter(fn (string $tag): bool => $tag !== '')
+            ->values();
+
+        return collect($priorityTags)
+            ->merge($keywordTags)
+            ->merge(['#AIVisibility', '#B2B', '#ContentMarketing'])
+            ->unique()
+            ->take(8)
+            ->values()
+            ->all();
+    }
+
+    private function hashtagFromText(string $value): string
+    {
+        $words = collect(preg_split('/[^A-Za-z0-9]+/', Str::of($value)->stripTags()->squish()->toString()) ?: [])
+            ->map(fn (string $word): string => trim($word))
+            ->filter(fn (string $word): bool => strlen($word) > 1)
+            ->reject(fn (string $word): bool => in_array(Str::lower($word), ['and', 'the', 'for', 'met', 'van', 'voor', 'een', 'het', 'de'], true))
+            ->take(3)
+            ->values()
+            ->all();
+
+        if ($words === []) {
+            return '';
+        }
+
+        $tag = collect($words)
+            ->map(fn (string $word): string => $this->hashtagWord($word))
+            ->implode('');
+
+        return strlen($tag) > 1 ? '#'.Str::limit($tag, 32, '') : '';
+    }
+
+    private function hashtagWord(string $word): string
+    {
+        if (ctype_upper($word) && strlen($word) <= 5) {
+            return $word;
+        }
+
+        if (preg_match('/[A-Z]/', substr($word, 1)) === 1) {
+            return Str::ucfirst($word);
+        }
+
+        return Str::ucfirst(Str::lower($word));
     }
 
     /**

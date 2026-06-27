@@ -31,11 +31,11 @@ $generatedPayload = function (string $title): array {
             ],
             'sections' => [
                 [
-                    'heading' => 'Intro',
+                    'heading' => 'How content series context guides action',
                     'html' => '<p>' . str_repeat('Intro paragraph for testing. ', 26) . '</p>',
                 ],
                 [
-                    'heading' => 'Body',
+                    'heading' => 'What implementation decisions improve performance',
                     'html' => '<p>' . str_repeat('Body paragraph for testing. ', 26) . '</p>',
                 ],
             ],

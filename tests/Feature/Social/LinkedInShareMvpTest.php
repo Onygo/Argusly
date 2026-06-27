@@ -218,6 +218,34 @@ it('adds campaign tracking parameters to linkedin article links', function (): v
         ->and($post->variants->first()->publishingText())->toContain($trackedUrl);
 });
 
+it('keeps deterministic linkedin copy in english when english is requested', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $content = linkedinMvpContent($workspace, [
+        'title' => 'Google marketing lessons for autonomous marketing',
+        'language' => 'en',
+        'published_url' => 'https://argusly.com/en/blog/google-marketing-lessons',
+        'public_blog_excerpt' => 'The useful shift for B2B marketing leaders is becoming the clearest answer.',
+    ]);
+
+    $post = app(GenerateLinkedInPostFromContent::class)->handle($content, [
+        'language' => 'en',
+        'distribution_context' => [
+            'primary_cta' => 'Lees het volledige artikel op Argusly.',
+            'key_messages' => [
+                'Search is changing for B2B buyers.',
+                'Maak het inzicht praktisch genoeg om op te volgen.',
+            ],
+        ],
+    ]);
+
+    $copy = $post->variants->firstWhere('variant_type', 'seo_shift')->body;
+
+    expect($copy)->toContain('Make the insight practical enough to act on.')
+        ->and($copy)->toContain('Read the full article on Argusly.')
+        ->and($copy)->not->toContain('Maak het inzicht')
+        ->and($copy)->not->toContain('Lees het volledige artikel');
+});
+
 it('adds standalone tracking parameters to linkedin article links without a campaign', function (): void {
     [, $workspace] = linkedinMvpUser();
     $content = linkedinMvpContent($workspace, [
@@ -271,12 +299,39 @@ it('keeps utm parameters from the content draft form visible in generated previe
         ->and($variant->publishingText())->toContain($trackedUrl);
 });
 
+it('adds branded and relevant fallback hashtags to article driven linkedin drafts', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $content = linkedinMvpContent($workspace, [
+        'organization_id' => $workspace->organization_id,
+        'title' => 'AI content governance framework',
+        'language' => 'en',
+        'primary_keyword' => 'AI content governance framework',
+        'public_blog_tags' => ['content operations'],
+        'published_url' => 'https://argusly.com/en/blog/ai-content-governance-framework',
+    ]);
+
+    $post = app(GenerateLinkedInPostFromContent::class)->handle($content, [
+        'language' => 'en',
+        'source_url' => 'https://argusly.com/en/blog/ai-content-governance-framework',
+        'hashtags' => [],
+    ]);
+
+    $hashtags = $post->variants->first()->hashtags;
+
+    expect($hashtags)->toContain('#Argusly')
+        ->and($hashtags)->toContain('#AIContentGovernance')
+        ->and($hashtags)->toContain('#ContentOperations')
+        ->and($hashtags)->toContain('#AIVisibility')
+        ->and($hashtags)->toHaveCount(6);
+});
+
 it('prefers the selected nl article published url over a stale english canonical', function (): void {
     [, $workspace] = linkedinMvpUser();
     $content = linkedinMvpContent($workspace, [
         'title' => 'Agentic marketing in Nederland',
         'language' => 'nl',
-        'published_url' => 'https://argusly.com/nl/blog/agentic-marketing-in-nederland',
+        'publish_url_key' => 'agentic-marketing-in-nederland',
+        'published_url' => 'https://argusly.com/blog/agentic-marketing-defining-the-future-of-marketing-automation-and-autonomy',
         'seo_canonical' => 'https://argusly.com/blog/agentic-marketing-defining-the-future-of-marketing-automation-and-autonomy',
     ]);
 
@@ -322,6 +377,23 @@ it('uses the localized content variant URL for the requested LinkedIn language',
         ->and($post->url)->toBe('https://argusly.com/nl/blog/agentic-marketing-de-toekomst-definieren')
         ->and(data_get($post->variants->first()->generation_prompt_context, 'source_content_id'))->toBe((string) $source->id)
         ->and(data_get($post->variants->first()->generation_prompt_context, 'resolved_content_id'))->toBe((string) $localized->id);
+});
+
+it('adds the english prefix to argusly linkedin article links', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $content = linkedinMvpContent($workspace, [
+        'title' => 'Agentic marketing in English',
+        'language' => 'en',
+        'publish_url_key' => 'agentic-marketing-in-english',
+        'published_url' => 'https://argusly.com/blog/agentic-marketing-in-english',
+    ]);
+
+    $post = app(GenerateLinkedInPostFromContent::class)->handle($content, [
+        'language' => 'en',
+    ]);
+
+    expect($post->url)->toBe('https://argusly.com/en/blog/agentic-marketing-in-english')
+        ->and($post->variants->first()->sourceUrl())->toBe('https://argusly.com/en/blog/agentic-marketing-in-english');
 });
 
 it('does not publish without approval', function (): void {

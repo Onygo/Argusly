@@ -123,6 +123,7 @@ class DraftImprovementHistoryBuilder
     {
         return match ($action) {
             DraftImprovementAction::FULL_DRAFT => ['seo', 'readability', 'cta', 'headings', 'llm_visibility', 'brand_voice_fit', 'conversion_fit', 'trust_evidence', 'publish_readiness'],
+            DraftImprovementAction::HUMAN_CONTENT => ['human_content', 'publish_readiness', 'readability', 'headings', 'trust_evidence', 'brand_voice_fit'],
             DraftImprovementAction::SEO => ['seo'],
             DraftImprovementAction::READABILITY => ['readability'],
             DraftImprovementAction::CTA => ['cta'],

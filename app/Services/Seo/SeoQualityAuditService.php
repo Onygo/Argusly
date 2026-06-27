@@ -5,6 +5,7 @@ namespace App\Services\Seo;
 use App\Models\Content;
 use App\Models\Workspace;
 use App\Services\Content\ContentDeduplicationService;
+use App\Services\HumanContent\AiFingerprintDetector;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Str;
 
@@ -12,6 +13,7 @@ class SeoQualityAuditService
 {
     public function __construct(
         private readonly ContentDeduplicationService $contentDeduplicationService,
+        private readonly AiFingerprintDetector $aiFingerprintDetector,
     ) {
     }
 
@@ -86,6 +88,11 @@ class SeoQualityAuditService
         $wordCount = str_word_count($plain);
         $issues = [];
         $issueTypes = [];
+        $aiFingerprint = $this->aiFingerprintDetector->detect($html, $content->localeCode());
+        $aiFingerprintTypes = collect((array) data_get($aiFingerprint, 'findings', []))
+            ->pluck('type')
+            ->filter()
+            ->values();
 
         $firstParagraph = $this->firstParagraph($html);
         if (str_word_count($firstParagraph) < 25) {
@@ -98,7 +105,7 @@ class SeoQualityAuditService
             $issueTypes[] = 'headings';
         }
 
-        if (preg_match('/<h[23][^>]*>\s*(introduction|conclusion|misc|general)\s*<\/h[23]>/i', $html)) {
+        if ($aiFingerprintTypes->contains('generic_headings')) {
             $issues[] = 'Headings are too generic.';
             $issueTypes[] = 'headings';
         }
@@ -138,7 +145,7 @@ class SeoQualityAuditService
             $issueTypes[] = 'duplicate_titles';
         }
 
-        if ($this->looksMostlyGenericAiText($plain)) {
+        if ((int) data_get($aiFingerprint, 'score', 0) >= 45) {
             $issues[] = 'Article reads generic; add concrete examples, product context and original detail.';
             $issueTypes[] = 'ai_readiness';
         }
@@ -166,6 +173,11 @@ class SeoQualityAuditService
             'issue_types' => array_values(array_unique($issueTypes)),
             'issues' => $issues,
             'duplicate_title_matches' => $titleRisks,
+            'ai_fingerprint' => [
+                'score' => data_get($aiFingerprint, 'score'),
+                'severity' => data_get($aiFingerprint, 'severity'),
+                'findings' => (array) data_get($aiFingerprint, 'findings', []),
+            ],
         ];
     }
 
@@ -183,16 +195,4 @@ class SeoQualityAuditService
         return preg_match('/\b(study|research|data|according to|report|statistics|percent|%|survey|benchmark)\b/i', $plain) === 1;
     }
 
-    private function looksMostlyGenericAiText(string $plain): bool
-    {
-        $genericPhrases = ['in today\'s digital landscape', 'it is important to note', 'leverage', 'unlock the power', 'game-changer'];
-        $hits = 0;
-        $lower = Str::lower($plain);
-
-        foreach ($genericPhrases as $phrase) {
-            $hits += substr_count($lower, $phrase);
-        }
-
-        return $hits >= 2;
-    }
 }

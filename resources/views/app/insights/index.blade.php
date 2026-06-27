@@ -19,6 +19,19 @@
                 </a>
             </div>
         @else
+            <section class="rounded-lg border border-border bg-surface p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-textPrimary">Human Content</h2>
+                        <p class="mt-1 text-sm text-textSecondary">Review editorial quality, originality, AI fingerprint risk, blocked articles, and repeated structures across generated content.</p>
+                    </div>
+                    <a href="{{ route('app.insights.human-content.index') }}" class="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse hover:bg-primary/90">
+                        <i data-lucide="activity" class="h-4 w-4"></i>
+                        Open dashboard
+                    </a>
+                </div>
+            </section>
+
             <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                 @foreach ($sites as $site)
                     @php

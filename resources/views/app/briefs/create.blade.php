@@ -662,17 +662,10 @@
         </div>
 
         <div class="grid gap-3 md:grid-cols-2">
-            <div>
-                <label class="mb-1 block text-xs text-textSecondary">Target audience</label>
-                <select name="audience_keys[]" class="pl-select bg-background" multiple size="5">
-                    @foreach ($audienceOptions as $value => $label)
-                        <option value="{{ $value }}" @selected(in_array($value, (array) old('audience_keys', []), true))>{{ $label }}</option>
-                    @endforeach
-                </select>
-                <p class="mt-1 text-xs text-textSecondary">Select one or more audience tags.</p>
-                @error('audience_keys')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
-                @error('audience_keys.*')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
-            </div>
+            @include('app.briefs.partials.audience-picker', [
+                'audienceOptions' => $audienceOptions,
+                'selected' => old('audience_keys', []),
+            ])
             <div>
                 <label class="mb-1 block text-xs text-textSecondary">Tone of voice</label>
                 <textarea name="tone_of_voice" rows="2" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">{{ old('tone_of_voice') }}</textarea>

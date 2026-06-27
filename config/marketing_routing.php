@@ -94,6 +94,10 @@ return [
             'en' => 'agentic-marketing',
             'nl' => 'agentic-marketing',
         ],
+        'agentic_marketing_operating_system' => [
+            'en' => 'agentic-marketing-operating-system',
+            'nl' => 'agentic-marketing-operating-system',
+        ],
         'invites' => [
             'en' => 'invites',
             'nl' => 'uitnodigingen',

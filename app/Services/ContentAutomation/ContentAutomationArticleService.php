@@ -23,6 +23,8 @@ use App\Services\Content\ContentDeduplicationService;
 use App\Services\Briefs\BriefPromptBuilder;
 use App\Services\Content\ContentTranslationCoordinator;
 use App\Services\Content\LocalePublishingSyncService;
+use App\Services\Editorial\EditorialPlanningService;
+use App\Services\HumanContent\HumanContentGate;
 use App\Services\Integrations\LaravelConnectorDestinationResolver;
 use App\Services\Integrations\LaravelConnectorPublishingService;
 use App\Services\Publication\ContentPublicationService;
@@ -48,6 +50,8 @@ class ContentAutomationArticleService
         private readonly AutomationLocaleResolver $localeResolver,
         private readonly LocalePublishingSyncService $localePublishingSyncService,
         private readonly TranslationService $translationService,
+        private readonly EditorialPlanningService $editorialPlanning,
+        private readonly HumanContentGate $humanContentGate,
     ) {}
 
     /**
@@ -196,6 +200,38 @@ class ContentAutomationArticleService
         }
 
         if ($automation->publication_mode === ContentAutomationPublicationMode::AUTO_PUBLISH) {
+            $gate = $this->humanContentGate->evaluate($draft, $content);
+            if (! $gate['passed']) {
+                $this->humanContentGate->markDraft($draft, $content);
+
+                $result['item_status'] = ContentAutomationRunItem::STATUS_NEEDS_EDITORIAL_REVIEW;
+                $result['failure_stage'] = 'publish';
+                $result['last_error_code'] = 'publish_gate_blocked';
+                $result['last_error_message'] = $this->humanContentGate->message($gate);
+                $result['human_content_gate'] = $gate;
+
+                if ($item instanceof ContentAutomationRunItem) {
+                    $item->forceFill([
+                        'status' => ContentAutomationRunItem::STATUS_NEEDS_EDITORIAL_REVIEW,
+                        'failure_stage' => 'publish',
+                        'last_error_code' => 'publish_gate_blocked',
+                        'last_error_message' => $result['last_error_message'],
+                        'metadata' => array_merge(is_array($item->metadata) ? $item->metadata : [], [
+                            'human_content_gate' => $gate,
+                        ]),
+                    ])->save();
+                }
+
+                Log::warning('content_automation.publish_blocked_human_content_gate', $this->logContext($automation, $run, $item, $articlePlan, [
+                    'created_content_id' => (string) $content->id,
+                    'draft_id' => (string) $draft->id,
+                    'publish_gate_status' => (string) data_get($gate, 'status', ''),
+                    'gate_reasons' => (array) data_get($gate, 'reasons', []),
+                ]));
+
+                return $result;
+            }
+
             Log::info('content_automation.publish_started', $this->logContext($automation, $run, $item, $articlePlan, [
                 'created_content_id' => (string) $content->id,
                 'draft_id' => (string) $draft->id,
@@ -508,7 +544,7 @@ class ContentAutomationArticleService
             'search_intent' => $brief->search_intent ?: $briefDefaults['search_intent'],
             'unique_angle' => $brief->unique_angle,
             'call_to_action' => $brief->call_to_action,
-            'structure' => $briefDefaults['structure'],
+            'editorial_intentions' => $briefDefaults['editorial_intentions'],
             'client_refs' => $brief->client_refs ?? [],
             'source' => (string) ($brief->source ?: ContentSource::AUTOMATION->value),
             'brief_prompt' => $this->promptBuilder->buildPrompt($brief),
@@ -521,6 +557,7 @@ class ContentAutomationArticleService
         ];
         $meta = array_replace_recursive($meta, $promptMeta);
         $meta['brief_prompt'] = $prompt;
+        $meta['editorial_plan'] = $this->editorialPlanning->createForBrief($brief, $meta);
 
         if ($item instanceof ContentAutomationRunItem) {
             $item->forceFill([

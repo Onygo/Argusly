@@ -15,6 +15,7 @@ class RetryFailedSeriesArticlesCommand extends Command
         {series : Content series id}
         {--article=* : Restrict to one or more article numbers}
         {--queue=generation : Queue name for generation jobs}
+        {--include-open-errors : Also retry open pending/generating/brief rows that already contain an error message}
         {--dry-run : Preview failed articles without resetting or dispatching jobs}';
 
     protected $description = 'Reset and re-dispatch failed content series generation articles.';
@@ -23,6 +24,7 @@ class RetryFailedSeriesArticlesCommand extends Command
     {
         $seriesId = (string) $this->argument('series');
         $queue = trim((string) $this->option('queue')) ?: 'generation';
+        $includeOpenErrors = (bool) $this->option('include-open-errors');
         $articleNumbers = collect((array) $this->option('article'))
             ->map(fn ($value): int => (int) $value)
             ->filter(fn (int $value): bool => $value > 0)
@@ -56,7 +58,20 @@ class RetryFailedSeriesArticlesCommand extends Command
         $query = ContentSeriesGenerationRunArticle::query()
             ->where('run_id', (string) $run->id)
             ->where('series_id', $seriesId)
-            ->where('status', ContentSeriesGenerationRunArticle::STATUS_FAILED)
+            ->where(function ($builder) use ($includeOpenErrors): void {
+                $builder->where('status', ContentSeriesGenerationRunArticle::STATUS_FAILED);
+
+                if ($includeOpenErrors) {
+                    $builder->orWhere(function ($inner): void {
+                        $inner->whereIn('status', [
+                            ContentSeriesGenerationRunArticle::STATUS_PENDING,
+                            ContentSeriesGenerationRunArticle::STATUS_GENERATING,
+                            ContentSeriesGenerationRunArticle::STATUS_BRIEF,
+                        ])->whereNotNull('error_message')
+                            ->where('error_message', '!=', '');
+                    });
+                }
+            })
             ->orderBy('article_number');
 
         if ($articleNumbers !== []) {
@@ -66,7 +81,10 @@ class RetryFailedSeriesArticlesCommand extends Command
         $failedArticles = $query->get();
 
         if ($failedArticles->isEmpty()) {
-            $this->warn('No failed generation articles matched this series/run.');
+            $message = $includeOpenErrors
+                ? 'No failed or open errored generation articles matched this series/run.'
+                : 'No failed generation articles matched this series/run. Use --include-open-errors for pending/generating rows with an error message.';
+            $this->warn($message);
 
             return self::SUCCESS;
         }

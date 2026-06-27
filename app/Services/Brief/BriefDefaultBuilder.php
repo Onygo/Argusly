@@ -3,7 +3,7 @@
 namespace App\Services\Brief;
 
 /**
- * Builds a minimal valid brief structure when user input is limited.
+ * Builds a minimal valid brief scaffold when user input is limited.
  *
  * This service ensures drafts can be generated even when briefs are created
  * with only title and primary_keyword (e.g., via the "New Content" form).
@@ -11,14 +11,14 @@ namespace App\Services\Brief;
 class BriefDefaultBuilder
 {
     /**
-     * Build a minimal valid brief structure.
+     * Build a minimal valid brief scaffold.
      *
      * @return array{
      *     intent: array{type: string, keys: array<int, string>},
      *     topic: array{title: string, primary_keyword: string},
      *     audience: array{level: string, persona: string},
      *     search_context: array{stage: string},
-     *     structure: array{type: string}
+     *     editorial_plan_seed: array{type: string, intentions: array<int, string>}
      * }
      */
     public function build(string $title, ?string $keyword = null, ?string $audiencePersona = null): array
@@ -46,8 +46,14 @@ class BriefDefaultBuilder
                 'stage' => 'awareness',
             ],
 
-            'structure' => [
+            'editorial_plan_seed' => [
                 'type' => 'blog_article',
+                'intentions' => [
+                    'Answer the reader question directly',
+                    'Correct the practical misconception',
+                    'Support claims with evidence or examples',
+                    'Translate the insight into a next decision',
+                ],
             ],
         ];
     }
@@ -72,11 +78,11 @@ class BriefDefaultBuilder
             'audience_tags' => [],
             'funnel_stage' => 'awareness',
             'search_intent' => 'informational',
-            'structure' => [
-                'Opening',
-                'Main section',
-                'Practical examples',
-                'Conclusion',
+            'editorial_intentions' => [
+                'Answer the reader question directly',
+                'Correct the practical misconception',
+                'Support claims with evidence or examples',
+                'Translate the insight into a next decision',
             ],
         ];
     }
@@ -128,13 +134,13 @@ class BriefDefaultBuilder
             $merged['funnel_stage'] = $defaults['search_context']['stage'];
         }
 
-        // Structure
-        if (empty(data_get($merged, 'structure'))) {
-            $merged['structure'] = [
-                'Opening',
-                'Main section',
-                'Practical examples',
-                'Conclusion',
+        // Editorial planning seed
+        if (empty(data_get($merged, 'editorial_intentions'))) {
+            $merged['editorial_intentions'] = [
+                'Answer the reader question directly',
+                'Correct the practical misconception',
+                'Support claims with evidence or examples',
+                'Translate the insight into a next decision',
             ];
         }
 

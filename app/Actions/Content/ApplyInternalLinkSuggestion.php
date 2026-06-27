@@ -177,7 +177,7 @@ class ApplyInternalLinkSuggestion
             ->whereKey($runId)
             ->where('agent_key', InternalLinkingAgent::KEY)
             ->where('draft_id', (string) $draft->id)
-            ->where('trigger_type', 'manual')
+            ->whereIn('trigger_type', ['manual', 'event'])
             ->firstOrFail();
     }
 
@@ -187,7 +187,7 @@ class ApplyInternalLinkSuggestion
             ->whereKey($runId)
             ->where('agent_key', InternalLinkingAgent::KEY)
             ->where('content_id', (string) $content->id)
-            ->where('trigger_type', 'manual')
+            ->whereIn('trigger_type', ['manual', 'event'])
             ->firstOrFail();
     }
 

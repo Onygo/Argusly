@@ -5,6 +5,7 @@ namespace App\Enums;
 enum DraftImprovementAction: string
 {
     case FULL_DRAFT = 'improve_full_draft';
+    case HUMAN_CONTENT = 'human_content';
     case SEO = 'seo';
     case READABILITY = 'readability';
     case CTA = 'cta';
@@ -14,6 +15,7 @@ enum DraftImprovementAction: string
     {
         return match ($this) {
             self::FULL_DRAFT => 'Improve entire draft',
+            self::HUMAN_CONTENT => 'Improve Human Content score',
             self::SEO => 'Improve SEO',
             self::READABILITY => 'Improve readability',
             self::CTA => 'Add CTA',
@@ -25,6 +27,7 @@ enum DraftImprovementAction: string
     {
         return match ($this) {
             self::FULL_DRAFT => 'Full draft',
+            self::HUMAN_CONTENT => 'Human Content',
             self::SEO => 'SEO',
             self::READABILITY => 'Readability',
             self::CTA => 'CTA',
@@ -56,6 +59,7 @@ enum DraftImprovementAction: string
     {
         return match ($this) {
             self::FULL_DRAFT => 'Optimize SEO, readability, headings and CTA together.',
+            self::HUMAN_CONTENT => 'Improve editorial quality, originality, evidence, rhythm, and human voice without changing facts or SEO intent.',
             self::SEO => 'Tighten keyword usage and SEO metadata without broad rewrites.',
             self::READABILITY => 'Improve flow, clarity, and sentence structure.',
             self::CTA => 'Add or strengthen the article’s next-step CTA.',
@@ -78,6 +82,12 @@ enum DraftImprovementAction: string
                 'Improve the article holistically while preserving meaning, tone, and overall structure.',
                 'Balance SEO, readability, headings, CTA, trust, brand voice, and publish readiness together so changes do not conflict.',
                 'Refine or add a relevant CTA at the end and keep the article coherent from introduction to conclusion.',
+            ],
+            self::HUMAN_CONTENT => [
+                'Improve the Human Content score by strengthening the central thesis, reader tension, expert judgment, evidence, specificity, rhythm, and practical implications.',
+                'Rewrite generic headings, predictable openings/endings, filler, over-balanced phrasing, and summary-heavy passages only where needed.',
+                'Preserve facts, entities, SEO intent, internal links, CTA intent, schema compatibility, brand voice, and the article meaning.',
+                'Do not turn this into a generic SEO rewrite; keep the article editorial, specific, and useful.',
             ],
             self::SEO => [
                 'Tighten on-page SEO without rewriting the whole article.',
@@ -106,6 +116,7 @@ enum DraftImprovementAction: string
     {
         return match (strtolower(trim($value))) {
             'improve_full_draft', 'full_draft', 'improve_full' => self::FULL_DRAFT,
+            'human_content', 'improve_human_content', 'humanization_ai', 'editorial_quality' => self::HUMAN_CONTENT,
             'seo', 'improve_seo' => self::SEO,
             'readability', 'improve_readability' => self::READABILITY,
             'cta', 'add_cta' => self::CTA,

@@ -16,6 +16,17 @@ class DraftImprovementPromptBuilder
 
     public function systemPrompt(DraftImprovementAction $action): string
     {
+        if ($action === DraftImprovementAction::HUMAN_CONTENT) {
+            return <<<'PROMPT'
+You improve one Argusly HTML draft specifically to raise its Human Content score.
+
+Return strict JSON only. Preserve facts, source meaning, internal links, SEO intent, schema compatibility, brand voice, entities, and CTA intent. Improve only the parts that weaken human/editorial quality: central thesis, reader tension, evidence, practical implications, expert judgment, specificity, narrative flow, rhythm, curiosity, non-generic headings, and AI-fingerprint resistance.
+Do not blindly rewrite the whole article. Do not add unsupported claims. Do not create a generic intro/body/conclusion article shape.
+Requested action: human_content.
+Return JSON with: title, content_html, change_notes (array of concise strings), and seo { seo_title, seo_meta_description, seo_h1 }.
+PROMPT;
+        }
+
         if ($action === DraftImprovementAction::FULL_DRAFT) {
             return <<<'PROMPT'
 You improve one Argusly HTML draft holistically.
@@ -90,6 +101,11 @@ PROMPT;
                 'conversion_fit' => data_get($baseline, 'sections.conversion_fit.score'),
                 'trust_evidence' => data_get($baseline, 'sections.trust_evidence.score'),
                 'publish_readiness' => data_get($baseline, 'sections.publish_readiness.score'),
+                'human_content' => data_get($freshDraft->meta, 'human_content.after.human_content_score'),
+                'editorial_quality' => data_get($freshDraft->meta, 'human_content.after.editorial_quality_score'),
+                'originality' => data_get($freshDraft->meta, 'human_content.after.originality_score'),
+                'ai_fingerprint' => data_get($freshDraft->meta, 'human_content.after.ai_fingerprint_score'),
+                'publish_gate_status' => data_get($freshDraft->meta, 'publish_gate_status'),
             ],
             'current_explanations' => [
                 'seo' => data_get($baseline, 'sections.seo.explanation'),
@@ -101,12 +117,18 @@ PROMPT;
                 'conversion_fit' => data_get($baseline, 'sections.conversion_fit.explanation'),
                 'trust_evidence' => data_get($baseline, 'sections.trust_evidence.explanation'),
                 'publish_readiness' => data_get($baseline, 'sections.publish_readiness.explanation'),
+                'human_content_findings' => data_get($freshDraft->meta, 'human_content.after.findings', data_get($freshDraft->meta, 'fingerprint_findings', [])),
+                'human_content_recommendations' => data_get($freshDraft->meta, 'human_content.after.recommendations', []),
+                'human_content_gate_reasons' => data_get($freshDraft->meta, 'human_content_gate.reasons', []),
+                'humanization_actions' => data_get($freshDraft->meta, 'human_content.after.suggested_humanization_actions', []),
             ],
             'instructions' => [
                 'Keep valid HTML.',
                 $action === DraftImprovementAction::FULL_DRAFT
                     ? 'Make coordinated edits across the article while preserving meaning and tone.'
-                    : 'Keep the rest of the article stable when a local fix is enough.',
+                    : ($action === DraftImprovementAction::HUMAN_CONTENT
+                        ? 'Prioritize Human Content gate blockers and score dimensions while keeping SEO metadata and link targets stable.'
+                        : 'Keep the rest of the article stable when a local fix is enough.'),
                 'Use the same rubric standards that drive the intelligence scan.',
                 'Keep keyword usage natural and preserve readability.',
                 'Keep headings coherent with the body copy.',
@@ -131,6 +153,10 @@ PROMPT;
             DraftImprovementAction::FULL_DRAFT => [
                 'primary_metrics' => ['seo', 'readability', 'cta', 'headings', 'llm_visibility', 'brand_voice_fit', 'conversion_fit', 'trust_evidence', 'publish_readiness'],
                 'summary' => 'Optimize the whole article holistically so search relevance, readability, CTA, AI extractability, trust, brand voice, conversion fit, and publish readiness improve together.',
+            ],
+            DraftImprovementAction::HUMAN_CONTENT => [
+                'primary_metrics' => ['human_content', 'editorial_quality', 'originality', 'ai_fingerprint', 'narrative_flow', 'human_voice', 'expertise', 'evidence_usage', 'rhythm', 'curiosity', 'publish_readiness'],
+                'summary' => 'Raise the Human Content score by making the draft more editorially specific, evidence-led, varied in rhythm, less generic, and ready for the Human Content publishing gate.',
             ],
             DraftImprovementAction::SEO => [
                 'primary_metrics' => ['seo'],

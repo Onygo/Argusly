@@ -73,6 +73,10 @@ class LinkedInPublisher implements SocialPlatformPublisher
                 $updates['url'] = $sourceUrl;
             }
 
+            if ((string) $post->social_account_id !== (string) $publication->social_account_id) {
+                $updates['social_account_id'] = $publication->social_account_id;
+            }
+
             $type = filled($sourceUrl) ? 'article' : 'text';
             if ((string) $post->type !== $type) {
                 $updates['type'] = $type;

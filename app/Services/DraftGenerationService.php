@@ -11,6 +11,7 @@ use App\Models\TeamMember;
 use App\Models\Workspace;
 use App\Models\WriterProfile;
 use App\Services\Credits\GenerationPricing;
+use App\Services\Editorial\EditorialPlanningService;
 use App\Services\HumanSignals\HumanSignalContextBuilder;
 use App\Services\Llm\Data\LlmMessage;
 use App\Services\Llm\Data\LlmRequest;
@@ -20,6 +21,7 @@ use App\Services\WriterProfiles\WriterProfilePromptTemplates;
 use App\Services\Entitlements\FeatureGate;
 use App\Support\DescriptionSanitizer;
 use App\Support\DutchTextCasingNormalizer;
+use App\Support\HeadingQualityEvaluator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -32,7 +34,9 @@ class DraftGenerationService
         protected CreditWalletService $credits,
         protected LlmManager $llmManager,
         protected GenerationPricing $pricing,
-        protected HumanSignalContextBuilder $humanSignalContext,
+        protected ?HumanSignalContextBuilder $humanSignalContext = null,
+        protected ?HeadingQualityEvaluator $headingQualityEvaluator = null,
+        protected ?EditorialPlanningService $editorialPlanningService = null,
     ) {}
 
     public function generateAndBill(Draft $draft, ?string $userId = null, int $maxPasses = 2): array
@@ -174,6 +178,7 @@ class DraftGenerationService
 
         $result = $this->normalizeGeneratedSeoMetadata($result);
         $result = $this->normalizeGeneratedDutchCasing($draft, $result);
+        $result = $this->attachHeadingQualityScore($draft, $result);
 
         $this->validateResult($result);
 
@@ -302,12 +307,7 @@ class DraftGenerationService
         $lengthProfile = $this->resolveLengthProfile($draft, $content);
         $length = sprintf('%d-%d words (stay within 10%% deviation)', $lengthProfile['min_words'], $lengthProfile['max_words']);
 
-        $structure = $meta['structure'] ?? [
-            'Opening',
-            'Main section',
-            'Practical examples',
-            'Conclusion',
-        ];
+        $editorialPlan = $this->ensureEditorialPlan($draft);
 
         $primaryKeyword = (string)($meta['primary_keyword'] ?? '');
         $secondaryKeywords = $meta['secondary_keywords'] ?? [];
@@ -321,7 +321,7 @@ class DraftGenerationService
             $tone = (string) (
                 $brandVoice?->tone_of_voice
                 ?: $brandVoice?->default_tone
-                ?: 'Professional, clear, structured, confident.'
+                ?: 'Professional, clear, editorially specific, confident.'
             );
         }
         if ($language === '') {
@@ -383,12 +383,13 @@ class DraftGenerationService
             language: $language,
             tone: $tone,
             length: $length,
-            structure: $structure,
+            editorialPlan: $editorialPlan,
             primaryKeyword: $primaryKeyword,
             intentKeys: $intentKeys,
             secondaryKeywords: $secondaryKeywords,
             links: $links,
-            clientContext: $clientContext
+            clientContext: $clientContext,
+            repairHint: trim((string) ($meta['repair_hint'] ?? ''))
         );
 
         return [
@@ -415,8 +416,9 @@ class DraftGenerationService
     private function systemPrompt(?string $context = null): string
     {
         $parts = [
-            'You are an expert B2B content writer and editor.',
-            'Write factual, structured, SEO friendly content.',
+            'You are a senior editor, subject matter interviewer, and practical consultant.',
+            'Use the Editorial Plan as the main generation input and governing editorial brief.',
+            'Write factual, useful content that serves search intent without reverting to a generic SEO article shape.',
             'Avoid hype and avoid unverifiable claims.',
             'Output must follow the requested JSON schema only.',
             'Do not include markdown fences and do not include commentary.',
@@ -482,7 +484,7 @@ class DraftGenerationService
                 ? implode(', ', array_slice((array) $organizationProfile->differentiators, 0, 4))
                 : (trim((string) ($organization?->positioning_statement ?? '')) !== ''
                 ? (string) $organization?->positioning_statement
-                : 'Clear, structured, authority-driven communication with no fluff.');
+                : 'Clear, authority-driven communication with specific editorial judgment and no fluff.');
 
         $targetAudience =
             ! empty($organizationProfile?->audience_profiles)
@@ -504,7 +506,7 @@ class DraftGenerationService
             ?: $organizationProfile?->tone_of_voice
             ?: $brandVoice?->default_tone
             ?: ($toneDefaults['tone'] ?? null)
-            ?: 'Professional, clear, structured, confident.'
+            ?: 'Professional, clear, editorially specific, confident.'
         );
         $voiceStyle = (string) (
             $brandVoice?->writing_style
@@ -636,7 +638,11 @@ class DraftGenerationService
 
     private function appendHumanSignalContext(string $context, ?Workspace $workspace): string
     {
-        $signals = $this->humanSignalContext->forWorkspace($workspace);
+        if (! $workspace || ! $workspace->getKey()) {
+            return $context;
+        }
+
+        $signals = $this->humanSignalContext()->forWorkspace($workspace);
 
         return $signals !== ''
             ? $context."\n\n".$signals
@@ -666,7 +672,7 @@ class DraftGenerationService
             'SYSTEM CONTEXT',
             '',
             'You are writing on behalf of a B2B company.',
-            'Use a clear, structured, authority-driven style.',
+            'Use a clear, authority-driven style with specific editorial judgment.',
             'Avoid fluff and vague claims.',
             'Article length requirement:',
             'Write between 900 and 1200 words.',
@@ -683,7 +689,7 @@ class DraftGenerationService
 
     private function resolveBrandVoiceForDraft(Draft $draft, ?Workspace $workspace): ?BrandVoice
     {
-        if (! $workspace) {
+        if (! $workspace || ! $workspace->getKey()) {
             return null;
         }
 
@@ -721,7 +727,7 @@ class DraftGenerationService
             }
         }
 
-        if (! $workspace) {
+        if (! $workspace || ! $workspace->getKey()) {
             return null;
         }
 
@@ -831,19 +837,16 @@ class DraftGenerationService
         string $language,
         string $tone,
         string $length,
-        array $structure,
+        array $editorialPlan,
         string $primaryKeyword,
         array $intentKeys,
         array $secondaryKeywords,
         array $links,
-        array $clientContext
+        array $clientContext,
+        string $repairHint = ''
     ): string {
         $schema = $this->jsonSchemaDescription();
-
-        $structureLines = array_map(
-            fn ($s) => is_string($s) ? $s : json_encode($s),
-            $structure
-        );
+        $editorialPlanPrompt = $this->editorialPlanning()->toPromptSection($editorialPlan);
 
         $kw2 = array_values(array_filter(array_map('strval', $secondaryKeywords)));
         $intentInstruction = $this->intentInstruction($intentKeys);
@@ -859,11 +862,14 @@ class DraftGenerationService
             $primaryKeyword !== '' ? "Primary keyword: {$primaryKeyword}." : null,
             !empty($kw2) ? 'Secondary keywords: ' . implode(', ', $kw2) . '.' : null,
             '',
-            'Requested structure:',
-            '- ' . implode("\n- ", $structureLines),
+            $editorialPlanPrompt !== '' ? $editorialPlanPrompt : null,
+            '',
+            $this->editorialFirstGenerationRequirements(),
             '',
             !empty($links) ? 'Related topic hints (context only): ' . json_encode($links, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             !empty($links) ? 'Use related articles only as topical context. Do not output labels like "Related article 1". Do not list related links at the end. Mention related topics naturally only where they support the narrative.' : null,
+            $this->headingQuality()->promptGuidance(),
+            $this->repairHintInstruction($repairHint),
             'Write natural paragraphs with enough topical context so relevant internal links can be inserted later.',
             '',
             'Client context (do not copy into the article): ' . json_encode($clientContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
@@ -871,6 +877,24 @@ class DraftGenerationService
             'Return JSON only, exactly matching this schema description:',
             $schema,
         ]));
+    }
+
+    private function editorialFirstGenerationRequirements(): string
+    {
+        return implode("\n", [
+            'EDITORIAL-FIRST GENERATION REQUIREMENTS',
+            '- Treat the Editorial Plan as the source of truth for narrative movement, section intent, evidence, rhythm, and what to avoid.',
+            '- Build every section around the central thesis; do not drift into a generic overview.',
+            '- Create reader tension by correcting the misconception, practical uncertainty, or decision pressure named in the plan.',
+            '- Add expert judgment: interpret what the facts mean, where the limits are, and what a senior practitioner would notice.',
+            '- Use evidence from the plan, research insights, brief facts, company context, and related-content context without copying source wording.',
+            '- Translate claims into practical implications, tradeoffs, criteria, or recommended actions.',
+            '- Include counterargument, caveat, or nuance where the plan makes it relevant.',
+            '- Vary rhythm naturally: mix concise explanation, concrete examples, short lists, and consultative recommendation moments.',
+            '- Use non-generic h2/h3 headings that communicate the actual argument of each section.',
+            '- The final section must have a contextual, useful heading and close with a decision, implication, or next action; do not use a template-like conclusion.',
+            '- Keep SEO, AEO, entity coverage, brand voice, and internal-link context intact while following the Editorial Plan.',
+        ]);
     }
 
     /**
@@ -887,7 +911,7 @@ class DraftGenerationService
         $guidance = [];
 
         if (array_intersect($intentKeys, ['educate', 'explain', 'guide', 'inform']) !== []) {
-            $guidance[] = 'Start with clear definitions, direct answers, and structured explanations.';
+            $guidance[] = 'Use clear definitions and direct answers where they help the Editorial Plan.';
         }
 
         if (in_array('compare', $intentKeys, true)) {
@@ -899,7 +923,7 @@ class DraftGenerationService
         }
 
         if (in_array('process', $intentKeys, true)) {
-            $guidance[] = 'Use step-based structure, checklists, or implementation flow where relevant.';
+            $guidance[] = 'Use implementation flow, checklists, or decision sequences where they support the selected editorial pattern.';
         }
 
         if (in_array('strategic', $intentKeys, true)) {
@@ -1092,6 +1116,19 @@ class DraftGenerationService
         if ($metaDesc !== '' && Str::length($metaDesc) > 155) {
             throw new RuntimeException('Meta description exceeds 155 characters.');
         }
+
+        $headingQuality = Arr::get($result, 'meta.heading_quality', []);
+        $passed = (bool) Arr::get($headingQuality, 'passed', false);
+        $score = (int) Arr::get($headingQuality, 'score', 0);
+        if (! $passed || $score < HeadingQualityEvaluator::MIN_SCORE) {
+            $issues = array_slice((array) Arr::get($headingQuality, 'issues', []), 0, 5);
+            $message = 'Heading Quality Score failed: ' . $score . '/100.';
+            if ($issues !== []) {
+                $message .= ' ' . implode(' ', array_map('strval', $issues));
+            }
+
+            throw new RuntimeException($message);
+        }
     }
 
     /**
@@ -1169,6 +1206,108 @@ class DraftGenerationService
         Arr::set($result, 'sections', $sections);
 
         return $result;
+    }
+
+    /**
+     * @param  array<string,mixed>  $result
+     * @return array<string,mixed>
+     */
+    private function attachHeadingQualityScore(Draft $draft, array $result): array
+    {
+        $evaluationResult = $result;
+        $sections = Arr::get($evaluationResult, 'sections', []);
+        if (is_array($sections) && isset($sections[0]) && is_array($sections[0])) {
+            $firstHeading = trim((string) Arr::get($sections[0], 'heading', ''));
+            if ($this->isIntroHeading($firstHeading)) {
+                Arr::set($sections[0], 'heading', '');
+                Arr::set($evaluationResult, 'sections', $sections);
+            }
+        }
+
+        $evaluation = $this->headingQuality()->evaluateResult($evaluationResult, $this->headingQualityContext($draft));
+        $meta = Arr::get($result, 'meta', []);
+        if (! is_array($meta)) {
+            $meta = [];
+        }
+
+        $meta['heading_quality'] = [
+            'score' => $evaluation['score'],
+            'passed' => $evaluation['passed'],
+            'threshold' => HeadingQualityEvaluator::MIN_SCORE,
+            'issues' => $evaluation['issues'],
+            'headings' => collect($evaluation['headings'])
+                ->map(fn (array $heading): array => [
+                    'text' => (string) ($heading['text'] ?? ''),
+                    'level' => (int) ($heading['level'] ?? 0),
+                    'score' => (int) ($heading['score'] ?? 0),
+                    'passed' => (bool) ($heading['passed'] ?? false),
+                    'issue' => $heading['issue'] ?? null,
+                ])
+                ->values()
+                ->all(),
+        ];
+
+        Arr::set($result, 'meta', $meta);
+
+        return $result;
+    }
+
+    /**
+     * @return array{primary_keyword:string,secondary_keywords:array<int,mixed>,intent_keys:array<int,mixed>}
+     */
+    private function headingQualityContext(Draft $draft): array
+    {
+        $meta = is_array($draft->meta) ? $draft->meta : [];
+
+        return [
+            'primary_keyword' => (string) ($meta['primary_keyword'] ?? $draft->primary_keyword ?? ''),
+            'secondary_keywords' => (array) ($meta['secondary_keywords'] ?? []),
+            'intent_keys' => (array) ($meta['intent_keys'] ?? []),
+        ];
+    }
+
+    private function headingQuality(): HeadingQualityEvaluator
+    {
+        return $this->headingQualityEvaluator ??= app(HeadingQualityEvaluator::class);
+    }
+
+    private function humanSignalContext(): HumanSignalContextBuilder
+    {
+        return $this->humanSignalContext ??= app(HumanSignalContextBuilder::class);
+    }
+
+    private function editorialPlanning(): EditorialPlanningService
+    {
+        return $this->editorialPlanningService ??= app(EditorialPlanningService::class);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function ensureEditorialPlan(Draft $draft): array
+    {
+        $meta = is_array($draft->meta) ? $draft->meta : [];
+        $existing = data_get($meta, 'editorial_plan');
+
+        if (is_array($existing) && $existing !== []) {
+            return $existing;
+        }
+
+        $plan = $this->editorialPlanning()->createForDraft($draft);
+        $meta['editorial_plan'] = $plan;
+        unset($meta['structure']);
+        $draft->meta = $meta;
+
+        try {
+            $draft->save();
+        } catch (Throwable $exception) {
+            Log::warning('Failed to persist editorial plan before draft generation.', [
+                'draft_id' => (string) ($draft->id ?? ''),
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
+        return $plan;
     }
 
     private function normalizeDutchHtmlHeadingCasing(string $html): string
@@ -1312,7 +1451,7 @@ class DraftGenerationService
     {
         $normalized = $this->normalizeHeadingText($heading);
 
-        return in_array($normalized, ['opening', 'intro', 'introduction', 'inleiding'], true);
+        return in_array($normalized, ['opening', 'intro'], true);
     }
 
     private function addRepairHint(Draft $draft, string $error): void
@@ -1321,5 +1460,12 @@ class DraftGenerationService
         $meta['repair_hint'] = 'Fix the previous output to satisfy the JSON schema and validation rules. Error: ' . Str::limit($error, 600);
         $draft->meta = $meta;
         $draft->save();
+    }
+
+    private function repairHintInstruction(string $repairHint): ?string
+    {
+        $hint = trim($repairHint);
+
+        return $hint !== '' ? 'Repair instruction from previous validation attempt: ' . $hint : null;
     }
 }

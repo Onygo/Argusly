@@ -7,6 +7,7 @@ use App\Models\Brief;
 use App\Models\Draft;
 use App\Services\Brief\BriefDefaultBuilder;
 use App\Services\Briefs\BriefPromptBuilder;
+use App\Services\Editorial\EditorialPlanningService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ class BriefToDraftService
     public function __construct(
         private readonly BriefPromptBuilder $promptBuilder,
         private readonly BriefDefaultBuilder $briefDefaultBuilder,
+        private readonly EditorialPlanningService $editorialPlanning,
     ) {}
 
     public function claimAndCreateDraft(string $briefId): ?Draft
@@ -130,13 +132,16 @@ class BriefToDraftService
                 'unique_angle' => $brief->unique_angle,
                 'key_points' => $brief->key_points,
                 'call_to_action' => $brief->call_to_action,
-                'structure' => $briefDefaults['structure'],
+                'editorial_intentions' => $briefDefaults['editorial_intentions'],
                 'client_refs' => $brief->client_refs ?? [],
                 'source' => (string) ($brief->source ?: 'wp_plugin'),
                 'brief_prompt' => $this->promptBuilder->buildPrompt($brief),
                 'brief_defaults_applied' => $briefIncomplete,
             ];
             $draft->meta = array_replace_recursive((array) $draft->meta, $promptMeta);
+            $draftMeta = is_array($draft->meta) ? $draft->meta : [];
+            $draftMeta['editorial_plan'] = $this->editorialPlanning->createForBrief($brief, $draftMeta);
+            $draft->meta = $draftMeta;
             $explicitPreferredLength = (string) data_get($brief->client_refs, 'preferred_length', '');
             if ($explicitPreferredLength !== '') {
                 $meta = is_array($draft->meta) ? $draft->meta : [];

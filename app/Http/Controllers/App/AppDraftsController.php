@@ -24,6 +24,9 @@ use App\Models\Draft;
 use App\Services\Drafts\Intelligence\DraftImprovementHistoryBuilder;
 use App\Services\Drafts\Intelligence\DraftRecommendationPresenter;
 use App\Services\Entitlements\WorkspaceEntitlementsService;
+use App\Services\HumanContent\HumanContentGate;
+use App\Services\HumanContent\HumanContentScoreService;
+use App\Services\HumanContent\HumanizationService;
 use App\Services\LinkIntelligence\DefaultLinkSuggestionService;
 use App\Services\Seo\SeoFieldSyncCapabilityResolver;
 use App\Services\Translation\TranslationService;
@@ -34,6 +37,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class AppDraftsController extends Controller
 {
@@ -348,6 +352,113 @@ class AppDraftsController extends Controller
             ->with('status', $action->queuedMessage());
     }
 
+    public function humanize(
+        Draft $draft,
+        HumanContentScoreService $humanContentScore,
+        HumanizationService $humanization,
+        HumanContentGate $humanContentGate,
+    ): RedirectResponse {
+        $this->ensureDraftOrganizationAccess($draft);
+
+        $draft->loadMissing('brief', 'content.brandVoice', 'content.writerProfile');
+        $html = (string) $draft->content_html;
+
+        if (trim(strip_tags($html)) === '') {
+            return redirect()
+                ->route('app.drafts.show', ['draft' => $draft, 'tab' => 'intelligence'])
+                ->withErrors(['humanization' => 'Draft content is empty, so Humanization cannot run yet.']);
+        }
+
+        $beforeScore = $humanContentScore->scoreForDraft($draft);
+        $humanized = [
+            'version' => HumanizationService::VERSION,
+            'changed' => false,
+            'improved_html' => $html,
+            'change_summary' => 'Humanization skipped because the draft already passed the human content threshold.',
+            'before_after_notes' => [],
+            'preserved_validation' => ['passed' => true],
+            'status' => 'skipped',
+        ];
+
+        if ($humanization->shouldHumanize($beforeScore)) {
+            try {
+                $humanized = $humanization->humanize(
+                    html: $html,
+                    humanFindings: (array) data_get($beforeScore, 'findings', []),
+                    aiFingerprintFindings: (array) data_get($beforeScore, 'ai_fingerprint.findings', []),
+                    editorialPlan: (array) data_get($draft->meta, 'editorial_plan', []),
+                    brief: $draft->brief,
+                    brandVoice: $this->brandVoicePayload($draft),
+                    writerProfile: $this->writerProfilePayload($draft),
+                    corpusDiversityFindings: (array) data_get($beforeScore, 'corpus_diversity.findings', []),
+                );
+            } catch (Throwable $exception) {
+                $humanized = [
+                    'version' => HumanizationService::VERSION,
+                    'changed' => false,
+                    'improved_html' => $html,
+                    'change_summary' => 'Humanization failed; original draft content was preserved.',
+                    'before_after_notes' => [$exception->getMessage()],
+                    'preserved_validation' => ['passed' => true, 'original_preserved' => true],
+                    'status' => 'failed',
+                ];
+            }
+        }
+
+        if ((bool) data_get($humanized, 'changed', false)) {
+            $draft->forceFill(['content_html' => (string) data_get($humanized, 'improved_html', $html)])->save();
+            $draft->refresh();
+        }
+
+        $afterScore = $humanContentScore->scoreForDraft($draft);
+        $meta = is_array($draft->meta) ? $draft->meta : [];
+        $meta['human_content_score_before'] = (int) data_get($beforeScore, 'human_content_score', 0);
+        $meta['human_content_score_after'] = (int) data_get($afterScore, 'human_content_score', 0);
+        $meta['ai_fingerprint_score_before'] = (int) data_get($beforeScore, 'ai_fingerprint_score', 0);
+        $meta['ai_fingerprint_score_after'] = (int) data_get($afterScore, 'ai_fingerprint_score', 0);
+        $meta['fingerprint_findings'] = (array) data_get($afterScore, 'ai_fingerprint.findings', data_get($beforeScore, 'ai_fingerprint.findings', []));
+        $meta['corpus_diversity_findings'] = (array) data_get($afterScore, 'corpus_diversity.findings', data_get($beforeScore, 'corpus_diversity.findings', []));
+        $meta['humanization_status'] = (string) data_get($humanized, 'status', ((bool) data_get($humanized, 'changed', false) ? 'applied' : 'not_changed'));
+        $meta['humanization_changes'] = [
+            'version' => HumanizationService::VERSION,
+            'change_summary' => (string) data_get($humanized, 'change_summary', ''),
+            'before_after_notes' => (array) data_get($humanized, 'before_after_notes', []),
+            'preserved_validation' => (array) data_get($humanized, 'preserved_validation', []),
+            'score_delta' => [
+                'human_content_score' => (int) data_get($afterScore, 'human_content_score', 0) - (int) data_get($beforeScore, 'human_content_score', 0),
+                'ai_fingerprint_score' => (int) data_get($afterScore, 'ai_fingerprint_score', 0) - (int) data_get($beforeScore, 'ai_fingerprint_score', 0),
+            ],
+        ];
+        data_set($meta, 'human_content.before', $this->humanContentScoreSummary($beforeScore));
+        data_set($meta, 'human_content.after', $this->humanContentScoreSummary($afterScore));
+        data_set($meta, 'humanization', array_merge($meta['humanization_changes'], [
+            'status' => $meta['humanization_status'],
+        ]));
+
+        $gate = $humanContentGate->evaluateMetadata($meta, $draft, $draft->content);
+        if ($meta['humanization_status'] === 'failed') {
+            $gate['passed'] = false;
+            $gate['status'] = HumanContentGate::STATUS_NEEDS_EDITORIAL_REVIEW;
+            $gate['reasons'] = array_values(array_unique(array_merge(
+                (array) data_get($gate, 'reasons', []),
+                ['Humanization failed; editorial review is required before auto-publication.']
+            )));
+        }
+        $meta['human_content_gate'] = $gate;
+        $meta['publish_gate_status'] = (string) data_get($gate, 'status', HumanContentGate::STATUS_NEEDS_EDITORIAL_REVIEW);
+        data_set($meta, 'humanization.publish_gate_status', $meta['publish_gate_status']);
+
+        $draft->forceFill(['meta' => $meta])->save();
+
+        AnalyzeDraftJob::dispatch((string) $draft->id, true, (string) request()->user()->id, (string) Str::uuid())
+            ->onQueue((string) config('draft_intelligence.queue', 'ai-low'))
+            ->afterCommit();
+
+        return redirect()
+            ->route('app.drafts.show', ['draft' => $draft, 'tab' => 'intelligence'])
+            ->with('status', 'Humanization completed and Human Content re-score queued.');
+    }
+
     public function republish(Draft $draft): RedirectResponse
     {
         $this->ensureDraftOrganizationAccess($draft);
@@ -628,8 +739,22 @@ class AppDraftsController extends Controller
         $sections = is_array(data_get($payload, 'sections'))
             ? data_get($payload, 'sections')
             : [];
+        $humanContent = is_array(data_get($payload, 'human_content'))
+            ? data_get($payload, 'human_content')
+            : [];
 
         return [
+            [
+                'key' => 'human_content',
+                'label' => 'Human Content',
+                'score' => data_get($sections, 'human_content.score') ?? data_get($humanContent, 'human_content_score'),
+                'explanation' => data_get($sections, 'human_content.explanation'),
+                'suggestions' => (array) data_get($sections, 'human_content.improvements', data_get($humanContent, 'recommendations', [])),
+                'status_label' => data_get($sections, 'human_content.status_label', data_get($humanContent, 'status')),
+                'findings' => (array) data_get($sections, 'human_content.findings', data_get($humanContent, 'findings', [])),
+                'suggested_humanization_actions' => (array) data_get($sections, 'human_content.suggested_humanization_actions', data_get($humanContent, 'suggested_humanization_actions', [])),
+                'dimension_breakdown' => (array) data_get($sections, 'human_content.dimension_breakdown', data_get($humanContent, 'dimension_breakdown', [])),
+            ],
             [
                 'key' => 'seo',
                 'label' => 'SEO',
@@ -696,6 +821,60 @@ class AppDraftsController extends Controller
                 'blocking_issues' => (array) ($analysis?->publish_readiness_blocking_issues ?? data_get($sections, 'publish_readiness.blocking_issues', [])),
                 'recommended_next_actions' => (array) ($analysis?->publish_readiness_next_actions ?? data_get($sections, 'publish_readiness.recommended_next_actions', [])),
             ],
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $score
+     * @return array<string,mixed>
+     */
+    private function humanContentScoreSummary(array $score): array
+    {
+        return [
+            'status' => (string) data_get($score, 'status', ''),
+            'passed' => (bool) data_get($score, 'passed', false),
+            'human_content_score' => (int) data_get($score, 'human_content_score', 0),
+            'editorial_quality_score' => (int) data_get($score, 'editorial_quality_score', 0),
+            'originality_score' => (int) data_get($score, 'originality_score', 0),
+            'narrative_flow_score' => (int) data_get($score, 'narrative_flow_score', 0),
+            'human_voice_score' => (int) data_get($score, 'human_voice_score', 0),
+            'expertise_score' => (int) data_get($score, 'expertise_score', 0),
+            'rhythm_score' => (int) data_get($score, 'rhythm_score', 0),
+            'curiosity_score' => (int) data_get($score, 'curiosity_score', 0),
+            'uniqueness_score' => (int) data_get($score, 'uniqueness_score', 0),
+            'ai_fingerprint_score' => (int) data_get($score, 'ai_fingerprint_score', 0),
+            'ai_fingerprint_severity' => (string) data_get($score, 'ai_fingerprint.severity', ''),
+            'corpus_diversity_score' => (int) data_get($score, 'corpus_diversity.score', 100),
+            'corpus_diversity_risk_score' => (int) data_get($score, 'corpus_diversity.risk_score', 0),
+            'corpus_diversity_status' => (string) data_get($score, 'corpus_diversity.status', ''),
+            'corpus_diversity_findings' => (array) data_get($score, 'corpus_diversity.findings', []),
+            'finding_count' => count((array) data_get($score, 'findings', [])),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function brandVoicePayload(Draft $draft): array
+    {
+        $brandVoice = $draft->content?->brandVoice;
+
+        return [
+            'tone' => (string) ($brandVoice?->tone_of_voice ?? $brandVoice?->default_tone ?? ''),
+            'style' => (string) ($brandVoice?->writing_style ?? $brandVoice?->style_guide ?? ''),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function writerProfilePayload(Draft $draft): array
+    {
+        $writerProfile = $draft->content?->writerProfile;
+
+        return [
+            'summary' => (string) ($writerProfile?->tone_summary ?? $writerProfile?->writing_style_summary ?? ''),
+            'structure' => (string) ($writerProfile?->structure_summary ?? ''),
         ];
     }
 }

@@ -13,7 +13,12 @@ use App\Models\MarketingBlogRedirect;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\HumanContent\HumanContentScoreService;
+use App\Services\HumanContent\HumanizationService;
+use App\Services\Llm\Data\LlmResponse;
+use App\Services\Llm\Data\LlmUsage;
 use App\Services\Llm\LlmManager;
+use App\Services\Translation\TranslationPromptBuilder;
 use App\Services\Translation\TranslationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -441,6 +446,97 @@ class TranslationServiceTest extends TestCase
         );
     }
 
+    public function test_translation_prompt_allows_editorial_naturalization_in_target_language(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::EN->value,
+            'status' => 'ready',
+            'title' => 'Why content approval matters',
+            'content_html' => '<h1>Introduction</h1><p>In today\'s digital landscape, approval speed is important.</p>',
+        ]);
+
+        $systemPrompt = app(TranslationPromptBuilder::class)->buildSystemPrompt(SupportedLanguage::NL);
+        $userPrompt = app(TranslationPromptBuilder::class)->buildUserPrompt($sourceDraft, SupportedLanguage::EN, SupportedLanguage::NL);
+
+        $this->assertStringContainsString('You may improve headings, sentence rhythm, paragraph flow, local idiom', $systemPrompt);
+        $this->assertStringContainsString('Do not preserve AI-like rhythm', $systemPrompt);
+        $this->assertStringContainsString('Improve heading naturalness, sentence rhythm, paragraph flow', $userPrompt);
+        $this->assertStringNotContainsString('Preserve the exact HTML structure', $userPrompt);
+    }
+
+    public function test_translate_preserves_link_urls_in_translation_result(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::EN->value,
+            'status' => 'ready',
+            'title' => 'Approval speed',
+            'content_html' => '<h1>Approval speed</h1><p>Read the <a href="/en/blog/editorial-workflows">editorial workflow guide</a> before changing the CTA.</p>',
+        ]);
+
+        $llmManager = \Mockery::mock(LlmManager::class);
+        $llmManager->shouldReceive('generateJson')
+            ->once()
+            ->andReturn(new LlmResponse(
+                text: '',
+                json: [
+                    'title' => 'Goedkeuringssnelheid',
+                    'content_html' => '<h1>Waarom goedkeuringssnelheid telt</h1><p>Lees de <a href="/en/blog/editorial-workflows">gids voor redactionele workflows</a> voordat je de CTA wijzigt.</p>',
+                    'seo' => [
+                        'seo_title' => 'Goedkeuringssnelheid',
+                        'seo_meta_description' => 'Nederlandse beschrijving over goedkeuringssnelheid.',
+                        'seo_h1' => 'Waarom goedkeuringssnelheid telt',
+                        'slug' => 'goedkeuringssnelheid',
+                        'suggested_primary_keyword' => 'goedkeuringssnelheid',
+                        'secondary_keywords' => ['redactionele workflow'],
+                    ],
+                ],
+                usage: new LlmUsage(120, 180, 300),
+                modelUsed: 'gpt-4.1-mini',
+                providerName: 'test',
+                requestId: 'req-translation-links',
+            ));
+        $this->app->instance(LlmManager::class, $llmManager);
+
+        $result = $this->app->make(TranslationService::class)->translate($sourceDraft, SupportedLanguage::NL);
+
+        $this->assertStringContainsString('href="/en/blog/editorial-workflows"', $result['content_html']);
+        $this->assertStringContainsString('Waarom goedkeuringssnelheid telt', $result['content_html']);
+    }
+
+    public function test_translate_rejects_results_that_drop_required_links(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::EN->value,
+            'status' => 'ready',
+            'title' => 'Approval speed',
+            'content_html' => '<p>Read the <a href="/en/blog/editorial-workflows">editorial workflow guide</a>.</p>',
+        ]);
+
+        $llmManager = \Mockery::mock(LlmManager::class);
+        $llmManager->shouldReceive('generateJson')
+            ->once()
+            ->andReturn(new LlmResponse(
+                text: '',
+                json: [
+                    'title' => 'Goedkeuringssnelheid',
+                    'content_html' => '<p>Lees de gids voor redactionele workflows.</p>',
+                    'seo' => ['slug' => 'goedkeuringssnelheid'],
+                ],
+                usage: new LlmUsage(80, 100, 180),
+                modelUsed: 'gpt-4.1-mini',
+                providerName: 'test',
+            ));
+        $this->app->instance(LlmManager::class, $llmManager);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Translation response removed or changed required link URLs');
+
+        $this->app->make(TranslationService::class)->translate($sourceDraft, SupportedLanguage::NL);
+    }
+
     public function test_validate_target_language_ignores_stale_translation_draft_without_valid_variant_even_with_legacy_redirect(): void
     {
         $sourceDraft = $this->createDraft([
@@ -653,6 +749,87 @@ class TranslationServiceTest extends TestCase
         $this->assertNotNull($contentSeo);
         $this->assertSame('hallo wereld', (string) $contentSeo->primary_keyword);
         $this->assertSame(['nederlandse vertaling'], (array) $contentSeo->secondary_keywords);
+        $this->assertIsInt(data_get($translatedDraft->meta, 'human_content.locales.nl.after.human_content_score'));
+        $this->assertSame('nl', data_get($translatedDraft->meta, 'translation.human_content.locale'));
+    }
+
+    public function test_weak_translated_rhythm_can_be_humanized_in_target_locale(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::EN->value,
+            'status' => 'ready',
+            'content_html' => '<h1>Approval speed</h1><p>Original content with <a href="/en/blog/editorial-workflows">a link</a>.</p>',
+        ]);
+
+        $before = [
+            'status' => 'fail',
+            'passed' => false,
+            'human_content_score' => 44,
+            'editorial_quality_score' => 42,
+            'originality_score' => 50,
+            'uniqueness_score' => 62,
+            'ai_fingerprint_score' => 68,
+            'findings' => ['The translated rhythm is too uniform.'],
+            'ai_fingerprint' => [
+                'findings' => [['type' => 'uniform_paragraph_lengths']],
+            ],
+            'corpus_diversity' => ['score' => 100, 'findings' => []],
+        ];
+        $after = [
+            'status' => 'pass',
+            'passed' => true,
+            'human_content_score' => 78,
+            'editorial_quality_score' => 74,
+            'originality_score' => 72,
+            'uniqueness_score' => 80,
+            'ai_fingerprint_score' => 24,
+            'findings' => [],
+            'ai_fingerprint' => ['findings' => []],
+            'corpus_diversity' => ['score' => 100, 'findings' => []],
+        ];
+
+        $scorer = \Mockery::mock(HumanContentScoreService::class);
+        $scorer->shouldReceive('scoreForDraft')->twice()->andReturn($before, $after);
+        $this->app->instance(HumanContentScoreService::class, $scorer);
+
+        $humanization = \Mockery::mock(HumanizationService::class);
+        $humanization->shouldReceive('shouldHumanize')->once()->with($before)->andReturnTrue();
+        $humanization->shouldReceive('humanize')->once()->andReturn([
+            'version' => HumanizationService::VERSION,
+            'status' => 'applied',
+            'changed' => true,
+            'improved_html' => '<h1>Waarom goedkeuring sneller kwaliteit bewaart</h1><p>Vertaald met natuurlijker ritme en <a href="/en/blog/editorial-workflows">een link</a>.</p>',
+            'change_summary' => 'Improved translated rhythm.',
+            'before_after_notes' => ['Varied sentence rhythm for Dutch.'],
+            'preserved_validation' => ['passed' => true],
+        ]);
+        $this->app->instance(HumanizationService::class, $humanization);
+
+        $translatedDraft = $this->app->make(TranslationService::class)->createTranslatedDraft(
+            $sourceDraft,
+            SupportedLanguage::NL,
+            [
+                'title' => 'Goedkeuringssnelheid',
+                'content_html' => '<h1>Introduction</h1><p>Vertaald. Vertaald. Vertaald. <a href="/en/blog/editorial-workflows">een link</a>.</p>',
+                'seo' => [
+                    'seo_title' => 'Goedkeuringssnelheid',
+                    'seo_meta_description' => 'Nederlandse meta beschrijving',
+                    'seo_h1' => 'Goedkeuringssnelheid',
+                    'slug' => 'goedkeuringssnelheid',
+                    'suggested_primary_keyword' => 'goedkeuringssnelheid',
+                    'secondary_keywords' => ['redactionele workflow'],
+                ],
+                'model_used' => 'gpt-4.1-mini',
+            ],
+            (string) $this->user->id
+        );
+
+        $this->assertStringContainsString('Waarom goedkeuring sneller kwaliteit bewaart', (string) $translatedDraft->content_html);
+        $this->assertStringContainsString('href="/en/blog/editorial-workflows"', (string) $translatedDraft->content_html);
+        $this->assertSame(44, data_get($translatedDraft->meta, 'human_content.locales.nl.before.human_content_score'));
+        $this->assertSame(78, data_get($translatedDraft->meta, 'human_content.locales.nl.after.human_content_score'));
+        $this->assertSame('applied', data_get($translatedDraft->meta, 'translation.human_content.humanization_status'));
     }
 
     public function test_create_translated_draft_refreshes_existing_target_locale_instead_of_creating_a_sibling(): void

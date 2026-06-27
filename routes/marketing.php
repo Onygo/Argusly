@@ -14,6 +14,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LegacyLocalizedMarketingRedirectController;
 use App\Http\Controllers\MarketingPageController;
 use App\Http\Controllers\PublicAgenticMarketingController;
+use App\Http\Controllers\PublicAgenticMarketingOperatingSystemController;
 use App\Http\Controllers\PublicAiDiscoveryController;
 use App\Http\Controllers\PublicBlogController;
 use App\Http\Controllers\PublicContactController;
@@ -222,6 +223,9 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
 
                 Route::get('/' . $marketingSegments->segment('agentic_marketing', $locale), PublicAgenticMarketingController::class)
                     ->name('public.agentic-marketing');
+
+                Route::get('/' . $marketingSegments->segment('agentic_marketing_operating_system', $locale), PublicAgenticMarketingOperatingSystemController::class)
+                    ->name('public.agentic-marketing-operating-system');
 
                 foreach (['en' => 'markets', 'nl' => 'markten'] as $legacyLocale => $legacySegment) {
                     if ($locale !== $legacyLocale || $legacySegment === $marketingSegments->segment('markets', $locale)) {

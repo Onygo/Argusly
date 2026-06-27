@@ -22,6 +22,7 @@ use App\Models\Draft;
 use App\Services\Credits\SiteCreditAllocationService;
 use App\Services\Credits\WorkspaceCreditLedgerService;
 use App\Services\DraftGenerationService;
+use App\Services\Editorial\EditorialPlanningService;
 use App\Services\Content\InternalLinkPlacementService;
 use App\Support\ContentPersistencePayloadNormalizer;
 use App\Support\SeoMetadata;
@@ -44,6 +45,7 @@ class SeriesArticleGenerationService
         private readonly SeriesBriefPayloadFactory $seriesBriefPayloadFactory,
         private readonly ContentSeriesArticleSyncService $seriesArticleSyncService,
         private readonly InternalLinkPlacementService $internalLinkPlacement,
+        private readonly EditorialPlanningService $editorialPlanning,
     ) {
     }
 
@@ -548,6 +550,24 @@ class SeriesArticleGenerationService
             ]);
 
             if (! $draft) {
+                $draftMeta = [
+                    'language' => (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en'),
+                    'tone' => (string) data_get($briefPayload, 'brief.tone_of_voice', (string) ($series->tone ?? '')),
+                    'audience' => (string) data_get($briefPayload, 'brief.target_audience', (string) ($series->audience ?? '')),
+                    'preferred_length' => (string) data_get($briefPayload, 'brief.preferred_length', 'medium'),
+                    'intent_keys' => (array) data_get($briefPayload, 'brief.intent.keys', []),
+                    'audience_tags' => (array) data_get($briefPayload, 'brief.audience_keys', []),
+                    'primary_keyword' => $primaryKeyword,
+                    'secondary_keywords' => $secondaryKeywords,
+                    'series_context' => [
+                        'series_id' => (string) $series->id,
+                        'article_number' => $articleNumber,
+                        'slug' => $slug,
+                        'planned_url' => $plannedUrl,
+                    ],
+                ];
+                $draftMeta['editorial_plan'] = $this->editorialPlanning->createForBrief($brief, $draftMeta);
+
                 $draft = Draft::query()->create([
                     'id' => (string) Str::uuid(),
                     'brief_id' => (string) $brief->id,
@@ -559,22 +579,7 @@ class SeriesArticleGenerationService
                     'output_type' => (string) data_get($briefPayload, 'brief.output_type', 'kb_article'),
                     'language' => (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en'),
                     'content_html' => '',
-                    'meta' => [
-                        'language' => (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en'),
-                        'tone' => (string) data_get($briefPayload, 'brief.tone_of_voice', (string) ($series->tone ?? '')),
-                        'audience' => (string) data_get($briefPayload, 'brief.target_audience', (string) ($series->audience ?? '')),
-                        'preferred_length' => (string) data_get($briefPayload, 'brief.preferred_length', 'medium'),
-                        'intent_keys' => (array) data_get($briefPayload, 'brief.intent.keys', []),
-                        'audience_tags' => (array) data_get($briefPayload, 'brief.audience_keys', []),
-                        'primary_keyword' => $primaryKeyword,
-                        'secondary_keywords' => $secondaryKeywords,
-                        'series_context' => [
-                            'series_id' => (string) $series->id,
-                            'article_number' => $articleNumber,
-                            'slug' => $slug,
-                            'planned_url' => $plannedUrl,
-                        ],
-                    ],
+                    'meta' => $draftMeta,
                     'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber),
                     'credit_action_id' => $creditActionId !== '' ? $creditActionId : null,
                     'credit_cost' => $creditCost,
@@ -596,6 +601,9 @@ class SeriesArticleGenerationService
                     'secondary_keywords' => $secondaryKeywords,
                     'series_context' => $seriesContext,
                 ]);
+                if (! is_array(data_get($existingMeta, 'editorial_plan'))) {
+                    $existingMeta['editorial_plan'] = $this->editorialPlanning->createForBrief($brief, $existingMeta);
+                }
 
                 $draft->update([
                     'brief_id' => (string) $brief->id,
@@ -1116,6 +1124,7 @@ class SeriesArticleGenerationService
                         'output_type' => (string) data_get($jsonArticle, 'output_type', ''),
                         'content_type' => (string) data_get($jsonArticle, 'content_type', ''),
                         'target_audience' => (string) data_get($jsonArticle, 'target_audience', ''),
+                        'editorial_angle' => (string) data_get($jsonArticle, 'editorial_angle', ''),
                         'audience_keys' => array_values((array) data_get($jsonArticle, 'audience_keys', [])),
                         'secondary_keywords' => $row
                             ? array_values((array) ($row->secondary_keywords ?? []))

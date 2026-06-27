@@ -125,6 +125,16 @@ it('generates and stores series strategy json', function () {
         'intent_keys' => ['educate', 'commercial'],
         'articles_count' => 3,
         'status' => 'draft',
+        'strategy_json' => [
+            'meta' => [
+                'source_url' => 'https://example.com/reference-article',
+                'source_references' => [
+                    'https://example.com/reference-article',
+                    'OpenAI blog',
+                ],
+                'strategic_positioning' => 'Position Argusly as the marketing operating system for autonomous workflows.',
+            ],
+        ],
         'created_by' => $user->id,
     ]);
 
@@ -141,6 +151,9 @@ it('generates and stores series strategy json', function () {
         ->and((bool) data_get($series->strategy_json, 'articles.0.is_pillar'))->toBeTrue();
 
     Http::assertSent(function ($request): bool {
-        return str_contains($request->body(), 'Content intent: educate, commercial.');
+        return str_contains($request->body(), 'Content intent: educate, commercial.')
+            && str_contains($request->body(), 'reference-article')
+            && str_contains($request->body(), 'OpenAI blog')
+            && str_contains($request->body(), 'marketing operating system');
     });
 });

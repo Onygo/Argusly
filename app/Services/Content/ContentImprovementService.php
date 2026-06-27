@@ -550,6 +550,11 @@ class ContentImprovementService
 
         return match (true) {
             str_contains($normalized, 'cta') => DraftImprovementAction::CTA,
+            str_contains($normalized, 'human content'),
+            str_contains($normalized, 'human voice'),
+            str_contains($normalized, 'ai fingerprint'),
+            str_contains($normalized, 'editorial quality'),
+            str_contains($normalized, 'originality') => DraftImprovementAction::HUMAN_CONTENT,
             str_contains($normalized, 'heading'), str_contains($normalized, 'structure') => DraftImprovementAction::HEADINGS,
             str_contains($normalized, 'readability'),
             str_contains($normalized, 'scanability'),
@@ -565,6 +570,7 @@ class ContentImprovementService
     {
         return match ($action) {
             DraftImprovementAction::CTA => 'Add CTA section',
+            DraftImprovementAction::HUMAN_CONTENT => 'Apply Human Content fixes',
             DraftImprovementAction::HEADINGS => 'Improve heading structure',
             DraftImprovementAction::READABILITY => 'Improve readability',
             DraftImprovementAction::SEO => 'Strengthen semantic coverage',
@@ -576,6 +582,7 @@ class ContentImprovementService
     {
         return match ($action) {
             DraftImprovementAction::CTA => '+6 estimated AEO score',
+            DraftImprovementAction::HUMAN_CONTENT => '+10 estimated Human Content score',
             DraftImprovementAction::HEADINGS => '+5 estimated AEO score',
             DraftImprovementAction::READABILITY => '+4 estimated AEO score',
             DraftImprovementAction::SEO => '+7 estimated AEO score',

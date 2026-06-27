@@ -38,7 +38,7 @@ class DraftComparisonPromptSnapshotBuilder
         $structure = $this->normalizeList($meta['structure'] ?? []);
 
         if ($structure === []) {
-            $structure = ['Opening', 'Main section', 'Practical examples', 'Conclusion'];
+            $structure = $this->normalizeList($meta['editorial_plan']['section_intentions'] ?? $meta['editorial_intentions'] ?? []);
         }
 
         $seoInstructions = array_filter([
@@ -116,7 +116,13 @@ class DraftComparisonPromptSnapshotBuilder
     private function normalizeList(mixed $value): array
     {
         if (is_array($value)) {
-            return array_values(array_filter(array_map(static fn ($item): string => trim((string) $item), $value), static fn (string $item): bool => $item !== ''));
+            return array_values(array_filter(array_map(static function ($item): string {
+                if (is_array($item)) {
+                    return trim((string) ($item['intention'] ?? $item['job'] ?? json_encode($item, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
+                }
+
+                return trim((string) $item);
+            }, $value), static fn (string $item): bool => $item !== ''));
         }
 
         $string = trim((string) $value);

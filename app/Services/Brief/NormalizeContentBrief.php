@@ -33,11 +33,11 @@ class NormalizeContentBrief
         'output_type' => 'kb_article',
         'preferred_length' => 'medium',
         'tone' => 'Professional, clear, structured, confident.',
-        'structure' => [
-            'Opening',
-            'Main section',
-            'Practical examples',
-            'Conclusion',
+        'editorial_intentions' => [
+            'Answer the reader question directly',
+            'Correct the practical misconception',
+            'Support claims with evidence or examples',
+            'Translate the insight into a next decision',
         ],
     ];
 
@@ -108,10 +108,10 @@ class NormalizeContentBrief
             $fieldsAdded[] = 'search_intent';
         }
 
-        // Structure
-        if (empty($meta['structure']) || ! is_array($meta['structure'])) {
-            $meta['structure'] = self::DEFAULTS['structure'];
-            $fieldsAdded[] = 'structure';
+        // Editorial intentions for minimal briefs; generation uses the Editorial Plan.
+        if (empty($meta['editorial_intentions']) || ! is_array($meta['editorial_intentions'])) {
+            $meta['editorial_intentions'] = self::DEFAULTS['editorial_intentions'];
+            $fieldsAdded[] = 'editorial_intentions';
         }
 
         // Content type
@@ -279,9 +279,9 @@ class NormalizeContentBrief
                 'stage' => self::DEFAULTS['funnel_stage'],
                 'intent' => self::DEFAULTS['search_intent'],
             ],
-            'structure' => [
+            'editorial_plan_seed' => [
                 'type' => self::DEFAULTS['output_type'],
-                'outline' => self::DEFAULTS['structure'],
+                'intentions' => self::DEFAULTS['editorial_intentions'],
             ],
             'content_type' => self::DEFAULTS['content_type'],
             'output_type' => self::DEFAULTS['output_type'],

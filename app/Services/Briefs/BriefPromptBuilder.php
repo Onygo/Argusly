@@ -28,7 +28,6 @@ class BriefPromptBuilder
             'audience' => (string) ($brief->target_audience ?: $brief->audience ?: ''),
             'preferred_length' => $preferredLength,
             'notes' => trim((string) $brief->notes . "\n\n" . $strategyContext),
-            'structure' => ['Opening', 'Main section', 'Practical examples', 'Conclusion'],
             'content_type' => (string) ($brief->content_type ?: 'blog'),
             'funnel_stage' => (string) ($brief->funnel_stage ?: ''),
             'search_intent' => (string) ($brief->search_intent ?: ''),

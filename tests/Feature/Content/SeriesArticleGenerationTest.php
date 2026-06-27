@@ -39,11 +39,11 @@ it('queues series generation from controller and completes through queued jobs',
                 ],
                 'sections' => [
                     [
-                        'heading' => 'Introduction',
+                        'heading' => 'How governance automation changes daily work',
                         'html' => '<p>' . str_repeat('This paragraph explains governance controls and workflow outcomes. ', 24) . '</p>',
                     ],
                     [
-                        'heading' => 'Execution',
+                        'heading' => 'What workflow checkpoints reveal about performance',
                         'html' => '<p>' . str_repeat('Operational detail with measurable checkpoints for delivery teams. ', 24) . '</p>',
                     ],
                 ],
@@ -401,6 +401,89 @@ it('retries failed series articles through the repair command', function () {
     });
 });
 
+it('retries open errored series articles through the repair command', function () {
+    $organization = Organization::query()->create([
+        'name' => 'Series Open Error Retry Org',
+        'slug' => 'series-open-error-retry-org-' . Str::random(6),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'name' => 'Series Open Error Retry Workspace',
+        'organization_id' => $organization->id,
+    ]);
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'Series Open Error Retry Site',
+        'site_url' => 'https://series-open-error-retry.example.com',
+        'base_url' => 'https://series-open-error-retry.example.com',
+        'allowed_domains' => ['series-open-error-retry.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $series = ContentSeries::query()->create([
+        'id' => (string) Str::uuid(),
+        'organization_id' => $organization->id,
+        'site_id' => $site->id,
+        'name' => 'Series Open Error Retry',
+        'main_topic' => 'Autonomous marketing',
+        'primary_keyword' => 'autonomous marketing',
+        'articles_count' => 1,
+        'status' => 'generating',
+        'strategy_json' => ['articles' => []],
+    ]);
+
+    $run = ContentSeriesGenerationRun::query()->create([
+        'id' => (string) Str::uuid(),
+        'series_id' => (string) $series->id,
+        'organization_id' => (int) $organization->id,
+        'total_articles' => 1,
+        'completed_articles' => 0,
+        'failed_articles' => 0,
+        'status' => ContentSeriesGenerationRun::STATUS_RUNNING,
+        'last_error' => 'Undefined variable $article',
+        'started_at' => now()->subMinutes(10),
+        'finished_at' => null,
+    ]);
+
+    $runArticle = ContentSeriesGenerationRunArticle::query()->create([
+        'id' => (string) Str::uuid(),
+        'run_id' => (string) $run->id,
+        'series_id' => (string) $series->id,
+        'article_number' => 1,
+        'title' => 'Google marketing lessons',
+        'status' => ContentSeriesGenerationRunArticle::STATUS_PENDING,
+        'attempts' => 1,
+        'error_message' => 'Undefined variable $article',
+        'finished_at' => null,
+    ]);
+
+    Queue::fake();
+
+    $this->artisan('content:series:retry-failed', [
+        'series' => (string) $series->id,
+        '--include-open-errors' => true,
+    ])->assertExitCode(0);
+
+    $run->refresh();
+    $runArticle->refresh();
+    $series->refresh();
+
+    expect((string) $runArticle->status)->toBe(ContentSeriesGenerationRunArticle::STATUS_PENDING)
+        ->and($runArticle->error_message)->toBeNull()
+        ->and((string) $run->status)->toBe(ContentSeriesGenerationRun::STATUS_RUNNING)
+        ->and((int) $run->failed_articles)->toBe(0)
+        ->and((string) $series->status)->toBe(ContentSeries::STATUS_GENERATING);
+
+    Queue::assertPushed(GenerateSeriesRunArticleJob::class, function (GenerateSeriesRunArticleJob $job) use ($runArticle): bool {
+        return (string) $job->runArticleId === (string) $runArticle->id;
+    });
+});
+
 it('reuses a series article content link during retry when external key is missing', function () {
     config(['features.draft_link_suggestions' => false]);
     config(['llm.providers.openai.api_key' => 'test-api-key']);
@@ -416,11 +499,11 @@ it('reuses a series article content link during retry when external key is missi
                 ],
                 'sections' => [
                     [
-                        'heading' => 'Introduction',
+                        'heading' => 'How content recovery choices affect the retry',
                         'html' => '<p>' . str_repeat('Retry content explains the existing article path. ', 24) . '</p>',
                     ],
                     [
-                        'heading' => 'Next steps',
+                        'heading' => 'What the resumed content needs next',
                         'html' => '<p>' . str_repeat('The retry updates the linked row instead of creating another content item. ', 24) . '</p>',
                     ],
                 ],

@@ -363,6 +363,80 @@ it('uses the same linkedin renderer for preview snapshots and publishing', funct
         ->and($previewText)->toContain('https://example.test/post');
 });
 
+it('publishes reused linkedin posts with the account selected on the publication', function (): void {
+    config([
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+        'social_distribution.linkedin_test_disclaimer_enabled' => false,
+    ]);
+
+    $organization = Organization::query()->create([
+        'name' => 'LinkedIn Reused Post Org',
+        'slug' => 'linkedin-reused-post-'.Str::random(6),
+        'status' => Organization::STATUS_ACTIVE,
+        'approved_at' => now(),
+    ]);
+    $workspace = Workspace::query()->create([
+        'organization_id' => $organization->id,
+        'name' => 'LinkedIn Reused Post Workspace',
+    ]);
+    $account = SocialAccount::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'account_type' => 'person',
+        'display_name' => 'Personal LinkedIn',
+        'platform_account_id' => 'urn:li:person:456',
+        'provider_member_urn' => 'urn:li:person:456',
+        'access_token' => 'token',
+        'status' => SocialAccountStatus::ACTIVE,
+        'connected_at' => now(),
+        'publishing_rules' => ['permissions' => ['draft', 'schedule', 'publish']],
+    ]);
+    $post = SocialPost::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'provider' => SocialPlatform::LINKEDIN->value,
+        'type' => 'text',
+        'body' => 'Old prepared copy.',
+        'visibility' => 'public',
+        'status' => 'approved',
+    ]);
+    $variant = SocialPostVariant::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_post_id' => $post->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::TEXT,
+        'status' => SocialPostVariantStatus::APPROVED,
+        'variant_number' => 1,
+        'body' => 'Fresh approved copy.',
+        'approved_at' => now(),
+    ]);
+    $publication = SocialPublication::query()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'social_post_variant_id' => $variant->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'status' => SocialPublicationStatus::QUEUED,
+    ]);
+
+    $posts = Mockery::mock(SocialPostService::class);
+    $posts->shouldReceive('publish')
+        ->once()
+        ->withArgs(fn (SocialPost $post): bool => (string) $post->social_account_id === (string) $account->id
+            && $post->account?->isConnected() === true
+            && $post->body === 'Fresh approved copy.')
+        ->andReturnTrue();
+
+    $result = (new DistributionLinkedInPublisher($posts, app(LinkedInPostTextRenderer::class)))
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+
+    expect($result->success)->toBeTrue()
+        ->and((string) $post->refresh()->social_account_id)->toBe((string) $account->id);
+});
+
 it('normalizes common dutch linkedin wording issues', function (): void {
     $organization = Organization::query()->create([
         'name' => 'LinkedIn Dutch Grammar Org',
@@ -486,7 +560,7 @@ it('keeps language article links and requested hashtags with linkedin variants',
 
     expect(data_get($variant->generation_prompt_context, 'language'))->toBe('nl')
         ->and(data_get($variant->generation_prompt_context, 'source_url'))->toBe('https://example.com/nl/artikel')
-        ->and(data_get($variant->generation_prompt_context, 'hashtags'))->toBe(['#AIVisibility', '#contentstrategie', '#B2B']);
+        ->and(data_get($variant->generation_prompt_context, 'hashtags'))->toBe(['#AIVisibility', '#Contentstrategie', '#B2B', '#Argusly', '#ContentMarketing']);
 
     $variant->forceFill([
         'status' => SocialPostVariantStatus::DRAFT,
@@ -496,7 +570,7 @@ it('keeps language article links and requested hashtags with linkedin variants',
 
     expect($variant->publishingText())->toContain('Dit is een Nederlandstalige LinkedIn-post.')
         ->and($variant->publishingText())->toContain('https://example.com/nl/artikel')
-        ->and($variant->publishingText())->toContain('#AIVisibility #contentstrategie #B2B');
+        ->and($variant->publishingText())->toContain('#AIVisibility #Contentstrategie #B2B #Argusly #ContentMarketing');
 });
 
 it('uses localized blog urls for dutch linkedin article links from content', function (): void {

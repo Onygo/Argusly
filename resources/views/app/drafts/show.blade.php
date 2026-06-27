@@ -24,6 +24,51 @@
             ->filter(fn (mixed $note): bool => trim((string) $note) !== '')
             ->values();
         $publishReadinessSection = $analysisSections->firstWhere('key', 'publish_readiness');
+        $humanContentPayload = is_array(data_get($analysisPayload, 'human_content')) ? data_get($analysisPayload, 'human_content') : [];
+        $humanContentSection = $analysisSections->firstWhere('key', 'human_content');
+        $humanContentFindings = collect((array) data_get($humanContentPayload, 'findings', data_get($humanContentSection, 'findings', [])))
+            ->filter()
+            ->take(5)
+            ->values();
+        $humanContentActions = collect((array) data_get($humanContentPayload, 'suggested_humanization_actions', data_get($humanContentSection, 'suggested_humanization_actions', [])))
+            ->filter()
+            ->take(5)
+            ->values();
+        $humanContentGate = is_array(data_get($draft->meta, 'human_content_gate'))
+            ? data_get($draft->meta, 'human_content_gate')
+            : (is_array(data_get($analysisPayload, 'human_content_gate')) ? data_get($analysisPayload, 'human_content_gate') : []);
+        $humanContentGateReasons = collect((array) data_get($humanContentGate, 'reasons', []))->filter()->values();
+        $humanizationMeta = is_array(data_get($draft->meta, 'humanization')) ? data_get($draft->meta, 'humanization') : [];
+        $humanizationNotes = collect((array) data_get($humanizationMeta, 'before_after_notes', []))->filter()->take(5)->values();
+        $humanContentAfter = is_array(data_get($draft->meta, 'human_content.after')) ? data_get($draft->meta, 'human_content.after') : [];
+        $humanContentBefore = is_array(data_get($draft->meta, 'human_content.before')) ? data_get($draft->meta, 'human_content.before') : [];
+        $humanContentDimensions = is_array(data_get($humanContentPayload, 'dimension_breakdown')) ? data_get($humanContentPayload, 'dimension_breakdown') : [];
+        $humanContentScoreValue = data_get($humanContentPayload, 'human_content_score', data_get($humanContentSection, 'score', data_get($humanContentAfter, 'human_content_score')));
+        $humanContentBeforeScoreValue = data_get($humanContentBefore, 'human_content_score');
+        $humanContentMetricDefinitions = [
+            ['key' => 'human_content_score', 'label' => 'Human Content Score', 'score' => $humanContentScoreValue, 'before' => $humanContentBeforeScoreValue, 'status' => data_get($humanContentPayload, 'status', data_get($humanContentAfter, 'status')), 'direction' => 'higher_is_better'],
+            ['key' => 'editorial_quality_score', 'label' => 'Editorial Quality', 'score' => data_get($humanContentPayload, 'editorial_quality_score', data_get($humanContentAfter, 'editorial_quality_score')), 'before' => data_get($humanContentBefore, 'editorial_quality_score'), 'status' => data_get($humanContentDimensions, 'editorial_quality_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'originality_score', 'label' => 'Originality', 'score' => data_get($humanContentPayload, 'originality_score', data_get($humanContentAfter, 'originality_score')), 'before' => data_get($humanContentBefore, 'originality_score'), 'status' => data_get($humanContentDimensions, 'originality_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'ai_fingerprint_score', 'label' => 'AI Fingerprint', 'score' => data_get($humanContentPayload, 'ai_fingerprint_score', data_get($humanContentAfter, 'ai_fingerprint_score')), 'before' => data_get($humanContentBefore, 'ai_fingerprint_score'), 'status' => data_get($humanContentDimensions, 'ai_fingerprint_score.band', data_get($humanContentPayload, 'ai_fingerprint.severity')), 'direction' => 'lower_is_better'],
+            ['key' => 'narrative_flow_score', 'label' => 'Narrative Flow', 'score' => data_get($humanContentPayload, 'narrative_flow_score'), 'before' => data_get($humanContentBefore, 'narrative_flow_score'), 'status' => data_get($humanContentDimensions, 'narrative_flow_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'human_voice_score', 'label' => 'Human Voice', 'score' => data_get($humanContentPayload, 'human_voice_score'), 'before' => data_get($humanContentBefore, 'human_voice_score'), 'status' => data_get($humanContentDimensions, 'human_voice_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'expertise_score', 'label' => 'Expertise', 'score' => data_get($humanContentPayload, 'expertise_score'), 'before' => data_get($humanContentBefore, 'expertise_score'), 'status' => data_get($humanContentDimensions, 'expertise_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'rhythm_score', 'label' => 'Rhythm', 'score' => data_get($humanContentPayload, 'rhythm_score'), 'before' => data_get($humanContentBefore, 'rhythm_score'), 'status' => data_get($humanContentDimensions, 'rhythm_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'curiosity_score', 'label' => 'Curiosity', 'score' => data_get($humanContentPayload, 'curiosity_score'), 'before' => data_get($humanContentBefore, 'curiosity_score'), 'status' => data_get($humanContentDimensions, 'curiosity_score.band'), 'direction' => 'higher_is_better'],
+            ['key' => 'publish_gate_status', 'label' => 'Publish Gate Status', 'score' => null, 'before' => null, 'status' => data_get($humanContentGate, 'status', data_get($draft->meta, 'publish_gate_status')), 'direction' => 'status'],
+        ];
+        $humanContentMetricCards = collect($humanContentMetricDefinitions)
+            ->map(function (array $metric): array {
+                $score = $metric['score'];
+                $before = $metric['before'];
+                $metric['score'] = is_numeric($score) ? (int) round((float) $score) : null;
+                $metric['before'] = is_numeric($before) ? (int) round((float) $before) : null;
+                $metric['status'] = trim((string) ($metric['status'] ?? ''));
+
+                return $metric;
+            })
+            ->values();
+        $hasHumanContentMetrics = $humanContentMetricCards->contains(fn (array $metric): bool => $metric['score'] !== null || $metric['status'] !== '');
         $draftLocaleLabel = strtoupper((string) $draft->language->value);
         $sourceDraftLocaleLabel = $draft->sourceDraft ? strtoupper((string) $draft->sourceDraft->language->value) : null;
         $sourceContext = is_array(data_get($draft->meta, 'source_context')) ? data_get($draft->meta, 'source_context') : [];
@@ -65,6 +110,12 @@
             \App\Models\ClientSite::TYPE_LARAVEL => 'Laravel',
             default => 'No publish destination',
         };
+        $editorialPlan = is_array(data_get($draft->meta, 'editorial_plan')) ? data_get($draft->meta, 'editorial_plan') : [];
+        $editorialSectionIntentions = collect((array) data_get($editorialPlan, 'section_intentions', []))->take(6)->values();
+        $editorialEvidencePlan = collect((array) data_get($editorialPlan, 'evidence_plan', []))->take(5)->values();
+        $editorialAvoidList = collect((array) data_get($editorialPlan, 'things_to_avoid', []))->take(5)->values();
+        $editorialPrimaryPattern = is_array(data_get($editorialPlan, 'primary_pattern')) ? data_get($editorialPlan, 'primary_pattern') : [];
+        $editorialSecondaryPattern = is_array(data_get($editorialPlan, 'secondary_pattern')) ? data_get($editorialPlan, 'secondary_pattern') : [];
     @endphp
 
     <div class="mb-6">
@@ -147,6 +198,62 @@
             'attachRoute' => route('app.growth-programs.attach.draft', $draft),
         ])
     </div>
+
+    @if ($editorialPlan !== [])
+        <section class="mb-6 rounded-lg border border-border bg-surface p-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-semibold text-textPrimary">Editorial Plan</h2>
+                    <p class="mt-1 text-sm text-textSecondary">{{ data_get($editorialPlan, 'central_thesis') }}</p>
+                </div>
+                <span class="rounded-md border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">
+                    {{ data_get($editorialPlan, 'version', 'editorial_plan') }}
+                </span>
+            </div>
+            <div class="mt-4 grid gap-4 lg:grid-cols-3">
+                <div>
+                    <div class="text-xs font-semibold uppercase text-textSecondary">Goal</div>
+                    <p class="mt-1 text-sm text-textPrimary">{{ data_get($editorialPlan, 'editorial_goal') }}</p>
+                    @if ($editorialPrimaryPattern !== [])
+                        <div class="mt-3 text-xs font-semibold uppercase text-textSecondary">Pattern</div>
+                        <p class="mt-1 text-sm font-medium text-textPrimary">
+                            {{ data_get($editorialPrimaryPattern, 'name') }}
+                            @if ($editorialSecondaryPattern !== [])
+                                <span class="font-normal text-textSecondary">+ {{ data_get($editorialSecondaryPattern, 'name') }}</span>
+                            @endif
+                        </p>
+                        <p class="mt-1 text-sm text-textSecondary">{{ data_get($editorialPrimaryPattern, 'article_movement') }}</p>
+                    @endif
+                    <div class="mt-3 text-xs font-semibold uppercase text-textSecondary">Reader Takeaway</div>
+                    <p class="mt-1 text-sm text-textPrimary">{{ data_get($editorialPlan, 'expected_reader_takeaway') }}</p>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold uppercase text-textSecondary">Section Intentions</div>
+                    <ul class="mt-2 space-y-1 text-sm text-textPrimary">
+                        @foreach ($editorialSectionIntentions as $intention)
+                            <li>{{ data_get($intention, 'intention') }}: <span class="text-textSecondary">{{ data_get($intention, 'job') }}</span></li>
+                        @endforeach
+                    </ul>
+                </div>
+                <div>
+                    <div class="text-xs font-semibold uppercase text-textSecondary">Evidence</div>
+                    <ul class="mt-2 space-y-1 text-sm text-textPrimary">
+                        @foreach ($editorialEvidencePlan as $item)
+                            <li>{{ $item }}</li>
+                        @endforeach
+                    </ul>
+                    @if ($editorialAvoidList->isNotEmpty())
+                        <div class="mt-3 text-xs font-semibold uppercase text-textSecondary">Avoid</div>
+                        <ul class="mt-2 space-y-1 text-sm text-textSecondary">
+                            @foreach ($editorialAvoidList as $item)
+                                <li>{{ $item }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            </div>
+        </section>
+    @endif
 
     @if ($activeTab === 'improve' && $latestImprovementStatus !== '')
         <div class="mb-4 rounded-md border px-3 py-2 text-sm
@@ -901,6 +1008,132 @@
             </div>
 
             @if ($hasUsableAnalysis)
+                <div class="rounded-lg border border-border bg-surface p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <div class="text-xs uppercase tracking-wide text-textSecondary">Human Content metrics</div>
+                            <div class="mt-1 text-2xl font-semibold text-textPrimary">
+                                {{ $hasHumanContentMetrics ? 'Editorial quality signal' : 'No Human Content score yet' }}
+                            </div>
+                            <div class="mt-2 text-sm text-textSecondary">
+                                {{ $hasHumanContentMetrics ? 'Human, originality and AI-fingerprint signals from the latest draft intelligence pass.' : 'This draft was analyzed before Human Content scoring was added. Re-score to populate editorial quality metrics.' }}
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <form method="POST" action="{{ route('app.drafts.analyze', $draft) }}">
+                                @csrf
+                                <button class="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                                    <i data-lucide="refresh-cw" class="h-4 w-4" aria-hidden="true"></i>
+                                    Re-score Human Content
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('app.drafts.humanize', $draft) }}" data-improvement-form>
+                                @csrf
+                                <button
+                                    class="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                                    data-improvement-button
+                                    data-loading-label="Queueing Humanization..."
+                                >
+                                    <i data-lucide="wand-sparkles" class="h-4 w-4" aria-hidden="true"></i>
+                                    Run Humanization
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('app.drafts.improve', $draft) }}" data-improvement-form>
+                                @csrf
+                                <input type="hidden" name="action" value="human_content">
+                                <button
+                                    class="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                    data-improvement-button
+                                    data-loading-label="Queueing Human Content fixes..."
+                                >
+                                    <i data-lucide="sparkles" class="h-4 w-4" aria-hidden="true"></i>
+                                    Apply Human Content fixes
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    @if ($hasHumanContentMetrics)
+                        <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                            @foreach ($humanContentMetricCards as $metric)
+                                @php
+                                    $direction = (string) ($metric['direction'] ?? 'higher_is_better');
+                                    $score = $metric['score'];
+                                    $before = $metric['before'];
+                                    $status = trim((string) ($metric['status'] ?? ''));
+                                    $scoreTone = match (true) {
+                                        $direction === 'lower_is_better' && is_numeric($score) && $score <= 35 => 'text-emerald-700',
+                                        $direction === 'lower_is_better' && is_numeric($score) && $score >= 60 => 'text-rose-700',
+                                        $direction === 'higher_is_better' && is_numeric($score) && $score >= 75 => 'text-emerald-700',
+                                        $direction === 'higher_is_better' && is_numeric($score) && $score < 60 => 'text-rose-700',
+                                        $direction === 'status' && in_array($status, ['passed', 'pass'], true) => 'text-emerald-700',
+                                        $direction === 'status' && $status !== '' => 'text-amber-700',
+                                        default => 'text-textPrimary',
+                                    };
+                                @endphp
+                                <div class="rounded-md border border-border bg-background p-3">
+                                    <div class="text-xs uppercase tracking-wide text-textSecondary">{{ $metric['label'] }}</div>
+                                    <div class="mt-2 flex items-end justify-between gap-2">
+                                        <div class="text-2xl font-semibold {{ $scoreTone }}">
+                                            @if ($score !== null)
+                                                {{ $score }}
+                                            @elseif ($status !== '')
+                                                {{ \Illuminate\Support\Str::headline($status) }}
+                                            @else
+                                                n/a
+                                            @endif
+                                        </div>
+                                        @if ($status !== '' && $score !== null)
+                                            <div class="rounded-full border border-border px-2 py-0.5 text-xs text-textSecondary">{{ \Illuminate\Support\Str::headline($status) }}</div>
+                                        @endif
+                                    </div>
+                                    <div class="mt-2 text-xs text-textSecondary">
+                                        @if ($before !== null && $score !== null)
+                                            Before {{ $before }} · After {{ $score }}
+                                        @elseif ($direction === 'lower_is_better')
+                                            Lower is better
+                                        @elseif ($direction === 'higher_is_better')
+                                            Higher is better
+                                        @else
+                                            Publication decision
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="mt-4 rounded-md bg-background px-3 py-3 text-sm text-textSecondary">
+                            Human Content metrics are not available for this older draft analysis yet.
+                        </div>
+                    @endif
+                </div>
+
+                @if ($humanContentGate !== [])
+                    <div class="rounded-lg border {{ data_get($humanContentGate, 'passed') ? 'border-emerald-500/30 bg-emerald-500/5' : 'border-amber-500/30 bg-amber-500/5' }} p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-textSecondary">Human Content publish gate</div>
+                                <div class="mt-1 text-2xl font-semibold text-textPrimary">
+                                    {{ \Illuminate\Support\Str::headline((string) data_get($humanContentGate, 'status', 'pending')) }}
+                                </div>
+                                <div class="mt-2 text-sm text-textSecondary">
+                                    {{ data_get($humanContentGate, 'passed') ? 'Automatic publication is allowed by the editorial quality gate.' : 'Automatic publication is blocked until these editorial quality issues are resolved.' }}
+                                </div>
+                            </div>
+                            <div class="rounded-full border border-border px-3 py-1 text-sm font-medium text-textPrimary">
+                                {{ data_get($humanContentGate, 'passed') ? 'Passed' : 'Blocked' }}
+                            </div>
+                        </div>
+                        @if ($humanContentGateReasons->isNotEmpty())
+                            <div class="mt-4 space-y-2">
+                                @foreach ($humanContentGateReasons as $reason)
+                                    <div class="rounded-md bg-background px-3 py-2 text-sm text-textPrimary">{{ $reason }}</div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 @if ($publishReadinessSection && (data_get($publishReadinessSection, 'score') !== null || data_get($publishReadinessSection, 'status_label') || ! empty(data_get($publishReadinessSection, 'blocking_issues', []))))
                     <div class="rounded-lg border border-border bg-surface p-5">
                         <div class="flex flex-wrap items-start justify-between gap-3">
@@ -935,6 +1168,69 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                @endif
+
+                @if ($humanContentSection && (data_get($humanContentSection, 'score') !== null || $humanContentFindings->isNotEmpty() || $humanContentActions->isNotEmpty()))
+                    <div class="rounded-lg border border-border bg-surface p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-textSecondary">Human Content</div>
+                                <div class="mt-1 text-2xl font-semibold text-textPrimary">
+                                    {{ ucfirst((string) data_get($humanContentSection, 'status_label', data_get($humanContentPayload, 'status', 'pending'))) }}
+                                </div>
+                                <div class="mt-2 text-sm text-textSecondary">{{ data_get($humanContentSection, 'explanation') ?: 'No human-content explanation recorded.' }}</div>
+                            </div>
+                            <div class="rounded-full border border-border px-3 py-1 text-sm font-medium text-textPrimary">
+                                Score {{ data_get($humanContentSection, 'score', data_get($humanContentPayload, 'human_content_score', 'n/a')) }}
+                            </div>
+                        </div>
+                        <div class="mt-4 grid gap-4 xl:grid-cols-2">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-textSecondary">Findings</div>
+                                <div class="mt-2 space-y-2">
+                                    @forelse ($humanContentFindings as $finding)
+                                        <div class="rounded-md bg-background px-3 py-2 text-sm text-textPrimary">{{ $finding }}</div>
+                                    @empty
+                                        <div class="rounded-md bg-background px-3 py-2 text-sm text-textSecondary">No human-content findings recorded.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-textSecondary">Humanization actions</div>
+                                <div class="mt-2 space-y-2">
+                                    @forelse ($humanContentActions as $action)
+                                        <div class="rounded-md bg-background px-3 py-2 text-sm text-textPrimary">{{ $action }}</div>
+                                    @empty
+                                        <div class="rounded-md bg-background px-3 py-2 text-sm text-textSecondary">No humanization actions recorded.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($humanizationMeta !== [])
+                    <div class="rounded-lg border border-border bg-surface p-5">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <div class="text-xs uppercase tracking-wide text-textSecondary">Humanization pass</div>
+                                <div class="mt-1 text-xl font-semibold text-textPrimary">
+                                    {{ \Illuminate\Support\Str::headline((string) data_get($humanizationMeta, 'status', 'recorded')) }}
+                                </div>
+                                <div class="mt-2 text-sm text-textSecondary">{{ data_get($humanizationMeta, 'change_summary') ?: data_get($humanizationMeta, 'reason', 'No humanization summary recorded.') }}</div>
+                            </div>
+                            <div class="rounded-full border border-border px-3 py-1 text-sm font-medium text-textPrimary">
+                                {{ data_get($humanizationMeta, 'preserved_validation.passed') === false ? 'Validation issue' : 'Preserved' }}
+                            </div>
+                        </div>
+                        @if ($humanizationNotes->isNotEmpty())
+                            <div class="mt-4 space-y-2">
+                                @foreach ($humanizationNotes as $note)
+                                    <div class="rounded-md bg-background px-3 py-2 text-sm text-textPrimary">{{ $note }}</div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @endif
 

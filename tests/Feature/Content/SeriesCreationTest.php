@@ -108,6 +108,118 @@ it('creates a content series in the user organization scope', function () {
         ->and((array) $series->intent_keys)->toBe(['educate', 'commercial']);
 });
 
+it('stores supplied article titles as an initial editorial series plan', function () {
+    $organization = Organization::query()->create([
+        'name' => 'Series Plan Org',
+        'slug' => 'series-plan-org-' . Str::random(6),
+        'status' => 'active',
+        'approved_at' => now(),
+        'billing_company_name' => 'Series Plan BV',
+        'billing_address_line1' => 'Teststraat 123',
+        'billing_country_code' => 'NL',
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'name' => 'Series Plan Workspace',
+        'organization_id' => $organization->id,
+    ]);
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'Series Plan Site',
+        'site_url' => 'https://series-plan.example.com',
+        'base_url' => 'https://series-plan.example.com',
+        'allowed_domains' => ['series-plan.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $plan = Plan::query()->create([
+        'id' => (string) Str::uuid(),
+        'key' => 'series-editorial-plan-' . Str::random(6),
+        'name' => 'Series Editorial Plan',
+        'interval' => 'month',
+        'monthly_price_cents' => 4900,
+        'price_cents' => 4900,
+        'currency' => 'EUR',
+        'included_credits' => 100,
+        'included_credits_per_interval' => 100,
+        'seat_limit' => 5,
+        'limits' => ['users' => 5],
+        'is_active' => true,
+    ]);
+
+    $subscription = Subscription::query()->create([
+        'id' => (string) Str::uuid(),
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'plan_id' => $plan->id,
+        'interval' => 'month',
+        'price_cents' => 4900,
+        'currency' => 'EUR',
+        'included_credits_per_interval' => 100,
+        'seat_limit' => 5,
+        'status' => 'active',
+        'current_period_start' => now()->subDay(),
+        'current_period_end' => now()->addMonth(),
+    ]);
+
+    $organization->update(['active_subscription_id' => $subscription->id]);
+
+    $user = User::query()->create([
+        'name' => 'Series Plan Owner',
+        'email' => 'series-plan-owner+' . Str::random(6) . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'approved_at' => now(),
+        'active' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('app.content.series.store'), [
+            'site_id' => $site->id,
+            'name' => 'Google marketing lessons chain',
+            'main_topic' => 'Autonomous marketing',
+            'primary_keyword' => 'autonomous marketing',
+            'supporting_keywords' => "ai marketing\nmarketing operating system",
+            'article_plan' => implode("\n", [
+                'What Google\'s Media Lab gets right. And what is still missing. - Use Google as the market signal, then contrast it with the Argusly view.',
+                'Why AI tools are not enough anymore. - Explain why context and governance matter.',
+                'From AI content to autonomous marketing. - Show the shift from production to operating system.',
+            ]),
+            'source_references' => implode("\n", [
+                'https://business.google.com/en-all/think/ai-excellence/media-lab-marketing-lessons-2026/',
+                'OpenAI blog',
+                'Microsoft AI marketing',
+            ]),
+            'strategic_positioning' => 'Do not summarize Google. Use sources as evidence that marketing is moving toward autonomous marketing.',
+            'audience' => 'B2B marketing leaders',
+            'tone' => 'strategic and direct',
+            'funnel_stage' => 'consideration',
+            'articles_count' => 2,
+        ])
+        ->assertRedirect();
+
+    $series = ContentSeries::query()->firstOrFail();
+
+    expect((int) $series->articles_count)->toBe(3)
+        ->and(data_get($series->strategy_json, 'meta.source'))->toBe('editorial_article_plan')
+        ->and(data_get($series->strategy_json, 'meta.source_url'))->toBe('https://business.google.com/en-all/think/ai-excellence/media-lab-marketing-lessons-2026/')
+        ->and(data_get($series->strategy_json, 'meta.source_references'))->toBe([
+            'https://business.google.com/en-all/think/ai-excellence/media-lab-marketing-lessons-2026/',
+            'OpenAI blog',
+            'Microsoft AI marketing',
+        ])
+        ->and(data_get($series->strategy_json, 'meta.strategic_positioning'))->toContain('autonomous marketing')
+        ->and(data_get($series->strategy_json, 'articles.0.title'))->toBe('What Google\'s Media Lab gets right. And what is still missing.')
+        ->and(data_get($series->strategy_json, 'articles.0.editorial_angle'))->toContain('Argusly view')
+        ->and(data_get($series->strategy_json, 'articles.0.is_pillar'))->toBeTrue()
+        ->and(data_get($series->strategy_json, 'articles.1.internal_links_to'))->toBe([1]);
+});
+
 it('renders the series setup form with tag-based content intent selection', function () {
     $organization = Organization::query()->create([
         'name' => 'Series Setup Org',

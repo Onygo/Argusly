@@ -61,7 +61,7 @@ class SeriesBriefPayloadFactory
                 'output_type' => $outputType,
                 'content_type' => $this->mapOutputTypeToBriefContentType($outputType),
                 'preferred_length' => $this->resolvePreferredLength($article, $articleNumber, $roleContext['is_pillar']),
-                'notes' => $this->buildNotes($series, $articleNumber, $slug, $plannedUrl, $internalLinksTo, $roleContext),
+                'notes' => $this->buildNotes($series, $article, $articleNumber, $slug, $plannedUrl, $internalLinksTo, $roleContext),
             ],
         ];
     }
@@ -84,7 +84,6 @@ class SeriesBriefPayloadFactory
             ? $this->intentDetectionService->detectFromKeywords(
                 $primaryKeyword !== '' ? $primaryKeyword : (string) $series->primary_keyword,
                 array_values(array_filter(array_map('strval', [
-                    ...((array) ($series->supporting_keywords ?? [])),
                     ...((array) data_get($article, 'secondary_keywords', [])),
                     $title,
                 ])))
@@ -92,7 +91,10 @@ class SeriesBriefPayloadFactory
             : [];
         $keys = $selected !== []
             ? $selected
-            : ($detected !== [] ? $detected : ContentIntentCatalog::defaultsForOutputType($outputType));
+            : array_values(array_unique(array_merge(
+                ContentIntentCatalog::defaultsForOutputType($outputType),
+                $detected
+            )));
 
         return array_values(array_unique(array_merge(
             $keys,
@@ -225,7 +227,7 @@ class SeriesBriefPayloadFactory
     /**
      * @param  array<int, int>  $internalLinksTo
      */
-    private function buildNotes(ContentSeries $series, int $articleNumber, string $slug, string $plannedUrl, array $internalLinksTo, array $roleContext): string
+    private function buildNotes(ContentSeries $series, array $article, int $articleNumber, string $slug, string $plannedUrl, array $internalLinksTo, array $roleContext): string
     {
         $lines = array_filter([
             'Series: ' . (string) $series->name,
@@ -246,7 +248,19 @@ class SeriesBriefPayloadFactory
                 : null,
             $slug !== '' ? 'Slug: ' . $slug : null,
             $plannedUrl !== '' ? 'Planned URL: ' . $plannedUrl : null,
+            ! empty((array) data_get($series->strategy_json, 'meta.source_references', []))
+                ? 'Source references: ' . implode(' | ', (array) data_get($series->strategy_json, 'meta.source_references', []))
+                : null,
+            ! empty((array) data_get($series->strategy_json, 'meta.source_references', []))
+                ? 'Use sources as strategic context only. Do not copy, summarize, or mirror them section by section.'
+                : null,
+            trim((string) data_get($series->strategy_json, 'meta.strategic_positioning', '')) !== ''
+                ? 'Strategic positioning: ' . trim((string) data_get($series->strategy_json, 'meta.strategic_positioning', ''))
+                : null,
             $internalLinksTo !== [] ? 'Internal links to: ' . implode(', ', $internalLinksTo) : null,
+            trim((string) data_get($article, 'editorial_angle', '')) !== ''
+                ? 'Editorial guidance: ' . trim((string) data_get($article, 'editorial_angle', ''))
+                : null,
         ]);
 
         return implode("\n", $lines);

@@ -16,6 +16,7 @@ use App\Models\ContentDestination;
 use App\Models\ContentPublication;
 use App\Models\Draft;
 use App\Services\Content\ContentLifecycleService;
+use App\Services\HumanContent\HumanContentGate;
 use App\Support\Connectors\ConnectorRegistry;
 use App\Support\Connectors\Results\HealthCheckResult;
 use App\Support\Connectors\Results\PublicationResult;
@@ -82,6 +83,7 @@ class ContentPublicationService
         private readonly PublicationLegacyCompatibilityService $legacyCompatibility,
         private readonly WordPressPublicationDestinationResolver $wordPressDestinationResolver,
         private readonly LaravelPublicationDestinationResolver $laravelDestinationResolver,
+        private readonly HumanContentGate $humanContentGate,
     ) {}
 
     /**
@@ -132,6 +134,20 @@ class ContentPublicationService
         array $options = [],
         ?ContentPublication $publication = null,
     ): PublicationResult {
+        $draft ??= $this->resolveDraft($content);
+        $gate = $this->humanContentGate->evaluate($draft, $content);
+        if (! $gate['passed']) {
+            $this->humanContentGate->markDraft($draft, $content);
+
+            return PublicationResult::skipped(
+                reason: $this->humanContentGate->message($gate),
+                meta: [
+                    'skip_reason' => 'human_content_gate_blocked',
+                    'human_content_gate' => $gate,
+                ],
+            );
+        }
+
         $connector = $this->resolveConnector($destination);
 
         // Resolve or create the publication record
@@ -144,7 +160,7 @@ class ContentPublicationService
         );
 
         // Dispatch webhook for publication started
-        $this->webhookDispatcher->publicationStarted($content, $draft ?? $this->resolveDraft($content), $connector->type());
+        $this->webhookDispatcher->publicationStarted($content, $draft, $connector->type());
 
         // Check capabilities
         if (! $connector->capabilities()->canPublish()) {
@@ -209,6 +225,25 @@ class ContentPublicationService
      */
     public function dispatchWordPressPublication(Content $content, ?Draft $draft = null, array $context = []): array
     {
+        $draft ??= $this->resolveDraft($content);
+        $gate = $this->humanContentGate->evaluate($draft, $content);
+        if (! $gate['passed']) {
+            $this->humanContentGate->markDraft($draft, $content);
+
+            Log::warning('publication.wordpress.dispatch_skipped', array_merge($context, [
+                'reason' => 'human_content_gate_blocked',
+                'content_id' => (string) $content->id,
+                'draft_id' => (string) ($draft?->id ?? ''),
+                'gate_reasons' => $gate['reasons'],
+            ]));
+
+            return [
+                'publication' => null,
+                'queued' => false,
+                'skip_reason' => 'human_content_gate_blocked',
+            ];
+        }
+
         $publication = $this->prepareWordPressPublication($content, $draft, $context);
         if (! $publication) {
             Log::warning('publication.wordpress.dispatch_skipped', array_merge($context, [
@@ -306,6 +341,25 @@ class ContentPublicationService
      */
     public function dispatchLaravelPublication(Content $content, ?Draft $draft = null, array $context = []): array
     {
+        $draft ??= $this->resolveDraft($content);
+        $gate = $this->humanContentGate->evaluate($draft, $content);
+        if (! $gate['passed']) {
+            $this->humanContentGate->markDraft($draft, $content);
+
+            Log::warning('publication.laravel.dispatch_skipped', array_merge($context, [
+                'reason' => 'human_content_gate_blocked',
+                'content_id' => (string) $content->id,
+                'draft_id' => (string) ($draft?->id ?? ''),
+                'gate_reasons' => $gate['reasons'],
+            ]));
+
+            return [
+                'publication' => null,
+                'queued' => false,
+                'skip_reason' => 'human_content_gate_blocked',
+            ];
+        }
+
         $destination = $this->laravelDestinationResolver->resolveForContent($content);
 
         if (! $destination) {

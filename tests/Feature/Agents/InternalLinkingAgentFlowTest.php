@@ -245,6 +245,97 @@ it('applies an internal link suggestion to content by creating a new refresh rev
         ->and(data_get($run->output_payload, 'suggestions.0.applied_resource_type'))->toBe('content_revision');
 });
 
+it('applies an event-triggered internal link suggestion from the content detail sidebar', function () {
+    [$owner, $viewer, $site, $sourceContent, $draft] = makeInternalLinkingFeatureContext('feature-content-event-apply');
+
+    $target = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $sourceContent->workspace_id,
+        'client_site_id' => $site->id,
+        'title' => 'Editorial workflow checklist',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+        'primary_keyword' => 'editorial workflow checklist',
+        'published_url' => 'https://feature-content-event-apply.example.com/blog/editorial-workflow-checklist',
+    ]);
+
+    $revision = ContentRevision::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => $sourceContent->id,
+        'draft_id' => $draft->id,
+        'revision_number' => 1,
+        'label' => 'R1',
+        'content_html' => '<p>This content references editorial workflow checklist when planning the next revision.</p>',
+        'meta' => [],
+        'is_active' => true,
+        'created_by_user_id' => $owner->id,
+    ]);
+    $version = ContentVersion::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => $sourceContent->id,
+        'type' => ContentVersion::TYPE_DRAFT,
+        'parent_version_id' => null,
+        'body' => '<p>This content references editorial workflow checklist when planning the next revision.</p>',
+        'meta' => [],
+        'source' => ContentVersion::SOURCE_ARGUSLY,
+        'created_by' => $owner->id,
+    ]);
+    $sourceContent->update([
+        'current_revision_id' => $revision->id,
+        'current_version_id' => $version->id,
+    ]);
+
+    $run = AgentRun::query()->create([
+        'id' => (string) Str::uuid(),
+        'agent_key' => InternalLinkingAgent::KEY,
+        'trigger_type' => 'event',
+        'trigger_source' => 'agents.content_published',
+        'organization_id' => $owner->organization_id,
+        'workspace_id' => $sourceContent->workspace_id,
+        'site_id' => $site->id,
+        'content_id' => $sourceContent->id,
+        'user_id' => $owner->id,
+        'input_payload' => [],
+        'output_payload' => [
+            'suggestions' => [
+                [
+                    'anchor_text' => 'editorial workflow checklist',
+                    'target_title' => 'Editorial workflow checklist',
+                    'target_url' => $target->published_url,
+                    'target_content_id' => $target->id,
+                    'reason' => 'Matches same-site topic overlap.',
+                ],
+            ],
+        ],
+        'summary' => 'Found 1 suggested internal link.',
+        'status' => \App\Agents\Support\AgentRunStatus::SUCCESS->value,
+        'started_at' => now(),
+        'finished_at' => now(),
+    ]);
+
+    $this->actingAs($owner)
+        ->post(route('app.content.internal-linking.apply', $sourceContent), [
+            'agent_run_id' => $run->id,
+            'suggestion_index' => 0,
+            'tab' => 'draft',
+        ])
+        ->assertRedirect(route('app.content.show', [
+            'content' => $sourceContent,
+            'tab' => 'draft',
+            'internal_linking_run' => $run->id,
+        ]));
+
+    $sourceContent->refresh()->load('currentRevision');
+    $run->refresh();
+
+    expect((string) $sourceContent->currentRevision?->content_html)
+        ->toContain('<a href="' . $target->published_url . '">editorial workflow checklist</a>')
+        ->and(data_get($run->output_payload, 'suggestions.0.applied_resource_type'))->toBe('content_revision');
+});
+
 function makeInternalLinkingFeatureContext(string $prefix = 'feature-internal-linking'): array
 {
     $organization = Organization::query()->create([

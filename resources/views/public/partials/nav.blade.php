@@ -25,7 +25,9 @@
         $routeSegments = app(MarketingRouteSegments::class);
         $currentRoute = $routeSegments->logicalRouteName((string) request()->route()?->getName()) ?? '';
         $currentMarketingPageKey = MarketingNavigation::currentMarketingPageKey();
-        $resourcesActive = in_array($currentMarketingPageKey, $resourcePageKeys, true) || str_starts_with($currentRoute, 'public.blog.');
+        $resourcesActive = in_array($currentMarketingPageKey, $resourcePageKeys, true)
+            || str_starts_with($currentRoute, 'public.blog.')
+            || $currentRoute === 'public.agentic-marketing-operating-system';
         $platformActive = in_array($currentRoute, [
             'public.product.overview',
             'public.product.platform',

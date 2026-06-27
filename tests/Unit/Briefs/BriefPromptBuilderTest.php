@@ -38,5 +38,6 @@ it('includes key brief fields in the generated prompt and draft meta', function 
     expect($meta['secondary_keywords'])->toBe(['compliance', 'workflow']);
     expect($meta['preferred_length'])->toBe('long');
     expect($meta['key_points'])->toBe(['punt 1', 'punt 2']);
+    expect($meta)->not->toHaveKey('structure');
     expect((string) $meta['notes'])->toContain('BRIEF CONTEXT');
 });

@@ -60,6 +60,26 @@
             <textarea name="supporting_keywords" rows="4" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" placeholder="One keyword per line or comma-separated">{{ old('supporting_keywords', $prefill['supporting_keywords'] ?? '') }}</textarea>
         </div>
 
+        <div>
+            <label class="mb-1 block text-xs text-textSecondary">Article plan</label>
+            <textarea name="article_plan" rows="6" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" placeholder="One planned article per line. Add optional guidance after a dash.">{{ old('article_plan', $prefill['article_plan'] ?? '') }}</textarea>
+            <p class="mt-1 text-xs text-textSecondary">Optional. Use this when you already have titles or angles that Argusly should follow instead of inventing the chain from scratch.</p>
+        </div>
+
+        <div>
+            <label class="mb-1 block text-xs text-textSecondary">Source references</label>
+            <textarea name="source_references" rows="4" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" placeholder="One source per line, e.g. https://example.com/article or OpenAI blog">{{ old('source_references', $prefill['source_references'] ?? '') }}</textarea>
+            <p class="mt-1 text-xs text-textSecondary">Optional. Use sources as market context and direction, not as copy to rewrite.</p>
+            @error('source_references')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label class="mb-1 block text-xs text-textSecondary">Strategic positioning</label>
+            <textarea name="strategic_positioning" rows="6" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" placeholder="Define the point of view every article should carry.">{{ old('strategic_positioning', $prefill['strategic_positioning'] ?? '') }}</textarea>
+            <p class="mt-1 text-xs text-textSecondary">Optional. Use this to anchor the series in a distinct argument, framework, or product position.</p>
+            @error('strategic_positioning')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+        </div>
+
         <x-forms.tag-multi-select
             name="intents"
             label="Content intent"

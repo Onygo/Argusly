@@ -102,6 +102,10 @@ class AppContentSeriesController extends Controller
             'main_topic' => ['required', 'string', 'max:255'],
             'primary_keyword' => ['required', 'string', 'max:255'],
             'supporting_keywords' => ['nullable', 'string', 'max:5000'],
+            'article_plan' => ['nullable', 'string', 'max:10000'],
+            'source_references' => ['nullable', 'string', 'max:10000'],
+            'source_url' => ['nullable', 'url', 'max:2048'],
+            'strategic_positioning' => ['nullable', 'string', 'max:10000'],
             'intents' => ['nullable', 'array'],
             'intents.*' => ['string', Rule::in(ContentIntentCatalog::allowedKeys())],
             'audience' => ['nullable', 'string', 'max:255'],
@@ -110,6 +114,14 @@ class AppContentSeriesController extends Controller
             'articles_count' => ['nullable', 'integer', 'min:1', 'max:20'],
             'content_type' => ['nullable', 'string', Rule::in(WordPressPostType::values())],
         ]);
+
+        $editorialPlan = $this->parseEditorialArticlePlan((string) ($data['article_plan'] ?? ''));
+        $sourceReferences = $this->parseSourceReferences((string) ($data['source_references'] ?? $data['source_url'] ?? ''));
+        $strategicPositioning = $this->nullableString($data['strategic_positioning'] ?? null);
+        $articlesCount = max(1, (int) ($data['articles_count'] ?? 5));
+        if ($editorialPlan !== []) {
+            $articlesCount = max($articlesCount, count($editorialPlan));
+        }
 
         $series = ContentSeries::query()->create([
             'id' => (string) Str::uuid(),
@@ -123,10 +135,11 @@ class AppContentSeriesController extends Controller
             'audience' => $this->nullableString($data['audience'] ?? null),
             'tone' => $this->nullableString($data['tone'] ?? null),
             'funnel_stage' => $this->nullableString($data['funnel_stage'] ?? null),
-            'articles_count' => (int) ($data['articles_count'] ?? 5),
+            'articles_count' => $articlesCount,
             'content_type' => $this->nullableString($data['content_type'] ?? null) ?? WordPressPostType::POST->value,
             'status' => ContentSeries::STATUS_DRAFT,
             'is_locked' => false,
+            'strategy_json' => $this->initialStrategyJson($editorialPlan, (string) $data['primary_keyword'], $sourceReferences, $strategicPositioning),
             'created_by' => $request->user()->id,
         ]);
 
@@ -783,6 +796,24 @@ class AppContentSeriesController extends Controller
             ->map(fn (array $row): string => trim((string) data_get($row, 'title', '')))
             ->filter()
             ->implode(PHP_EOL);
+        $articlePlan = collect([
+            (string) ($chain['pillar_title'] ?? $chain['pillar_topic'] ?? $brief->title),
+            ...collect((array) ($chain['supporting_subtopics'] ?? []))
+                ->map(function (array $row): string {
+                    $title = trim((string) data_get($row, 'title', ''));
+                    $note = trim((string) data_get($row, 'angle', data_get($row, 'internal_link_to', '')));
+
+                    return $title !== '' && $note !== '' ? $title . ' - ' . $note : $title;
+                })
+                ->filter()
+                ->values()
+                ->all(),
+        ])->map(fn (string $line): string => trim($line))
+            ->filter()
+            ->implode(PHP_EOL);
+        $sourceUrl = trim((string) data_get($brief->client_refs, 'source_briefing.final_url', ''))
+            ?: trim((string) data_get($brief->client_refs, 'source_briefing.source_url', ''));
+        $sourceReferences = $sourceUrl !== '' ? $sourceUrl : '';
 
         return [
             'site_id' => (string) $brief->client_site_id,
@@ -793,8 +824,115 @@ class AppContentSeriesController extends Controller
             'audience' => (string) ($brief->target_audience ?? ''),
             'tone' => (string) ($brief->tone_of_voice ?? ''),
             'funnel_stage' => (string) ($brief->funnel_stage ?? ''),
-            'articles_count' => max(3, count((array) ($chain['supporting_subtopics'] ?? []))),
+            'articles_count' => max(3, count((array) ($chain['supporting_subtopics'] ?? [])) + 1),
             'content_type' => WordPressPostType::POST->value,
+            'article_plan' => $articlePlan,
+            'source_references' => $sourceReferences,
+        ];
+    }
+
+    /**
+     * @return array<int,array{title:string,angle:string}>
+     */
+    private function parseEditorialArticlePlan(string $input): array
+    {
+        return collect(preg_split('/\R+/', $input) ?: [])
+            ->map(fn (string $line): string => trim($line))
+            ->filter()
+            ->map(function (string $line): array {
+                $line = preg_replace('/^\s*(?:[-*]|\d+[\).\:-])\s*/', '', $line) ?: $line;
+                [$title, $angle] = array_pad(preg_split('/\s+\-\s+/', $line, 2) ?: [$line], 2, '');
+
+                return [
+                    'title' => Str::limit(trim($title), 250, ''),
+                    'angle' => Str::limit(trim($angle), 500, ''),
+                ];
+            })
+            ->filter(fn (array $row): bool => trim((string) $row['title']) !== '')
+            ->take(20)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function parseSourceReferences(string $input): array
+    {
+        return collect(preg_split('/[\r\n,]+/', $input) ?: [])
+            ->map(fn (string $value): string => trim($value))
+            ->filter()
+            ->map(fn (string $value): string => Str::limit($value, 2048, ''))
+            ->unique()
+            ->take(10)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param array<int,array{title:string,angle:string}> $editorialPlan
+     * @return array<string,mixed>
+     */
+    private function initialStrategyJson(array $editorialPlan, string $primaryKeyword, array $sourceReferences, ?string $strategicPositioning): ?array
+    {
+        if ($editorialPlan === [] && $sourceReferences === [] && $strategicPositioning === null) {
+            return null;
+        }
+
+        $strategy = $editorialPlan !== []
+            ? $this->strategyFromEditorialPlan($editorialPlan, $primaryKeyword)
+            : [
+                'meta' => [
+                    'source' => 'manual_series_context',
+                    'created_at' => now()->toIso8601String(),
+                ],
+            ];
+
+        if ($sourceReferences !== []) {
+            $strategy['meta']['source_references'] = $sourceReferences;
+            $strategy['meta']['source_url'] = collect($sourceReferences)
+                ->first(fn (string $value): bool => filter_var($value, FILTER_VALIDATE_URL) !== false);
+            $strategy['meta']['source_usage'] = 'Use as strategic reference and market context, not as copy to rewrite.';
+        }
+
+        if ($strategicPositioning !== null) {
+            $strategy['meta']['strategic_positioning'] = $strategicPositioning;
+        }
+
+        return $strategy;
+    }
+
+    private function strategyFromEditorialPlan(array $editorialPlan, string $primaryKeyword): array
+    {
+        $articles = collect($editorialPlan)
+            ->map(function (array $row, int $index) use ($primaryKeyword, $editorialPlan): array {
+                $articleNumber = $index + 1;
+
+                return [
+                    'article_number' => $articleNumber,
+                    'title' => (string) $row['title'],
+                    'primary_keyword' => $articleNumber === 1
+                        ? trim($primaryKeyword)
+                        : Str::lower((string) $row['title']),
+                    'secondary_keywords' => [],
+                    'internal_links_to' => $articleNumber === 1 && count($editorialPlan) > 1
+                        ? collect(range(2, count($editorialPlan)))->values()->all()
+                        : ($articleNumber === 1 ? [] : [1]),
+                    'is_pillar' => $articleNumber === 1,
+                    'editorial_angle' => (string) $row['angle'],
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'angle' => 'Use the supplied editorial plan as the source of truth for article titles and angles.',
+            'articles' => $articles,
+            'meta' => [
+                'source' => 'editorial_article_plan',
+                'created_at' => now()->toIso8601String(),
+                'editorial_plan_locked_titles' => true,
+            ],
         ];
     }
 }
