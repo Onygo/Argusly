@@ -11,13 +11,16 @@ use App\Models\Brief;
 use App\Models\ClientSite;
 use App\Models\ContentOpportunity;
 use App\Models\ContentOpportunityRun;
+use App\Models\Opportunity;
 use App\Models\Workspace;
 use App\Services\AgenticMarketing\AgenticActionRunLogger;
 use App\Services\AgenticMarketing\AgenticApprovalGate;
 use App\Services\ContentOpportunityEngine\ContentOpportunityEngine;
+use App\Services\Mos\Opportunity\ContentOpportunityBriefPayloadBuilder;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalBriefWriter;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalBriefWriteResult;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AppContentOpportunityController extends Controller
@@ -160,8 +163,12 @@ class AppContentOpportunityController extends Controller
         return back()->with('status', 'Content Opportunity Engine run queued.');
     }
 
-    public function createBrief(Request $request, ContentOpportunity $opportunity): RedirectResponse
-    {
+    public function createBrief(
+        Request $request,
+        ContentOpportunity $opportunity,
+        ContentOpportunityBriefPayloadBuilder $payloadBuilder,
+        ContentOpportunityCanonicalBriefWriter $canonicalBriefWriter,
+    ): RedirectResponse {
         abort_unless((int) $opportunity->organization_id === (int) $request->user()->organization_id, 404);
 
         $data = $request->validate([
@@ -170,14 +177,68 @@ class AppContentOpportunityController extends Controller
         ]);
 
         $opportunity->loadMissing('workspace', 'site');
+
+        $site = $this->resolveBriefSite($opportunity, $request, $data);
+        if ($site instanceof RedirectResponse) {
+            return $site;
+        }
+
+        if (! $site) {
+            return back()->withErrors(['opportunity' => 'Connect a site before creating a brief from this opportunity.']);
+        }
+
+        if ((bool) config('features.mos_canonical_content_opportunity_brief_writer', false)) {
+            $canonicalResult = $this->createCanonicalBriefWhenSafe(
+                $opportunity,
+                $site,
+                $data['mode'],
+                $request,
+                $canonicalBriefWriter,
+            );
+
+            if ($canonicalResult?->brief) {
+                $this->markLegacyOpportunityPlanned($opportunity);
+                $this->recordBriefCreationRun($opportunity, $canonicalResult->brief, $site, $data['mode'], $request);
+
+                return $this->redirectToCreatedBrief($canonicalResult->brief, $data['mode']);
+            }
+
+            if ($canonicalResult?->duplicateBrief) {
+                $this->markLegacyOpportunityPlanned($opportunity);
+                $this->recordBriefCreationRun($opportunity, $canonicalResult->duplicateBrief, $site, $data['mode'], $request);
+
+                return $this->redirectToCreatedBrief($canonicalResult->duplicateBrief, $data['mode']);
+            }
+        }
+
+        $brief = Brief::query()->create($payloadBuilder->build(
+            $opportunity,
+            $site,
+            $data['mode'],
+            (int) $request->user()->id,
+        ));
+
+        $this->markLegacyOpportunityPlanned($opportunity);
+        $this->recordBriefCreationRun($opportunity, $brief, $site, $data['mode'], $request);
+
+        return $this->redirectToCreatedBrief($brief, $data['mode']);
+    }
+
+    /**
+     * @param  array{mode: string, site_id?: string|null}  $data
+     */
+    private function resolveBriefSite(ContentOpportunity $opportunity, Request $request, array $data): ClientSite|RedirectResponse|null
+    {
         $site = $opportunity->site;
 
         if (! $site && $request->filled('site_id')) {
-            $site = ClientSite::query()
+            return ClientSite::query()
                 ->where('workspace_id', $opportunity->workspace_id)
                 ->where('is_active', true)
                 ->findOrFail((string) $data['site_id']);
-        } elseif (! $site && $opportunity->workspace) {
+        }
+
+        if (! $site && $opportunity->workspace) {
             $sites = ClientSite::query()
                 ->where('workspace_id', $opportunity->workspace_id)
                 ->where('is_active', true)
@@ -186,60 +247,68 @@ class AppContentOpportunityController extends Controller
                 ->get();
 
             if ($sites->count() === 1) {
-                $site = $sites->first();
-            } elseif ($sites->count() > 1) {
+                return $sites->first();
+            }
+
+            if ($sites->count() > 1) {
                 return back()->withErrors(['site_id' => 'Select the publishing site before creating a brief from this opportunity.']);
             }
         }
 
-        if (! $site) {
-            return back()->withErrors(['opportunity' => 'Connect a site before creating a brief from this opportunity.']);
+        return $site;
+    }
+
+    private function createCanonicalBriefWhenSafe(
+        ContentOpportunity $opportunity,
+        ClientSite $site,
+        string $mode,
+        Request $request,
+        ContentOpportunityCanonicalBriefWriter $canonicalBriefWriter,
+    ): ?ContentOpportunityCanonicalBriefWriteResult {
+        $canonical = Opportunity::query()
+            ->where('content_opportunity_id', $opportunity->id)
+            ->where('workspace_id', $opportunity->workspace_id)
+            ->where('organization_id', $opportunity->organization_id)
+            ->oldest()
+            ->first();
+
+        if (! $canonical) {
+            return null;
         }
 
-        $brief = Brief::query()->create([
-            'client_site_id' => (string) $site->id,
-            'created_by_user_id' => (int) $request->user()->id,
-            'status' => 'draft',
-            'source' => 'content_opportunity',
-            'title' => $opportunity->title,
-            'language' => (string) data_get($opportunity->localization_recommendation, 'priority_locales.0', 'en'),
-            'content_type' => $this->briefContentType($opportunity),
-            'output_type' => 'article',
-            'primary_keyword' => $this->primaryKeyword($opportunity),
-            'secondary_keywords' => $this->secondaryKeywords($opportunity),
-            'audience' => $opportunity->target_audience,
-            'target_audience' => $opportunity->target_audience,
-            'funnel_stage' => $opportunity->funnel_stage,
-            'search_intent' => $opportunity->primary_search_intent,
-            'unique_angle' => $opportunity->angle,
-            'key_points' => $this->keyPoints($opportunity),
-            'call_to_action' => $opportunity->suggested_cta,
-            'desired_length_min' => $data['mode'] === 'chained' ? 900 : 1000,
-            'desired_length_max' => $data['mode'] === 'chained' ? 1300 : 1500,
-            'notes' => $this->briefNotes($opportunity),
-            'progress' => 0,
-            'client_refs' => [
-                'client_type' => 'content_opportunity',
-                'site_url' => (string) ($site->site_url ?? ''),
-                'content_opportunity' => $this->opportunityReference($opportunity),
-                'source_briefing' => [
-                    'chain_proposal' => $data['mode'] === 'chained' ? $this->chainProposal($opportunity) : null,
-                    'generated_at' => now()->toIso8601String(),
-                ],
-            ],
-            'wp_site_id' => (string) $site->id,
-        ]);
+        $dryRun = $canonicalBriefWriter->dryRun($opportunity, $canonical, $site, $mode, $request->user());
+        if ($dryRun->duplicateBrief) {
+            return $dryRun;
+        }
 
+        if (! $dryRun->safe) {
+            return null;
+        }
+
+        return $canonicalBriefWriter->apply($opportunity, $canonical, $site, $mode, $request->user());
+    }
+
+    private function markLegacyOpportunityPlanned(ContentOpportunity $opportunity): void
+    {
         $opportunity->forceFill(['status' => ContentOpportunity::STATUS_PLANNED])->save();
+    }
+
+    private function recordBriefCreationRun(
+        ContentOpportunity $opportunity,
+        Brief $brief,
+        ClientSite $site,
+        string $mode,
+        Request $request,
+    ): void {
         app(AgenticActionRunLogger::class)->recordStandalone(
             $opportunity->workspace,
-            $data['mode'] === 'chained' ? AgenticApprovalGate::ACTION_CREATE_CHAINED_PLAN : AgenticApprovalGate::ACTION_GENERATE_BRIEF,
+            $mode === 'chained' ? AgenticApprovalGate::ACTION_CREATE_CHAINED_PLAN : AgenticApprovalGate::ACTION_GENERATE_BRIEF,
             AgenticActionRun::STATUS_COMPLETED,
             [
                 'content_id' => $opportunity->content_id,
                 'reason' => 'Customer created a brief from a content opportunity.',
                 'input_snapshot' => [
-                    'mode' => $data['mode'],
+                    'mode' => $mode,
                     'site_id' => (string) $site->id,
                     'opportunity_id' => (string) $opportunity->id,
                 ],
@@ -251,8 +320,11 @@ class AppContentOpportunityController extends Controller
                 'approved_at' => now(),
             ]
         );
+    }
 
-        if ($data['mode'] === 'chained') {
+    private function redirectToCreatedBrief(Brief $brief, string $mode): RedirectResponse
+    {
+        if ($mode === 'chained') {
             return redirect()
                 ->route('app.content.series.create', ['source_brief' => $brief->id])
                 ->with('status', 'Brief created from opportunity. Review the chained article plan.');
@@ -261,107 +333,5 @@ class AppContentOpportunityController extends Controller
         return redirect()
             ->route('app.content.workspace.show', $brief)
             ->with('status', 'Brief created from opportunity. Generate a single article draft when ready.');
-    }
-
-    private function briefContentType(ContentOpportunity $opportunity): string
-    {
-        return match ((string) $opportunity->type) {
-            'faq_opportunity', 'answer_block_opportunity' => 'other',
-            default => 'blog',
-        };
-    }
-
-    private function primaryKeyword(ContentOpportunity $opportunity): ?string
-    {
-        return trim((string) data_get($opportunity->normalized_payload, 'candidate.topic'))
-            ?: trim((string) $opportunity->title)
-            ?: null;
-    }
-
-    private function secondaryKeywords(ContentOpportunity $opportunity): array
-    {
-        return collect((array) $opportunity->related_entities)
-            ->merge(collect((array) $opportunity->recommended_internal_links)->pluck('anchor_text'))
-            ->map(fn (mixed $value): string => trim((string) $value))
-            ->filter()
-            ->unique()
-            ->take(12)
-            ->values()
-            ->all();
-    }
-
-    private function keyPoints(ContentOpportunity $opportunity): array
-    {
-        return collect([
-            $opportunity->reasoning,
-            $opportunity->why_this_matters,
-            $opportunity->why_now,
-            $opportunity->competitor_pressure,
-            $opportunity->ai_visibility_opportunity,
-        ])
-            ->map(fn (mixed $value): string => trim((string) $value))
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    private function briefNotes(ContentOpportunity $opportunity): string
-    {
-        $links = collect((array) $opportunity->recommended_internal_links)
-            ->map(fn (array $link): string => trim((string) ($link['title'] ?? $link['url'] ?? $link['anchor_text'] ?? '')))
-            ->filter()
-            ->take(6)
-            ->map(fn (string $value): string => '- '.$value)
-            ->implode(PHP_EOL);
-
-        return trim(implode(PHP_EOL.PHP_EOL, array_filter([
-            'Generated from Content Opportunity Engine.',
-            'Opportunity type: '.str_replace('_', ' ', (string) $opportunity->type),
-            'Expected impact: '.(string) $opportunity->expected_impact,
-            'Suggested schema: '.(string) $opportunity->suggested_schema,
-            $links !== '' ? 'Recommended internal link context:'.PHP_EOL.$links : null,
-        ])));
-    }
-
-    private function opportunityReference(ContentOpportunity $opportunity): array
-    {
-        return [
-            'id' => (string) $opportunity->id,
-            'type' => (string) $opportunity->type,
-            'priority_score' => (float) $opportunity->priority_score,
-            'expected_impact' => (string) $opportunity->expected_impact,
-            'source_signals' => $opportunity->source_signals,
-            'query_intent' => $opportunity->query_intent_payload,
-            'recommended_internal_links' => $opportunity->recommended_internal_links,
-        ];
-    }
-
-    private function chainProposal(ContentOpportunity $opportunity): array
-    {
-        $topic = $this->primaryKeyword($opportunity) ?: $opportunity->title;
-        $entities = collect((array) $opportunity->related_entities)
-            ->map(fn (mixed $value): string => trim((string) $value))
-            ->filter()
-            ->take(4)
-            ->values();
-
-        $fallbacks = collect([
-            'What is '.$topic.'?',
-            'How to implement '.$topic,
-            $topic.' examples and use cases',
-            $topic.' comparison and alternatives',
-        ]);
-
-        return [
-            'pillar_topic' => Str::headline((string) $topic),
-            'strategy' => 'Create a pillar article plus supporting chained articles based on the opportunity findings.',
-            'supporting_subtopics' => $entities
-                ->map(fn (string $entity): array => ['title' => Str::headline($entity), 'reason' => 'Related entity from the opportunity signals.'])
-                ->merge($fallbacks->map(fn (string $title): array => ['title' => Str::headline($title), 'reason' => 'Derived from the opportunity topic.']))
-                ->unique('title')
-                ->take(6)
-                ->values()
-                ->all(),
-        ];
     }
 }

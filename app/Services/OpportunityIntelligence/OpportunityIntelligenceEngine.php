@@ -5,9 +5,11 @@ namespace App\Services\OpportunityIntelligence;
 use App\Enums\OpportunityCategory;
 use App\Enums\OpportunitySignalSource;
 use App\Enums\OpportunityStatus;
+use App\Models\AgenticMarketingOpportunity;
 use App\Models\Opportunity;
 use App\Models\OpportunitySignal;
 use App\Models\Workspace;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticOpportunitySignalValidationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -41,7 +43,7 @@ class OpportunityIntelligenceEngine
     }
 
     /**
-     * @param Collection<int, OpportunitySignal> $signals
+     * @param  Collection<int, OpportunitySignal>  $signals
      */
     private function persistGroup(Workspace $workspace, Collection $signals): Opportunity
     {
@@ -56,12 +58,14 @@ class OpportunityIntelligenceEngine
             $this->clusterKey($workspace, $first),
         ]));
         $promotedSignals = $signals->filter(fn (OpportunitySignal $signal): bool => $this->isPromotedSignalIntelligenceSignal($signal));
+        $competitorSignals = $signals->filter(fn (OpportunitySignal $signal): bool => $this->isPromotedCompetitorIntelligenceSignal($signal));
+        $agenticSignals = $signals->filter(fn (OpportunitySignal $signal): bool => $this->isPromotedAgenticMarketingSignal($signal));
         $existingStatus = Opportunity::query()
             ->where('workspace_id', (string) $workspace->id)
             ->where('dedupe_hash', $hash)
             ->value('status');
 
-        return DB::transaction(function () use ($workspace, $signals, $first, $category, $topic, $score, $actions, $hash, $promotedSignals, $existingStatus): Opportunity {
+        return DB::transaction(function () use ($workspace, $signals, $first, $category, $topic, $score, $actions, $hash, $promotedSignals, $competitorSignals, $agenticSignals, $existingStatus): Opportunity {
             $opportunity = Opportunity::query()->updateOrCreate(
                 [
                     'workspace_id' => (string) $workspace->id,
@@ -91,6 +95,8 @@ class OpportunityIntelligenceEngine
                         'sources' => $signals->pluck('source')->map(fn ($source) => $source?->value ?? $source)->unique()->values()->all(),
                         'average_strength' => round((float) $signals->avg('signal_strength'), 2),
                         'promoted_signal_intelligence_count' => $promotedSignals->count(),
+                        'promoted_competitor_intelligence_count' => $competitorSignals->count(),
+                        'promoted_agentic_marketing_count' => $agenticSignals->count(),
                         'signal_detection_ids' => $promotedSignals
                             ->pluck('metadata.signal_detection_id')
                             ->filter()
@@ -98,13 +104,70 @@ class OpportunityIntelligenceEngine
                             ->unique()
                             ->values()
                             ->all(),
+                        'competitor_content_opportunity_ids' => $competitorSignals
+                            ->pluck('metadata.source_id')
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'agentic_marketing_opportunity_ids' => $agenticSignals
+                            ->map(fn (OpportunitySignal $signal): mixed => data_get($signal->metadata, 'legacy_agentic_marketing_opportunity_id')
+                                ?: data_get($signal->metadata, 'agentic_marketing_opportunity_id')
+                                ?: data_get($signal->metadata, 'source_id')
+                                ?: data_get($signal->evidence, 'legacy_agentic_marketing_opportunity.source_id'))
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'agentic_detector_keys' => $agenticSignals
+                            ->map(fn (OpportunitySignal $signal): mixed => data_get($signal->metadata, 'detector_key') ?: data_get($signal->metrics, 'detector_key'))
+                            ->filter()
+                            ->map(fn ($key): string => (string) $key)
+                            ->unique()
+                            ->values()
+                            ->all(),
                     ],
                     'metadata' => [
                         'has_signal_intelligence_input' => $promotedSignals->isNotEmpty(),
+                        'has_competitor_intelligence_input' => $competitorSignals->isNotEmpty(),
+                        'has_agentic_marketing_input' => $agenticSignals->isNotEmpty(),
                         'signal_detection_ids' => $promotedSignals
                             ->pluck('metadata.signal_detection_id')
                             ->filter()
                             ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'competitor_content_opportunity_ids' => $competitorSignals
+                            ->pluck('metadata.source_id')
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'agentic_marketing_opportunity_ids' => $agenticSignals
+                            ->map(fn (OpportunitySignal $signal): mixed => data_get($signal->metadata, 'legacy_agentic_marketing_opportunity_id')
+                                ?: data_get($signal->metadata, 'agentic_marketing_opportunity_id')
+                                ?: data_get($signal->metadata, 'source_id')
+                                ?: data_get($signal->evidence, 'legacy_agentic_marketing_opportunity.source_id'))
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'agentic_objective_ids' => $agenticSignals
+                            ->map(fn (OpportunitySignal $signal): mixed => data_get($signal->metadata, 'objective_id') ?: data_get($signal->evidence, 'legacy_agentic_marketing_opportunity.objective_id'))
+                            ->filter()
+                            ->map(fn ($id): string => (string) $id)
+                            ->unique()
+                            ->values()
+                            ->all(),
+                        'agentic_detector_keys' => $agenticSignals
+                            ->map(fn (OpportunitySignal $signal): mixed => data_get($signal->metadata, 'detector_key') ?: data_get($signal->metrics, 'detector_key'))
+                            ->filter()
+                            ->map(fn ($key): string => (string) $key)
                             ->unique()
                             ->values()
                             ->all(),
@@ -153,6 +216,7 @@ class OpportunityIntelligenceEngine
             'content_decay' => OpportunityCategory::REFRESH_OPPORTUNITY,
             'engagement_analytics' => OpportunityCategory::ENGAGEMENT_OPPORTUNITY,
             'competitor_intelligence' => OpportunityCategory::COMPETITOR_MOVEMENT,
+            'internal_analytics', 'content_cluster' => OpportunityCategory::CONTENT_GAP,
             'signal_intelligence' => OpportunityCategory::CONTENT_GAP,
             default => OpportunityCategory::CONTENT_GAP,
         };
@@ -162,6 +226,16 @@ class OpportunityIntelligenceEngine
     {
         $category = $signal->category?->value ?? $this->categoryForSource((string) ($signal->source?->value ?? $signal->source))->value;
         $topic = strtolower(trim((string) ($signal->topic ?: $signal->entity ?: $signal->content_id ?: 'general')));
+
+        if ($this->isPromotedCompetitorIntelligenceSignal($signal)) {
+            return implode('|', [
+                (string) $workspace->id,
+                (string) $signal->client_site_id,
+                $category,
+                $topic,
+                (string) ($signal->entity ?: 'competitor'),
+            ]);
+        }
 
         if (! $this->isPromotedSignalIntelligenceSignal($signal)) {
             return implode('|', [
@@ -192,6 +266,24 @@ class OpportunityIntelligenceEngine
             && filled(data_get($signal->metadata, 'signal_detection_id'));
     }
 
+    private function isPromotedCompetitorIntelligenceSignal(OpportunitySignal $signal): bool
+    {
+        $source = $signal->source?->value ?? $signal->source;
+
+        return $source === OpportunitySignalSource::COMPETITOR_INTELLIGENCE->value
+            && data_get($signal->metadata, 'source_type') === CompetitorContentOpportunitySignalPromotionService::SOURCE_TYPE
+            && filled(data_get($signal->metadata, 'source_id'));
+    }
+
+    private function isPromotedAgenticMarketingSignal(OpportunitySignal $signal): bool
+    {
+        return data_get($signal->metadata, 'source_type') === AgenticOpportunitySignalValidationService::SOURCE_TYPE
+            || data_get($signal->metadata, 'source_model') === AgenticMarketingOpportunity::class
+            || data_get($signal->metadata, 'promotion.version') === 'agentic-opportunity-signal-promotion:v1'
+            || filled(data_get($signal->metadata, 'legacy_agentic_marketing_opportunity_id'))
+            || filled(data_get($signal->metadata, 'agentic_marketing_opportunity_id'));
+    }
+
     private function periodKey(OpportunitySignal $signal): string
     {
         return ($signal->observed_at ?? now())->copy()->startOfWeek()->toDateString();
@@ -214,7 +306,7 @@ class OpportunityIntelligenceEngine
     }
 
     /**
-     * @param Collection<int, OpportunitySignal> $signals
+     * @param  Collection<int, OpportunitySignal>  $signals
      */
     private function summary(OpportunityCategory $category, Collection $signals): string
     {

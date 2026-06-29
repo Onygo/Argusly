@@ -10,6 +10,7 @@ use App\Models\AgenticMarketingOpportunity;
 use App\Models\AgenticMarketingRun;
 use App\Models\AgenticMarketingRunItem;
 use App\Models\User;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticExecutionCanonicalMetadataResolver;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -18,11 +19,13 @@ class OpportunityExecutionPipelineService
     public function __construct(
         private readonly OpportunityExecutionAssetGenerator $assetGenerator,
         private readonly ExecutionAuditLogger $auditLogger,
+        private readonly AgenticExecutionCanonicalMetadataResolver $canonicalMetadataResolver,
     ) {}
 
     public function prepare(AgenticMarketingOpportunity $opportunity, string $mode = 'manual', ?User $actor = null, array $input = []): AgenticMarketingExecutionPipeline
     {
         $opportunity->loadMissing('objective');
+        $input = $this->executionInput($opportunity, $input);
 
         return DB::transaction(function () use ($opportunity, $mode, $actor, $input): AgenticMarketingExecutionPipeline {
             $run = AgenticMarketingRun::query()->create([
@@ -191,7 +194,7 @@ class OpportunityExecutionPipelineService
     }
 
     /**
-     * @param array<int,AgenticMarketingExecutionAsset> $assets
+     * @param  array<int,AgenticMarketingExecutionAsset>  $assets
      */
     private function createGraphRunItems(AgenticMarketingRun $run, AgenticMarketingExecutionPipeline $pipeline, array $assets): void
     {
@@ -246,6 +249,28 @@ class OpportunityExecutionPipelineService
             ] : null,
             'note' => 'Execution preparation does not publish changes; retry creates a new pipeline and keeps this snapshot for audit.',
         ];
+    }
+
+    /**
+     * @param  array<string,mixed>  $input
+     * @return array<string,mixed>
+     */
+    private function executionInput(AgenticMarketingOpportunity $opportunity, array $input): array
+    {
+        unset($input['canonical_opportunity_context']);
+
+        if (! (bool) config('features.mos_agentic_execution_canonical_metadata_writer', false)) {
+            return $input;
+        }
+
+        $result = $this->canonicalMetadataResolver->resolve($opportunity, 'pipeline');
+        if (! (bool) $result['safe']) {
+            return $input;
+        }
+
+        $input['canonical_opportunity_context'] = $result['metadata'];
+
+        return $input;
     }
 
     private function readinessPayload(AgenticMarketingExecutionPipeline $pipeline): array

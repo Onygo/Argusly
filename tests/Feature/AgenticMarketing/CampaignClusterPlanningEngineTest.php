@@ -1,17 +1,23 @@
 <?php
 
-use App\Models\CampaignCluster;
-use App\Models\CampaignClusterRun;
+use App\Http\Middleware\EnsureBillingOnboardingCompleted;
+use App\Http\Middleware\EnsureEmailCodeVerified;
+use App\Http\Middleware\EnsureUserApproved;
+use App\Http\Middleware\EnsureUserHasOrganization;
 use App\Models\AgenticMarketingAction;
 use App\Models\AgenticMarketingObjective;
 use App\Models\AgenticMarketingOpportunity;
 use App\Models\Brief;
+use App\Models\CampaignCluster;
+use App\Models\CampaignClusterItem;
+use App\Models\CampaignClusterRun;
 use App\Models\ClientSite;
 use App\Models\CompanyIntelligenceProfile;
 use App\Models\CompetitorContentOpportunity;
 use App\Models\Content;
 use App\Models\ContentOpportunity;
 use App\Models\Draft;
+use App\Models\Opportunity;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
@@ -25,10 +31,10 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->withoutMiddleware([
-        \App\Http\Middleware\EnsureEmailCodeVerified::class,
-        \App\Http\Middleware\EnsureUserApproved::class,
-        \App\Http\Middleware\EnsureUserHasOrganization::class,
-        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
     ]);
 });
 
@@ -38,7 +44,7 @@ function makeCampaignClusterScope(): array
 
     $organization = Organization::query()->create([
         'name' => 'Campaign Cluster Org',
-        'slug' => 'campaign-cluster-' . Str::random(6),
+        'slug' => 'campaign-cluster-'.Str::random(6),
         'status' => 'active',
         'approved_at' => now(),
     ]);
@@ -159,6 +165,42 @@ it('generates campaign clusters with maps scores and dependencies', function () 
         ->and($cluster->visual_map['topic_relationships']['nodes'])->toBeArray()
         ->and($cluster->publishing_sequence)->toBeArray()
         ->and($cluster->localization_strategy['priority_locales'])->toContain('nl');
+});
+
+it('uses canonical content opportunity snapshots without changing campaign lifecycle ownership', function () {
+    [, , $workspace, $site] = makeCampaignClusterScope();
+    $legacy = ContentOpportunity::query()
+        ->where('workspace_id', $workspace->id)
+        ->where('type', 'comparison_page')
+        ->firstOrFail();
+
+    $canonical = Opportunity::factory()->create([
+        'organization_id' => $legacy->organization_id,
+        'workspace_id' => $legacy->workspace_id,
+        'client_site_id' => $legacy->client_site_id,
+        'content_opportunity_id' => $legacy->id,
+        'title' => 'Canonical comparison plan',
+        'priority_score' => 96,
+        'confidence_score' => 91,
+        'impact_score' => 89,
+        'recommended_actions' => [['title' => 'Use canonical campaign evidence']],
+        'evidence' => [['type' => 'canonical_campaign_evidence']],
+    ]);
+
+    app(CampaignClusterPlanningEngine::class)->run($workspace, (string) $site->id, ['source_type' => 'test']);
+
+    $item = CampaignClusterItem::query()
+        ->where('content_opportunity_id', $legacy->id)
+        ->firstOrFail();
+    $cluster = CampaignCluster::query()->where('workspace_id', $workspace->id)->firstOrFail();
+
+    expect($item->payload['source_opportunity'])->toMatchArray([
+        'id' => (string) $legacy->id,
+        'canonical_opportunity_id' => (string) $canonical->id,
+        'priority_score' => 96.0,
+    ])
+        ->and($cluster->source_signals['canonical_opportunity_ids'])->toContain((string) $canonical->id)
+        ->and($legacy->refresh()->status)->toBe(ContentOpportunity::STATUS_OPEN);
 });
 
 it('generates fallback clusters from existing content when intelligence inputs are empty', function () {

@@ -7,9 +7,14 @@ use App\Models\CompetitorContentOpportunity;
 use App\Models\Content;
 use App\Models\ContentOpportunity;
 use App\Models\Workspace;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalReadService;
 
 class CampaignClusterInputBuilder
 {
+    public function __construct(
+        private readonly ContentOpportunityCanonicalReadService $contentOpportunityReadService,
+    ) {}
+
     public function build(Workspace $workspace, ?string $clientSiteId = null): array
     {
         $company = CompanyIntelligenceProfile::query()
@@ -41,7 +46,7 @@ class CampaignClusterInputBuilder
 
         return [
             'company' => $company,
-            'opportunities' => $opportunities,
+            'opportunities' => $this->contentOpportunityReadService->readMany($opportunities),
             'competitor_gaps' => $competitorGaps,
             'existing_content' => $existingContent,
             'fallback_topics' => collect([

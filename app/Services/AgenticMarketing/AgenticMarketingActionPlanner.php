@@ -13,15 +13,19 @@ use App\Models\AgenticMarketingRun;
 use App\Models\AgenticMarketingRunItem;
 use App\Models\Content;
 use App\Models\WriterProfile;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticCanonicalPlannerDefaultSelectionPreviewService;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticCanonicalPlannerShadowService;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticPlannerDefaultSelectionPlannerPathDiagnosticHook;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticPlannerDefaultSelectionRuntimeSwitchConsumptionHook;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Throwable;
 
 class AgenticMarketingActionPlanner
 {
     public function __construct(
         private readonly ?AgenticMarketingApprovalPolicyEngine $approvalPolicyEngine = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @return array<string,mixed>
@@ -46,10 +50,20 @@ class AgenticMarketingActionPlanner
             'action_ids' => [],
         ];
 
+        $this->computeCanonicalPlannerShadow($objective);
+        $this->computeDefaultSelectionPlannerPathDiagnostics($objective);
+
+        $runtimeSwitchConsumptionHookCalled = false;
+
         $objective->opportunities()
             ->where('status', AgenticMarketingOpportunityStatus::Open->value)
             ->orderByDesc('priority_score')
-            ->chunkById(50, function (Collection $opportunities) use (&$summary, $run): void {
+            ->chunkById(50, function (Collection $opportunities) use (&$summary, $run, $objective, &$runtimeSwitchConsumptionHookCalled): void {
+                if (! $runtimeSwitchConsumptionHookCalled) {
+                    $runtimeSwitchConsumptionHookCalled = true;
+                    $this->consumeDefaultSelectionRuntimeSwitch($objective, $opportunities);
+                }
+
                 foreach ($opportunities as $opportunity) {
                     $result = $this->planForOpportunity($opportunity, $run);
                     $summary['opportunities']++;
@@ -59,6 +73,10 @@ class AgenticMarketingActionPlanner
                     $summary['action_ids'] = array_values(array_unique(array_merge($summary['action_ids'], $result['action_ids'])));
                 }
             });
+
+        if (! $runtimeSwitchConsumptionHookCalled) {
+            $this->consumeDefaultSelectionRuntimeSwitch($objective, collect());
+        }
 
         $run->markCompleted($summary);
         app(AgenticMarketingAuditLogger::class)->record($run->loadMissing('objective'), 'run.completed', null, $summary);
@@ -82,6 +100,11 @@ class AgenticMarketingActionPlanner
             $run->markRunning();
             $ownsRun = true;
             app(AgenticMarketingAuditLogger::class)->record($run->loadMissing('objective'), 'run.started', null, $run->attributesToArray());
+        }
+
+        if ($ownsRun && $opportunity->objective instanceof AgenticMarketingObjective) {
+            $this->computeCanonicalPlannerShadow($opportunity->objective);
+            $this->computeDefaultSelectionPlannerPathDiagnostics($opportunity->objective);
         }
 
         $item = AgenticMarketingRunItem::query()->create([
@@ -110,6 +133,7 @@ class AgenticMarketingActionPlanner
         foreach ($this->plannedActions($opportunity) as $plan) {
             if (! (bool) data_get($plan, 'prerequisites.met', false)) {
                 $summary['skipped']++;
+
                 continue;
             }
 
@@ -145,6 +169,83 @@ class AgenticMarketingActionPlanner
         }
 
         return $summary;
+    }
+
+    /**
+     * Preview the current deterministic planner output without creating runs, run items,
+     * audit entries or AgenticMarketingAction rows.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function previewPlannedActions(AgenticMarketingOpportunity $opportunity): array
+    {
+        $opportunity->loadMissing(['objective', 'content']);
+
+        return $this->plannedActions($opportunity);
+    }
+
+    private function computeCanonicalPlannerShadow(AgenticMarketingObjective $objective): void
+    {
+        if (! (bool) config('features.mos_agentic_planner_canonical_shadow', false)) {
+            return;
+        }
+
+        try {
+            $report = app(AgenticCanonicalPlannerShadowService::class)->compare($objective);
+            app()->instance('mos.agentic_planner_canonical_shadow.last_diagnostics', [
+                'ok' => true,
+                'report' => $report,
+            ]);
+        } catch (Throwable $exception) {
+            app()->instance('mos.agentic_planner_canonical_shadow.last_diagnostics', [
+                'ok' => false,
+                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
+                'objective_id' => (string) $objective->id,
+            ]);
+        }
+
+        $this->computeCanonicalPlannerDefaultSelectionPreview($objective);
+    }
+
+    private function computeCanonicalPlannerDefaultSelectionPreview(AgenticMarketingObjective $objective): void
+    {
+        if (! (bool) config('features.mos_agentic_planner_canonical_default_selection_preview', false)) {
+            return;
+        }
+
+        try {
+            $report = app(AgenticCanonicalPlannerDefaultSelectionPreviewService::class)->preview($objective);
+            app()->instance('mos.agentic_planner_canonical_default_selection_preview.last_diagnostics', [
+                'ok' => true,
+                'report' => $report,
+            ]);
+        } catch (Throwable $exception) {
+            app()->instance('mos.agentic_planner_canonical_default_selection_preview.last_diagnostics', [
+                'ok' => false,
+                'error' => $exception->getMessage(),
+                'exception' => $exception::class,
+                'objective_id' => (string) $objective->id,
+            ]);
+        }
+    }
+
+    private function computeDefaultSelectionPlannerPathDiagnostics(AgenticMarketingObjective $objective): void
+    {
+        if (! (bool) config('mos.agentic_planner.default_selection.scoped_runtime_enabled', false)) {
+            return;
+        }
+
+        app(AgenticPlannerDefaultSelectionPlannerPathDiagnosticHook::class)->inspectObjective($objective);
+    }
+
+    /**
+     * @param  Collection<int,AgenticMarketingOpportunity>  $legacyCandidates
+     */
+    private function consumeDefaultSelectionRuntimeSwitch(AgenticMarketingObjective $objective, Collection $legacyCandidates): void
+    {
+        app(AgenticPlannerDefaultSelectionRuntimeSwitchConsumptionHook::class)
+            ->consumeObjectiveLegacyCandidates($objective, $legacyCandidates);
     }
 
     /**
@@ -228,7 +329,7 @@ class AgenticMarketingActionPlanner
     }
 
     /**
-     * @param array<string,mixed> $overrides
+     * @param  array<string,mixed>  $overrides
      * @return array<string,mixed>
      */
     private function plan(AgenticMarketingOpportunity $opportunity, AgenticMarketingActionType $actionType, array $overrides = []): array
@@ -429,13 +530,13 @@ class AgenticMarketingActionPlanner
         $summary = (string) data_get($opportunity->payload, 'score_explanation.summary', '');
 
         return trim(match ($actionType) {
-            AgenticMarketingActionType::RefreshArticle => 'Prepare a supervised refresh draft. ' . $summary,
-            AgenticMarketingActionType::AddAnswerBlock => 'Draft structured answer blocks for review. ' . $summary,
-            AgenticMarketingActionType::ImproveInternalLinks => 'Prepare internal link suggestions for review. ' . $summary,
-            AgenticMarketingActionType::CreateLocaleVariant => 'Prepare a locale variant request for review. ' . $summary,
-            AgenticMarketingActionType::UpdateMeta => 'Prepare metadata improvements for review. ' . $summary,
-            AgenticMarketingActionType::AddSchema => 'Prepare schema markup recommendations for review. ' . $summary,
-            AgenticMarketingActionType::CreateArticle => 'Create a draft article for review. ' . $summary,
+            AgenticMarketingActionType::RefreshArticle => 'Prepare a supervised refresh draft. '.$summary,
+            AgenticMarketingActionType::AddAnswerBlock => 'Draft structured answer blocks for review. '.$summary,
+            AgenticMarketingActionType::ImproveInternalLinks => 'Prepare internal link suggestions for review. '.$summary,
+            AgenticMarketingActionType::CreateLocaleVariant => 'Prepare a locale variant request for review. '.$summary,
+            AgenticMarketingActionType::UpdateMeta => 'Prepare metadata improvements for review. '.$summary,
+            AgenticMarketingActionType::AddSchema => 'Prepare schema markup recommendations for review. '.$summary,
+            AgenticMarketingActionType::CreateArticle => 'Create a draft article for review. '.$summary,
         });
     }
 
@@ -477,7 +578,7 @@ class AgenticMarketingActionPlanner
     }
 
     /**
-     * @param array<string,mixed> $overrides
+     * @param  array<string,mixed>  $overrides
      * @return array<string,mixed>
      */
     private function proposalDetails(AgenticMarketingOpportunity $opportunity, AgenticMarketingActionType $actionType, int $cost, string $risk, array $overrides = []): array
@@ -641,7 +742,7 @@ class AgenticMarketingActionPlanner
     }
 
     /**
-     * @param array<string,mixed> $plan
+     * @param  array<string,mixed>  $plan
      */
     private function refreshReusableAction(AgenticMarketingAction $action, array $plan): void
     {

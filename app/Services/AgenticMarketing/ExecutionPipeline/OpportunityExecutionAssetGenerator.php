@@ -31,10 +31,10 @@ class OpportunityExecutionAssetGenerator
         $opportunity = $pipeline->opportunity()->with(['objective', 'content'])->firstOrFail();
         $assets = [];
 
-        $brief = $this->createBrief($opportunity);
+        $brief = $this->createBrief($opportunity, $this->canonicalContext($pipeline));
         $assets[] = $this->asset($pipeline, 'content_brief', 'Content brief', $this->briefPayload($opportunity), $brief);
 
-        $draft = $this->createDraft($opportunity, $brief);
+        $draft = $this->createDraft($opportunity, $brief, $this->canonicalContext($pipeline));
         $assets[] = $this->asset($pipeline, 'draft_content', 'Draft content', $this->draftPayload($opportunity), $draft);
 
         foreach ($this->proposalAssets($opportunity) as $proposal) {
@@ -44,7 +44,7 @@ class OpportunityExecutionAssetGenerator
         return $assets;
     }
 
-    private function createBrief(AgenticMarketingOpportunity $opportunity): ?Brief
+    private function createBrief(AgenticMarketingOpportunity $opportunity, ?array $canonicalContext = null): ?Brief
     {
         $siteId = $opportunity->objective?->client_site_id ?: data_get($opportunity->payload, 'client_site_id');
         if (! $siteId) {
@@ -68,15 +68,17 @@ class OpportunityExecutionAssetGenerator
             'audience' => (string) data_get($opportunity->payload, 'target_audience', $opportunity->objective?->audience ?: ''),
             'unique_angle' => (string) data_get($opportunity->payload, 'angle', data_get($opportunity->payload, 'recommendation', '')),
             'call_to_action' => (string) data_get($opportunity->payload, 'suggested_cta', 'Explore Argusly'),
-            'client_refs' => [
+            'client_refs' => array_filter([
                 'source' => 'agentic_marketing_execution_pipeline',
                 'opportunity_id' => (string) $opportunity->id,
+                'canonical_opportunity_id' => $canonicalContext['canonical_opportunity_id'] ?? null,
+                'canonical_opportunity_context' => $canonicalContext,
                 'review_required' => true,
-            ],
+            ], fn (mixed $value): bool => $value !== null),
         ]);
     }
 
-    private function createDraft(AgenticMarketingOpportunity $opportunity, ?Brief $brief): ?Draft
+    private function createDraft(AgenticMarketingOpportunity $opportunity, ?Brief $brief, ?array $canonicalContext = null): ?Draft
     {
         $siteId = $brief?->client_site_id ?: $opportunity->objective?->client_site_id;
         if (! $siteId || ! $brief) {
@@ -100,12 +102,14 @@ class OpportunityExecutionAssetGenerator
             'language' => (string) ($opportunity->objective?->locale ?: 'en'),
             'content_html' => '<h1>'.e($title).'</h1><p>'.$this->summary($opportunity).'</p><h2>Recommended angle</h2><p>'.e((string) data_get($opportunity->payload, 'angle', 'Review and expand this opportunity before handing it off for publication.')).'</p>',
             'delivery_status' => 'pending',
-            'meta' => [
+            'meta' => array_filter([
                 'source' => 'agentic_marketing_execution_pipeline',
                 'opportunity_id' => (string) $opportunity->id,
+                'canonical_opportunity_id' => $canonicalContext['canonical_opportunity_id'] ?? null,
+                'canonical_opportunity_context' => $canonicalContext,
                 'review_required' => true,
                 'publishing_readiness' => 'needs_review',
-            ],
+            ], fn (mixed $value): bool => $value !== null),
         ]);
     }
 
@@ -164,7 +168,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<string,mixed>
      */
     private function executionGraph(array $context): array
@@ -194,8 +198,8 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<int,string> $dependsOn
-     * @param array<int,string> $produces
+     * @param  array<int,string>  $dependsOn
+     * @param  array<int,string>  $produces
      * @return array<string,mixed>
      */
     private function graphNode(string $id, string $label, string $stage, string $status, array $dependsOn, array $produces, string $description): array
@@ -213,7 +217,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<int,array<string,mixed>> $nodes
+     * @param  array<int,array<string,mixed>>  $nodes
      * @return array<int,array{from:string,to:string}>
      */
     private function graphEdges(array $nodes): array
@@ -268,7 +272,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<int,array<string,mixed>>
      */
     private function answerBlocks(array $context): array
@@ -300,7 +304,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<int,array<string,string>>
      */
     private function faqSet(array $context): array
@@ -317,7 +321,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<string,mixed>
      */
     private function structuredSummaries(array $context): array
@@ -339,7 +343,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<int,array<string,string>>
      */
     private function ctaSuggestions(array $context): array
@@ -368,7 +372,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<string,mixed>
      */
     private function linkedinPost(array $context): array
@@ -393,7 +397,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<int,array<string,mixed>>
      */
     private function internalLinkSuggestions(AgenticMarketingOpportunity $opportunity, array $context): array
@@ -454,7 +458,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<string,mixed>
      */
     private function schemaMarkup(array $context): array
@@ -479,7 +483,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      * @return array<string,mixed>
      */
     private function contentDiffPreview(AgenticMarketingOpportunity $opportunity, array $context): array
@@ -537,8 +541,8 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
-     * @param array<int,array<string,mixed>> $links
+     * @param  array<string,mixed>  $context
+     * @param  array<int,array<string,mixed>>  $links
      */
     private function afterContentHtml(string $beforeHtml, array $context, array $links): string
     {
@@ -558,7 +562,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function answerBlockHtml(array $context): string
     {
@@ -570,7 +574,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function faqHtml(array $context): string
     {
@@ -582,7 +586,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<int,array<string,mixed>> $links
+     * @param  array<int,array<string,mixed>>  $links
      */
     private function internalLinksHtml(array $links): string
     {
@@ -599,7 +603,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function ctaHtml(array $context): string
     {
@@ -609,7 +613,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function schemaHtml(array $context): string
     {
@@ -634,8 +638,8 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<int,string> $before
-     * @param array<int,string> $after
+     * @param  array<int,string>  $before
+     * @param  array<int,string>  $after
      * @return array<int,array{type:string,text:string}>
      */
     private function lineDiff(array $before, array $after): array
@@ -684,6 +688,11 @@ class OpportunityExecutionAssetGenerator
 
     private function asset(AgenticMarketingExecutionPipeline $pipeline, string $type, string $title, array $payload, mixed $model = null): AgenticMarketingExecutionAsset
     {
+        $canonicalContext = $this->canonicalContext($pipeline);
+        if ($canonicalContext !== null && ! array_key_exists('canonical_opportunity_context', $payload)) {
+            $payload['canonical_opportunity_context'] = $canonicalContext;
+        }
+
         return AgenticMarketingExecutionAsset::query()->create([
             'pipeline_id' => (string) $pipeline->id,
             'objective_id' => (string) $pipeline->objective_id,
@@ -696,6 +705,20 @@ class OpportunityExecutionAssetGenerator
             'assetable_id' => $model?->getKey(),
             'requires_approval' => true,
         ]);
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function canonicalContext(AgenticMarketingExecutionPipeline $pipeline): ?array
+    {
+        if (! (bool) config('features.mos_agentic_execution_canonical_metadata_writer', false)) {
+            return null;
+        }
+
+        $context = data_get($pipeline->input, 'canonical_opportunity_context');
+
+        return is_array($context) ? $context : null;
     }
 
     private function briefPayload(AgenticMarketingOpportunity $opportunity): array
@@ -728,7 +751,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<int,string> $entities
+     * @param  array<int,string>  $entities
      */
     private function fullNameForTopic(string $topic, array $entities): ?string
     {
@@ -749,7 +772,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function definitionAnswer(array $context): string
     {
@@ -761,7 +784,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<int,string> $entities
+     * @param  array<int,string>  $entities
      */
     private function definitionSentence(string $topic, ?string $fullName, array $entities): string
     {
@@ -774,7 +797,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function benefitAnswer(array $context): string
     {
@@ -790,7 +813,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function workflowAnswer(array $context): string
     {
@@ -803,7 +826,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function whyNowAnswer(array $context): string
     {
@@ -814,7 +837,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function measurementAnswer(array $context): string
     {
@@ -824,7 +847,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function nextActionAnswer(array $context): string
     {
@@ -835,7 +858,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function signalSentence(array $context): string
     {
@@ -853,7 +876,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function anchorText(Content $content, array $context): string
     {
@@ -863,7 +886,7 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $context
      */
     private function linkReason(Content $content, array $context): string
     {
@@ -873,8 +896,8 @@ class OpportunityExecutionAssetGenerator
     }
 
     /**
-     * @param array<string,mixed> $link
-     * @param array<string,mixed> $context
+     * @param  array<string,mixed>  $link
+     * @param  array<string,mixed>  $context
      */
     private function linkMatchesContext(array $link, array $context): bool
     {

@@ -19,7 +19,7 @@
     $failedActions = $actions->where('status', 'failed')->values();
     $openActions = $actions->whereIn('status', ['proposed', 'approved', 'running', 'failed'])->values();
     $focusActions = $openActions->take(5);
-    $topOpportunities = $opportunities->take(8);
+    $topOpportunities = ($opportunityReadModels ?? $opportunities)->take(8);
     $visibleActions = $actions->take(12);
     $recentRunItems = $runItems->take(8);
     $recentAuditLogs = $auditLogs->take(8);
@@ -313,18 +313,23 @@
             <div class="divide-y divide-border">
                 @forelse ($topOpportunities as $opportunity)
                     @php
-                        $scoreExplanation = (array) data_get($opportunity->payload, 'score_explanation', []);
+                        $payload = (array) ($opportunity->legacyFields['payload'] ?? $opportunity->payload ?? []);
+                        $scoreExplanation = (array) data_get($payload, 'score_explanation', []);
                         $scoreReasons = (array) ($scoreExplanation['reasons'] ?? []);
+                        $isCanonicalEnriched = method_exists($opportunity, 'isCanonicalEnriched') && $opportunity->isCanonicalEnriched();
                     @endphp
                     <article class="px-5 py-4">
                         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                             <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', (string) $opportunity->type) }}</span>
-                                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">Priority {{ $opportunity->priority_score }}</span>
+                                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', (string) ($opportunity->agenticType ?? $opportunity->type)) }}</span>
+                                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">Priority {{ number_format((float) ($opportunity->priorityScore ?? $opportunity->priority_score ?? 0), 0) }}</span>
+                                    @if ($isCanonicalEnriched)
+                                        <span class="rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-xs text-primary">Canonical context</span>
+                                    @endif
                                 </div>
                                 <h3 class="mt-2 text-sm font-semibold text-textPrimary">{{ $opportunity->title }}</h3>
-                                <p class="mt-1 text-sm text-textSecondary">{{ $scoreExplanation['summary'] ?? 'Ranked by deterministic stored-signal scoring.' }}</p>
+                                <p class="mt-1 text-sm text-textSecondary">{{ $opportunity->summary ?? $scoreExplanation['summary'] ?? 'Ranked by deterministic stored-signal scoring.' }}</p>
                             </div>
                             @if ($scoreExplanation)
                                 <details class="shrink-0 rounded-md border border-border bg-background px-3 py-2 text-xs text-textSecondary lg:w-80">

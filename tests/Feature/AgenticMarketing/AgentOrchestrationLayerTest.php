@@ -1,17 +1,23 @@
 <?php
 
+use App\Http\Middleware\EnsureBillingOnboardingCompleted;
+use App\Http\Middleware\EnsureEmailCodeVerified;
+use App\Http\Middleware\EnsureUserApproved;
+use App\Http\Middleware\EnsureUserHasOrganization;
 use App\Models\AgenticMarketingAgentMemory;
 use App\Models\AgenticMarketingObjective;
 use App\Models\AgenticMarketingOrchestrationRun;
 use App\Models\ClientSite;
 use App\Models\CompanyIntelligenceProfile;
 use App\Models\ContentOpportunity;
+use App\Models\Opportunity;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Services\AgenticMarketing\Orchestration\AgentOrchestrationService;
 use App\Services\AgenticMarketing\Orchestration\AgentConflictResolver;
+use App\Services\AgenticMarketing\Orchestration\AgentOrchestrationService;
 use App\Services\AgenticMarketing\Orchestration\AgentRegistry;
+use App\Services\AgenticMarketing\Orchestration\SharedMarketingContextBuilder;
 use App\Services\CompanyIntelligence\CompanyIntelligenceNormalizer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -21,10 +27,10 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     config(['features.agentic_marketing' => true]);
     $this->withoutMiddleware([
-        \App\Http\Middleware\EnsureEmailCodeVerified::class,
-        \App\Http\Middleware\EnsureUserApproved::class,
-        \App\Http\Middleware\EnsureUserHasOrganization::class,
-        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
     ]);
 });
 
@@ -32,7 +38,7 @@ function makeAgentOrchestrationScope(): array
 {
     $organization = Organization::query()->create([
         'name' => 'Agent Orchestration Org',
-        'slug' => 'agent-orchestration-' . Str::random(6),
+        'slug' => 'agent-orchestration-'.Str::random(6),
         'status' => 'active',
         'approved_at' => now(),
     ]);
@@ -149,6 +155,42 @@ it('runs an inline orchestration workflow with shared context memory traces and 
         ->and($run->normalized_result['recommendations'])->toBeArray()
         ->and($run->traces()->count())->toBeGreaterThan(0)
         ->and(AgenticMarketingAgentMemory::query()->where('workspace_id', $workspace->id)->count())->toBeGreaterThan(0);
+});
+
+it('adds canonical opportunity ids to shared agentic context while preserving legacy fallback', function () {
+    [, , $workspace, $site, $objective] = makeAgentOrchestrationScope();
+    $legacy = ContentOpportunity::query()->where('workspace_id', $workspace->id)->firstOrFail();
+    $canonical = Opportunity::factory()->create([
+        'organization_id' => $legacy->organization_id,
+        'workspace_id' => $legacy->workspace_id,
+        'client_site_id' => $legacy->client_site_id,
+        'content_opportunity_id' => $legacy->id,
+        'title' => 'Canonical agentic opportunity',
+        'priority_score' => 97,
+        'confidence_score' => 92,
+        'impact_score' => 90,
+    ]);
+
+    $context = app(SharedMarketingContextBuilder::class)->build($workspace, (string) $site->id, $objective);
+    $opportunity = $context['opportunities'][0];
+
+    expect($opportunity)->toMatchArray([
+        'id' => (string) $legacy->id,
+        'canonical_opportunity_id' => (string) $canonical->id,
+        'title' => 'Canonical agentic opportunity',
+        'priority_score' => 97.0,
+    ])
+        ->and($opportunity['provenance'])->toMatchArray([
+            'title' => 'canonical',
+            'type' => 'legacy',
+            'status' => 'legacy',
+        ]);
+
+    $canonical->delete();
+    $fallback = app(SharedMarketingContextBuilder::class)->build($workspace, (string) $site->id, $objective);
+
+    expect($fallback['opportunities'][0]['canonical_opportunity_id'])->toBeNull()
+        ->and($fallback['opportunities'][0]['title'])->toBe('AI visibility implementation guide');
 });
 
 it('renders the debugging UI for orchestration runs', function () {

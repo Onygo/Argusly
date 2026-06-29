@@ -16,8 +16,7 @@ class GrowthAutopilotQueueBuilder
     public function __construct(
         private readonly RecommendedActionEngine $recommendedActions,
         private readonly GrowthAutopilotPrioritizationEngine $prioritization,
-    ) {
-    }
+    ) {}
 
     /**
      * @return Collection<int,GrowthAutopilotQueueItem>
@@ -66,7 +65,7 @@ class GrowthAutopilotQueueBuilder
         return $item->refresh();
     }
 
-    private function upsertFromAction(RecommendedAction $action): GrowthAutopilotQueueItem
+    public function upsertFromAction(RecommendedAction $action): GrowthAutopilotQueueItem
     {
         $assets = $this->preparedAssets($action);
         $approvalRequired = $this->approvalRequired($action);

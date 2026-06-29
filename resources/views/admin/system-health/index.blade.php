@@ -55,7 +55,10 @@
                 <h2 class="text-sm font-semibold text-textPrimary">Queue summary</h2>
                 <p class="mt-1 text-sm text-textSecondary">Pending backlog and stuck queue signal across database queues.</p>
             </div>
-            <a href="{{ route('admin.queues.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Open queues</a>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.mos-providers.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">MOS providers</a>
+                <a href="{{ route('admin.queues.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Open queues</a>
+            </div>
         </div>
 
         <div class="mt-4 overflow-x-auto">

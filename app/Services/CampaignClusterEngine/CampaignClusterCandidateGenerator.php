@@ -5,7 +5,7 @@ namespace App\Services\CampaignClusterEngine;
 use App\Models\CompanyIntelligenceProfile;
 use App\Models\CompetitorContentOpportunity;
 use App\Models\Content;
-use App\Models\ContentOpportunity;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalReadModel;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -18,7 +18,7 @@ class CampaignClusterCandidateGenerator
     {
         /** @var CompanyIntelligenceProfile|null $company */
         $company = $input['company'] ?? null;
-        /** @var Collection<int,ContentOpportunity> $opportunities */
+        /** @var Collection<int,ContentOpportunityCanonicalReadModel> $opportunities */
         $opportunities = $input['opportunities'];
         /** @var Collection<int,CompetitorContentOpportunity> $competitorGaps */
         $competitorGaps = $input['competitor_gaps'];
@@ -43,7 +43,7 @@ class CampaignClusterCandidateGenerator
 
         $topics = $topics->merge((array) ($company?->primary_topics ?? []))
             ->merge((array) ($company?->authority_areas ?? []))
-            ->merge($opportunities->pluck('normalized_payload.candidate.topic'))
+            ->merge($opportunities->map(fn (ContentOpportunityCanonicalReadModel $opportunity): ?string => $opportunity->topic()))
             ->merge($opportunities->pluck('title'))
             ->merge($competitorGaps->pluck('topic'))
             ->merge($existingContent->pluck('primary_keyword'))
@@ -94,7 +94,8 @@ class CampaignClusterCandidateGenerator
             dependencies: $this->dependencies($items, $topic),
             sourceSignals: [
                 'company_topics' => (array) ($company?->primary_topics ?? []),
-                'related_opportunity_ids' => $related->pluck('id')->map(fn ($id): string => (string) $id)->all(),
+                'related_opportunity_ids' => $related->pluck('legacyContentOpportunityId')->map(fn ($id): string => (string) $id)->all(),
+                'canonical_opportunity_ids' => $related->pluck('canonicalOpportunityId')->filter()->map(fn ($id): string => (string) $id)->values()->all(),
                 'competitor_gap_ids' => $gaps->pluck('id')->map(fn ($id): string => (string) $id)->all(),
                 'agent_ready' => true,
             ],
@@ -106,10 +107,10 @@ class CampaignClusterCandidateGenerator
         $needle = Str::lower($topic);
 
         return $opportunities
-            ->filter(function (ContentOpportunity $opportunity) use ($needle): bool {
-                $haystack = Str::lower($opportunity->title.' '.$opportunity->reasoning.' '.$opportunity->angle.' '.implode(' ', (array) $opportunity->related_entities));
+            ->filter(function (ContentOpportunityCanonicalReadModel $opportunity) use ($needle): bool {
+                $haystack = Str::lower($opportunity->title.' '.$opportunity->legacyFields['reasoning'].' '.$opportunity->legacyFields['angle'].' '.implode(' ', (array) $opportunity->legacyFields['related_entities']));
 
-                return str_contains($haystack, $needle) || str_contains($needle, Str::lower((string) data_get($opportunity->normalized_payload, 'candidate.topic')));
+                return str_contains($haystack, $needle) || str_contains($needle, Str::lower((string) $opportunity->topic()));
             })
             ->take(12)
             ->values();
@@ -154,7 +155,7 @@ class CampaignClusterCandidateGenerator
         ];
 
         foreach ($related->whereNotIn('type', ['comparison_page', 'implementation_guide', 'faq_opportunity', 'answer_block_opportunity', 'use_case_page'])->take(4) as $opportunity) {
-            $items[] = $this->item($opportunity->type, $opportunity->title, $entity, (string) $opportunity->funnel_stage, (string) $opportunity->primary_search_intent, count($items) + 1, $opportunity, [
+            $items[] = $this->item($opportunity->type, $opportunity->title, $entity, (string) $opportunity->legacyFields['funnel_stage'], (string) $opportunity->legacyFields['primary_search_intent'], count($items) + 1, $opportunity, [
                 'role' => 'opportunity_extension',
             ]);
         }
@@ -162,7 +163,7 @@ class CampaignClusterCandidateGenerator
         return $items;
     }
 
-    private function item(string $type, string $title, string $entity, string $stage, string $intent, int $order, ?ContentOpportunity $opportunity, array $payload): array
+    private function item(string $type, string $title, string $entity, string $stage, string $intent, int $order, ?ContentOpportunityCanonicalReadModel $opportunity, array $payload): array
     {
         return [
             'type' => $type,
@@ -171,13 +172,15 @@ class CampaignClusterCandidateGenerator
             'funnel_stage' => $stage,
             'search_intent' => $intent,
             'sequence_order' => $order,
-            'content_opportunity_id' => $opportunity?->id ? (string) $opportunity->id : null,
+            'content_opportunity_id' => $opportunity?->legacyContentOpportunityId,
             'authority_contribution' => $type === 'pillar_page' ? 30 : 12,
             'coverage_contribution' => in_array($type, ['faq_cluster', 'answer_blocks'], true) ? 18 : 14,
             'payload' => array_merge($payload, [
                 'source_opportunity' => $opportunity ? [
-                    'id' => (string) $opportunity->id,
-                    'priority_score' => $opportunity->priority_score,
+                    'id' => $opportunity->legacyContentOpportunityId,
+                    'canonical_opportunity_id' => $opportunity->canonicalOpportunityId,
+                    'priority_score' => $opportunity->priority,
+                    'provenance' => $opportunity->provenance,
                 ] : null,
             ]),
         ];
@@ -223,7 +226,7 @@ class CampaignClusterCandidateGenerator
 
     private function refreshCadence(Collection $related, Collection $gaps): string
     {
-        return $related->where('freshness_status', 'stale')->isNotEmpty() || $gaps->count() >= 3
+        return $related->where('legacyFields.freshness_status', 'stale')->isNotEmpty() || $gaps->count() >= 3
             ? 'monthly'
             : 'quarterly';
     }

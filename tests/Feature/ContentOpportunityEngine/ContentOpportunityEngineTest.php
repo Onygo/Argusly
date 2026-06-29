@@ -1,12 +1,18 @@
 <?php
 
-use App\Models\ClientSite;
+use App\Enums\OpportunityStatus;
+use App\Http\Middleware\EnsureBillingOnboardingCompleted;
+use App\Http\Middleware\EnsureEmailCodeVerified;
+use App\Http\Middleware\EnsureUserApproved;
+use App\Http\Middleware\EnsureUserHasOrganization;
 use App\Models\Brief;
+use App\Models\ClientSite;
 use App\Models\CompanyIntelligenceProfile;
 use App\Models\CompetitorContentOpportunity;
 use App\Models\Content;
 use App\Models\ContentOpportunity;
 use App\Models\ContentOpportunityRun;
+use App\Models\Opportunity;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
@@ -21,7 +27,7 @@ function makeContentOpportunityEngineScope(): array
 {
     $organization = Organization::query()->create([
         'name' => 'Opportunity Engine Org',
-        'slug' => 'opportunity-engine-' . Str::random(6),
+        'slug' => 'opportunity-engine-'.Str::random(6),
         'status' => 'active',
         'approved_at' => now(),
     ]);
@@ -96,6 +102,42 @@ function makeContentOpportunityEngineScope(): array
     return [$organization, $workspace, $site];
 }
 
+function makeRouteContentOpportunity(Organization $organization, Workspace $workspace, ClientSite $site, array $overrides = []): ContentOpportunity
+{
+    return ContentOpportunity::query()->create(array_merge([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'type' => 'content_gap',
+        'status' => ContentOpportunity::STATUS_OPEN,
+        'title' => 'Route migration opportunity',
+        'reasoning' => 'Searchers need a clear route migration guide.',
+        'why_this_matters' => 'It keeps the visible route safe during migration.',
+        'why_now' => 'Canonical brief creation is ready for a guarded rollout.',
+        'competitor_pressure' => 'Competitors are publishing migration playbooks.',
+        'ai_visibility_opportunity' => 'The article can answer operational migration questions.',
+        'target_audience' => 'Marketing operators',
+        'funnel_stage' => 'consideration',
+        'primary_search_intent' => 'implementation',
+        'angle' => 'Explain the safe route migration path.',
+        'expected_impact' => 'high',
+        'confidence_score' => 80,
+        'urgency_score' => 70,
+        'business_value_score' => 82,
+        'priority_score' => 91,
+        'related_entities' => ['canonical brief writer', 'route migration'],
+        'recommended_internal_links' => [['anchor_text' => 'brief migration']],
+        'localization_recommendation' => ['priority_locales' => ['en']],
+        'suggested_cta' => 'Create the brief',
+        'suggested_schema' => 'Article',
+        'source_signals' => [['type' => 'route_migration']],
+        'normalized_payload' => ['candidate' => ['topic' => 'route migration']],
+        'dedupe_hash' => hash('sha256', 'route-migration-'.Str::uuid()->toString()),
+        'first_seen_at' => now(),
+        'last_seen_at' => now(),
+    ], $overrides));
+}
+
 it('generates persisted net-new content opportunities from intelligence inputs', function () {
     [, $workspace, $site] = makeContentOpportunityEngineScope();
 
@@ -158,10 +200,10 @@ it('creates single and chained briefs from a content opportunity', function () {
     $opportunity = ContentOpportunity::query()->where('type', 'comparison_page')->firstOrFail();
 
     $this->withoutMiddleware([
-        \App\Http\Middleware\EnsureEmailCodeVerified::class,
-        \App\Http\Middleware\EnsureUserApproved::class,
-        \App\Http\Middleware\EnsureUserHasOrganization::class,
-        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
     ]);
 
     $singleResponse = $this->actingAs($user)
@@ -193,6 +235,202 @@ it('creates single and chained briefs from a content opportunity', function () {
 
     expect(data_get($chainedBrief->client_refs, 'source_briefing.chain_proposal.pillar_topic'))->not->toBeEmpty()
         ->and(data_get($chainedBrief->client_refs, 'source_briefing.chain_proposal.supporting_subtopics'))->not->toBeEmpty();
+});
+
+it('keeps the content opportunity brief route on the legacy writer when the canonical writer flag is disabled', function () {
+    [$organization, $workspace, $site] = makeContentOpportunityEngineScope();
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+    $opportunity = makeRouteContentOpportunity($organization, $workspace, $site);
+    Opportunity::factory()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'content_opportunity_id' => $opportunity->id,
+        'status' => OpportunityStatus::OPEN,
+        'title' => 'Canonical route title',
+        'topic' => 'canonical route topic',
+        'evidence' => [['type' => 'canonical_signal']],
+    ]);
+
+    expect(config('features.mos_canonical_content_opportunity_brief_writer'))->toBeFalse();
+
+    $this->withoutMiddleware([
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('app.agentic-marketing.content-opportunities.brief.create', $opportunity), [
+            'mode' => 'single',
+        ]);
+
+    $brief = Brief::query()->firstOrFail();
+
+    $response
+        ->assertRedirect(route('app.content.workspace.show', $brief))
+        ->assertSessionHas('status', 'Brief created from opportunity. Generate a single article draft when ready.');
+
+    expect($brief->title)->toBe('Route migration opportunity')
+        ->and(data_get($brief->client_refs, 'content_opportunity.id'))->toBe((string) $opportunity->id)
+        ->and(data_get($brief->client_refs, 'canonical_opportunity_id'))->toBeNull()
+        ->and($opportunity->fresh()->status)->toBe(ContentOpportunity::STATUS_PLANNED);
+});
+
+it('uses the canonical brief writer for eligible linked records when the feature flag is enabled', function () {
+    config(['features.mos_canonical_content_opportunity_brief_writer' => true]);
+    [$organization, $workspace, $site] = makeContentOpportunityEngineScope();
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+    $opportunity = makeRouteContentOpportunity($organization, $workspace, $site);
+    $canonical = Opportunity::factory()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'content_opportunity_id' => $opportunity->id,
+        'status' => OpportunityStatus::OPEN,
+        'title' => 'Canonical route title',
+        'topic' => 'canonical route topic',
+        'recommended_actions' => [['title' => 'Create the canonical route brief']],
+        'evidence' => [['type' => 'canonical_signal']],
+    ]);
+
+    $this->withoutMiddleware([
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('app.agentic-marketing.content-opportunities.brief.create', $opportunity), [
+            'mode' => 'single',
+        ]);
+
+    $brief = Brief::query()->firstOrFail();
+
+    $response
+        ->assertRedirect(route('app.content.workspace.show', $brief))
+        ->assertSessionHas('status', 'Brief created from opportunity. Generate a single article draft when ready.');
+
+    expect($brief->title)->toBe('Canonical route title')
+        ->and($brief->primary_keyword)->toBe('canonical route topic')
+        ->and(data_get($brief->client_refs, 'content_opportunity.id'))->toBe((string) $opportunity->id)
+        ->and(data_get($brief->client_refs, 'content_opportunity_id'))->toBe((string) $opportunity->id)
+        ->and(data_get($brief->client_refs, 'canonical_opportunity_id'))->toBe((string) $canonical->id)
+        ->and(data_get($brief->client_refs, 'source_signature'))->not->toBeEmpty()
+        ->and($opportunity->fresh()->status)->toBe(ContentOpportunity::STATUS_PLANNED)
+        ->and($canonical->fresh()->status)->toBe(OpportunityStatus::OPEN);
+});
+
+it('falls back to the legacy brief writer for unsafe canonical route candidates', function () {
+    config(['features.mos_canonical_content_opportunity_brief_writer' => true]);
+    [$organization, $workspace, $site] = makeContentOpportunityEngineScope();
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+    $opportunity = makeRouteContentOpportunity($organization, $workspace, $site, [
+        'reasoning' => null,
+        'why_this_matters' => null,
+        'why_now' => null,
+        'source_signals' => [],
+    ]);
+    $canonical = Opportunity::factory()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'content_opportunity_id' => $opportunity->id,
+        'status' => OpportunityStatus::OPEN,
+        'title' => '',
+        'topic' => '',
+        'evidence' => [],
+    ]);
+
+    $this->withoutMiddleware([
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('app.agentic-marketing.content-opportunities.brief.create', $opportunity), [
+            'mode' => 'chained',
+        ]);
+
+    $brief = Brief::query()->firstOrFail();
+
+    $response
+        ->assertRedirect(route('app.content.series.create', ['source_brief' => $brief->id]))
+        ->assertSessionHas('status', 'Brief created from opportunity. Review the chained article plan.');
+
+    expect($brief->title)->toBe('Route migration opportunity')
+        ->and(data_get($brief->client_refs, 'canonical_opportunity_id'))->toBeNull()
+        ->and(data_get($brief->client_refs, 'source_briefing.chain_proposal'))->not->toBeNull()
+        ->and($opportunity->fresh()->status)->toBe(ContentOpportunity::STATUS_PLANNED)
+        ->and($canonical->fresh()->status)->toBe(OpportunityStatus::OPEN);
+});
+
+it('reuses an existing canonical-created brief instead of duplicating route submissions', function () {
+    config(['features.mos_canonical_content_opportunity_brief_writer' => true]);
+    [$organization, $workspace, $site] = makeContentOpportunityEngineScope();
+    $user = User::factory()->create([
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+    ]);
+    $opportunity = makeRouteContentOpportunity($organization, $workspace, $site);
+    $canonical = Opportunity::factory()->create([
+        'organization_id' => $organization->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'content_opportunity_id' => $opportunity->id,
+        'status' => OpportunityStatus::OPEN,
+        'title' => 'Canonical route title',
+        'topic' => 'canonical route topic',
+        'evidence' => [['type' => 'canonical_signal']],
+    ]);
+
+    $this->withoutMiddleware([
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
+    ]);
+
+    $firstResponse = $this->actingAs($user)
+        ->post(route('app.agentic-marketing.content-opportunities.brief.create', $opportunity), [
+            'mode' => 'single',
+        ]);
+    $brief = Brief::query()->firstOrFail();
+
+    $secondResponse = $this->actingAs($user)
+        ->post(route('app.agentic-marketing.content-opportunities.brief.create', $opportunity->fresh()), [
+            'mode' => 'single',
+        ]);
+
+    $firstResponse->assertRedirect(route('app.content.workspace.show', $brief));
+    $secondResponse
+        ->assertRedirect(route('app.content.workspace.show', $brief))
+        ->assertSessionHas('status', 'Brief created from opportunity. Generate a single article draft when ready.');
+
+    expect(Brief::query()->count())->toBe(1)
+        ->and(data_get($brief->fresh()->client_refs, 'canonical_opportunity_id'))->toBe((string) $canonical->id)
+        ->and($canonical->fresh()->status)->toBe(OpportunityStatus::OPEN);
 });
 
 it('requires an explicit site when creating a brief from a workspace opportunity with multiple sites', function () {
@@ -242,10 +480,10 @@ it('requires an explicit site when creating a brief from a workspace opportunity
     ]);
 
     $this->withoutMiddleware([
-        \App\Http\Middleware\EnsureEmailCodeVerified::class,
-        \App\Http\Middleware\EnsureUserApproved::class,
-        \App\Http\Middleware\EnsureUserHasOrganization::class,
-        \App\Http\Middleware\EnsureBillingOnboardingCompleted::class,
+        EnsureEmailCodeVerified::class,
+        EnsureUserApproved::class,
+        EnsureUserHasOrganization::class,
+        EnsureBillingOnboardingCompleted::class,
     ]);
 
     $this->actingAs($user)

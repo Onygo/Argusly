@@ -10,9 +10,15 @@ use App\Models\CompetitorContentOpportunity;
 use App\Models\Content;
 use App\Models\ContentOpportunity;
 use App\Models\Workspace;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalReadModel;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalReadService;
 
 class SharedMarketingContextBuilder
 {
+    public function __construct(
+        private readonly ContentOpportunityCanonicalReadService $contentOpportunityReadService,
+    ) {}
+
     public function build(Workspace $workspace, ?string $clientSiteId = null, ?AgenticMarketingObjective $objective = null, array $input = []): array
     {
         $company = CompanyIntelligenceProfile::query()
@@ -92,15 +98,17 @@ class SharedMarketingContextBuilder
                 'buyer_roles' => (array) $company->buyer_roles,
                 'locales' => (array) $company->locales,
             ] : null,
-            'opportunities' => $opportunities->map(fn (ContentOpportunity $opportunity): array => [
-                'id' => (string) $opportunity->id,
+            'opportunities' => $this->contentOpportunityReadService->readMany($opportunities)->map(fn (ContentOpportunityCanonicalReadModel $opportunity): array => [
+                'id' => $opportunity->legacyContentOpportunityId,
+                'canonical_opportunity_id' => $opportunity->canonicalOpportunityId,
                 'type' => $opportunity->type,
                 'title' => $opportunity->title,
-                'topic' => data_get($opportunity->normalized_payload, 'candidate.topic', $opportunity->title),
-                'funnel_stage' => $opportunity->funnel_stage,
-                'intent' => $opportunity->primary_search_intent,
-                'priority_score' => $opportunity->priority_score,
-                'related_entities' => (array) $opportunity->related_entities,
+                'topic' => $opportunity->topic(),
+                'funnel_stage' => $opportunity->legacyFields['funnel_stage'],
+                'intent' => $opportunity->legacyFields['primary_search_intent'],
+                'priority_score' => $opportunity->priority,
+                'related_entities' => (array) $opportunity->legacyFields['related_entities'],
+                'provenance' => $opportunity->provenance,
             ])->all(),
             'competitor_gaps' => $competitorGaps->map(fn (CompetitorContentOpportunity $gap): array => [
                 'id' => (string) $gap->id,

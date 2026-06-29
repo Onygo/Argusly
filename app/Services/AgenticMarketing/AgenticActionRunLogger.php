@@ -4,15 +4,20 @@ namespace App\Services\AgenticMarketing;
 
 use App\Models\AgenticActionRun;
 use App\Models\AgenticMarketingAction;
-use App\Models\Workspace;
 use App\Models\User;
+use App\Models\Workspace;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticExecutionCanonicalMetadataResolver;
 use Illuminate\Support\Arr;
 
 class AgenticActionRunLogger
 {
+    public function __construct(
+        private readonly AgenticExecutionCanonicalMetadataResolver $canonicalMetadataResolver,
+    ) {}
+
     public function recordStandalone(Workspace $workspace, string $actionType, string $status, array $attributes = []): AgenticActionRun
     {
-        $run = new AgenticActionRun();
+        $run = new AgenticActionRun;
         $run->fill(array_filter(array_replace([
             'workspace_id' => $workspace->id,
             'brand_id' => data_get($attributes, 'brand_id'),
@@ -54,7 +59,7 @@ class AgenticActionRunLogger
         return $this->upsertForAction($action, [
             'status' => $status,
             'reason' => $action->error_message ?: data_get($action->payload, 'reason'),
-            'input_snapshot' => $this->inputSnapshot($action),
+            'input_snapshot' => $this->inputSnapshot($action, true),
             'output_snapshot' => (array) ($action->result ?? []),
             'estimated_credits' => $action->estimated_credits,
             'actual_credits' => $action->credits_captured,
@@ -77,7 +82,7 @@ class AgenticActionRunLogger
             'status' => $status,
             'reason' => (string) ($decision['reason'] ?? ''),
             'policy_snapshot' => (array) ($decision['policy_snapshot'] ?? []),
-            'input_snapshot' => array_replace_recursive($this->inputSnapshot($action), $input),
+            'input_snapshot' => array_replace_recursive($this->inputSnapshot($action, true), $input),
             'estimated_credits' => $decision['estimated_credit_impact'] ?? $action->estimated_credits,
             'executed_by_agent' => $this->isAutonomousAgentRun($decision, $actor),
         ]);
@@ -100,7 +105,7 @@ class AgenticActionRunLogger
             'status' => AgenticActionRun::STATUS_QUEUED,
             'reason' => (string) ($decision['reason'] ?? 'Action queued for execution.'),
             'policy_snapshot' => (array) ($decision['policy_snapshot'] ?? []),
-            'input_snapshot' => array_replace_recursive($this->inputSnapshot($action), ['claim_id' => $claimId]),
+            'input_snapshot' => array_replace_recursive($this->inputSnapshot($action, true), ['claim_id' => $claimId]),
             'estimated_credits' => $decision['estimated_credit_impact'] ?? $action->estimated_credits,
             'executed_by_agent' => $this->isAutonomousAgentRun($decision, $actor),
             'job_id' => $claimId,
@@ -153,7 +158,7 @@ class AgenticActionRunLogger
         $workspaceId = (string) ($action->objective?->workspace_id ?: data_get($action->payload, 'workspace_id'));
 
         if ($workspaceId === '') {
-            return new AgenticActionRun();
+            return new AgenticActionRun;
         }
 
         $base = [
@@ -166,7 +171,7 @@ class AgenticActionRunLogger
             'action_type' => (string) $action->action_type,
             'execution_mode_snapshot' => 'guided',
             'policy_snapshot' => [],
-            'input_snapshot' => $this->inputSnapshot($action),
+            'input_snapshot' => $this->inputSnapshot($action, false),
             'output_snapshot' => (array) ($action->result ?? []),
             'estimated_credits' => $action->estimated_credits,
             'actual_credits' => $action->credits_captured,
@@ -178,11 +183,21 @@ class AgenticActionRunLogger
             ->first();
 
         if (! $run) {
-            $run = new AgenticActionRun();
+            $run = new AgenticActionRun;
         }
+
+        $includeCanonicalContext = ! $run->exists;
+        $base['input_snapshot'] = $this->inputSnapshot($action, $includeCanonicalContext);
 
         if ($run->exists && $run->status === AgenticActionRun::STATUS_REJECTED && ($attributes['status'] ?? null) === AgenticActionRun::STATUS_CANCELLED) {
             unset($attributes['status']);
+        }
+
+        if ($run->exists) {
+            $attributes['input_snapshot'] = $this->preserveExistingCanonicalContext(
+                (array) ($attributes['input_snapshot'] ?? $base['input_snapshot']),
+                (array) ($run->input_snapshot ?? []),
+            );
         }
 
         $run->fill(array_filter(array_replace($base, $attributes), fn (mixed $value): bool => $value !== null));
@@ -191,15 +206,45 @@ class AgenticActionRunLogger
         return $run;
     }
 
-    private function inputSnapshot(AgenticMarketingAction $action): array
+    private function inputSnapshot(AgenticMarketingAction $action, bool $includeCanonicalContext): array
     {
-        return [
+        $snapshot = [
             'action_id' => (string) $action->id,
             'objective_id' => (string) $action->objective_id,
             'opportunity_id' => $action->opportunity_id ? (string) $action->opportunity_id : null,
             'content_id' => $action->content_id ? (string) $action->content_id : data_get($action->payload, 'content_id'),
             'payload' => Arr::except((array) ($action->payload ?? []), ['api_key', 'token', 'password']),
         ];
+
+        if ($includeCanonicalContext && (bool) config('features.mos_agentic_execution_canonical_metadata_writer', false) && $action->opportunity) {
+            $result = $this->canonicalMetadataResolver->resolve($action->opportunity, 'action_run');
+            if ((bool) $result['safe']) {
+                $snapshot['canonical_opportunity_id'] = data_get($result, 'metadata.canonical_opportunity_id');
+                $snapshot['canonical_opportunity_context'] = $result['metadata'];
+            }
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * @param  array<string,mixed>  $snapshot
+     * @param  array<string,mixed>  $existing
+     * @return array<string,mixed>
+     */
+    private function preserveExistingCanonicalContext(array $snapshot, array $existing): array
+    {
+        unset($snapshot['canonical_opportunity_id'], $snapshot['canonical_opportunity_context']);
+
+        if (array_key_exists('canonical_opportunity_id', $existing)) {
+            $snapshot['canonical_opportunity_id'] = $existing['canonical_opportunity_id'];
+        }
+
+        if (array_key_exists('canonical_opportunity_context', $existing)) {
+            $snapshot['canonical_opportunity_context'] = $existing['canonical_opportunity_context'];
+        }
+
+        return $snapshot;
     }
 
     private function brandId(AgenticMarketingAction $action): ?string

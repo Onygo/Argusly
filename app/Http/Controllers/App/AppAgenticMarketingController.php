@@ -17,6 +17,7 @@ use App\Services\AgenticMarketing\AgenticActionRunLogger;
 use App\Services\AgenticMarketing\AgenticApprovalGate;
 use App\Services\AgenticMarketing\AgenticMarketingAuditLogger;
 use App\Services\AgenticMarketing\AgenticMarketingOpportunityDetectionService;
+use App\Services\Mos\Opportunity\AgenticMarketing\AgenticOpportunityCanonicalReadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -204,8 +205,11 @@ class AppAgenticMarketingController extends Controller
             ->with('status', 'Objective created. Run the first scan to turn this goal into concrete customer actions.');
     }
 
-    public function showObjective(Request $request, AgenticMarketingObjective $objective): View
-    {
+    public function showObjective(
+        Request $request,
+        AgenticMarketingObjective $objective,
+        AgenticOpportunityCanonicalReadService $opportunityReadService,
+    ): View {
         $this->authorize('view', $objective);
 
         $objective->load(['workspace', 'clientSite'])
@@ -216,6 +220,7 @@ class AppAgenticMarketingController extends Controller
             ->latest()
             ->limit(100)
             ->get();
+        $opportunityReadModels = $opportunityReadService->readMany($opportunities);
         $actions = $objective->actions()->with(['opportunity', 'content', 'draft'])->latest()->limit(50)->get();
         $runs = $objective->runs()->latest()->limit(25)->get();
         $runItems = \App\Models\AgenticMarketingRunItem::query()
@@ -231,8 +236,8 @@ class AppAgenticMarketingController extends Controller
             ->get();
 
         $health = [
-            'average_priority' => (int) round((float) $opportunities->avg('priority_score')),
-            'open_opportunities' => $opportunities->where('status', 'open')->count(),
+            'average_priority' => (int) round((float) $opportunityReadModels->avg('priorityScore')),
+            'open_opportunities' => $opportunityReadModels->where('status', 'open')->count(),
             'blocked_actions' => $actions->filter(fn (AgenticMarketingAction $action): bool => data_get($action->payload, 'planning.prerequisites.met') === false)->count(),
             'high_risk_actions' => $actions->filter(fn (AgenticMarketingAction $action): bool => data_get($action->payload, 'planning.risk_level') === 'high')->count(),
             'completed_actions' => $actions->where('status', AgenticMarketingAction::STATUS_COMPLETED)->count(),
@@ -259,6 +264,7 @@ class AppAgenticMarketingController extends Controller
         return view('app.agentic-marketing.objectives.show', [
             'objective' => $objective,
             'opportunities' => $opportunities,
+            'opportunityReadModels' => $opportunityReadModels,
             'actions' => $actions,
             'runs' => $runs,
             'runItems' => $runItems,

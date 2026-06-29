@@ -6,6 +6,7 @@ use App\Concerns\BelongsToOrganizationViaWorkspace;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ContentOpportunity extends Model
 {
@@ -13,8 +14,11 @@ class ContentOpportunity extends Model
     use HasUuids;
 
     public const STATUS_OPEN = 'open';
+
     public const STATUS_DISMISSED = 'dismissed';
+
     public const STATUS_PLANNED = 'planned';
+
     public const STATUS_ARCHIVED = 'archived';
 
     protected $fillable = [
@@ -88,5 +92,10 @@ class ContentOpportunity extends Model
     public function run(): BelongsTo
     {
         return $this->belongsTo(ContentOpportunityRun::class, 'content_opportunity_run_id');
+    }
+
+    public function canonicalOpportunities(): HasMany
+    {
+        return $this->hasMany(Opportunity::class, 'content_opportunity_id');
     }
 }

@@ -12,6 +12,7 @@ use App\Contracts\LinkIntelligence\LinkRelevanceService;
 use App\Contracts\LinkIntelligence\LinkSuggestionService;
 use App\Contracts\PdfRenderer;
 use App\Contracts\PublicBlogSource;
+use App\Domain\AccessOverrides\AccessOverrideResolver;
 use App\Events\Agents\ContentPublished;
 use App\Events\Agents\TranslationCompleted;
 use App\Events\LinkIntelligence\ArticleSignalsRequested;
@@ -23,12 +24,12 @@ use App\Events\Onboarding\DraftGenerated;
 use App\Events\Onboarding\UserEmailVerified;
 use App\Events\Onboarding\UserFirstLogin;
 use App\Events\Onboarding\UserRegistered;
-use App\Listeners\LinkIntelligence\QueueBuildArticleSignals;
 use App\Listeners\Agents\RunInternalLinkingAfterDraftGenerated;
 use App\Listeners\Agents\RunLocalizationChecksAfterTranslation;
+use App\Listeners\Agents\RunRefreshAnalysisAfterPublish;
 use App\Listeners\Content\SyncLinkedLocalePublishingAfterTranslation;
 use App\Listeners\ContentAutomation\SyncAutomationTranslationResult;
-use App\Listeners\Agents\RunRefreshAnalysisAfterPublish;
+use App\Listeners\LinkIntelligence\QueueBuildArticleSignals;
 use App\Listeners\Marketing\InvalidateCrossLocaleRedirectsOnPublish;
 use App\Listeners\Notifications\SendDraftDeliveredNotification;
 use App\Listeners\Notifications\SendDraftDeliveryFailedNotification;
@@ -40,46 +41,43 @@ use App\Listeners\Onboarding\SyncOnboardingStateOnDraftGenerated;
 use App\Listeners\Onboarding\SyncOnboardingStateOnEmailVerified;
 use App\Listeners\Onboarding\SyncOnboardingStateOnFirstLogin;
 use App\Listeners\Onboarding\SyncOnboardingStateOnRegistered;
-use App\Models\ApiKey;
-use App\Models\ApiWebhook;
 use App\Models\AgenticActionRun;
 use App\Models\AgenticMarketingAction;
 use App\Models\AgenticMarketingObjective;
 use App\Models\AgenticMarketingOpportunity;
 use App\Models\AgenticMarketingRun;
+use App\Models\ApiKey;
+use App\Models\ApiWebhook;
 use App\Models\BrandVoice;
 use App\Models\Brief;
 use App\Models\CompanyProfile;
 use App\Models\Content;
+use App\Models\ContentAutomation;
+use App\Models\ContentDestination;
 use App\Models\ContentImage;
 use App\Models\ContentPublication;
-use App\Models\ContentTranslation;
 use App\Models\ContentRevision;
 use App\Models\ContentSeo;
-use App\Models\ContentVersion;
-use App\Models\ContentDestination;
-use App\Models\FaqQuestion;
-use App\Models\StructuredAnswerBlock;
-use App\Models\SocialPost;
-use App\Models\ContentAutomation;
 use App\Models\ContentSeries;
+use App\Models\ContentTranslation;
+use App\Models\ContentVersion;
 use App\Models\CrossLinkPermission;
 use App\Models\Draft;
 use App\Models\DraftComparison;
+use App\Models\FaqQuestion;
 use App\Models\GrowthAsset;
 use App\Models\GrowthProgram;
 use App\Models\GrowthRun;
-use App\Models\ProgrammaticBriefBlueprint;
-use App\Models\ProgrammaticDraftRequest;
-use App\Models\ProgrammaticDraftReview;
-use App\Models\ProgrammaticPublicationPlan;
-use App\Models\ProgrammaticPublicationReadiness;
-use App\Models\ProgrammaticOpportunity;
-use App\Models\ProgrammaticCluster;
 use App\Models\LinkSuggestion;
 use App\Models\Notification as WorkspaceNotification;
 use App\Models\Organization;
-use App\Models\TeamMember;
+use App\Models\ProgrammaticBriefBlueprint;
+use App\Models\ProgrammaticCluster;
+use App\Models\ProgrammaticDraftRequest;
+use App\Models\ProgrammaticDraftReview;
+use App\Models\ProgrammaticOpportunity;
+use App\Models\ProgrammaticPublicationPlan;
+use App\Models\ProgrammaticPublicationReadiness;
 use App\Models\ResearchProject;
 use App\Models\SignalDetection;
 use App\Models\SignalDetectionLink;
@@ -90,15 +88,18 @@ use App\Models\SignalMention;
 use App\Models\SignalProcessingRun;
 use App\Models\SignalScore;
 use App\Models\SignalSource;
+use App\Models\SocialPost;
+use App\Models\StructuredAnswerBlock;
+use App\Models\TeamMember;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WriterProfile;
-use App\Observers\ContentObserver;
 use App\Observers\ContentImageObserver;
+use App\Observers\ContentObserver;
 use App\Observers\ContentPublicationObserver;
-use App\Observers\ContentTranslationObserver;
 use App\Observers\ContentRevisionObserver;
 use App\Observers\ContentSeoObserver;
+use App\Observers\ContentTranslationObserver;
 use App\Observers\ContentVersionObserver;
 use App\Observers\DraftObserver;
 use App\Observers\StructuredAnswerBlockObserver;
@@ -111,27 +112,27 @@ use App\Policies\ApiWebhookPolicy;
 use App\Policies\BrandVoicePolicy;
 use App\Policies\BriefPolicy;
 use App\Policies\CompanyProfilePolicy;
-use App\Policies\ContentDestinationPolicy;
 use App\Policies\ContentAutomationPolicy;
+use App\Policies\ContentDestinationPolicy;
 use App\Policies\ContentPolicy;
 use App\Policies\ContentSeriesPolicy;
 use App\Policies\CrossLinkPermissionPolicy;
-use App\Policies\DraftPolicy;
 use App\Policies\DraftComparisonPolicy;
+use App\Policies\DraftPolicy;
 use App\Policies\FaqQuestionPolicy;
 use App\Policies\GrowthAssetPolicy;
 use App\Policies\GrowthProgramPolicy;
 use App\Policies\GrowthRunPolicy;
-use App\Policies\ProgrammaticBriefBlueprintPolicy;
-use App\Policies\ProgrammaticDraftRequestPolicy;
-use App\Policies\ProgrammaticDraftReviewPolicy;
-use App\Policies\ProgrammaticPublicationPlanPolicy;
-use App\Policies\ProgrammaticPublicationReadinessPolicy;
-use App\Policies\ProgrammaticOpportunityPolicy;
-use App\Policies\ProgrammaticClusterPolicy;
 use App\Policies\LinkSuggestionPolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\OrganizationPolicy;
+use App\Policies\ProgrammaticBriefBlueprintPolicy;
+use App\Policies\ProgrammaticClusterPolicy;
+use App\Policies\ProgrammaticDraftRequestPolicy;
+use App\Policies\ProgrammaticDraftReviewPolicy;
+use App\Policies\ProgrammaticOpportunityPolicy;
+use App\Policies\ProgrammaticPublicationPlanPolicy;
+use App\Policies\ProgrammaticPublicationReadinessPolicy;
 use App\Policies\ResearchProjectPolicy;
 use App\Policies\SignalDetectionLinkPolicy;
 use App\Policies\SignalDetectionPolicy;
@@ -146,7 +147,7 @@ use App\Policies\SocialPostPolicy;
 use App\Policies\TeamMemberPolicy;
 use App\Policies\WorkspacePolicy;
 use App\Policies\WriterProfilePolicy;
-use App\Domain\AccessOverrides\AccessOverrideResolver;
+use App\Services\Credits\CreditWarningService;
 use App\Services\DompdfInvoicePdfRenderer;
 use App\Services\FakeInvoicePdfRenderer;
 use App\Services\Integrations\ApiCapabilityService;
@@ -154,21 +155,35 @@ use App\Services\LinkIntelligence\DefaultAnchorTextService;
 use App\Services\LinkIntelligence\DefaultLinkApplyService;
 use App\Services\LinkIntelligence\DefaultLinkRelevanceService;
 use App\Services\LinkIntelligence\DefaultLinkSuggestionService;
-use App\Services\Credits\CreditWarningService;
+use App\Services\Mos\MosProviderRegistry;
+use App\Services\Mos\Opportunity\Providers\AgenticMarketingOpportunityProvider;
+use App\Services\Mos\Opportunity\Providers\CompetitorContentOpportunityProvider;
+use App\Services\Mos\Opportunity\Providers\ContentOpportunityProvider;
+use App\Services\Mos\Opportunity\Providers\FaqOpportunityAuditProvider;
+use App\Services\Mos\Opportunity\Providers\LinkOpportunityProvider;
+use App\Services\Mos\Opportunity\Providers\ProgrammaticOpportunityProvider;
+use App\Services\Mos\Providers\AgentWorkflowMosProvider;
+use App\Services\Mos\Providers\OpportunityIntelligenceMosProvider;
+use App\Services\Mos\Providers\SignalIntelligenceMosProvider;
 use App\Services\Notifications\NotificationService;
 use App\Services\PublicBlog\ConnectorFirstBlogSource;
-use App\Services\Sitemap\Sources\PublishedArticleSitemapSource;
+use App\Services\Sitemap\SitemapManifestBuilder;
 use App\Services\Sitemap\Sources\MarketingPagesSitemapSource;
+use App\Services\Sitemap\Sources\PublishedArticleSitemapSource;
 use App\Services\Sitemap\Sources\StaticPagesSitemapSource;
 use App\Services\Support\SupportContext;
-use App\Support\SecurityResponse;
+use App\Support\MarketingRouteSegments;
 use App\Support\QueueWorkerHeartbeat;
+use App\Support\SecurityResponse;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\Looping;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
@@ -201,6 +216,22 @@ class AppServiceProvider extends ServiceProvider
             ]);
         });
 
+        $this->app->tag([
+            OpportunityIntelligenceMosProvider::class,
+            SignalIntelligenceMosProvider::class,
+            AgentWorkflowMosProvider::class,
+            ContentOpportunityProvider::class,
+            AgenticMarketingOpportunityProvider::class,
+            CompetitorContentOpportunityProvider::class,
+            FaqOpportunityAuditProvider::class,
+            ProgrammaticOpportunityProvider::class,
+            LinkOpportunityProvider::class,
+        ], 'mos.providers');
+
+        $this->app->singleton(MosProviderRegistry::class, fn ($app) => new MosProviderRegistry(
+            $app->tagged('mos.providers')
+        ));
+
         $this->app->bind(EmbeddingService::class, function ($app) {
             $service = (string) config('link_intelligence.embedding.service');
 
@@ -223,7 +254,7 @@ class AppServiceProvider extends ServiceProvider
             StaticPagesSitemapSource::class,
             MarketingPagesSitemapSource::class,
         ], 'sitemap.sources');
-        $this->app->when(\App\Services\Sitemap\SitemapManifestBuilder::class)
+        $this->app->when(SitemapManifestBuilder::class)
             ->needs('$sources')
             ->giveTagged('sitemap.sources');
 
@@ -237,7 +268,7 @@ class AppServiceProvider extends ServiceProvider
         $this->ensureRuntimeDirectories();
 
         if (app()->environment(['local', 'testing'])) {
-            app(\App\Support\MarketingRouteSegments::class)->assertConfigured();
+            app(MarketingRouteSegments::class)->assertConfigured();
         }
 
         $this->validateProductionSecrets();
@@ -412,26 +443,26 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
 
         if (! self::$eventListenersRegistered) {
-            \Illuminate\Support\Facades\Event::listen(
+            Event::listen(
                 ArticleSignalsRequested::class,
                 QueueBuildArticleSignals::class
             );
-            \Illuminate\Support\Facades\Event::listen(UserRegistered::class, SyncOnboardingStateOnRegistered::class);
-            \Illuminate\Support\Facades\Event::listen(UserEmailVerified::class, SyncOnboardingStateOnEmailVerified::class);
-            \Illuminate\Support\Facades\Event::listen(UserFirstLogin::class, SyncOnboardingStateOnFirstLogin::class);
-            \Illuminate\Support\Facades\Event::listen(BriefCreated::class, SyncOnboardingStateOnBriefCreated::class);
-            \Illuminate\Support\Facades\Event::listen(DraftGenerated::class, SyncOnboardingStateOnDraftGenerated::class);
-            \Illuminate\Support\Facades\Event::listen(ContentPushedToWordPress::class, SyncOnboardingStateOnContentPushed::class);
-            \Illuminate\Support\Facades\Event::listen(DraftGenerated::class, SendDraftReadyNotification::class);
-            \Illuminate\Support\Facades\Event::listen(ContentPushedToWordPress::class, SendDraftDeliveredNotification::class);
-            \Illuminate\Support\Facades\Event::listen(DraftGenerated::class, RunInternalLinkingAfterDraftGenerated::class);
-            \Illuminate\Support\Facades\Event::listen(TranslationCompleted::class, RunLocalizationChecksAfterTranslation::class);
-            \Illuminate\Support\Facades\Event::listen(TranslationCompleted::class, SyncAutomationTranslationResult::class);
-            \Illuminate\Support\Facades\Event::listen(TranslationCompleted::class, SyncLinkedLocalePublishingAfterTranslation::class);
-            \Illuminate\Support\Facades\Event::listen(ContentPublished::class, RunRefreshAnalysisAfterPublish::class);
-            \Illuminate\Support\Facades\Event::listen(ContentPublished::class, InvalidateCrossLocaleRedirectsOnPublish::class);
-            \Illuminate\Support\Facades\Event::listen(DraftDeliveryFailed::class, SendDraftDeliveryFailedNotification::class);
-            \Illuminate\Support\Facades\Event::listen(SiteVerified::class, SendSiteVerifiedNotification::class);
+            Event::listen(UserRegistered::class, SyncOnboardingStateOnRegistered::class);
+            Event::listen(UserEmailVerified::class, SyncOnboardingStateOnEmailVerified::class);
+            Event::listen(UserFirstLogin::class, SyncOnboardingStateOnFirstLogin::class);
+            Event::listen(BriefCreated::class, SyncOnboardingStateOnBriefCreated::class);
+            Event::listen(DraftGenerated::class, SyncOnboardingStateOnDraftGenerated::class);
+            Event::listen(ContentPushedToWordPress::class, SyncOnboardingStateOnContentPushed::class);
+            Event::listen(DraftGenerated::class, SendDraftReadyNotification::class);
+            Event::listen(ContentPushedToWordPress::class, SendDraftDeliveredNotification::class);
+            Event::listen(DraftGenerated::class, RunInternalLinkingAfterDraftGenerated::class);
+            Event::listen(TranslationCompleted::class, RunLocalizationChecksAfterTranslation::class);
+            Event::listen(TranslationCompleted::class, SyncAutomationTranslationResult::class);
+            Event::listen(TranslationCompleted::class, SyncLinkedLocalePublishingAfterTranslation::class);
+            Event::listen(ContentPublished::class, RunRefreshAnalysisAfterPublish::class);
+            Event::listen(ContentPublished::class, InvalidateCrossLocaleRedirectsOnPublish::class);
+            Event::listen(DraftDeliveryFailed::class, SendDraftDeliveryFailedNotification::class);
+            Event::listen(SiteVerified::class, SendSiteVerifiedNotification::class);
 
             self::$eventListenersRegistered = true;
         }
@@ -687,9 +718,9 @@ class AppServiceProvider extends ServiceProvider
             storage_path('logs/schedule'),
         ] as $path) {
             try {
-                \Illuminate\Support\Facades\File::ensureDirectoryExists($path, 0775, true);
+                File::ensureDirectoryExists($path, 0775, true);
             } catch (\Throwable $exception) {
-                \Illuminate\Support\Facades\Log::warning('runtime.directory_unavailable', [
+                Log::warning('runtime.directory_unavailable', [
                     'path' => $path,
                     'exception_class' => $exception::class,
                     'exception_message' => $exception->getMessage(),

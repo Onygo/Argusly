@@ -15,13 +15,17 @@ use App\Models\RecommendedAction;
 use App\Models\SignalDetection;
 use App\Models\SocialPostVariant;
 use App\Models\Workspace;
+use App\Services\Mos\Opportunity\ContentOpportunityCanonicalActionOwnershipResolver;
+use App\Services\Mos\Opportunity\ContentOpportunityRecommendedActionSignature;
 use Illuminate\Database\Eloquent\Model;
 
 class RecommendedActionMapper
 {
-    public function __construct(private readonly RecommendedActionScoring $scoring)
-    {
-    }
+    public function __construct(
+        private readonly RecommendedActionScoring $scoring,
+        private readonly ContentOpportunityRecommendedActionSignature $contentOpportunitySignature,
+        private readonly ContentOpportunityCanonicalActionOwnershipResolver $contentOpportunityActionOwnership,
+    ) {}
 
     /**
      * @return array<string,mixed>
@@ -214,6 +218,12 @@ class RecommendedActionMapper
      */
     private function contentOpportunity(ContentOpportunity $opportunity): array
     {
+        $ownership = $this->contentOpportunityActionOwnership->resolve(
+            legacy: $opportunity,
+            featureEnabled: (bool) config('features.mos_canonical_content_opportunity_action_ownership', false),
+        );
+        $canonicalActive = $ownership['ownership_status'] === ContentOpportunityCanonicalActionOwnershipResolver::STATUS_CANONICAL_ACTIVE;
+
         return $this->payload(
             source: $opportunity,
             workspace: $opportunity->workspace,
@@ -230,11 +240,25 @@ class RecommendedActionMapper
             baseScore: $opportunity->priority_score,
             confidenceScore: $opportunity->confidence_score,
             impactScore: $opportunity->business_value_score ?: $opportunity->priority_score,
-            cta: ['Open content opportunities', route('app.agentic-marketing.content-opportunities.index', ['workspace_id' => $opportunity->workspace_id])],
+            cta: $canonicalActive
+                ? ['Review action', (string) $ownership['cta_route']]
+                : ['Open content opportunities', route('app.agentic-marketing.content-opportunities.index', ['workspace_id' => $opportunity->workspace_id])],
             context: ['approval_required' => true],
-            metadata: [
+            metadata: array_filter([
                 'recommended_action' => $opportunity->angle ?: 'Prepare this content opportunity for execution.',
-            ],
+                'canonical_action_ownership' => $canonicalActive ? [
+                    'ownership_status' => $ownership['ownership_status'],
+                    'canonical_owner_id' => $ownership['canonical_owner_id'],
+                    'legacy_source_id' => $ownership['legacy_source_id'],
+                    'display_action_id' => $ownership['display_action_id'],
+                    'primary_recommended_action_id' => $ownership['primary_recommended_action_id'],
+                    'duplicate_recommended_action_ids' => $ownership['duplicate_recommended_action_ids'],
+                    'source_link' => $ownership['source_link'],
+                    'legacy_source_link' => $ownership['legacy_source_link'],
+                    'fallback_route' => $ownership['fallback_route'],
+                    'duplicate_metadata_status' => $ownership['duplicate_metadata_status'],
+                ] : null,
+            ]),
         );
     }
 
@@ -377,9 +401,9 @@ class RecommendedActionMapper
     }
 
     /**
-     * @param array{0:string,1:string}|null $cta
-     * @param array<string,mixed> $context
-     * @param array<string,mixed> $metadata
+     * @param  array{0:string,1:string}|null  $cta
+     * @param  array<string,mixed>  $context
+     * @param  array<string,mixed>  $metadata
      * @return array<string,mixed>
      */
     private function payload(
@@ -411,7 +435,7 @@ class RecommendedActionMapper
             'organization_id' => $workspace?->organization_id,
             'source_type' => $source::class,
             'source_id' => (string) $source->getKey(),
-            'source_signature' => $this->signature($source, $workspace, $sourceGroup),
+            'source_signature' => $this->signature($source, $workspace, $sourceGroup, $actionType),
             'source_group' => $sourceGroup,
             'action_type' => $actionType,
             'status' => $status,
@@ -438,14 +462,9 @@ class RecommendedActionMapper
         ], fn ($value): bool => $value !== null);
     }
 
-    private function signature(Model $source, ?Workspace $workspace, string $sourceGroup): string
+    private function signature(Model $source, ?Workspace $workspace, string $sourceGroup, string $actionType): string
     {
-        return sha1(implode('|', [
-            $workspace?->id ?? 'global',
-            $sourceGroup,
-            $source::class,
-            (string) $source->getKey(),
-        ]));
+        return $this->contentOpportunitySignature->signature($source, $workspace, $sourceGroup, $actionType);
     }
 
     private function firstText(mixed $values): ?string
