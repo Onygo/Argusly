@@ -336,6 +336,62 @@ it('applies an event-triggered internal link suggestion from the content detail 
         ->and(data_get($run->output_payload, 'suggestions.0.applied_resource_type'))->toBe('content_revision');
 });
 
+it('renders every internal link suggestion in the content detail sidebar', function () {
+    [$owner, , $site, $sourceContent] = makeInternalLinkingFeatureContext('feature-content-sidebar-links');
+
+    $run = AgentRun::query()->create([
+        'id' => (string) Str::uuid(),
+        'agent_key' => InternalLinkingAgent::KEY,
+        'trigger_type' => 'event',
+        'trigger_source' => 'agents.content_published',
+        'organization_id' => $owner->organization_id,
+        'workspace_id' => $sourceContent->workspace_id,
+        'site_id' => $site->id,
+        'content_id' => $sourceContent->id,
+        'user_id' => $owner->id,
+        'input_payload' => [],
+        'output_payload' => [
+            'suggestions' => [
+                [
+                    'anchor_text' => 'answer engine visibility',
+                    'target_title' => 'Answer engine visibility basics',
+                    'target_url' => 'https://feature-content-sidebar-links.example.com/blog/answer-engine-visibility',
+                    'reason' => 'Matches heading overlap.',
+                ],
+                [
+                    'anchor_text' => 'marketing intelligence',
+                    'target_title' => 'Marketing intelligence workflows',
+                    'target_url' => 'https://feature-content-sidebar-links.example.com/blog/marketing-intelligence',
+                    'reason' => 'Matches same-site topic overlap.',
+                ],
+                [
+                    'anchor_text' => 'autonomous workflows',
+                    'target_title' => 'Autonomous workflow planning',
+                    'target_url' => 'https://feature-content-sidebar-links.example.com/blog/autonomous-workflows',
+                    'reason' => 'Matches adjacent workflow intent.',
+                ],
+            ],
+        ],
+        'summary' => 'Found 3 suggested internal links for EN on Feature Internal Linking Site.',
+        'status' => \App\Agents\Support\AgentRunStatus::SUCCESS->value,
+        'started_at' => now(),
+        'finished_at' => now(),
+    ]);
+
+    $this->actingAs($owner)
+        ->get(route('app.content.show', [
+            'content' => $sourceContent,
+            'tab' => 'overview',
+            'insight' => 'links',
+            'internal_linking_run' => $run->id,
+        ]))
+        ->assertOk()
+        ->assertSee('Found 3 suggested internal links')
+        ->assertSee('Answer engine visibility basics')
+        ->assertSee('Marketing intelligence workflows')
+        ->assertSee('Autonomous workflow planning');
+});
+
 function makeInternalLinkingFeatureContext(string $prefix = 'feature-internal-linking'): array
 {
     $organization = Organization::query()->create([

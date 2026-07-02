@@ -9,6 +9,8 @@ use App\Services\Integrations\LaravelConnectorDestinationResolver;
 use App\Services\Integrations\LaravelConnectorPublishingService;
 use App\Services\Publication\ContentPublicationService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class DispatchScheduledPublishesCommand extends Command
 {
@@ -71,27 +73,49 @@ class DispatchScheduledPublishesCommand extends Command
                 continue;
             }
 
-            if (
-                $content->clientSite
-                && strtolower(trim((string) $content->clientSite->type)) === 'laravel'
-                && ! $laravelDestinationResolver->resolveForContent($content)
-            ) {
-                $laravelPublishingService->publish($content, null, 'scheduled_publish', 'console.dispatch_scheduled_publishes');
-                $dispatched++;
+            try {
+                if (
+                    $content->clientSite
+                    && strtolower(trim((string) $content->clientSite->type)) === 'laravel'
+                    && ! $laravelDestinationResolver->resolveForContent($content)
+                ) {
+                    $laravelPublishingService->publish($content, null, 'scheduled_publish', 'console.dispatch_scheduled_publishes');
+                    $dispatched++;
 
-                continue;
-            }
+                    continue;
+                }
 
-            $dispatch = $publicationService->dispatchPublication($content, null, [
-                'source' => 'console.dispatch_scheduled_publishes',
-                'allow_stale_reclaim' => true,
-                'stale_after_minutes' => $staleAfterMinutes,
-            ]);
+                $dispatch = $publicationService->dispatchPublication($content, null, [
+                    'source' => 'console.dispatch_scheduled_publishes',
+                    'allow_stale_reclaim' => true,
+                    'stale_after_minutes' => $staleAfterMinutes,
+                ]);
 
-            if ((bool) ($dispatch['queued'] ?? false)) {
-                $dispatched++;
+                if ((bool) ($dispatch['queued'] ?? false)) {
+                    $dispatched++;
 
-                continue;
+                    continue;
+                }
+            } catch (Throwable $exception) {
+                $content->refresh();
+
+                if (in_array((string) $content->publish_status, ['scheduled', 'publishing', 'queued', 'processing'], true)) {
+                    $content->forceFill([
+                        'publish_status' => 'failed',
+                        'publish_error' => $exception->getMessage() !== ''
+                            ? $exception->getMessage()
+                            : 'Scheduled publication failed.',
+                    ])->save();
+                }
+
+                Log::error('content.scheduled_publish_dispatch_failed', [
+                    'content_id' => (string) $content->id,
+                    'scheduled_publish_at' => $content->scheduled_publish_at?->toIso8601String(),
+                    'publish_status' => (string) $content->publish_status,
+                    'error' => $exception->getMessage(),
+                    'exception' => $exception::class,
+                    'throwable' => $exception,
+                ]);
             }
 
             $skipped++;

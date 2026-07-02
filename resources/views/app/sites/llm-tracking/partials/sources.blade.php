@@ -8,45 +8,39 @@
             <p class="text-sm text-textSecondary">{{ data_get($detail, 'sources.summary', 'No source data yet.') }}</p>
         </div>
 
-        @if (! empty(data_get($detail, 'sources.rows', [])))
-            <div class="mt-4 overflow-x-auto">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-border text-left text-xs uppercase tracking-[0.16em] text-textMuted">
-                            <th class="pb-3 pr-4 font-medium">Domain</th>
-                            <th class="pb-3 pr-4 font-medium">Type</th>
-                            <th class="pb-3 pr-4 font-medium">Role</th>
-                            <th class="pb-3 pr-4 font-medium">Class</th>
-                            <th class="pb-3 pr-4 font-medium">Branding</th>
-                            <th class="pb-3 font-medium">Position</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ((array) data_get($detail, 'sources.rows', []) as $row)
-                            <tr class="border-b border-border/60 align-top">
-                                <td class="py-3 pr-4">
-                                    <div class="font-medium text-textPrimary">{{ $row['domain'] ?? '' }}</div>
-                                    @if (($row['url'] ?? '') !== '')
-                                        <div class="mt-1 text-xs text-textMuted">{{ $row['url'] }}</div>
-                                    @endif
-                                </td>
-                                <td class="py-3 pr-4 text-textSecondary">{{ $row['type'] ?? '-' }}</td>
-                                <td class="py-3 pr-4 text-textSecondary">{{ $row['role'] ?? '-' }}</td>
-                                <td class="py-3 pr-4">
-                                    <x-llm-tracking.status-badge :label="$row['classification'] ?? '-'" :tone="$row['tone'] ?? 'slate'" />
-                                </td>
-                                <td class="py-3 pr-4 text-textSecondary">{{ $row['branded'] ?? '-' }}</td>
-                                <td class="py-3 text-textSecondary">{{ $row['position'] ?? '-' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        @else
-            <div class="mt-4 rounded-lg border border-dashed border-border bg-background px-4 py-10 text-sm text-textMuted">
-                No source rows yet. Once the answer contains citations or extracted URLs, they will appear here.
-            </div>
-        @endif
+        <x-data-table label="Source citations" description="Citation sources grouped by domain with source type, role, classification, branding, and answer position." density="compact" class="mt-4 border-0 shadow-none" table-class="min-w-full text-sm">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Domain</x-data-table.cell>
+                    <x-data-table.cell heading>Type</x-data-table.cell>
+                    <x-data-table.cell heading>Role</x-data-table.cell>
+                    <x-data-table.cell heading>Class</x-data-table.cell>
+                    <x-data-table.cell heading>Branding</x-data-table.cell>
+                    <x-data-table.cell heading>Position</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
+                @forelse ((array) data_get($detail, 'sources.rows', []) as $row)
+                    <x-data-table.row>
+                        <x-data-table.cell label="Domain">
+                            <div class="font-medium text-textPrimary">{{ $row['domain'] ?? '' }}</div>
+                            @if (($row['url'] ?? '') !== '')
+                                <div class="mt-1 text-xs text-textMuted">{{ $row['url'] }}</div>
+                            @endif
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Type" class="text-textSecondary">{{ $row['type'] ?? '-' }}</x-data-table.cell>
+                        <x-data-table.cell label="Role" class="text-textSecondary">{{ $row['role'] ?? '-' }}</x-data-table.cell>
+                        <x-data-table.cell label="Class">
+                            <x-llm-tracking.status-badge :label="$row['classification'] ?? '-'" :tone="$row['tone'] ?? 'slate'" />
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Branding" class="text-textSecondary">{{ $row['branded'] ?? '-' }}</x-data-table.cell>
+                        <x-data-table.cell label="Position" class="text-textSecondary">{{ $row['position'] ?? '-' }}</x-data-table.cell>
+                    </x-data-table.row>
+                @empty
+                    <x-data-table.empty colspan="6" title="No source rows yet" description="Once the answer contains citations or extracted URLs, they will appear here." />
+                @endforelse
+            </tbody>
+        </x-data-table>
     </x-llm-tracking.analysis-card>
 
     <x-llm-tracking.analysis-card

@@ -12,6 +12,7 @@ use App\Services\Editorial\EditorialPlanningService;
 use App\Services\HumanContent\HumanContentGate;
 use App\Services\HumanContent\HumanContentScoreService;
 use App\Services\HumanContent\HumanizationService;
+use App\Services\AiTransparency\AiTransparencyService;
 use App\Services\Integrations\ApiWebhookPublisher;
 use App\Services\Integrations\AsyncOperationService;
 use App\Services\PlanQuotaService;
@@ -199,6 +200,7 @@ class GenerateDraftJob implements ShouldQueue
             // Stage: Persist result
             $currentStage = self::STAGE_DRAFT_PERSISTED;
             $this->persistGenerationResult($draft, $result);
+            $this->syncAiTransparencyAfterGeneration($draft);
             $draftComparisonProgressService?->markDraftGenerated($draft->fresh());
 
             if ($operationId !== '') {
@@ -554,6 +556,9 @@ class GenerateDraftJob implements ShouldQueue
             'tokens' => (int) data_get($result, 'usage.total_tokens', 0),
             'input_tokens' => (int) data_get($result, 'usage.input_tokens', 0),
             'output_tokens' => (int) data_get($result, 'usage.output_tokens', 0),
+            'usage' => data_get($result, 'usage'),
+            'settings' => data_get($result, 'settings'),
+            'prompt_snapshot' => data_get($result, 'prompt_snapshot'),
             'request_id' => (string) data_get($result, 'request_id', ''),
             'requested_max_output_tokens' => (int) data_get($result, 'requested_max_output_tokens', (int) data_get($existingMeta, 'requested_max_output_tokens', 0)),
             'required_credits' => (int) data_get($result, 'required_credits', (int) data_get($existingMeta, 'required_credits', (int) ($draft->credit_cost ?? 0))),
@@ -577,12 +582,33 @@ class GenerateDraftJob implements ShouldQueue
             'robots_index' => $seoFields['robots_index'] ?? $draft->robots_index,
             'robots_follow' => $seoFields['robots_follow'] ?? $draft->robots_follow,
             'schema_type' => $seoFields['schema_type'] ?: $draft->schema_type,
+            'model_used' => (string) data_get($result, 'model_used', (string) data_get($result, 'model', $draft->model_used)),
             'content_html' => $result['content_html'] ?? null,
             'meta' => $mergedMeta,
             'links' => $result['links'] ?? $draft->links,
             'last_error' => null,
             'delivered_at' => now(),
         ]);
+    }
+
+    private function syncAiTransparencyAfterGeneration(Draft $draft): void
+    {
+        try {
+            $freshDraft = $draft->fresh(['content.workspace', 'content.clientSite.workspace', 'content.drafts']);
+            $content = $freshDraft?->content;
+
+            if (! $content) {
+                return;
+            }
+
+            app(AiTransparencyService::class)->ensureForContent($content);
+        } catch (Throwable $exception) {
+            Log::warning('GenerateDraftJob AI transparency sync failed after generation.', [
+                'draft_id' => (string) $draft->id,
+                'content_id' => (string) ($draft->content_id ?? ''),
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function handleFailure(

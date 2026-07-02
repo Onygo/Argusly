@@ -36,6 +36,7 @@
     $pageKey = (string) ($pageKey ?? '');
     $isProductOverviewPage = $pageKey === 'product.overview';
     $isProductPlatformPage = $pageKey === 'product.platform';
+    $isProductGovernancePage = $pageKey === 'product.governance';
     $isAboutPage = $pageKey === 'company.about';
     $isContactPage = $pageKey === 'company.contact';
     $isRoadmapPage = $pageKey === 'company.roadmap';
@@ -52,6 +53,8 @@
         @include('public.partials.product.overview')
     @elseif ($isProductPlatformPage)
         @include('public.partials.product.platform')
+    @elseif ($isProductGovernancePage)
+        @include('public.partials.product.governance')
     @elseif ($isAboutPage)
         @include('public.partials.company.about')
     @elseif ($isContactPage)

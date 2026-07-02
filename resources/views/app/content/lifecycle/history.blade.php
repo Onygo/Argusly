@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Lifecycle History - ' . Str::limit($content->title, 30)])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>{{ $content->title }}</x-slot:title>
+        <x-slot:description>{{ $content->rejection_reason }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6">
         <div class="flex items-center gap-2 text-sm text-textSecondary">
@@ -15,7 +22,6 @@
         {{-- Left: Content Info --}}
         <div class="lg:col-span-1">
             <div class="rounded-lg border border-border bg-surface p-4 shadow-sm">
-                <h2 class="text-lg font-semibold text-textPrimary">{{ $content->title }}</h2>
 
                 <div class="mt-4 space-y-3 text-sm">
                     {{-- Current Stage --}}
@@ -80,7 +86,6 @@
                                 @endif
                             </div>
                             @if ($content->rejection_reason)
-                                <p class="mt-1 text-xs text-rose-600">{{ $content->rejection_reason }}</p>
                             @endif
                         </div>
                     @endif

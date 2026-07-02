@@ -73,6 +73,15 @@ describe('Marketing Subdomain', function () {
         // Auth routes are available on marketing domain for backwards compatibility
         $response = subdomainGet($this, 'marketing', '/login');
         $response->assertOk();
+        $response->assertSee('action="http://argusly.local/login"', false);
+    });
+
+    it('serves local fallback login with a local form action', function () {
+        $response = $this->withHeaders(['Host' => 'localhost'])
+            ->get('http://localhost/login');
+
+        $response->assertOk();
+        $response->assertSee('action="http://localhost/login"', false);
     });
 
     it('routes to register page on marketing domain', function () {
@@ -101,6 +110,7 @@ describe('App Subdomain', function () {
     it('shows login page on app subdomain', function () {
         $response = subdomainGet($this, 'app', '/login');
         $response->assertOk();
+        $response->assertSee('action="http://app.argusly.local/login"', false);
     });
 
     it('redirects to login for unauthenticated dashboard access', function () {
@@ -137,6 +147,7 @@ describe('Admin Subdomain', function () {
     it('shows login page on admin subdomain', function () {
         $response = subdomainGet($this, 'admin', '/login');
         $response->assertOk();
+        $response->assertSee('action="http://admin.argusly.local/login"', false);
     });
 
     it('blocks non-admin users from admin dashboard', function () {

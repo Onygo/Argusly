@@ -1,15 +1,19 @@
 @extends('layouts.app', ['title' => 'Briefs'])
 
-@section('content')
-    <div class="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Briefs</h1>
-            <p class="text-textSecondary mt-1">Create and manage briefs from the client dashboard.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Briefs</x-slot:title>
+        <x-slot:description>Create and manage briefs from the client dashboard.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('app.briefs.create') }}" class="rounded border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
             New Brief
         </a>
-    </div>
+@endsection
+
+@section('content')
 
     <form method="GET" class="mb-4 grid gap-2 rounded-lg border border-border bg-surface p-3 text-sm md:grid-cols-6">
         <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" class="rounded border border-border px-3 py-2 md:col-span-2" placeholder="Search title or keyword">
@@ -55,68 +59,135 @@
         </div>
     </form>
 
-    <div class="rounded-lg border border-border bg-surface p-4">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-textSecondary">
-                    <th class="pb-2 font-medium">Title</th>
-                    <th class="pb-2 font-medium">Site</th>
-                    <th class="pb-2 font-medium">Type</th>
-                    <th class="pb-2 font-medium">Source</th>
-                    <th class="pb-2 font-medium">Status</th>
-                    <th class="pb-2 font-medium">Updated</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-                @forelse ($briefs as $brief)
-                    <tr>
-                        <td class="py-3">
+    <x-data-table label="Briefs" description="Briefs with site, content type, source, status, keyword, and update time.">
+        <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Title</x-data-table.cell>
+                <x-data-table.cell heading>Site</x-data-table.cell>
+                <x-data-table.cell heading>Type</x-data-table.cell>
+                <x-data-table.cell heading>Source</x-data-table.cell>
+                <x-data-table.cell heading>Status</x-data-table.cell>
+                <x-data-table.cell heading>Updated</x-data-table.cell>
+            </x-data-table.row>
+        </x-data-table.header>
+        <tbody>
+            @forelse ($briefs as $brief)
+                @php
+                    $briefResourceKey = 'brief:'.$brief->getKey();
+                    $briefResource = $interactionResourcesByKey[$briefResourceKey] ?? null;
+                    $briefOpenAction = $interactionActionsByKey[$briefResourceKey]['app.brief.open'] ?? null;
+                    $briefShowHref = route('app.briefs.show', $brief);
+                    $briefDrawerDescriptor = null;
+
+                    if (is_array($briefResource) && is_array($briefOpenAction)) {
+                        $briefDrawerDescriptor = \App\Support\Interaction\DrawerMetadataBuilder::make()->build(
+                            \App\Support\Interaction\DrawerTarget::make(
+                                'brief.inspect',
+                                \App\Support\Interaction\DrawerState::MODE_INSPECT,
+                                'md',
+                            )
+                                ->forResource(\App\Support\Interaction\ResourceType::BRIEF, $brief->getKey(), $briefResourceKey)
+                                ->forAction('app.brief.open')
+                                ->withHref($briefShowHref),
+                            [
+                                'resource' => $briefResource,
+                                'action' => $briefOpenAction,
+                                'metadata' => [
+                                    'adoption' => 'app.briefs.index:second-additive-drawer',
+                                    'renders_production_content' => false,
+                                ],
+                            ],
+                        );
+                    }
+                @endphp
+                <x-data-table.row>
+                    <x-data-table.cell label="Title">
+                        <div class="flex flex-col gap-2">
                             <a class="text-textPrimary hover:underline" href="{{ route('app.briefs.show', $brief) }}">{{ $brief->title }}</a>
+
+                            @if ($briefDrawerDescriptor)
+                                <x-drawer-button
+                                    :descriptor="$briefDrawerDescriptor"
+                                    :href="$briefShowHref"
+                                    class="w-fit px-2 py-1 text-xs"
+                                    aria-label="Inspect {{ $brief->title }}"
+                                >
+                                    Inspect
+                                </x-drawer-button>
+                            @endif
+
                             @if (!empty($brief->primary_keyword))
                                 <div class="text-xs text-textSecondary">{{ $brief->primary_keyword }}</div>
                             @endif
-                        </td>
-                        <td class="py-3">{{ $brief->clientSite?->name }}</td>
-                        <td class="py-3">{{ $brief->content_type ?: 'blog' }}</td>
-                        <td class="py-3">{{ $sourceOptions[$brief->source] ?? $brief->source }}</td>
-                        <td class="py-3">{{ $brief->status }}</td>
-                        <td class="py-3">{{ $brief->updated_at?->format('Y-m-d H:i') }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6">
-                            <div class="py-12 text-center">
-                                <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                                    <i data-lucide="clipboard-list" class="h-8 w-8 text-primary"></i>
-                                </div>
-                                @if (empty($filters['q']) && empty($filters['status']) && empty($filters['site']))
-                                    <h3 class="text-lg font-semibold text-textPrimary">No briefs yet</h3>
-                                    <p class="mt-2 max-w-sm mx-auto text-textSecondary">Briefs are the starting point for your content. Define your topic, keywords, and audience to generate high-quality drafts.</p>
-                                    <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-                                        <a href="{{ route('app.briefs.create') }}" class="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
-                                            <i data-lucide="plus" class="h-4 w-4"></i>
-                                            Create your first brief
-                                        </a>
-                                        <a href="{{ route('app.content.batches.create') }}" class="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
-                                            <i data-lucide="layers" class="h-4 w-4"></i>
-                                            Generate multiple articles
-                                        </a>
-                                    </div>
-                                @else
-                                    <h3 class="text-lg font-semibold text-textPrimary">No briefs match your filters</h3>
-                                    <p class="mt-2 text-textSecondary">Try adjusting your search or filter criteria.</p>
-                                    <a href="{{ route('app.briefs') }}" class="mt-4 inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
-                                        <i data-lucide="x" class="h-4 w-4"></i>
-                                        Clear filters
-                                    </a>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                        </div>
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Site">{{ $brief->clientSite?->name }}</x-data-table.cell>
+                    <x-data-table.cell label="Type">{{ $brief->content_type ?: 'blog' }}</x-data-table.cell>
+                    <x-data-table.cell label="Source">{{ $sourceOptions[$brief->source] ?? $brief->source }}</x-data-table.cell>
+                    <x-data-table.cell label="Status">
+                        <x-data-table.badge :label="$brief->status" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Updated">{{ $brief->updated_at?->format('Y-m-d H:i') }}</x-data-table.cell>
+                </x-data-table.row>
+            @empty
+                @if (empty($filters['q']) && empty($filters['status']) && empty($filters['site']))
+                    <x-data-table.empty colspan="6" title="No briefs yet" description="Briefs are the starting point for your content. Define your topic, keywords, and audience to generate high-quality drafts." icon="clipboard-list">
+                        <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                            <a href="{{ route('app.briefs.create') }}" class="inline-flex items-center gap-2 rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">
+                                <i data-lucide="plus" class="h-4 w-4"></i>
+                                Create your first brief
+                            </a>
+                            <a href="{{ route('app.content.batches.create') }}" class="inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                                <i data-lucide="layers" class="h-4 w-4"></i>
+                                Generate multiple articles
+                            </a>
+                        </div>
+                    </x-data-table.empty>
+                @else
+                    <x-data-table.empty colspan="6" title="No briefs match your filters" description="Try adjusting your search or filter criteria." icon="clipboard-list">
+                        <a href="{{ route('app.briefs') }}" class="mt-4 inline-flex items-center gap-2 rounded border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                            <i data-lucide="x" class="h-4 w-4"></i>
+                            Clear filters
+                        </a>
+                    </x-data-table.empty>
+                @endif
+            @endforelse
+        </tbody>
+        <x-slot:pagination>{{ $briefs->links() }}</x-slot:pagination>
+    </x-data-table>
+@endsection
 
-    <div class="mt-4">{{ $briefs->links() }}</div>
+@section('detailDrawer')
+    <x-drawer.drawer
+        :open="false"
+        :drawer="[
+            'key' => 'brief.inspect',
+            'mode' => 'inspect',
+            'modal' => false,
+            'width' => 'md',
+            'title' => 'Brief inspect',
+            'subtitle' => 'Brief',
+            'description' => 'Select Inspect on a brief row to open drawer metadata when drawer JavaScript is available.',
+            'tabs' => [],
+            'sections' => [],
+            'footer_actions' => [],
+            'empty_state' => [
+                'title' => 'No brief selected',
+                'description' => 'Brief detail pages remain the canonical destination.',
+            ],
+            'state' => [
+                'mode' => 'inspect',
+                'open' => false,
+                'loading' => false,
+                'empty' => true,
+                'error' => false,
+                'message' => null,
+                'interactive' => false,
+                'can_edit' => false,
+                'metadata' => [
+                    'renders_production_content' => false,
+                ],
+            ],
+        ]"
+    />
 @endsection

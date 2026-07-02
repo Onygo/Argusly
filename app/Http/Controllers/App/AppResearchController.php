@@ -14,6 +14,11 @@ use App\Models\ResearchProject;
 use App\Models\Workspace;
 use App\Services\Entitlements\FeatureGate;
 use App\Services\Research\ResearchSummaryService;
+use App\Support\Interaction\Action;
+use App\Support\Interaction\AppInteractionRegistry;
+use App\Support\Interaction\Providers\AppResearchInteractionProvider;
+use App\Support\Interaction\ResourceContext;
+use App\Support\Interaction\ResourceType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,16 +35,105 @@ class AppResearchController extends Controller
 
         $projects = ResearchProject::query()
             ->where('workspace_id', $workspace->id)
-            ->with(['brief:id,title', 'clientSite:id,name'])
+            ->with(['workspace:id,organization_id', 'brief:id,title', 'clientSite:id,name'])
             ->withCount(['sources', 'findings'])
             ->latest('created_at')
             ->paginate(20);
+        [$interactionResourcesByKey, $interactionActionsByKey] = $this->resolveResearchIndexInteractionMetadata(
+            $projects->getCollection(),
+            $workspace
+        );
 
         return view('app.research.index', [
             'workspace' => $workspace,
             'projects' => $projects,
             'canCreate' => $request->user()?->can('create', ResearchProject::class) ?? false,
+            'interactionResourcesByKey' => $interactionResourcesByKey,
+            'interactionActionsByKey' => $interactionActionsByKey,
         ]);
+    }
+
+    /**
+     * @param iterable<int, ResearchProject> $projects
+     * @return array{0: array<string, array>, 1: array<string, array<string, array>>}
+     */
+    private function resolveResearchIndexInteractionMetadata(iterable $projects, Workspace $workspace): array
+    {
+        $user = request()->user();
+        $projects = collect($projects)->values();
+        $resourceRegistry = AppInteractionRegistry::resourceRegistryFor($projects);
+        $actionRegistry = AppInteractionRegistry::actionRegistry();
+
+        $resourcesByKey = [];
+        $actionsByKey = [];
+        $pageKey = 'app.research.index';
+
+        $pageContext = ResourceContext::make([
+            'user' => $user,
+            'surface' => Action::SURFACE_TOOLBAR,
+            'page_key' => $pageKey,
+            'route_name' => 'app.research.index',
+            'workspace_id' => $workspace->getKey(),
+            'organization_id' => $user?->organization_id,
+            'metadata' => [
+                'workspace' => $workspace,
+            ],
+        ]);
+
+        if ($actionRegistry->has(AppResearchInteractionProvider::ACTION_RESEARCH_PROJECT_CREATE)) {
+            $createAction = $actionRegistry->resolve(
+                AppResearchInteractionProvider::ACTION_RESEARCH_PROJECT_CREATE,
+                $pageContext->toActionContext()
+            );
+
+            if ($createAction['visible']) {
+                $actionsByKey[$pageKey][AppResearchInteractionProvider::ACTION_RESEARCH_PROJECT_CREATE] = $createAction;
+            }
+        }
+
+        foreach ($projects as $project) {
+            $resourceKey = ResourceType::RESEARCH_PROJECT.':'.$project->getKey();
+            $context = ResourceContext::make([
+                'user' => $user,
+                'surface' => Action::SURFACE_ROW,
+                'page_key' => $pageKey,
+                'route_name' => 'app.research.index',
+                'workspace_id' => $workspace->getKey(),
+                'organization_id' => $user?->organization_id,
+                'site_id' => $project->client_site_id,
+                'resource_type' => ResourceType::RESEARCH_PROJECT,
+                'resource_id' => $project->getKey(),
+                'subject' => $project,
+                'metadata' => [
+                    'subject' => $project,
+                    'workspace' => $workspace,
+                ],
+            ]);
+
+            $resource = $resourceRegistry->resolve($resourceKey, $context);
+
+            if ($resource === null) {
+                continue;
+            }
+
+            $resourcesByKey[$resourceKey] = $resource;
+            $actionsByKey[$resourceKey] = [];
+
+            foreach ($resource['available_actions'] as $actionKey) {
+                if ($actionKey !== AppResearchInteractionProvider::ACTION_RESEARCH_PROJECT_OPEN
+                    || ! $actionRegistry->has($actionKey)) {
+                    continue;
+                }
+
+                $action = $actionRegistry->resolve($actionKey, $context->toActionContext());
+
+                if ($action['visible']) {
+                    $actionsByKey[$resourceKey][$actionKey] = $action;
+                }
+            }
+        }
+
+        return [$resourcesByKey, $actionsByKey];
     }
 
     public function create(Request $request, FeatureGate $featureGate): View

@@ -7,12 +7,18 @@
     $materializedObjectiveId = session('agentic_marketing_objective_id') ?: collect($cluster->items)->map(fn ($item) => data_get($item->payload, 'agentic_marketing.objective_id'))->filter()->first();
 @endphp
 
+@section('pageHeader')
+    <x-page-header :title="$cluster->name" eyebrow="Campaign Cluster">
+        <x-slot:description>{{ $cluster->description ?: 'Review cluster strategy, content ideas, and execution status.' }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.agentic-marketing.campaign-clusters.index', ['workspace_id' => $cluster->workspace_id, 'client_site_id' => $cluster->client_site_id]) }}" class="text-sm text-textSecondary hover:text-primary">Campaign clusters</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $cluster->name }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $cluster->name }}</h2>
                 <p class="mt-1 max-w-3xl text-textSecondary">{{ $cluster->authority_strategy }}</p>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-3">

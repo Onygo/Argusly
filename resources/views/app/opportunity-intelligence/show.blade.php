@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Opportunity Intelligence'])
 
+@section('pageHeader')
+    <x-page-header :title="$opportunity->title">
+        <x-slot:description>{{ $opportunity->summary }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
 @php
     $formatLabel = fn (?string $value): string => $value ? str($value)->replace(['_', '-'], ' ')->headline()->toString() : 'n/a';
@@ -30,7 +36,7 @@
                 <i data-lucide="arrow-left" class="h-4 w-4"></i>
                 Opportunity Intelligence
             </a>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $opportunity->title }}</h1>
+            <h2 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $opportunity->title }}</h2>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">{{ $opportunity->summary }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <x-status-badge :status="$opportunity->status?->value ?? $opportunity->status" :color="$statusTone($opportunity->status?->value ?? $opportunity->status)" />

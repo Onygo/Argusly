@@ -292,11 +292,11 @@ it('marketing blog source prefers active restored featured image over stale vers
 });
 
 it('soft deletes inactive version and preserves file', function () {
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     [$user, $content] = createImageHistoryContext();
     $path = 'content-images/history/test-delete.png';
-    Storage::disk('public')->put($path, 'fake-image-binary');
+    Storage::disk('content_images')->put($path, 'fake-image-binary');
 
     $version = ContentImage::query()->create([
         'id' => (string) Str::uuid(),
@@ -304,7 +304,7 @@ it('soft deletes inactive version and preserves file', function () {
         'type' => 'featured',
         'status' => 'ready',
         'image_path' => $path,
-        'image_url' => '/storage/'.$path,
+        'image_url' => '/'.$path,
         'is_active' => false,
     ]);
 
@@ -313,7 +313,7 @@ it('soft deletes inactive version and preserves file', function () {
         ->assertRedirect();
 
     expect(ContentImage::withTrashed()->find($version->id)?->trashed())->toBeTrue();
-    Storage::disk('public')->assertExists($path);
+    Storage::disk('content_images')->assertExists($path);
 });
 
 /**

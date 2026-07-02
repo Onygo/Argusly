@@ -1,12 +1,15 @@
 @extends('layouts.app', ['title' => 'Agent Orchestration'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Agent Orchestration</x-slot:title>
+        <x-slot:description>Coordinate specialized Agentic Marketing agents with shared context, memory, task delegation, normalized results, conflicts, and execution traces.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Agent Orchestration</h1>
-                <p class="mt-1 max-w-3xl text-textSecondary">Coordinate specialized Agentic Marketing agents with shared context, memory, task delegation, normalized results, conflicts, and execution traces.</p>
-            </div>
             <form method="POST" action="{{ route('app.agentic-marketing.orchestration.run') }}" class="flex flex-wrap items-center gap-2">
                 @csrf
                 <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">

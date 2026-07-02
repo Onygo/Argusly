@@ -1,11 +1,12 @@
 @extends('layouts.admin', ['title' => 'Support Mode'])
 
-@section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Support Mode</h1>
-        <p class="mt-1 text-textSecondary">Read-only troubleshooting context without impersonation.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Support Mode">
+        <x-slot:description>Read-only troubleshooting context without impersonation.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif
@@ -101,4 +102,3 @@
         </div>
     @endif
 @endsection
-

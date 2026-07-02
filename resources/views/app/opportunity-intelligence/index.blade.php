@@ -1,21 +1,27 @@
 @extends('layouts.app', ['title' => __('app.runtime.Opportunity Intelligence')])
 
+@php
+    $rt = function (string $key, array $replace = []): string {
+        $line = (__('app.runtime')[$key] ?? $key);
+
+        foreach ($replace as $name => $value) {
+            $line = str_replace(':'.$name, (string) $value, $line);
+        }
+
+        return $line;
+    };
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="__('app.runtime.Opportunity Intelligence')">
+        <x-slot:description>{{ $rt('Explainable signals, ranked opportunities, and recommended actions across search, AI visibility, competitors, content decay, and engagement.') }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    @php
-        $rt = function (string $key, array $replace = []): string {
-            $line = (__('app.runtime')[$key] ?? $key);
-
-            foreach ($replace as $name => $value) {
-                $line = str_replace(':'.$name, (string) $value, $line);
-            }
-
-            return $line;
-        };
-    @endphp
-
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ __('app.runtime.Opportunity Intelligence') }}</h1>
+            <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ __('app.runtime.Opportunity Intelligence') }}</h2>
             <p class="mt-1 text-sm text-textSecondary">{{ $rt('Explainable signals, ranked opportunities, and recommended actions across search, AI visibility, competitors, content decay, and engagement.') }}</p>
         </div>
         <form method="POST" action="{{ route('app.opportunity-intelligence.run', request()->query()) }}" class="flex flex-wrap items-center gap-2">

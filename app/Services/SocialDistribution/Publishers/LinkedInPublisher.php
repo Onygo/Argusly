@@ -9,13 +9,19 @@ use App\Services\Social\SocialPostService;
 use App\Services\SocialDistribution\LinkedInPostTextRenderer;
 use App\Services\SocialDistribution\SocialPlatformPublisher;
 use App\Services\SocialDistribution\SocialPublishResult;
+use App\Support\SocialImageResolver;
 
 class LinkedInPublisher implements SocialPlatformPublisher
 {
+    private SocialImageResolver $images;
+
     public function __construct(
         private readonly SocialPostService $posts,
         private readonly LinkedInPostTextRenderer $renderer,
-    ) {}
+        ?SocialImageResolver $images = null,
+    ) {
+        $this->images = $images ?? app(SocialImageResolver::class);
+    }
 
     public function platform(): string
     {
@@ -45,6 +51,7 @@ class LinkedInPublisher implements SocialPlatformPublisher
 
             return SocialPublishResult::failure('PUBLISH_FAILED', $post->error_message ?: 'LinkedIn publication failed.', [
                 'social_post_id' => (string) $post->id,
+                'linkedin' => (array) data_get($post->metadata, 'linkedin', []),
             ]);
         }
 
@@ -52,17 +59,19 @@ class LinkedInPublisher implements SocialPlatformPublisher
 
         return SocialPublishResult::success((string) $post->provider_post_id, response: [
             'social_post_id' => (string) $post->id,
+            'linkedin' => (array) data_get($post->metadata, 'linkedin', []),
         ]);
     }
 
     private function socialPostFor(SocialPublication $publication): SocialPost
     {
         $variant = $publication->variant;
+        $image = $this->images->resolveForPublication($publication);
 
         if ($variant?->social_post_id) {
             $post = SocialPost::query()->with(['account', 'content'])->findOrFail($variant->social_post_id);
             $body = $this->renderer->renderVariant($variant);
-            $sourceUrl = $variant->sourceUrl();
+            $sourceUrl = $this->sourceUrlFor($publication);
             $updates = [];
 
             if ($body !== '' && trim((string) $post->body) !== $body) {
@@ -87,6 +96,11 @@ class LinkedInPublisher implements SocialPlatformPublisher
                 $updates['error_message'] = null;
             }
 
+            $metadata = $this->metadataWithImage((array) $post->metadata, $publication, $image);
+            if ($metadata !== (array) $post->metadata) {
+                $updates['metadata'] = $metadata;
+            }
+
             if ($updates !== []) {
                 $post->forceFill($updates)->save();
             }
@@ -95,7 +109,7 @@ class LinkedInPublisher implements SocialPlatformPublisher
         }
 
         $body = $variant ? $this->renderer->renderVariant($variant) : '';
-        $sourceUrl = $variant?->sourceUrl();
+        $sourceUrl = $this->sourceUrlFor($publication);
 
         $post = SocialPost::query()->create([
             'organization_id' => $publication->organization_id,
@@ -114,11 +128,34 @@ class LinkedInPublisher implements SocialPlatformPublisher
                 'approval_required' => true,
                 'source_publication_id' => (string) $publication->id,
                 'source_variant_id' => $variant?->id ? (string) $variant->id : null,
-            ],
+            ] + $this->metadataWithImage([], $publication, $image),
         ]);
 
         $variant?->forceFill(['social_post_id' => $post->id])->save();
 
         return $post->fresh(['account', 'content']);
+    }
+
+    private function sourceUrlFor(SocialPublication $publication): ?string
+    {
+        $url = trim((string) data_get($publication->payload_snapshot, 'source_url', ''));
+
+        return $url !== '' ? $url : $publication->variant?->sourceUrl();
+    }
+
+    /**
+     * @param array<string,mixed> $metadata
+     * @param array{url:?string,source:?string} $image
+     * @return array<string,mixed>
+     */
+    private function metadataWithImage(array $metadata, SocialPublication $publication, array $image): array
+    {
+        $linkedin = (array) ($metadata['linkedin'] ?? []);
+        $linkedin['resolved_image_url'] = $image['url'];
+        $linkedin['resolved_image_source'] = $image['source'];
+        $linkedin['source_publication_id'] = (string) $publication->id;
+        $metadata['linkedin'] = $linkedin;
+
+        return $metadata;
     }
 }

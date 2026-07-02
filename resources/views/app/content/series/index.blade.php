@@ -1,5 +1,15 @@
 @extends('layouts.app', ['title' => 'Chains'])
 
+@section('pageHeader')
+    <x-page-header title="Chains">
+        <x-slot:description>Long-term archive of content clusters and strategy chains.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.content.series.create') }}" class="pl-btn-primary">New chain</a>
+@endsection
+
 @section('content')
     @php
         $activeFilter = $filter ?? 'all';
@@ -24,9 +34,7 @@
         ];
     @endphp
 
-    <x-app.content-area-header mode="chains">
-        <a href="{{ route('app.content.series.create') }}" class="rounded border border-border bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">New chain</a>
-    </x-app.content-area-header>
+    <x-app.content-area-header mode="chains" :show-heading="false" />
 
     @if (session('status'))
         <x-alert class="my-4">{{ session('status') }}</x-alert>

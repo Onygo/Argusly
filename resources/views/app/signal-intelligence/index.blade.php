@@ -1,6 +1,5 @@
 @extends('layouts.app')
 
-@section('content')
 @php
     $formatLabel = fn (?string $value): string => $value ? str($value)->replace(['_', '-'], ' ')->headline()->toString() : 'Any';
     $statusTone = fn (?string $status): string => match ($status) {
@@ -58,6 +57,51 @@
     };
 @endphp
 
+@section('pageHeader')
+    <x-page-header title="Signal Intelligence" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Monitor brand, competitor, trend, risk and opportunity signals before they become leads or execution tasks.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <form method="POST" action="{{ route('app.signal-intelligence.run') }}" class="flex flex-wrap items-center gap-2">
+        @csrf
+        <input type="hidden" name="workspace" value="{{ $workspace->id }}">
+        @if ($filters['site'])
+            <input type="hidden" name="site" value="{{ $filters['site'] }}">
+        @endif
+        @if ($filters['date_from'])
+            <input type="hidden" name="date_from" value="{{ $filters['date_from'] }}">
+        @endif
+        @if ($filters['date_to'])
+            <input type="hidden" name="date_to" value="{{ $filters['date_to'] }}">
+        @endif
+        <select name="category" class="pl-work-select">
+            <option value="all">All categories</option>
+            <option value="brand_monitoring">Brand monitoring</option>
+            <option value="competitor_monitoring">Competitor monitoring</option>
+            <option value="trend_detection">Trend detection</option>
+            <option value="risk_detection">Risk detection</option>
+        </select>
+        <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
+            <i data-lucide="play" class="h-4 w-4"></i>
+            Run detection
+        </button>
+    </form>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Signal events" :value="$signalEventCount" />
+        <x-metric-card label="Open detections" :value="$openDetectionCount" />
+        <x-metric-card label="Candidates" :value="$candidateCount" />
+        <x-metric-card label="Detections" :value="$totalDetectionCount" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 <div class="space-y-6">
     <x-app.insights-header
         :site="null"
@@ -68,31 +112,8 @@
             'Workspace: '.($workspace->display_name ?: $workspace->name),
             'Window: '.($filters['date_from'] ?: 'All').' to '.($filters['date_to'] ?: 'now'),
         ]"
+        :show-heading="false"
     >
-        <form method="POST" action="{{ route('app.signal-intelligence.run') }}" class="flex flex-wrap items-center gap-2">
-            @csrf
-            <input type="hidden" name="workspace" value="{{ $workspace->id }}">
-            @if ($filters['site'])
-                <input type="hidden" name="site" value="{{ $filters['site'] }}">
-            @endif
-            @if ($filters['date_from'])
-                <input type="hidden" name="date_from" value="{{ $filters['date_from'] }}">
-            @endif
-            @if ($filters['date_to'])
-                <input type="hidden" name="date_to" value="{{ $filters['date_to'] }}">
-            @endif
-            <select name="category" class="pl-work-select">
-                <option value="all">All categories</option>
-                <option value="brand_monitoring">Brand monitoring</option>
-                <option value="competitor_monitoring">Competitor monitoring</option>
-                <option value="trend_detection">Trend detection</option>
-                <option value="risk_detection">Risk detection</option>
-            </select>
-            <button type="submit" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
-                <i data-lucide="play" class="h-4 w-4"></i>
-                Run detection
-            </button>
-        </form>
     </x-app.insights-header>
 
     @if (session('status'))
@@ -300,64 +321,64 @@
 
     <section class="space-y-4" id="feed">
         <h2 class="text-lg font-semibold text-textPrimary">Signal Feed</h2>
-        <x-responsive-table>
-            <thead>
-                <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-                    <th class="px-4 py-3">Observed</th>
-                    <th class="px-4 py-3">Signal</th>
-                    <th class="px-4 py-3">Source</th>
-                    <th class="px-4 py-3">Scores</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
+        <x-data-table label="Signal feed" description="Raw signal evidence with observation date, signal type, source, strength, and confidence.">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Observed</x-data-table.cell>
+                    <x-data-table.cell heading>Signal</x-data-table.cell>
+                    <x-data-table.cell heading>Source</x-data-table.cell>
+                    <x-data-table.cell heading>Scores</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
                 @forelse ($recentEvents as $event)
-                    <tr>
-                        <td class="px-4 py-3 text-textSecondary">{{ $event->observed_at?->format('Y-m-d H:i') }}</td>
-                        <td class="px-4 py-3">
+                    <x-data-table.row>
+                        <x-data-table.cell label="Observed" class="text-textSecondary">{{ $event->observed_at?->format('Y-m-d H:i') }}</x-data-table.cell>
+                        <x-data-table.cell label="Signal">
                             <p class="font-medium text-textPrimary">{{ $formatLabel($event->type?->value ?? $event->type) }}</p>
                             <p class="text-xs text-textSecondary">{{ $event->topic ?: 'No topic' }} · {{ $event->entity_name ?: 'No entity' }}</p>
-                        </td>
-                        <td class="px-4 py-3 text-textSecondary">{{ $event->signalSource?->name ?? 'Unknown source' }}</td>
-                        <td class="px-4 py-3 text-textSecondary">Strength {{ number_format((float) $event->signal_strength, 0) }} · Confidence {{ number_format((float) $event->confidence_score, 0) }}</td>
-                    </tr>
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Source" class="text-textSecondary">{{ $event->signalSource?->name ?? 'Unknown source' }}</x-data-table.cell>
+                        <x-data-table.cell label="Scores" class="text-textSecondary">Strength {{ number_format((float) $event->signal_strength, 0) }} · Confidence {{ number_format((float) $event->confidence_score, 0) }}</x-data-table.cell>
+                    </x-data-table.row>
                 @empty
-                    <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-textMuted">No signal events match these filters.</td></tr>
+                    <x-data-table.empty colspan="4" title="No signal events match these filters" />
                 @endforelse
             </tbody>
-        </x-responsive-table>
+        </x-data-table>
     </section>
 
     <section class="space-y-4" id="detections">
         <h2 class="text-lg font-semibold text-textPrimary">Detections</h2>
-        <x-responsive-table>
-            <thead>
-                <tr class="border-b border-border text-left text-xs uppercase tracking-wide text-textMuted">
-                    <th class="px-4 py-3">Detection</th>
-                    <th class="px-4 py-3">Category</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3">Severity</th>
-                    <th class="px-4 py-3">Scores</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
+        <x-data-table label="Detections" description="Grouped signal detections with category, status, severity, scores, and review actions.">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Detection</x-data-table.cell>
+                    <x-data-table.cell heading>Category</x-data-table.cell>
+                    <x-data-table.cell heading>Status</x-data-table.cell>
+                    <x-data-table.cell heading>Severity</x-data-table.cell>
+                    <x-data-table.cell heading>Scores</x-data-table.cell>
+                    <x-data-table.cell heading align="right">Actions</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
                 @forelse ($detections as $detection)
                     @php
                         $canReviewDetection = $detection->canTransitionTo(\App\Enums\SignalStatus::REVIEWING);
                         $canDismissDetection = $detection->canTransitionTo(\App\Enums\SignalStatus::DISMISSED);
                         $canResolveDetection = $detection->canTransitionTo(\App\Enums\SignalStatus::RESOLVED);
                     @endphp
-                    <tr>
-                        <td class="px-4 py-3">
+                    <x-data-table.row>
+                        <x-data-table.cell label="Detection">
                             <a href="{{ route('app.signal-intelligence.detections.show', $detection) }}" class="font-medium text-primary hover:underline">{{ $detection->title }}</a>
                             <p class="mt-1 line-clamp-2 text-xs text-textSecondary">{{ $humanDetectionSummary($detection) }}</p>
-                        </td>
-                        <td class="px-4 py-3 text-textSecondary">{{ $formatLabel($detection->category) }}</td>
-                        <td class="px-4 py-3"><x-status-badge :status="$detection->status?->value ?? $detection->status" :color="$statusTone($detection->status?->value ?? $detection->status)" /></td>
-                        <td class="px-4 py-3"><x-status-badge :status="$detection->severity?->value ?? $detection->severity" :color="$severityTone($detection->severity?->value ?? $detection->severity)" /></td>
-                        <td class="px-4 py-3 text-textSecondary">P {{ number_format((float) $detection->priority_score, 0) }} · C {{ number_format((float) $detection->confidence_score, 0) }}</td>
-                        <td class="px-4 py-3 text-right">
-                            <div class="flex justify-end gap-2">
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Category" class="text-textSecondary">{{ $formatLabel($detection->category) }}</x-data-table.cell>
+                        <x-data-table.cell label="Status"><x-status-badge :status="$detection->status?->value ?? $detection->status" :color="$statusTone($detection->status?->value ?? $detection->status)" /></x-data-table.cell>
+                        <x-data-table.cell label="Severity"><x-status-badge :status="$detection->severity?->value ?? $detection->severity" :color="$severityTone($detection->severity?->value ?? $detection->severity)" /></x-data-table.cell>
+                        <x-data-table.cell label="Scores" class="text-textSecondary">P {{ number_format((float) $detection->priority_score, 0) }} · C {{ number_format((float) $detection->confidence_score, 0) }}</x-data-table.cell>
+                        <x-data-table.cell label="Actions">
+                            <x-data-table.actions>
                                 <a href="{{ route('app.signal-intelligence.detections.show', $detection) }}" class="inline-flex h-8 items-center rounded-md border border-border bg-surface px-3 text-xs font-medium text-textPrimary hover:bg-surfaceMuted">Review</a>
                                 <x-action-menu>
                                     @if ($canReviewDetection)
@@ -370,15 +391,15 @@
                                         <form method="POST" action="{{ route('app.signal-intelligence.detections.resolve', $detection) }}">@csrf<button class="block w-full rounded px-3 py-2 text-left text-sm text-textSecondary hover:bg-surfaceMuted" type="submit">Resolve</button></form>
                                     @endif
                                 </x-action-menu>
-                            </div>
-                        </td>
-                    </tr>
+                            </x-data-table.actions>
+                        </x-data-table.cell>
+                    </x-data-table.row>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-textMuted">No detections match these filters.</td></tr>
+                    <x-data-table.empty colspan="6" title="No detections match these filters" />
                 @endforelse
             </tbody>
-        </x-responsive-table>
-        {{ $detections->links() }}
+            <x-slot:pagination>{{ $detections->links() }}</x-slot:pagination>
+        </x-data-table>
     </section>
 
     <section class="grid gap-4 lg:grid-cols-3" id="priority">

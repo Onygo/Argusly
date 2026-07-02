@@ -20,7 +20,7 @@ class ArguslyDiagnosticsCommand extends Command
             ['webhooks.connector_public_url', (string) config('argusly.webhooks.connector_public_url', '')],
             ['webhooks.queue', (string) config('argusly.webhooks.queue', 'deliveries')],
             ['images.enabled', (bool) config('argusly.images.enabled', true) ? 'true' : 'false'],
-            ['images.disk', (string) config('argusly.images.disk', 'public')],
+            ['images.disk', (string) config('argusly.images.disk', 'content_images')],
             ['connector.api.base_url', (string) config('argusly_connector.api.base_url', config('argusly_connector.base_url', ''))],
             ['connector.api.workspace_id', (string) config('argusly_connector.api.workspace_id', config('argusly_connector.workspace_id', ''))],
             ['connector.api.api_key', $connectorApiKey !== '' ? 'set' : 'missing'],
@@ -29,4 +29,3 @@ class ArguslyDiagnosticsCommand extends Command
         return self::SUCCESS;
     }
 }
-

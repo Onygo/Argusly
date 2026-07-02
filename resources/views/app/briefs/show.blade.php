@@ -1,7 +1,6 @@
 @extends('layouts.app', ['title' => 'Content workspace'])
 
-@section('content')
-    @php
+@php
         $activeSection = $activeSection ?? 'overview';
         $isArchived = (string) $brief->status === 'archived';
         $latestDraft = $brief->drafts->sortByDesc('created_at')->first();
@@ -131,7 +130,26 @@
             ['label' => 'Compare runs', 'value' => number_format((int) $recentComparisons->count()), 'icon' => 'git-compare'],
             ['label' => 'Suggestions', 'value' => number_format((int) ($brief->suggestions?->count() ?? 0)), 'icon' => 'sparkles'],
         ];
-    @endphp
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$brief->title" eyebrow="Editorial Header" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ $siteName }} · {{ $workspaceStateLabel }} / Draft workspace · {{ $languageLabel }} · {{ $destinationLabel }} · {{ $outputTypeLabel }}</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Publish State" :value="$workspaceStateLabel" helper="Draft workspace" />
+        <x-metric-card label="Updated" :value="$brief->updated_at?->diffForHumans() ?? 'n/a'" />
+        <x-metric-card label="Language" :value="$languageLabel" />
+        <x-metric-card label="Destination" :value="$destinationLabel" :helper="$outputTypeLabel" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
@@ -165,8 +183,6 @@
                         <span class="h-1 w-1 rounded-full bg-border"></span>
                         <span>{{ $siteName }}</span>
                     </div>
-
-                    <h1 class="mt-3 break-words text-2xl font-semibold tracking-tight text-textPrimary sm:text-3xl">{{ $brief->title }}</h1>
 
                     <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
                         <x-status-badge :status="$brief->status" :color="$statusTone" size="sm" dot />

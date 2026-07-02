@@ -16,6 +16,9 @@ use Illuminate\Support\Str;
 
 class OpportunityIntelligenceEngine
 {
+    private const MAX_TITLE_LENGTH = 220;
+    private const MAX_TOPIC_LENGTH = 220;
+
     public function __construct(
         private readonly OpportunityScoringEngine $scoring,
         private readonly RecommendedActionBuilder $actions,
@@ -50,7 +53,7 @@ class OpportunityIntelligenceEngine
         /** @var OpportunitySignal $first */
         $first = $signals->first();
         $category = $first->category ?: $this->categoryForSource((string) ($first->source?->value ?? $first->source));
-        $topic = $first->topic ?: $first->entity ?: 'Untitled opportunity';
+        $topic = $this->limitForColumn((string) ($first->topic ?: $first->entity ?: 'Untitled opportunity'), self::MAX_TOPIC_LENGTH);
         $score = $this->scoring->score($category, $signals);
         $actions = $this->actions->build($category, $signals);
         $hash = hash('sha256', implode('|', [
@@ -302,7 +305,21 @@ class OpportunityIntelligenceEngine
 
     private function title(OpportunityCategory $category, string $topic): string
     {
-        return sprintf('%s: %s', str_replace('_', ' ', ucfirst($category->value)), $topic);
+        return $this->limitForColumn(
+            sprintf('%s: %s', str_replace('_', ' ', ucfirst($category->value)), $topic),
+            self::MAX_TITLE_LENGTH
+        );
+    }
+
+    private function limitForColumn(string $value, int $limit): string
+    {
+        $normalized = trim((string) preg_replace('/\s+/', ' ', $value));
+
+        if (Str::length($normalized) <= $limit) {
+            return $normalized;
+        }
+
+        return rtrim(Str::substr($normalized, 0, max(0, $limit - 3))).'...';
     }
 
     /**

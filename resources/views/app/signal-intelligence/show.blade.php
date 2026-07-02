@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+@section('pageHeader')
+    <x-page-header :title="$detection->title">
+        <x-slot:description>{{ $detection->summary ?: 'Review detected signal intelligence and decide the next action.' }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
 @php
     $formatLabel = fn (?string $value): string => $value ? str($value)->replace(['_', '-'], ' ')->headline()->toString() : 'n/a';
@@ -52,7 +58,7 @@
                 <i data-lucide="arrow-left" class="h-4 w-4"></i>
                 Signal Intelligence
             </a>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $detection->title }}</h1>
+            <h2 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $detection->title }}</h2>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">{{ $detection->summary }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <x-status-badge :status="$detection->status?->value ?? $detection->status" :color="$statusTone($detection->status?->value ?? $detection->status)" />

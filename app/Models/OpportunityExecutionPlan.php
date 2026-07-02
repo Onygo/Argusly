@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToOrganizationViaWorkspace;
+use App\Support\TitleSanitizer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 
 class OpportunityExecutionPlan extends Model
 {
@@ -16,6 +18,8 @@ class OpportunityExecutionPlan extends Model
     use HasFactory;
     use HasUuids;
     use SoftDeletes;
+
+    public const TITLE_MAX_LENGTH = 220;
 
     public const STATUS_DRAFT = 'draft';
     public const STATUS_REVIEWING = 'reviewing';
@@ -56,6 +60,22 @@ class OpportunityExecutionPlan extends Model
         'approved_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function setTitleAttribute(mixed $value): void
+    {
+        $result = TitleSanitizer::normalizeWithMetadata($value, self::TITLE_MAX_LENGTH, 'Opportunity execution plan');
+        $this->attributes['title'] = $result['title'];
+
+        if ($result['was_shortened']) {
+            Log::notice('opportunity_execution_plan.title_shortened', [
+                'plan_id' => $this->getKey(),
+                'opportunity_id' => (string) ($this->opportunity_id ?? ''),
+                'original_length' => $result['original_length'],
+                'persisted_length' => $result['persisted_length'],
+                'max_length' => $result['max_length'],
+            ]);
+        }
+    }
 
     public function organization(): BelongsTo
     {

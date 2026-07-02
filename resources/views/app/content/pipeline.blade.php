@@ -1,12 +1,13 @@
 @extends('layouts.app', ['title' => $title ?? 'Content Pipeline', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header title="Content Pipeline">
+        <x-slot:description>Track content as it moves through brief, draft, review, and publishing stages.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Content Workspace</p>
-            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-textPrimary">Content Pipeline</h1>
-            <p class="mt-1 max-w-2xl text-sm text-textSecondary">Move ideas through production, review, readiness, publishing, and results without switching tools.</p>
-        </div>
+    <div class="mb-5 flex flex-wrap justify-end gap-2">
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('app.content.create') }}" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-white hover:bg-primaryHover">
                 <i data-lucide="plus" class="h-4 w-4"></i>

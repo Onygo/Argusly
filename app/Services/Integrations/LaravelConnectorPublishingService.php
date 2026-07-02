@@ -29,7 +29,7 @@ class LaravelConnectorPublishingService
         private readonly HumanContentGate $humanContentGate,
     ) {}
 
-    public function publish(Content $content, ?Draft $draft = null, string $mode = 'publish_now', string $source = 'app.content.publish-now'): ContentPublishTarget
+    public function publish(Content $content, ?Draft $draft = null, string $mode = 'publish_now', string $source = 'app.content.publish-now', array $context = []): ContentPublishTarget
     {
         $content->loadMissing('clientSite', 'contentDestination');
         $draft ??= Draft::query()
@@ -41,7 +41,16 @@ class LaravelConnectorPublishingService
             throw new RuntimeException('No draft found for Laravel publishing.');
         }
 
-        $gate = $this->humanContentGate->evaluate($draft, $content);
+        $gate = $this->humanContentGate->applyManualPublicationOverride(
+            $draft,
+            $content,
+            $this->humanContentGate->evaluate($draft, $content),
+            array_merge([
+                'source' => $source,
+                'mode' => $mode,
+            ], $context)
+        );
+
         if (! $gate['passed']) {
             $this->humanContentGate->markDraft($draft, $content);
 

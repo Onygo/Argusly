@@ -179,6 +179,32 @@ describe('Content index sorting', function () {
     });
 });
 
+describe('Content index filtering by lifecycle status', function () {
+    it('draft chip excludes content that is already published', function () {
+        $user = createTestUser();
+        [, $site] = createTestWorkspaceAndSite($user->organization);
+
+        createTestContent($site, [
+            'title' => 'Visible draft article',
+            'status' => 'draft',
+            'publish_status' => 'draft',
+        ]);
+
+        createTestContent($site, [
+            'title' => 'Published article with stale draft status',
+            'status' => 'draft',
+            'publish_status' => 'published',
+            'first_published_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->get(route('app.content.index', ['status' => 'draft']));
+
+        $response->assertOk()
+            ->assertSee('Visible draft article')
+            ->assertDontSee('Published article with stale draft status');
+    });
+});
+
 describe('Content index filtering by origin', function () {
     it('filters by manual origin type', function () {
         $user = createTestUser();

@@ -7,6 +7,7 @@ use App\Enums\SupportedLanguage;
 use App\Models\Campaign;
 use App\Models\CampaignContent;
 use App\Models\ClientSite;
+use App\Models\ContentImage;
 use App\Models\EmailMarketingConnection;
 use App\Models\Opportunity;
 use App\Models\Workspace;
@@ -56,7 +57,14 @@ class AppCampaignPlannerController extends Controller
         $assetPresenters = collect();
         $campaignAssetCards = collect();
         $campaignAssetSummary = collect();
+        $campaignImageAssets = collect();
         if ($selectedCampaign) {
+            $campaignImageAssets = ContentImage::query()
+                ->where('campaign_id', (string) $selectedCampaign->id)
+                ->latest('created_at')
+                ->limit(12)
+                ->get();
+
             $assetPresenters = $selectedCampaign->contents
                 ->mapWithKeys(fn ($asset): array => [(string) $asset->id => CampaignContentAssetPresenter::for($asset)->toArray()]);
 
@@ -121,6 +129,7 @@ class AppCampaignPlannerController extends Controller
             'assetPresenters' => $assetPresenters,
             'campaignAssetCards' => $campaignAssetCards,
             'campaignAssetSummary' => $campaignAssetSummary,
+            'campaignImageAssets' => $campaignImageAssets,
             'assetFilterOptions' => [
                 'types' => ContentAssetTaxonomy::typeOptions(),
                 'purposes' => ContentAssetTaxonomy::purposeLabels(),

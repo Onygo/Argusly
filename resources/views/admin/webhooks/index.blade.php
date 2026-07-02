@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['title' => 'Webhooks'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Webhooks</x-slot:title>
+        <x-slot:description>Recent inbound webhook events for diagnostics.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Webhooks</h1>
-        <p class="mt-1 text-textSecondary">Recent inbound webhook events for diagnostics.</p>
-    </div>
 
     <div class="grid gap-6 lg:grid-cols-2">
         <div class="rounded-lg border border-border bg-surface p-4">

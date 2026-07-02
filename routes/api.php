@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Plugin\RegisterDomainController;
 use App\Http\Controllers\Api\SiteMarkdownController;
 use App\Http\Controllers\Api\V1\Admin\OrganizationController as AdminOrganizationController;
 use App\Http\Controllers\Api\V1\Admin\WorkspaceController as AdminWorkspaceController;
+use App\Http\Controllers\Api\V1\AiDisclosureController;
 use App\Http\Controllers\Api\V1\Auth\ClientWebhookController;
 use App\Http\Controllers\Api\V1\Auth\SiteTokenController;
 use App\Http\Controllers\Api\V1\ArticleController;
@@ -140,6 +141,15 @@ Route::prefix('v1')->group(function () {
         Route::delete('/content/{id}', [ContentDeletionController::class, 'destroy']);
         Route::post('/content/{id}/restore', [ContentDeletionController::class, 'restore']);
         Route::get('/content/{id}/answers', [ContentAnswerController::class, 'show']);
+        Route::get('/content/{id}/ai-disclosure', [AiDisclosureController::class, 'disclosure'])
+            ->middleware('integration.scope:content:read')
+            ->name('api.v1.content.ai-disclosure');
+        Route::get('/content/{id}/provenance', [AiDisclosureController::class, 'provenance'])
+            ->middleware('integration.scope:content:read')
+            ->name('api.v1.content.ai-provenance');
+        Route::get('/content/{id}/audit-report', [AiDisclosureController::class, 'auditReport'])
+            ->middleware('integration.scope:content:read')
+            ->name('api.v1.content.ai-audit-report');
         Route::get('/briefs', [BriefController::class, 'index']);
         Route::get('/briefs/{id}', [BriefController::class, 'show']);
         Route::patch('/briefs/{id}', [BriefController::class, 'update']);

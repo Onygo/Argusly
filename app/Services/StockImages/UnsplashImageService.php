@@ -23,6 +23,23 @@ class UnsplashImageService
             return [];
         }
 
+        $results = $this->requestSearch($query, $page, $perPage);
+
+        if ($results === [] && $page === 1) {
+            $fallbackQuery = $this->fallbackQuery($query);
+            if ($fallbackQuery !== $query) {
+                $results = $this->requestSearch($fallbackQuery, $page, $perPage);
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function requestSearch(string $query, int $page, int $perPage): array
+    {
         $response = Http::timeout($this->timeout())
             ->acceptJson()
             ->withHeaders($this->headers())
@@ -43,6 +60,27 @@ class UnsplashImageService
             ->filter(fn (array $photo): bool => $photo['id'] !== '' && $photo['image_url'] !== '')
             ->values()
             ->all();
+    }
+
+    private function fallbackQuery(string $query): string
+    {
+        $normalized = strtolower($query);
+
+        if (preg_match('/\b(ai|artificial intelligence|machine learning|automation)\b/i', $query)) {
+            return 'artificial intelligence technology';
+        }
+
+        $terms = preg_split('/[^a-z0-9]+/i', $normalized) ?: [];
+        $terms = array_values(array_filter($terms, static function (string $term): bool {
+            return strlen($term) > 2
+                && ! in_array($term, ['and', 'the', 'for', 'with', 'from', 'this', 'that'], true);
+        }));
+
+        if ($terms === []) {
+            return $query;
+        }
+
+        return implode(' ', array_slice($terms, 0, 2));
     }
 
     /**
@@ -68,8 +106,10 @@ class UnsplashImageService
 
             return ContentImage::query()->create([
                 'id' => (string) Str::uuid(),
+                'workspace_id' => (string) $content->workspace_id,
                 'content_id' => (string) $content->id,
                 'type' => 'featured',
+                'source' => ContentImage::SOURCE_STOCK,
                 'prompt' => (string) $photo['query'],
                 'provider' => 'unsplash',
                 'model' => 'unsplash-api-v1',
@@ -78,6 +118,9 @@ class UnsplashImageService
                 'credit_cost' => 0,
                 'status' => 'ready',
                 'is_active' => true,
+                'display_on_website' => true,
+                'display_as_featured_image' => true,
+                'use_as_social_image' => true,
                 'width' => (int) $photo['width'] ?: null,
                 'height' => (int) $photo['height'] ?: null,
                 'metadata' => [

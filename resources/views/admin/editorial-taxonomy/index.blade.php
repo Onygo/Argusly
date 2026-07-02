@@ -1,11 +1,12 @@
 @extends('layouts.admin', ['title' => 'Editorial Taxonomy'])
 
-@section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Editorial Taxonomy</h1>
-        <p class="mt-1 text-textSecondary">Manage taxonomy sets, tenant assignments, and taxonomy items.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Editorial Taxonomy">
+        <x-slot:description>Manage taxonomy sets, tenant assignments, and taxonomy items.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

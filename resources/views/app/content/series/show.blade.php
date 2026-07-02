@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Content Series'])
 
+@section('pageHeader')
+    <x-page-header :title="$series->name" eyebrow="Content Series">
+        <x-slot:description>{{ $series->description ?: 'Review series structure and related content.' }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $statusKey = $series->normalizedStatus();
@@ -35,12 +41,12 @@
 
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-            <h1 class="flex items-center gap-2 text-2xl font-semibold tracking-tight text-textPrimary">
+            <h2 class="flex items-center gap-2 text-2xl font-semibold tracking-tight text-textPrimary">
                 {{ $series->name }}
                 @if ($isReadOnly)
                     <i data-lucide="lock" class="h-5 w-5 text-textSecondary"></i>
                 @endif
-            </h1>
+            </h2>
             <p class="mt-1 text-textSecondary">
                 {{ $series->main_topic }} ·
                 <span class="inline-flex items-center rounded border px-2 py-0.5 text-xs {{ $badge[1] }}">{{ $badge[0] }}</span>

@@ -1,32 +1,28 @@
 @extends('layouts.admin', ['title' => 'Admin dashboard'])
 
-@section('content')
-    <div class="mb-8">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Admin dashboard</h1>
-        <p class="text-textSecondary mt-1">Overview of approvals and activity.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Admin dashboard" />
+@endsection
 
+@section('pageDescription')
+    <x-page-description>Overview of approvals and activity.</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Pending organizations" :value="$pendingOrganizations" />
+        <x-metric-card label="Pending users" :value="$pendingUsers" />
+        <x-metric-card label="Organizations on hold" :value="$orgsOnHold" />
+    </x-metric-section>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-6">{{ session('status') }}</x-alert>
     @endif
     @if ($errors->has('dashboard'))
         <div class="mb-6 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('dashboard') }}</div>
     @endif
-
-    <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">Pending organizations</p>
-            <p class="text-3xl font-semibold text-textPrimary mt-1">{{ $pendingOrganizations }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">Pending users</p>
-            <p class="text-3xl font-semibold text-textPrimary mt-1">{{ $pendingUsers }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">Organizations on hold</p>
-            <p class="text-3xl font-semibold text-textPrimary mt-1">{{ $orgsOnHold }}</p>
-        </div>
-    </div>
 
     <div class="rounded-lg border border-border bg-surface p-5 mb-8">
         <h3 class="font-semibold text-textPrimary">Client activity signals</h3>

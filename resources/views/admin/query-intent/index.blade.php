@@ -1,11 +1,14 @@
 @extends('layouts.admin', ['title' => 'Query Intent Intelligence'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Query Intent Intelligence</x-slot:title>
+        <x-slot:description>Debug reusable intent, funnel, audience, urgency, and impact classification.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
-        <div>
-            <h1 class="text-2xl font-semibold text-textPrimary">Query Intent Intelligence</h1>
-            <p class="mt-1 text-sm text-textSecondary">Debug reusable intent, funnel, audience, urgency, and impact classification.</p>
-        </div>
 
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
@@ -88,44 +91,41 @@
             </div>
         </div>
 
-        <div class="rounded-lg border border-border bg-surface p-5">
-            <h2 class="text-sm font-semibold text-textPrimary">Recent persisted classifications</h2>
-            <div class="mt-4 overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-xs text-textSecondary">
-                            <th class="pb-2 font-medium">Title / query</th>
-                            <th class="pb-2 font-medium">Intent</th>
-                            <th class="pb-2 font-medium">Stage</th>
-                            <th class="pb-2 font-medium">Audience</th>
-                            <th class="pb-2 font-medium">Impact</th>
-                            <th class="pb-2 font-medium">Priority</th>
-                            <th class="pb-2 font-medium">Classified</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
+        <x-data-table label="Recent persisted classifications" description="Recent persisted query intent classifications with intent, stage, audience, impact, priority, and classification time." density="compact">
+                <x-slot:toolbar>
+                    <x-data-table.toolbar title="Recent persisted classifications" />
+                </x-slot:toolbar>
+
+                <x-data-table.header>
+                    <x-data-table.row>
+                        <x-data-table.cell heading>Title / query</x-data-table.cell>
+                        <x-data-table.cell heading>Intent</x-data-table.cell>
+                        <x-data-table.cell heading>Stage</x-data-table.cell>
+                        <x-data-table.cell heading>Audience</x-data-table.cell>
+                        <x-data-table.cell heading>Impact</x-data-table.cell>
+                        <x-data-table.cell heading>Priority</x-data-table.cell>
+                        <x-data-table.cell heading>Classified</x-data-table.cell>
+                    </x-data-table.row>
+                </x-data-table.header>
+                <tbody>
                         @forelse ($classifications as $classification)
-                            <tr>
-                                <td class="py-2 text-textPrimary">
+                            <x-data-table.row>
+                                <x-data-table.cell label="Title / query" class="text-textPrimary">
                                     {{ $classification->title ?: $classification->query ?: $classification->source_key ?: $classification->id }}
                                     <p class="text-xs text-textSecondary">{{ $classification->source_type }}</p>
-                                </td>
-                                <td class="py-2 text-textSecondary">{{ $classification->primary_intent }}</td>
-                                <td class="py-2 text-textSecondary">{{ $classification->funnel_stage }}</td>
-                                <td class="py-2 text-textSecondary">{{ str_replace('_', ' ', $classification->buyer_role) }}</td>
-                                <td class="py-2 text-textSecondary">{{ $classification->business_impact }}</td>
-                                <td class="py-2 text-textPrimary">{{ number_format((float) $classification->priority_score, 1) }}</td>
-                                <td class="py-2 text-textSecondary">{{ optional($classification->classified_at)->format('Y-m-d H:i') ?: '-' }}</td>
-                            </tr>
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Intent" class="text-textSecondary">{{ $classification->primary_intent }}</x-data-table.cell>
+                                <x-data-table.cell label="Stage" class="text-textSecondary">{{ $classification->funnel_stage }}</x-data-table.cell>
+                                <x-data-table.cell label="Audience" class="text-textSecondary">{{ str_replace('_', ' ', $classification->buyer_role) }}</x-data-table.cell>
+                                <x-data-table.cell label="Impact" class="text-textSecondary">{{ $classification->business_impact }}</x-data-table.cell>
+                                <x-data-table.cell label="Priority" class="text-textPrimary">{{ number_format((float) $classification->priority_score, 1) }}</x-data-table.cell>
+                                <x-data-table.cell label="Classified" class="text-textSecondary">{{ optional($classification->classified_at)->format('Y-m-d H:i') ?: '-' }}</x-data-table.cell>
+                            </x-data-table.row>
                         @empty
-                            <tr>
-                                <td colspan="7" class="py-4 text-textSecondary">No persisted classifications yet.</td>
-                            </tr>
+                            <x-data-table.empty colspan="7" title="No persisted classifications yet" />
                         @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-4">{{ $classifications->links() }}</div>
-        </div>
+                </tbody>
+            <x-slot:pagination>{{ $classifications->links() }}</x-slot:pagination>
+        </x-data-table>
     </div>
 @endsection

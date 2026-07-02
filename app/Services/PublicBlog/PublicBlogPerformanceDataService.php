@@ -5,11 +5,17 @@ namespace App\Services\PublicBlog;
 use App\Models\Content;
 use App\Models\ContentImage;
 use App\Models\ContentVersion;
+use App\Services\ContentImages\ContentImageAssetResolver;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 class PublicBlogPerformanceDataService
 {
+    public function __construct(private ?ContentImageAssetResolver $assets = null)
+    {
+        $this->assets ??= app(ContentImageAssetResolver::class);
+    }
+
     /**
      * @return array<string,mixed>
      */
@@ -32,7 +38,7 @@ class PublicBlogPerformanceDataService
             'public_blog_author' => $this->resolveAuthor($meta),
             'public_blog_category' => $categories[0] ?? null,
             'public_blog_tags' => $tags !== [] ? $tags : null,
-            'public_blog_featured_image_url' => $this->resolveFeaturedImageUrl($featuredImage, $meta),
+            'public_blog_featured_image_url' => $this->resolveFeaturedImageUrl($content, $featuredImage, $meta),
             'public_blog_featured_image_width' => $featuredImage?->width ?: null,
             'public_blog_featured_image_height' => $featuredImage?->height ?: null,
         ];
@@ -167,12 +173,10 @@ class PublicBlogPerformanceDataService
     /**
      * @param  array<string,mixed>  $meta
      */
-    private function resolveFeaturedImageUrl(?ContentImage $featuredImage, array $meta): ?string
+    private function resolveFeaturedImageUrl(Content $content, ?ContentImage $featuredImage, array $meta): ?string
     {
         $candidates = [
-            $featuredImage?->thumbnail_ui_url,
-            $featuredImage?->medium_ui_url,
-            $featuredImage?->original_ui_url,
+            $this->assets->urlForContent($content, ContentImage::USAGE_WEBSITE),
             (string) data_get($meta, 'featured_image', ''),
             (string) data_get($meta, 'featured_image_url', ''),
             (string) data_get($meta, 'images.featured', ''),

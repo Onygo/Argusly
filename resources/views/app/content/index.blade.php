@@ -1,5 +1,28 @@
 @extends('layouts.app', ['title' => 'Content', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header title="Content" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Single lifecycle view for brief, draft, revisions and publishing.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.content.create') }}#source-briefing" class="pl-btn-secondary">
+        <i data-lucide="link" class="h-4 w-4"></i>
+        Generate from URL
+    </a>
+    <a href="{{ route('app.content.batches.create') }}" class="pl-btn-secondary">
+        <i data-lucide="layers-3" class="h-4 w-4"></i>
+        Generate multiple articles
+    </a>
+    <a href="{{ route('app.content.calendar') }}" class="pl-btn-ghost h-10 border border-border">
+        <i data-lucide="calendar-days" class="h-4 w-4"></i>
+        Calendar
+    </a>
+@endsection
+
 @section('content')
     @php
         $activeInbox = (string) ($filters['inbox'] ?? '');
@@ -76,7 +99,7 @@
         ];
     @endphp
 
-    <x-app.content-area-header mode="sites" :sites="$sites" :selected-site-id="$filters['site'] ?? null" :filters="$filters" compact>
+    <x-app.content-area-header mode="sites" :sites="$sites" :selected-site-id="$filters['site'] ?? null" :filters="$filters" compact :show-heading="false">
         @can('create', \App\Models\Content::class)
             <details @if ($createContentFormOpen || $viewErrors->has('title') || $viewErrors->has('primary_keyword') || $viewErrors->has('site_id') || $viewErrors->has('scheduled_publish_at')) open @endif class="relative w-full sm:w-auto sm:shrink-0">
                 <summary class="pl-btn-primary w-full list-none cursor-pointer sm:w-auto [&::-webkit-details-marker]:hidden">
@@ -354,9 +377,9 @@
         </x-filter-bar>
     </form>
 
-    <form id="bulk-schedule-form" method="POST" action="{{ route('app.content.schedule-bulk') }}" class="sticky top-4 z-20 mt-6 mb-4 hidden rounded-lg bg-textPrimary px-4 py-3 text-textInverse" data-bulk-action-bar>
+    <form id="bulk-schedule-form" method="POST" action="{{ route('app.content.schedule-bulk') }}" class="hidden" data-bulk-action-bar>
         @csrf
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <x-data-table.bulk-actions class="sticky top-4 z-20 mt-6 mb-4">
             <div class="text-sm font-medium"><span data-bulk-selected-count>0</span> selected</div>
             <div class="flex flex-wrap items-center gap-2">
                 <label class="sr-only" for="bulk-scheduled-publish-at">Schedule datetime</label>
@@ -364,7 +387,7 @@
                 <button class="rounded-md bg-white px-3 py-2 text-xs font-medium text-textPrimary">Apply schedule</button>
                 <button formaction="{{ route('app.content.sync-bulk') }}" class="rounded-md bg-white/10 px-3 py-2 text-xs font-medium text-textInverse hover:bg-white/15">Queue sync</button>
             </div>
-        </div>
+        </x-data-table.bulk-actions>
     </form>
 
     <x-mobile-card-list class="mt-6">
@@ -408,6 +431,7 @@
                         <x-status-badge
                             :label="data_get($article, 'summary.status_label', 'In progress')"
                             :color="data_get($article, 'summary.status_color', 'slate')"
+                            :icon="str_contains(strtolower((string) data_get($article, 'summary.status_label', '')), 'published') ? 'send' : null"
                             :tooltip="data_get($article, 'summary.status_tooltip')"
                         />
                     </div>
@@ -526,26 +550,25 @@
     </x-mobile-card-list>
 
     <div class="pl-desktop-table mt-6">
-    <div class="overflow-x-auto rounded-lg border border-border/80 bg-surface p-3 md:p-4 xl:overflow-visible">
-        <table class="w-full min-w-[1120px] table-auto text-sm">
-            <thead>
-                <tr class="text-left text-xs uppercase tracking-wide text-textSecondary">
-                    <th class="w-14 pb-2 pr-4 font-medium whitespace-nowrap">Set</th>
-                    <th class="min-w-[24rem] pb-2 pr-4 font-medium">Article</th>
-                    <th class="min-w-[9rem] pb-2 pr-3 font-medium whitespace-nowrap">Languages</th>
-                    <th class="min-w-[7rem] pb-2 pr-3 font-medium whitespace-nowrap">Readiness</th>
-                    <th class="min-w-[9rem] pb-2 pr-3 font-medium whitespace-nowrap">Published languages</th>
-                    <th class="min-w-[8rem] pb-2 pr-3 font-medium whitespace-nowrap">Site</th>
-                    <th class="min-w-[6rem] pb-2 pr-3 font-medium whitespace-nowrap">Created</th>
-                    <th class="min-w-[6rem] pb-2 pr-3 font-medium whitespace-nowrap">Published</th>
-                    <th class="min-w-[10rem] pb-2 font-medium whitespace-nowrap">Actions</th>
-                </tr>
-            </thead>
+    <x-data-table label="Content lifecycle table" description="Content sets, articles, language variants, readiness, publication state, site, dates, and row actions." table-class="w-full min-w-[1120px] table-auto" class="p-3 md:p-4 xl:overflow-visible">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading class="w-14 whitespace-nowrap">Set</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[24rem]">Article</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[9rem] whitespace-nowrap">Locales</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[7rem] whitespace-nowrap">Readiness</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[9rem] whitespace-nowrap">Published languages</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[8rem] whitespace-nowrap">Site</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[6rem] whitespace-nowrap">Created</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[6rem] whitespace-nowrap">Published</x-data-table.cell>
+                    <x-data-table.cell heading class="min-w-[10rem] whitespace-nowrap">Actions</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
             <tbody class="divide-y divide-border">
                 @forelse (($contentTree ?? collect()) as $group)
                     @if (($group['kind'] ?? '') === 'chain')
-                        <tr class="bg-background/60">
-                            <td colspan="9" class="px-3 py-2 text-xs text-textSecondary">
+                        <x-data-table.row class="bg-background/60">
+                            <x-data-table.cell colspan="9" class="text-xs text-textSecondary">
                                 <span class="font-medium text-textPrimary">{{ $group['title'] }}</span>
                                 <span class="ml-2">
                                     {{ data_get($group, 'summary.visible_article_count', data_get($group, 'summary.article_count', 0)) }}
@@ -556,8 +579,8 @@
                                 </span>
                                 <span class="ml-2 rounded-full bg-surfaceSubtle px-2 py-0.5">{{ data_get($group, 'summary.available_locales', 0) }}/{{ data_get($group, 'summary.expected_locales', 0) }} languages ready</span>
                                 <span class="ml-1 rounded-full bg-surfaceSubtle px-2 py-0.5">{{ data_get($group, 'summary.published_variants', 0) }}/{{ data_get($group, 'summary.available_locales', 0) ?: data_get($group, 'summary.expected_locales', 0) }} published</span>
-                            </td>
-                        </tr>
+                            </x-data-table.cell>
+                        </x-data-table.row>
                     @endif
 
                     @foreach (($group['articles'] ?? []) as $article)
@@ -569,7 +592,10 @@
                             $articleInsight = $contentInsights[$canonical->id] ?? [];
                         @endphp
                         <tr
-                            class="content-tree-parent-row align-top transition-colors hover:bg-background/70"
+                            @class([
+                                'pl-data-table__row content-tree-parent-row align-top transition-colors hover:bg-background/70',
+                                'pl-data-table__row--interactive' => $hasChildren,
+                            ])
                             @if ($hasChildren)
                                 data-content-tree-row
                                 data-target="{{ $article['key'] }}"
@@ -579,7 +605,7 @@
                                 aria-expanded="false"
                             @endif
                         >
-                            <td class="py-3 pr-4">
+                            <x-data-table.cell label="Set">
                                 @if ($hasChildren)
                                     <button
                                         type="button"
@@ -593,8 +619,8 @@
                                         <i data-lucide="chevron-right" class="h-4 w-4 transition-transform duration-150 ease-out"></i>
                                     </button>
                                 @endif
-                            </td>
-                            <td class="py-4 pr-4">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Article">
                                 @php
                                     $originType = $canonical->origin_type ?? \App\Enums\ContentOriginType::UNKNOWN;
                                     if (is_string($originType)) {
@@ -624,8 +650,8 @@
                                         <span class="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700">Deleted</span>
                                     @endif
                                 </div>
-                            </td>
-                            <td class="py-3 pr-3">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Locales">
                                 <div class="flex flex-wrap gap-1">
                                     @foreach ($allVariants as $variant)
                                         <span class="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium {{ ($variant['is_source'] ?? false) ? $localeBadgeClasses['source'] : $localeBadgeClasses['variant'] }}">
@@ -633,13 +659,20 @@
                                         </span>
                                     @endforeach
                                 </div>
-                            </td>
-                            <td class="py-3 pr-3 whitespace-nowrap">
-                                <x-status-badge
-                                    :label="data_get($article, 'summary.status_label', 'In progress')"
-                                    :color="data_get($article, 'summary.status_color', 'slate')"
-                                    :tooltip="data_get($article, 'summary.status_tooltip')"
-                                />
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Readiness" nowrap>
+                                <div class="space-y-1">
+                                    <x-status-badge
+                                        :label="data_get($article, 'summary.status_label', 'In progress')"
+                                        :color="data_get($article, 'summary.status_color', 'slate')"
+                                        :icon="str_contains(strtolower((string) data_get($article, 'summary.status_label', '')), 'published') ? 'send' : null"
+                                        :tooltip="data_get($article, 'summary.status_tooltip')"
+                                    />
+                                    <x-content-status :content="$canonical" />
+                                    @if (data_get($article, 'summary.failed_deliveries', 0) > 0)
+                                        <span class="sr-only">Needs attention</span>
+                                    @endif
+                                </div>
                                 @if (collect(data_get($article, 'summary.status_reasons', []))->isNotEmpty())
                                     <div class="mt-1 flex flex-wrap gap-1">
                                         @foreach (data_get($article, 'summary.status_reasons', []) as $reason)
@@ -647,26 +680,26 @@
                                         @endforeach
                                     </div>
                                 @endif
-                            </td>
-                            <td class="py-3 pr-3">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Published languages">
                                 <span class="inline-flex items-center rounded-full bg-surfaceSubtle px-2 py-1 text-xs font-medium text-textPrimary">
                                     {{ data_get($article, 'summary.published_variants', 0) }}/{{ data_get($article, 'summary.available_locales', 0) ?: data_get($article, 'summary.expected_locales', 0) }} published
                                 </span>
                                 @if (data_get($article, 'summary.failed_deliveries', 0) > 0)
                                     <div class="mt-1 text-[10px] text-amber-600">{{ data_get($article, 'summary.failed_deliveries') }} failed</div>
                                 @endif
-                            </td>
-                            <td class="py-3 pr-3">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Site">
                                 <div class="text-xs text-textPrimary truncate max-w-[7rem]" title="{{ $article['site_label'] }}">{{ $article['site_label'] }}</div>
-                            </td>
-                            <td class="py-3 pr-3 whitespace-nowrap text-xs text-textSecondary" title="{{ $canonical->created_at?->format('Y-m-d H:i:s') }}">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Created" nowrap class="text-xs text-textSecondary" title="{{ $canonical->created_at?->format('Y-m-d H:i:s') }}">
                                 {{ $canonical->created_at?->format('M j') }}
-                            </td>
-                            <td class="py-3 pr-3 whitespace-nowrap text-xs text-textSecondary" title="{{ $canonical->first_published_at?->format('Y-m-d H:i:s') }}">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Published" nowrap class="text-xs text-textSecondary" title="{{ $canonical->first_published_at?->format('Y-m-d H:i:s') }}">
                                 {{ $canonical->first_published_at?->format('M j') ?? '-' }}
-                            </td>
-                            <td class="py-3">
-                                <div class="flex flex-wrap items-center gap-2">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Actions">
+                                <x-data-table.actions align="start">
                                     @if (! $canonical->trashed())
                                         <a class="text-link underline hover:text-linkHover" href="{{ route('app.content.show', $canonical) }}">Open</a>
                                     @endif
@@ -732,15 +765,15 @@
                                             </button>
                                         @endif
                                     </x-action-menu>
-                                </div>
-                            </td>
+                                </x-data-table.actions>
+                            </x-data-table.cell>
                         </tr>
-                        <tr
+                        <x-data-table.row
                             id="content-tree-children-{{ $article['key'] }}"
                             data-content-tree-children="{{ $article['key'] }}"
                             class="hidden bg-surfaceSubtle/40"
                         >
-                            <td colspan="9" class="px-0 py-0">
+                            <x-data-table.cell colspan="9" class="px-0 py-0">
                                 <div
                                     data-content-tree-panel
                                     class="overflow-hidden border-t border-divider bg-surfaceSubtle/50 opacity-0 transition-all duration-150 ease-out"
@@ -852,12 +885,12 @@
                                         @endforeach
                                     </div>
                                 </div>
-                            </td>
-                        </tr>
+                            </x-data-table.cell>
+                        </x-data-table.row>
                     @endforeach
                 @empty
-                    <tr>
-                        <td colspan="9">
+                    <x-data-table.row>
+                        <x-data-table.cell colspan="9">
                             <div class="py-12 text-center">
                                 <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                                     <i data-lucide="file-text" class="h-8 w-8 text-primary"></i>
@@ -886,15 +919,14 @@
                                     </a>
                                 @endif
                             </div>
-                        </td>
-                    </tr>
+                        </x-data-table.cell>
+                    </x-data-table.row>
                 @endforelse
             </tbody>
-        </table>
-    </div>
+    </x-data-table>
     </div>
 
-    <div class="mt-4">{{ $contents->links() }}</div>
+    <x-data-table.pagination>{{ $contents->links() }}</x-data-table.pagination>
 
     <dialog id="content-delete-dialog" class="rounded-lg border border-border bg-surface p-0 text-textPrimary backdrop:bg-black/40">
         <div class="w-full max-w-lg p-0">

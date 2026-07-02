@@ -1,11 +1,33 @@
 @extends('layouts.app', ['title' => 'Competitor Intelligence'])
 
+@php
+    $missingTopics = $topicSignals->where('coverage_status', 'missing');
+    $weakTopics = $topicSignals->where('coverage_status', 'weak');
+    $attackableAngles = $opportunities->whereNotNull('attackable_angle')->take(8);
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Competitor Intelligence" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Normalize imported competitor content into topics, intents, coverage gaps, and attackable content opportunities.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.sites.competitors.index', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Manage competitors</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Competitors" :value="$competitors->count()" />
+        <x-metric-card label="Imported pages" :value="$contentItems->count()" />
+        <x-metric-card label="Missing topics" :value="$missingTopics->count()" />
+        <x-metric-card label="Open opportunities" :value="$opportunities->count()" />
+    </x-metric-section>
+@endsection
+
 @section('content')
-    @php
-        $missingTopics = $topicSignals->where('coverage_status', 'missing');
-        $weakTopics = $topicSignals->where('coverage_status', 'weak');
-        $attackableAngles = $opportunities->whereNotNull('attackable_angle')->take(8);
-    @endphp
 
     <div class="space-y-6">
         <x-app.insights-header
@@ -13,8 +35,8 @@
             title="Competitor Intelligence"
             description="Normalize imported competitor content into topics, intents, coverage gaps, and attackable content opportunities."
             active="competitor-intelligence"
+            :show-heading="false"
         >
-            <a href="{{ route('app.sites.competitors.index', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Manage competitors</a>
         </x-app.insights-header>
 
         @if (session('status'))
@@ -26,25 +48,6 @@
                 {{ $errors->first() }}
             </div>
         @endif
-
-        <div class="grid gap-4 md:grid-cols-4">
-            <div class="rounded-lg border border-border bg-surface p-4">
-                <p class="text-xs text-textSecondary">Competitors</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ $competitors->count() }}</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface p-4">
-                <p class="text-xs text-textSecondary">Imported pages</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ $contentItems->count() }}</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface p-4">
-                <p class="text-xs text-textSecondary">Missing topics</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ $missingTopics->count() }}</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface p-4">
-                <p class="text-xs text-textSecondary">Open opportunities</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ $opportunities->count() }}</p>
-            </div>
-        </div>
 
         <div class="grid gap-6 lg:grid-cols-3">
             <div class="rounded-lg border border-border bg-surface p-5 lg:col-span-2">
@@ -62,34 +65,30 @@
                     </form>
                 </div>
 
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-xs text-textSecondary">
-                                <th class="pb-2 font-medium">Competitor</th>
-                                <th class="pb-2 font-medium">Domain</th>
-                                <th class="pb-2 font-medium">Pages</th>
-                                <th class="pb-2 font-medium">Topics</th>
-                                <th class="pb-2 font-medium">Opportunities</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
+                <x-data-table label="Competitor overview" description="Competitor domains, imported pages, topic signals, and generated opportunities." density="compact" class="mt-4 border-0 rounded-none">
+                        <x-data-table.header>
+                            <x-data-table.row>
+                                <x-data-table.cell heading>Competitor</x-data-table.cell>
+                                <x-data-table.cell heading>Domain</x-data-table.cell>
+                                <x-data-table.cell heading>Pages</x-data-table.cell>
+                                <x-data-table.cell heading>Topics</x-data-table.cell>
+                                <x-data-table.cell heading>Opportunities</x-data-table.cell>
+                            </x-data-table.row>
+                        </x-data-table.header>
+                        <tbody>
                             @forelse ($competitors as $competitor)
-                                <tr>
-                                    <td class="py-2 text-textPrimary">{{ $competitor->name }}</td>
-                                    <td class="py-2 text-textSecondary">{{ $competitor->domain }}</td>
-                                    <td class="py-2 text-textPrimary">{{ $competitor->content_items_count }}</td>
-                                    <td class="py-2 text-textPrimary">{{ $competitor->topic_signals_count }}</td>
-                                    <td class="py-2 text-textPrimary">{{ $competitor->content_opportunities_count }}</td>
-                                </tr>
+                                <x-data-table.row>
+                                    <x-data-table.cell label="Competitor" class="text-textPrimary">{{ $competitor->name }}</x-data-table.cell>
+                                    <x-data-table.cell label="Domain" class="text-textSecondary">{{ $competitor->domain }}</x-data-table.cell>
+                                    <x-data-table.cell label="Pages" class="text-textPrimary">{{ $competitor->content_items_count }}</x-data-table.cell>
+                                    <x-data-table.cell label="Topics" class="text-textPrimary">{{ $competitor->topic_signals_count }}</x-data-table.cell>
+                                    <x-data-table.cell label="Opportunities" class="text-textPrimary">{{ $competitor->content_opportunities_count }}</x-data-table.cell>
+                                </x-data-table.row>
                             @empty
-                                <tr>
-                                    <td colspan="5" class="py-4 text-textSecondary">Add competitors before importing intelligence.</td>
-                                </tr>
+                                <x-data-table.empty colspan="5" title="No competitors yet" description="Add competitors before importing intelligence." />
                             @endforelse
                         </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
 
             <div class="rounded-lg border border-border bg-surface p-5">
@@ -167,32 +166,28 @@
         <div class="grid gap-6 xl:grid-cols-2">
             <div class="rounded-lg border border-border bg-surface p-5">
                 <h2 class="text-sm font-semibold text-textPrimary">Topic overlap</h2>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-xs text-textSecondary">
-                                <th class="pb-2 font-medium">Topic</th>
-                                <th class="pb-2 font-medium">Coverage</th>
-                                <th class="pb-2 font-medium">Competitor pages</th>
-                                <th class="pb-2 font-medium">Score</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
+                <x-data-table label="Topic overlap" description="Detected competitor topics, coverage status, competitor page counts, and opportunity score." density="compact" class="mt-4 border-0 rounded-none">
+                        <x-data-table.header>
+                            <x-data-table.row>
+                                <x-data-table.cell heading>Topic</x-data-table.cell>
+                                <x-data-table.cell heading>Coverage</x-data-table.cell>
+                                <x-data-table.cell heading>Competitor pages</x-data-table.cell>
+                                <x-data-table.cell heading>Score</x-data-table.cell>
+                            </x-data-table.row>
+                        </x-data-table.header>
+                        <tbody>
                             @forelse ($topicSignals as $signal)
-                                <tr>
-                                    <td class="py-2 text-textPrimary">{{ $signal->topic }}</td>
-                                    <td class="py-2 text-textSecondary">{{ str_replace('_', ' ', $signal->coverage_status) }}</td>
-                                    <td class="py-2 text-textPrimary">{{ $signal->competitor_content_count }}</td>
-                                    <td class="py-2 text-textPrimary">{{ number_format((float) $signal->opportunity_score, 1) }}</td>
-                                </tr>
+                                <x-data-table.row>
+                                    <x-data-table.cell label="Topic" class="text-textPrimary">{{ $signal->topic }}</x-data-table.cell>
+                                    <x-data-table.cell label="Coverage" class="text-textSecondary">{{ str_replace('_', ' ', $signal->coverage_status) }}</x-data-table.cell>
+                                    <x-data-table.cell label="Competitor pages" class="text-textPrimary">{{ $signal->competitor_content_count }}</x-data-table.cell>
+                                    <x-data-table.cell label="Score" class="text-textPrimary">{{ number_format((float) $signal->opportunity_score, 1) }}</x-data-table.cell>
+                                </x-data-table.row>
                             @empty
-                                <tr>
-                                    <td colspan="4" class="py-4 text-textSecondary">No topic signals yet.</td>
-                                </tr>
+                                <x-data-table.empty colspan="4" title="No topic signals yet" />
                             @endforelse
                         </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
 
             <div class="rounded-lg border border-border bg-surface p-5">
@@ -239,30 +234,26 @@
 
             <div class="rounded-lg border border-border bg-surface p-5">
                 <h2 class="text-sm font-semibold text-textPrimary">Opportunity output</h2>
-                <div class="mt-4 overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-xs text-textSecondary">
-                                <th class="pb-2 font-medium">Type</th>
-                                <th class="pb-2 font-medium">Title</th>
-                                <th class="pb-2 font-medium">Priority</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
+                <x-data-table label="Opportunity output" description="Generated competitor intelligence opportunities by type, title, and priority." density="compact" class="mt-4 border-0 rounded-none">
+                        <x-data-table.header>
+                            <x-data-table.row>
+                                <x-data-table.cell heading>Type</x-data-table.cell>
+                                <x-data-table.cell heading>Title</x-data-table.cell>
+                                <x-data-table.cell heading>Priority</x-data-table.cell>
+                            </x-data-table.row>
+                        </x-data-table.header>
+                        <tbody>
                             @forelse ($opportunities as $opportunity)
-                                <tr>
-                                    <td class="py-2 text-textSecondary">{{ str_replace('_', ' ', $opportunity->type) }}</td>
-                                    <td class="py-2 text-textPrimary">{{ $opportunity->title }}</td>
-                                    <td class="py-2 text-textPrimary">{{ number_format((float) $opportunity->priority_score, 1) }}</td>
-                                </tr>
+                                <x-data-table.row>
+                                    <x-data-table.cell label="Type" class="text-textSecondary">{{ str_replace('_', ' ', $opportunity->type) }}</x-data-table.cell>
+                                    <x-data-table.cell label="Title" class="text-textPrimary">{{ $opportunity->title }}</x-data-table.cell>
+                                    <x-data-table.cell label="Priority" class="text-textPrimary">{{ number_format((float) $opportunity->priority_score, 1) }}</x-data-table.cell>
+                                </x-data-table.row>
                             @empty
-                                <tr>
-                                    <td colspan="3" class="py-4 text-textSecondary">Run analysis to generate comparison pages, BOFU pages, answer blocks, implementation guides, and use cases.</td>
-                                </tr>
+                                <x-data-table.empty colspan="3" title="No opportunities yet" description="Run analysis to generate comparison pages, BOFU pages, answer blocks, implementation guides, and use cases." />
                             @endforelse
                         </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
         </div>
     </div>

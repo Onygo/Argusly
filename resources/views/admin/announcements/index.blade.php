@@ -1,15 +1,19 @@
 @extends('layouts.admin', ['title' => 'Announcements'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Announcements</h1>
-            <p class="mt-1 text-textSecondary">Recent workspace announcements pushed into the client notification bell.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Announcements</x-slot:title>
+        <x-slot:description>Recent workspace announcements pushed into the client notification bell.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.announcements.create') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">
             Create announcement
         </a>
-    </div>
+@endsection
+
+@section('content')
 
     <div class="rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Last 50 announcements</h2>

@@ -1,30 +1,35 @@
 @extends('layouts.admin', ['title' => 'Drafts'])
 
-@section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Drafts</h1>
-        <p class="text-textSecondary mt-1">All drafts across organizations.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Drafts</x-slot:title>
+        <x-slot:description>All drafts across organizations.</x-slot:description>
+    </x-page-header>
+@endsection
 
-    <div class="rounded-lg border border-border bg-surface p-4">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-textSecondary">
-                    <th class="pb-2 font-medium">Title</th>
-                    <th class="pb-2 font-medium">Organization</th>
-                    <th class="pb-2 font-medium">Status</th>
-                    <th class="pb-2 font-medium">Created</th>
-                    <th class="pb-2 font-medium">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-                @forelse ($drafts as $draft)
-                    <tr>
-                        <td class="py-3">{{ $draft->title }}</td>
-                        <td class="py-3">{{ $draft->clientSite?->workspace?->organization?->name ?? 'n a' }}</td>
-                        <td class="py-3">{{ $draft->status }}</td>
-                        <td class="py-3">{{ $draft->created_at?->format('Y-m-d H:i') }}</td>
-                        <td class="py-3">
+@section('content')
+
+    <x-data-table label="Admin drafts" description="Drafts across organizations with status, creation time, and delete actions.">
+        <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Title</x-data-table.cell>
+                <x-data-table.cell heading>Organization</x-data-table.cell>
+                <x-data-table.cell heading>Status</x-data-table.cell>
+                <x-data-table.cell heading>Created</x-data-table.cell>
+                <x-data-table.cell heading>Actions</x-data-table.cell>
+            </x-data-table.row>
+        </x-data-table.header>
+        <tbody>
+            @forelse ($drafts as $draft)
+                <x-data-table.row>
+                    <x-data-table.cell label="Title">{{ $draft->title }}</x-data-table.cell>
+                    <x-data-table.cell label="Organization">{{ $draft->clientSite?->workspace?->organization?->name ?? 'n a' }}</x-data-table.cell>
+                    <x-data-table.cell label="Status">
+                        <x-data-table.badge :label="$draft->status" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Created">{{ $draft->created_at?->format('Y-m-d H:i') }}</x-data-table.cell>
+                    <x-data-table.cell label="Actions">
+                        <x-data-table.actions align="start">
                             <form method="POST" action="{{ route('admin.drafts.destroy', $draft) }}">
                                 @csrf
                                 @method('DELETE')
@@ -32,16 +37,13 @@
                                     Delete
                                 </button>
                             </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td class="py-6 text-center text-textSecondary" colspan="5">No drafts found.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">{{ $drafts->links() }}</div>
+                        </x-data-table.actions>
+                    </x-data-table.cell>
+                </x-data-table.row>
+            @empty
+                <x-data-table.empty colspan="5" title="No drafts found" />
+            @endforelse
+        </tbody>
+        <x-slot:pagination>{{ $drafts->links() }}</x-slot:pagination>
+    </x-data-table>
 @endsection

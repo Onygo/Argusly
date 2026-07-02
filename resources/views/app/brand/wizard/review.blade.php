@@ -1,31 +1,22 @@
 @extends('layouts.app', ['title' => 'Review AI Brand Setup'])
 
+@php
+    $sectionsCount = count($generatedSections ?? []);
+    $canApply = $isReady && $sectionsCount > 0;
+    $statusLabel = ucfirst(str_replace('_', ' ', (string) $run->status));
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Review AI brand setup" eyebrow="Brand / Generate with AI">
+        <x-slot:description>Check the generated context, choose which sections to apply, and keep manual editing available afterwards.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <span class="text-sm text-textSecondary">Run {{ substr((string) $run->id, 0, 8) }} · {{ $statusLabel }}</span>
+@endsection
+
 @section('content')
-    @php
-        $sectionsCount = count($generatedSections ?? []);
-        $canApply = $isReady && $sectionsCount > 0;
-        $statusLabel = ucfirst(str_replace('_', ' ', (string) $run->status));
-    @endphp
-
-    <div class="mb-6">
-        <nav class="mb-2 text-sm text-textSecondary">
-            <a href="{{ route('app.brand.company-profile') }}" class="hover:text-textPrimary">Brand</a>
-            <span class="mx-1">/</span>
-            <a href="{{ route('app.brand.wizard') }}" class="hover:text-textPrimary">Generate with AI</a>
-            <span class="mx-1">/</span>
-            <span class="text-textPrimary">Review</span>
-        </nav>
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Review AI brand setup</h1>
-                <p class="mt-1 text-textSecondary">Check the generated context, choose which sections to apply, and keep manual editing available afterwards.</p>
-            </div>
-            <div class="text-sm text-textSecondary">
-                Run {{ substr((string) $run->id, 0, 8) }} · {{ $statusLabel }}
-            </div>
-        </div>
-    </div>
-
     @if ($errors->any())
         <x-alert variant="error" class="mb-4">
             <ul class="list-disc list-inside">

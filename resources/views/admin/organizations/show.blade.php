@@ -1,32 +1,47 @@
 @extends('layouts.admin', ['title' => 'Organization detail'])
 
-@section('content')
-    @php
-        $primaryUser = $organization->primaryUser
-            ?? $organization->users->sortBy('created_at')->firstWhere('role', 'owner')
-            ?? $organization->users->sortBy('created_at')->first();
-        $organizationActivated = $organization->isActive();
-        $primaryUserActivated = $primaryUser && $primaryUser->active && $primaryUser->approved_at;
-        $needsActivation = ! $organizationActivated || ! $primaryUserActivated;
-        $billingAddress = is_array($organization->billing_address) ? $organization->billing_address : [];
+@php
+    $primaryUser = $organization->primaryUser
+        ?? $organization->users->sortBy('created_at')->firstWhere('role', 'owner')
+        ?? $organization->users->sortBy('created_at')->first();
+    $organizationActivated = $organization->isActive();
+    $primaryUserActivated = $primaryUser && $primaryUser->active && $primaryUser->approved_at;
+    $needsActivation = ! $organizationActivated || ! $primaryUserActivated;
+    $billingAddress = is_array($organization->billing_address) ? $organization->billing_address : [];
 
-        $statusLabel = $organization->getStatusLabel();
-        $statusClass = $organization->getStatusBadgeClasses();
-        $accessLabel = $organizationAccess['label'] ?? 'Free';
-        $accessClass = $organizationAccess['badge_classes'] ?? 'border-border bg-background text-textSecondary';
-    @endphp
+    $statusLabel = $organization->getStatusLabel();
+    $statusClass = $organization->getStatusBadgeClasses();
+    $accessLabel = $organizationAccess['label'] ?? 'Free';
+    $accessClass = $organizationAccess['badge_classes'] ?? 'border-border bg-background text-textSecondary';
+@endphp
 
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $organization->name }}</h1>
-            <p class="mt-1 text-sm text-textSecondary">Slug: {{ $organization->slug }} · {{ $organization->users->count() }} users · {{ $organization->workspaces->count() }} workspaces</p>
-        </div>
-        <div class="flex items-center gap-2">
+@section('pageHeader')
+    <x-page-header :title="$organization->name">
+        <x-slot:actions>
             <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">{{ $statusLabel }}</span>
             <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $accessClass }}">{{ $accessLabel }}</span>
-            <a href="{{ route('admin.organizations') }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to organizations</a>
-        </div>
-    </div>
+        </x-slot:actions>
+    </x-page-header>
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Slug: {{ $organization->slug }} · {{ $organization->users->count() }} users · {{ $organization->workspaces->count() }} workspaces</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('admin.organizations') }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to organizations</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Users" :value="$organization->users->count()" />
+        <x-metric-card label="Workspaces" :value="$organization->workspaces->count()" />
+        <x-metric-card label="Organization status" :value="$statusLabel" />
+        <x-metric-card label="Account access" :value="$accessLabel" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
@@ -283,127 +298,117 @@
             </x-settings.section-card>
 
             <x-settings.section-card title="Users" description="Organization members, role assignments, and account state.">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-textSecondary">
-                                <th class="pb-2 font-medium">Name</th>
-                                <th class="pb-2 font-medium">Email</th>
-                                <th class="pb-2 font-medium">Role</th>
-                                <th class="pb-2 font-medium">Status</th>
-                                <th class="pb-2 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
-                            @forelse ($organization->users as $user)
-                                @php($isUserActive = $user->active && $user->approved_at)
-                                @php($latestAccessOverrideStatus = $user->latestAccessOverride?->effectiveStatus())
-                                <tr>
-                                    <td class="py-3 text-textPrimary">
-                                        <a href="{{ route('admin.users.show', $user) }}" class="font-medium hover:underline">{{ $user->name }}</a>
-                                    </td>
-                                    <td class="py-3 text-textPrimary">
-                                        <div>{{ $user->email }}</div>
-                                        @if ($latestAccessOverrideStatus)
-                                            <div class="mt-1">
-                                                <span class="inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-medium {{ $latestAccessOverrideStatus->badgeClasses() }}">
-                                                    {{ $latestAccessOverrideStatus->label() }}
-                                                </span>
-                                            </div>
-                                        @endif
-                                    </td>
-                                    <td class="py-3 text-textPrimary">{{ $user->role }}</td>
-                                    <td class="py-3">
-                                        <span class="inline-flex rounded border px-2 py-0.5 text-xs {{ $isUserActive ? 'border-emerald-300/80 bg-emerald-500/10 text-emerald-800' : 'border-amber-300/80 bg-amber-500/10 text-amber-800' }}">
-                                            {{ $isUserActive ? 'Active' : 'Pending' }}
-                                        </span>
-                                    </td>
-                                    <td class="py-3">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            @if (! $user->approved_at)
-                                                <form method="POST" action="{{ route('admin.users.approve', $user) }}">
-                                                    @csrf
-                                                    <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Approve</button>
-                                                </form>
-                                            @endif
-                                            @if ($user->active)
-                                                <form method="POST" action="{{ route('admin.users.disable', $user) }}" onsubmit="return confirm('Disable this user account? They will lose access until reactivated.');">
-                                                    @csrf
-                                                    <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Disable user</button>
-                                                </form>
-                                            @else
-                                                <form method="POST" action="{{ route('admin.users.activate', $user) }}">
-                                                    @csrf
-                                                    <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Activate user</button>
-                                                </form>
-                                            @endif
+                <x-data-table label="Organization users" description="Organization members with role, access status, and account actions." density="compact" class="border-0 shadow-none">
+                    <x-data-table.header>
+                        <x-data-table.row>
+                            <x-data-table.cell heading>Name</x-data-table.cell>
+                            <x-data-table.cell heading>Email</x-data-table.cell>
+                            <x-data-table.cell heading>Role</x-data-table.cell>
+                            <x-data-table.cell heading>Status</x-data-table.cell>
+                            <x-data-table.cell heading>Actions</x-data-table.cell>
+                        </x-data-table.row>
+                    </x-data-table.header>
+                    <tbody class="divide-y divide-border">
+                        @forelse ($organization->users as $user)
+                            @php($isUserActive = $user->active && $user->approved_at)
+                            @php($latestAccessOverrideStatus = $user->latestAccessOverride?->effectiveStatus())
+                            <x-data-table.row>
+                                <x-data-table.cell label="Name" class="text-textPrimary">
+                                    <a href="{{ route('admin.users.show', $user) }}" class="font-medium hover:underline">{{ $user->name }}</a>
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Email" class="text-textPrimary">
+                                    <div>{{ $user->email }}</div>
+                                    @if ($latestAccessOverrideStatus)
+                                        <div class="mt-1">
+                                            <span class="inline-flex items-center rounded border px-2 py-0.5 text-[11px] font-medium {{ $latestAccessOverrideStatus->badgeClasses() }}">
+                                                {{ $latestAccessOverrideStatus->label() }}
+                                            </span>
                                         </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="5" class="py-6 text-center text-textSecondary">No users found for this organization.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                                    @endif
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Role" class="text-textPrimary">{{ $user->role }}</x-data-table.cell>
+                                <x-data-table.cell label="Status">
+                                    <x-data-table.badge :tone="$isUserActive ? 'success' : 'warning'" :label="$isUserActive ? 'Active' : 'Pending'" />
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Actions">
+                                    <x-data-table.actions align="start">
+                                        @if (! $user->approved_at)
+                                            <form method="POST" action="{{ route('admin.users.approve', $user) }}">
+                                                @csrf
+                                                <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Approve</button>
+                                            </form>
+                                        @endif
+                                        @if ($user->active)
+                                            <form method="POST" action="{{ route('admin.users.disable', $user) }}" onsubmit="return confirm('Disable this user account? They will lose access until reactivated.');">
+                                                @csrf
+                                                <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Disable user</button>
+                                            </form>
+                                        @else
+                                            <form method="POST" action="{{ route('admin.users.activate', $user) }}">
+                                                @csrf
+                                                <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Activate user</button>
+                                            </form>
+                                        @endif
+                                    </x-data-table.actions>
+                                </x-data-table.cell>
+                            </x-data-table.row>
+                        @empty
+                            <x-data-table.empty colspan="5" title="No users found for this organization" />
+                        @endforelse
+                    </tbody>
+                </x-data-table>
             </x-settings.section-card>
 
             <x-settings.section-card title="Workspaces" description="Workspace operations, site footprint, and context switching for support.">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-textSecondary">
-                                <th class="pb-2 font-medium">Workspace</th>
-                                <th class="pb-2 font-medium">Sites</th>
-                                <th class="pb-2 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
-                            @forelse ($organization->workspaces as $workspace)
-                                <tr>
-                                    <td class="py-3 align-top">
-                                        <div class="text-sm font-medium text-textPrimary">{{ $workspace->display_name ?: $workspace->name }}</div>
-                                        <div class="mt-2">
-                                            @can('admin-area-superadmin')
-                                                <form method="POST" action="{{ route('admin.organizations.workspaces.display-name.update', [$organization, $workspace]) }}" class="flex flex-wrap items-center gap-2">
-                                                    @csrf
-                                                    <input
-                                                        name="display_name"
-                                                        value="{{ old('display_name', $workspace->display_name ?: $workspace->name) }}"
-                                                        class="w-full rounded border border-border px-2 py-1 text-xs md:w-72"
-                                                        maxlength="120"
-                                                        required
-                                                    >
-                                                    <button class="inline-flex items-center justify-center rounded-md border border-border px-2 py-1 text-xs font-medium">
-                                                        Save name
-                                                    </button>
-                                                </form>
-                                            @endcan
-                                        </div>
-                                    </td>
-                                    <td class="py-3 text-textPrimary">{{ $workspace->clientSites->count() }}</td>
-                                    <td class="py-3">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <a href="{{ route('admin.workspaces.notifications', $workspace) }}" class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Notifications</a>
-                                            @can('admin-area-access')
-                                                <form method="POST" action="{{ route('admin.workspaces.impersonate', $workspace) }}" onsubmit="return confirm('Impersonate this workspace using its primary active user context?');">
-                                                    @csrf
-                                                    <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Impersonate workspace</button>
-                                                </form>
-                                            @endcan
-                                        </div>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="3" class="py-6 text-center text-textSecondary">No workspaces linked to this organization.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                <x-data-table label="Organization workspaces" description="Workspace names, site counts, notifications, and impersonation controls." density="compact" class="border-0 shadow-none">
+                    <x-data-table.header>
+                        <x-data-table.row>
+                            <x-data-table.cell heading>Workspace</x-data-table.cell>
+                            <x-data-table.cell heading>Sites</x-data-table.cell>
+                            <x-data-table.cell heading>Actions</x-data-table.cell>
+                        </x-data-table.row>
+                    </x-data-table.header>
+                    <tbody class="divide-y divide-border">
+                        @forelse ($organization->workspaces as $workspace)
+                            <x-data-table.row>
+                                <x-data-table.cell label="Workspace">
+                                    <div class="text-sm font-medium text-textPrimary">{{ $workspace->display_name ?: $workspace->name }}</div>
+                                    <div class="mt-2">
+                                        @can('admin-area-superadmin')
+                                            <form method="POST" action="{{ route('admin.organizations.workspaces.display-name.update', [$organization, $workspace]) }}" class="flex flex-wrap items-center gap-2">
+                                                @csrf
+                                                <input
+                                                    name="display_name"
+                                                    value="{{ old('display_name', $workspace->display_name ?: $workspace->name) }}"
+                                                    class="w-full rounded border border-border px-2 py-1 text-xs md:w-72"
+                                                    maxlength="120"
+                                                    required
+                                                >
+                                                <button class="inline-flex items-center justify-center rounded-md border border-border px-2 py-1 text-xs font-medium">
+                                                    Save name
+                                                </button>
+                                            </form>
+                                        @endcan
+                                    </div>
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Sites" class="text-textPrimary">{{ $workspace->clientSites->count() }}</x-data-table.cell>
+                                <x-data-table.cell label="Actions">
+                                    <x-data-table.actions align="start">
+                                        <a href="{{ route('admin.workspaces.notifications', $workspace) }}" class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Notifications</a>
+                                        @can('admin-area-access')
+                                            <form method="POST" action="{{ route('admin.workspaces.impersonate', $workspace) }}" onsubmit="return confirm('Impersonate this workspace using its primary active user context?');">
+                                                @csrf
+                                                <button class="inline-flex items-center justify-center rounded-md border border-border px-3 py-1 text-xs font-medium">Impersonate workspace</button>
+                                            </form>
+                                        @endcan
+                                    </x-data-table.actions>
+                                </x-data-table.cell>
+                            </x-data-table.row>
+                        @empty
+                            <x-data-table.empty colspan="3" title="No workspaces linked to this organization" />
+                        @endforelse
+                    </tbody>
+                </x-data-table>
             </x-settings.section-card>
         </div>
 

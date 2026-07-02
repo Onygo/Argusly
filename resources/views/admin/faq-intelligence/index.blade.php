@@ -1,16 +1,15 @@
 @extends('layouts.admin', ['title' => 'FAQ Intelligence'])
 
-@section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">FAQ Intelligence</h1>
-        <p class="mt-1 text-textSecondary">Detect missing buyer questions, generate FAQ opportunities, and publish answer-ready FAQ content.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header title="FAQ Intelligence" />
+@endsection
 
-    @if (session('status'))
-        <div class="mb-4 rounded border border-border bg-surface px-3 py-2 text-sm text-textPrimary">{{ session('status') }}</div>
-    @endif
+@section('pageDescription')
+    <x-page-description>Detect missing buyer questions, generate FAQ opportunities, and publish answer-ready FAQ content.</x-page-description>
+@endsection
 
-    <form method="GET" action="{{ route('admin.faq-intelligence.index') }}" class="mb-6 rounded-lg border border-border bg-surface p-4">
+@section('filterBar')
+    <form method="GET" action="{{ route('admin.faq-intelligence.index') }}">
         <div class="grid gap-3 md:grid-cols-4 xl:grid-cols-7">
             <select name="locale" class="rounded-md border border-border bg-background px-3 py-2 text-sm">
                 <option value="">All locales</option>
@@ -38,29 +37,22 @@
             <button class="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white">Filter</button>
         </div>
     </form>
+@endsection
 
-    <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">Total FAQ's</p>
-            <p class="mt-1 text-3xl font-semibold text-textPrimary">{{ $totalFaqs }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">Published</p>
-            <p class="mt-1 text-3xl font-semibold text-textPrimary">{{ $publishedFaqs }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">AI Visibility</p>
-            <p class="mt-1 text-3xl font-semibold text-textPrimary">{{ $averageAiVisibility }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">SEO impact</p>
-            <p class="mt-1 text-3xl font-semibold text-textPrimary">{{ $averageSeo }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-sm text-textSecondary">Conversion</p>
-            <p class="mt-1 text-3xl font-semibold text-textPrimary">{{ $averageConversion }}</p>
-        </div>
-    </div>
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Total FAQ's" :value="$totalFaqs" />
+        <x-metric-card label="Published" :value="$publishedFaqs" />
+        <x-metric-card label="AI Visibility" :value="$averageAiVisibility" />
+        <x-metric-card label="SEO impact" :value="$averageSeo" />
+        <x-metric-card label="Conversion" :value="$averageConversion" />
+    </x-metric-section>
+@endsection
+
+@section('content')
+    @if (session('status'))
+        <div class="mb-4 rounded border border-border bg-surface px-3 py-2 text-sm text-textPrimary">{{ session('status') }}</div>
+    @endif
 
     <div class="mb-8 grid gap-6 xl:grid-cols-3">
         @foreach ([

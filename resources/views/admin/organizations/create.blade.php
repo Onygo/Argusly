@@ -1,13 +1,17 @@
 @extends('layouts.admin', ['title' => 'Create Organization', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Create organization</h1>
-            <p class="mt-1 text-textSecondary">Create a customer account with an owner, workspace, and publishing site.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Create organization</x-slot:title>
+        <x-slot:description>Create a customer account with an owner, workspace, and publishing site.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.organizations') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to organizations</a>
-    </div>
+@endsection
+
+@section('content')
 
     @if ($errors->any())
         <div class="mb-4 rounded border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">

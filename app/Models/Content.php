@@ -579,6 +579,11 @@ class Content extends Model
         return $this->hasMany(Draft::class);
     }
 
+    public function aiTransparencyRecord(): HasOne
+    {
+        return $this->hasOne(AiTransparencyRecord::class);
+    }
+
     public function revisions()
     {
         return $this->hasMany(ContentRevision::class);
@@ -888,14 +893,25 @@ class Content extends Model
     public function featuredImage()
     {
         return $this->hasOne(ContentImage::class, 'content_id')
-            ->where('content_images.type', 'featured')
+            ->where(function ($query): void {
+                $query->where('content_images.type', 'featured')
+                    ->orWhere('content_images.display_as_featured_image', true)
+                    ->orWhere('content_images.display_on_website', true);
+            })
             ->where('content_images.is_active', true)
             ->select([
                 'content_images.id',
+                'content_images.workspace_id',
                 'content_images.content_id',
+                'content_images.campaign_id',
+                'content_images.social_publication_id',
+                'content_images.social_post_variant_id',
                 'content_images.type',
+                'content_images.source',
                 'content_images.image_path',
                 'content_images.image_url',
+                'content_images.original_filename',
+                'content_images.mime_type',
                 'content_images.alt_text',
                 'content_images.original_path',
                 'content_images.medium_path',
@@ -907,6 +923,11 @@ class Content extends Model
                 'content_images.height',
                 'content_images.status',
                 'content_images.is_active',
+                'content_images.display_on_website',
+                'content_images.display_as_featured_image',
+                'content_images.use_as_meta_image',
+                'content_images.use_as_social_image',
+                'content_images.use_for_linkedin',
                 'content_images.metadata',
                 'content_images.created_at',
                 'content_images.updated_at',
@@ -915,7 +936,11 @@ class Content extends Model
             ->ofMany(
                 ['created_at' => 'max'],
                 function ($query): void {
-                    $query->where('content_images.type', 'featured')
+                    $query->where(function ($nested): void {
+                        $nested->where('content_images.type', 'featured')
+                            ->orWhere('content_images.display_as_featured_image', true)
+                            ->orWhere('content_images.display_on_website', true);
+                    })
                         ->where('content_images.is_active', true);
                 }
             );
@@ -927,7 +952,10 @@ class Content extends Model
             ->ofMany(
                 ['created_at' => 'max'],
                 function ($query): void {
-                    $query->where('content_images.type', 'og')
+                    $query->where(function ($nested): void {
+                        $nested->where('content_images.type', 'og')
+                            ->orWhere('content_images.use_as_meta_image', true);
+                    })
                         ->where('content_images.is_active', true);
                 }
             );

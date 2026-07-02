@@ -1,10 +1,16 @@
 @extends('layouts.app', ['title' => $automation->name])
 
+@section('pageHeader')
+    <x-page-header :title="$automation->name">
+        <x-slot:description>{{ $automation->topic_scope }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
             <div class="flex flex-wrap items-center gap-2">
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $automation->name }}</h1>
+                <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $automation->name }}</h2>
                 <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">{{ ucfirst($automation->lifecycleStatus()) }}</span>
                 <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">{{ $automation->publication_mode?->label() ?? $automation->publication_mode }}</span>
             </div>

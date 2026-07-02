@@ -50,6 +50,7 @@ class SeriesStrategyService
             $sourceReferences = [$sourceUrl];
         }
         $strategicPositioning = trim((string) ($existingMeta['strategic_positioning'] ?? ''));
+        $completeBriefing = trim((string) data_get($existingMeta, 'complete_briefing.raw', ''));
 
         $prompt = implode("\n", [
             'Create a chained SEO content strategy as strict JSON.',
@@ -66,6 +67,8 @@ class SeriesStrategyService
             $sourceReferences !== [] ? 'Use these sources as strategic context and market signals only. Do not summarize, copy, or mirror any source; create an original Argusly-led perspective.' : null,
             $strategicPositioning !== '' ? 'Strategic positioning: ' . $strategicPositioning : null,
             $strategicPositioning !== '' ? 'Every article should reflect this positioning with original insights, practical examples, and a distinct point of view.' : null,
+            $completeBriefing !== '' ? 'Complete user-supplied briefing: ' . \Illuminate\Support\Str::limit($completeBriefing, 30000, '') : null,
+            $completeBriefing !== '' ? 'Treat the complete briefing as the source of truth for message, audience, positioning, topics to cover, and things to avoid.' : null,
             $editorialPlanText !== '' ? 'Editorial article plan supplied by the user: ' . $editorialPlanText : null,
             $editorialPlanText !== '' ? 'Preserve supplied article titles exactly. Use supplied editorial_angle values as article-specific guidance. Fill missing keywords, secondary keywords, and internal links around those titles.' : null,
             'Each article must include:',

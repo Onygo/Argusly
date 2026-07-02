@@ -1,21 +1,43 @@
 @extends('layouts.app', ['title' => 'Tracking Query'])
 
-@section('content')
-    @php
-        $querySets = $querySets ?? collect();
-        $detail = $detail ?? [];
-        $filters = $filters ?? [];
-    @endphp
+@php
+    $querySets = $querySets ?? collect();
+    $detail = $detail ?? [];
+    $filters = $filters ?? [];
+@endphp
 
+@section('pageHeader')
+    <x-page-header :title="$query->name">
+        <x-slot:description>Visibility analysis for one tracked query. Use this page to understand outcome, drivers, competitors, sources, and next actions.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.sites.llm-tracking.index', $site) }}" class="pl-btn-secondary">Back to dashboard</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        @foreach ((array) data_get($detail, 'summary_metrics', []) as $metric)
+            <x-metric-card
+                :label="$metric['label'] ?? ''"
+                :value="$metric['value'] ?? '-'"
+                :helper="$metric['helper'] ?? ($metric['context'] ?? null)"
+                :tone="$metric['tone'] ?? 'neutral'"
+            />
+        @endforeach
+    </x-metric-section>
+@endsection
+
+@section('content')
     <div class="space-y-6" data-llm-tracking-detail data-llm-tracking-active-tab="{{ $activeTab }}">
         <x-app.insights-header
             :site="$site"
             :title="$query->name"
             description="Visibility analysis for one tracked query. Use this page to understand outcome, drivers, competitors, sources, and next actions."
             active="llm"
-        >
-            <a href="{{ route('app.sites.llm-tracking.index', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to dashboard</a>
-        </x-app.insights-header>
+            :show-heading="false"
+        />
 
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
@@ -40,7 +62,7 @@
                     </div>
 
                     <div>
-                        <h1 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ data_get($detail, 'header.title', $query->name) }}</h1>
+                        <h2 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ data_get($detail, 'header.title', $query->name) }}</h2>
                         <p class="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">{{ data_get($detail, 'header.description', '') }}</p>
                     </div>
                 </div>
@@ -55,18 +77,6 @@
                     <a href="{{ route('app.sites.llm-tracking.show', ['site' => $site, 'query' => $query, 'tab' => 'history']) }}#history-table" data-llm-tracking-tab-link="history" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary transition hover:bg-surfaceSubtle">Bekijk historie</a>
                 </div>
             </div>
-        </div>
-
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            @foreach ((array) data_get($detail, 'summary_metrics', []) as $metric)
-                <x-llm-tracking.metric-card
-                    :label="$metric['label'] ?? ''"
-                    :value="$metric['value'] ?? '-'"
-                    :context="$metric['context'] ?? null"
-                    :helper="$metric['helper'] ?? null"
-                    :tone="$metric['tone'] ?? 'slate'"
-                />
-            @endforeach
         </div>
 
         <div class="grid gap-6 xl:grid-cols-[minmax(280px,0.72fr),minmax(0,1.48fr)]">

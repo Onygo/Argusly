@@ -1,14 +1,16 @@
 @extends('layouts.admin', ['title' => 'Reservation: ' . substr($reservation->id, 0, 8)])
 
-@section('content')
-    <div class="mb-6">
-        <a href="{{ route('admin.credit-reservations.index') }}" class="text-sm text-textSecondary hover:text-textPrimary">&larr; Back to Reservations</a>
-        <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">
-            Credit Reservation
-            <span class="font-mono text-lg">{{ substr($reservation->id, 0, 8) }}...</span>
-        </h1>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Credit Reservation">
+        <x-slot:description>Reservation {{ substr($reservation->id, 0, 8) }}...</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('admin.credit-reservations.index') }}" class="pl-btn-secondary">Back to Reservations</a>
+@endsection
+
+@section('content')
     @if(session('status'))
         <div class="mb-4 rounded-lg border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-600">
             {{ session('status') }}

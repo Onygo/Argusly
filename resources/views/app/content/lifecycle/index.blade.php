@@ -1,29 +1,46 @@
 @extends('layouts.app', ['title' => 'Content Lifecycle', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header title="AI Content Operations" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Workflow execution, content health, AI visibility, and refresh operations in one lifecycle surface.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <form method="POST" action="{{ route('app.content.lifecycle.analyze') }}">
+        @csrf
+        <button type="submit" class="pl-btn-primary">
+            <i data-lucide="activity" class="h-4 w-4"></i>
+            <span>Run Analysis</span>
+        </button>
+    </form>
+    <a href="{{ route('app.content.index') }}" class="pl-btn-ghost">
+        <i data-lucide="list" class="h-4 w-4"></i>
+        <span>List View</span>
+    </a>
+    <a href="{{ route('app.content.calendar') }}" class="pl-btn-ghost">
+        <i data-lucide="calendar-days" class="h-4 w-4"></i>
+        <span>Calendar</span>
+    </a>
+@endsection
+
+@section('filterBar')
+    @include('app.content.lifecycle.partials.filters')
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Avg Health" :value="(int) ($operationsSummary['avg_health_score'] ?? 0)" helper="/ 100" />
+        <x-metric-card label="AI Visibility" :value="(int) ($operationsSummary['avg_ai_visibility_score'] ?? 0)" helper="avg" />
+        <x-metric-card label="At Risk" :value="(int) ($operationsSummary['at_risk_count'] ?? 0)" />
+        <x-metric-card label="Refresh Queue" :value="(int) ($operationsSummary['refresh_candidates'] ?? 0)" />
+        <x-metric-card label="AI Optimized" :value="(int) ($operationsSummary['ai_optimized_count'] ?? 0)" />
+    </x-metric-section>
+@endsection
+
 @section('content')
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-xl font-semibold text-textPrimary">AI Content Operations</h1>
-            <p class="mt-1 text-sm text-textSecondary">Workflow execution, content health, AI visibility, and refresh operations in one lifecycle surface.</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <form method="POST" action="{{ route('app.content.lifecycle.analyze') }}">
-                @csrf
-                <button type="submit" class="pl-btn-primary">
-                    <i data-lucide="activity" class="h-4 w-4"></i>
-                    <span>Run Analysis</span>
-                </button>
-            </form>
-            <a href="{{ route('app.content.index') }}" class="pl-btn-ghost">
-                <i data-lucide="list" class="h-4 w-4"></i>
-                <span>List View</span>
-            </a>
-            <a href="{{ route('app.content.calendar') }}" class="pl-btn-ghost">
-                <i data-lucide="calendar-days" class="h-4 w-4"></i>
-                <span>Calendar</span>
-            </a>
-        </div>
-    </div>
 
     @if (session('status'))
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -31,39 +48,7 @@
         </div>
     @endif
 
-    {{-- Filters --}}
-    @include('app.content.lifecycle.partials.filters')
-
-    <div class="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div class="rounded-lg border border-border bg-surface px-4 py-3">
-            <div class="text-[11px] uppercase tracking-[0.18em] text-textSecondary">Avg Health</div>
-            <div class="mt-2 flex items-end gap-2">
-                <div class="text-2xl font-semibold text-textPrimary">{{ (int) ($operationsSummary['avg_health_score'] ?? 0) }}</div>
-                <div class="text-xs text-textSecondary">/ 100</div>
-            </div>
-        </div>
-        <div class="rounded-lg border border-border bg-surface px-4 py-3">
-            <div class="text-[11px] uppercase tracking-[0.18em] text-textSecondary">AI Visibility</div>
-            <div class="mt-2 flex items-end gap-2">
-                <div class="text-2xl font-semibold text-textPrimary">{{ (int) ($operationsSummary['avg_ai_visibility_score'] ?? 0) }}</div>
-                <div class="text-xs text-textSecondary">avg</div>
-            </div>
-        </div>
-        <div class="rounded-lg border border-border bg-surface px-4 py-3">
-            <div class="text-[11px] uppercase tracking-[0.18em] text-textSecondary">At Risk</div>
-            <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ (int) ($operationsSummary['at_risk_count'] ?? 0) }}</div>
-        </div>
-        <div class="rounded-lg border border-border bg-surface px-4 py-3">
-            <div class="text-[11px] uppercase tracking-[0.18em] text-textSecondary">Refresh Queue</div>
-            <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ (int) ($operationsSummary['refresh_candidates'] ?? 0) }}</div>
-        </div>
-        <div class="rounded-lg border border-border bg-surface px-4 py-3">
-            <div class="text-[11px] uppercase tracking-[0.18em] text-textSecondary">AI Optimized</div>
-            <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ (int) ($operationsSummary['ai_optimized_count'] ?? 0) }}</div>
-        </div>
-    </div>
-
-    <div class="mt-6 grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+    <div class="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
         <section class="rounded-lg border border-border bg-surface">
             <div class="flex items-center justify-between border-b border-border px-4 py-3">
                 <div>

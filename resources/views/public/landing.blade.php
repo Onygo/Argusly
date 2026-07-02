@@ -129,6 +129,40 @@
     </div>
 </section>
 
+{{-- AI Governance --}}
+@php
+    $aiGovernance = trans('public.landing.ai_governance');
+@endphp
+<section class="bg-white">
+    <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
+        <div class="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div>
+                <p class="pl-public-eyebrow">{{ $aiGovernance['eyebrow'] }}</p>
+                <h2 class="mt-3 pl-public-heading pl-public-heading-h2">{{ $aiGovernance['title'] }}</h2>
+                <p class="mt-4 text-sm leading-7 text-textSecondary md:text-base">{{ $aiGovernance['text'] }}</p>
+                <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.product.governance', [], app()->getLocale()) }}" class="pl-public-primary-button">
+                        {{ $aiGovernance['primary_cta'] }}
+                    </a>
+                    <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.legal.ai-transparency', [], app()->getLocale()) }}" class="pl-public-secondary-button">
+                        {{ $aiGovernance['secondary_cta'] }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                @foreach($aiGovernance['cards'] as $card)
+                    <article class="pl-public-card-compact p-5">
+                        <x-public.icon :name="$card['icon']" size="sm" />
+                        <h3 class="mt-4 text-sm font-semibold text-textPrimary">{{ $card['title'] }}</h3>
+                        <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $card['text'] }}</p>
+                    </article>
+                @endforeach
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- How It Works --}}
 <section id="how" class="border-y border-publicPrimary/10 bg-publicPrimary">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">

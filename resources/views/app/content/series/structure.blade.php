@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Series Structure'])
 
+@section('pageHeader')
+    <x-page-header title="Step 3: Structure">
+        <x-slot:description>Review and refine the content series structure.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $isReadOnly = $isReadOnly ?? ($series->isLocked() || $series->isArchived());
@@ -9,7 +15,7 @@
 
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Step 3: Structure</h1>
+            <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">Step 3: Structure</h2>
             <p class="mt-1 max-w-3xl text-textSecondary">Review the generated article stack, confirm the pillar article, and keep the remaining articles as supporting content before draft generation.</p>
         </div>
         <div class="flex flex-wrap gap-2">

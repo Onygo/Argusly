@@ -100,8 +100,7 @@ final class MarketingNavigation
             ],
             [
                 'label' => __('public.platform_nav.governance_security'),
-                'route' => 'public.product.platform',
-                'anchor' => '#governance',
+                'route' => 'public.product.governance',
                 'description' => __('public.platform_nav.governance_security_description'),
             ],
         ];
@@ -260,6 +259,10 @@ final class MarketingNavigation
                 'route' => 'public.product.platform',
             ],
             [
+                'label' => __('public.platform_nav.governance_security'),
+                'route' => 'public.product.governance',
+            ],
+            [
                 'label' => __('public.solutions.opportunity_intelligence'),
                 'route' => 'public.solutions.opportunity-intelligence',
             ],
@@ -343,6 +346,10 @@ final class MarketingNavigation
             [
                 'label' => __('public.footer.security'),
                 'route' => 'public.legal.security',
+            ],
+            [
+                'label' => __('public.footer.ai_transparency'),
+                'route' => 'public.legal.ai-transparency',
             ],
             [
                 'label' => __('public.footer.cookies'),

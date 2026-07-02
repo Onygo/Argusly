@@ -257,6 +257,12 @@ class SeriesBriefPayloadFactory
             trim((string) data_get($series->strategy_json, 'meta.strategic_positioning', '')) !== ''
                 ? 'Strategic positioning: ' . trim((string) data_get($series->strategy_json, 'meta.strategic_positioning', ''))
                 : null,
+            trim((string) data_get($series->strategy_json, 'meta.complete_briefing.raw', '')) !== ''
+                ? 'Complete chain briefing: ' . \Illuminate\Support\Str::limit(trim((string) data_get($series->strategy_json, 'meta.complete_briefing.raw', '')), 20000, '')
+                : null,
+            trim((string) data_get($series->strategy_json, 'meta.complete_briefing.raw', '')) !== ''
+                ? 'Use the complete chain briefing as source-of-truth context for this article.'
+                : null,
             $internalLinksTo !== [] ? 'Internal links to: ' . implode(', ', $internalLinksTo) : null,
             trim((string) data_get($article, 'editorial_angle', '')) !== ''
                 ? 'Editorial guidance: ' . trim((string) data_get($article, 'editorial_angle', ''))

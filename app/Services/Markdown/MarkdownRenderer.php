@@ -6,6 +6,7 @@ use App\Models\Content;
 use App\Services\Content\AnswerBlockInjectorService;
 use App\Services\Content\AnswerBlockSchemaService;
 use App\Services\Content\ContentRenderer;
+use App\Services\ContentVisuals\VisualRenderer;
 use App\Support\SeoMetadata;
 use DOMDocument;
 use DOMElement;
@@ -62,6 +63,7 @@ class MarkdownRenderer
         private readonly MarkdownEligibilityService $eligibility,
         private readonly AnswerBlockInjectorService $answerBlockInjector,
         private readonly AnswerBlockSchemaService $answerBlockSchema,
+        private readonly VisualRenderer $visualRenderer,
     ) {}
 
     /**
@@ -81,7 +83,7 @@ class MarkdownRenderer
         $resolvedLocale = $this->eligibility->resolveLocale($content, $locale);
         $source = $this->resolveSourceSnapshot($content);
         $bodyHtml = $this->normalizeBodyHtml(
-            $source['html'],
+            $this->visualRenderer->renderContentHtml($content, $source['html']),
             trim((string) $content->title)
         );
         $bodyMarkdown = $this->convertBodyHtmlToMarkdown($bodyHtml);
@@ -670,6 +672,8 @@ class MarkdownRenderer
                 'blockquote' => $this->renderBlockquote($child),
                 'pre' => $this->renderPreformatted($child),
                 'table' => $this->renderTable($child),
+                'figure' => $this->renderFigure($child),
+                'img' => $this->renderImage($child) . "\n\n",
                 'hr' => "---\n\n",
                 'br' => "\n",
                 default => $this->renderFallbackElement($child, $listDepth),
@@ -703,6 +707,7 @@ class MarkdownRenderer
                 'em', 'i' => '*' . $this->renderInlineChildren($child) . '*',
                 'code' => '`' . trim($child->textContent ?? '') . '`',
                 'a' => $this->renderLink($child),
+                'img' => $this->renderImage($child),
                 'br' => "\n",
                 default => $this->renderInlineChildren($child),
             };
@@ -879,6 +884,42 @@ class MarkdownRenderer
         $inline = $this->renderInlineChildren($element);
 
         return $inline !== '' ? $inline . "\n\n" : '';
+    }
+
+    private function renderFigure(DOMElement $figure): string
+    {
+        $imageMarkdown = '';
+        foreach ($figure->getElementsByTagName('img') as $img) {
+            if ($img instanceof DOMElement) {
+                $imageMarkdown = $this->renderImage($img);
+                break;
+            }
+        }
+
+        $caption = '';
+        foreach ($figure->getElementsByTagName('figcaption') as $figcaption) {
+            if ($figcaption instanceof DOMElement) {
+                $caption = $this->renderInlineChildren($figcaption);
+                break;
+            }
+        }
+
+        $structuredText = $imageMarkdown === '' ? trim($this->renderBlockChildren($figure)) : '';
+        $parts = array_values(array_filter([$imageMarkdown, $structuredText, $caption], fn (string $part) => trim($part) !== ''));
+
+        return $parts !== [] ? implode("\n\n", $parts) . "\n\n" : '';
+    }
+
+    private function renderImage(DOMElement $img): string
+    {
+        $src = trim((string) $img->getAttribute('src'));
+        if ($src === '') {
+            return '';
+        }
+
+        $alt = $this->sanitizeInlineText((string) $img->getAttribute('alt'));
+
+        return '![' . str_replace([']', "\n"], ['', ' '], $alt) . '](' . str_replace([')', "\n"], ['%29', ''], $src) . ')';
     }
 
     private function normalizeMarkdown(string $markdown): string

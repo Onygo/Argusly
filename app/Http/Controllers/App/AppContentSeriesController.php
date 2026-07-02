@@ -22,6 +22,7 @@ use App\Services\Content\SeriesPublishingService;
 use App\Services\Content\SeriesStructureService;
 use App\Services\Content\SeriesStrategyService;
 use App\Services\Content\SeriesTranslationService;
+use App\Support\CompleteContentBriefingParser;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -98,9 +99,10 @@ class AppContentSeriesController extends Controller
 
         $data = $request->validate([
             'site_id' => ['required', 'uuid', Rule::in($siteIds ?: ['__none__'])],
-            'name' => ['required', 'string', 'max:255'],
-            'main_topic' => ['required', 'string', 'max:255'],
-            'primary_keyword' => ['required', 'string', 'max:255'],
+            'complete_briefing' => ['nullable', 'string', 'max:50000'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'main_topic' => ['nullable', 'string', 'max:255'],
+            'primary_keyword' => ['nullable', 'string', 'max:255'],
             'supporting_keywords' => ['nullable', 'string', 'max:5000'],
             'article_plan' => ['nullable', 'string', 'max:10000'],
             'source_references' => ['nullable', 'string', 'max:10000'],
@@ -114,6 +116,10 @@ class AppContentSeriesController extends Controller
             'articles_count' => ['nullable', 'integer', 'min:1', 'max:20'],
             'content_type' => ['nullable', 'string', Rule::in(WordPressPostType::values())],
         ]);
+
+        $completeBriefing = CompleteContentBriefingParser::parse((string) ($data['complete_briefing'] ?? ''));
+        $data = $this->hydrateSeriesDataFromCompleteBriefing($data, $completeBriefing);
+        $this->assertRequiredSeriesData($data);
 
         $editorialPlan = $this->parseEditorialArticlePlan((string) ($data['article_plan'] ?? ''));
         $sourceReferences = $this->parseSourceReferences((string) ($data['source_references'] ?? $data['source_url'] ?? ''));
@@ -139,7 +145,7 @@ class AppContentSeriesController extends Controller
             'content_type' => $this->nullableString($data['content_type'] ?? null) ?? WordPressPostType::POST->value,
             'status' => ContentSeries::STATUS_DRAFT,
             'is_locked' => false,
-            'strategy_json' => $this->initialStrategyJson($editorialPlan, (string) $data['primary_keyword'], $sourceReferences, $strategicPositioning),
+            'strategy_json' => $this->initialStrategyJson($editorialPlan, (string) $data['primary_keyword'], $sourceReferences, $strategicPositioning, $completeBriefing),
             'created_by' => $request->user()->id,
         ]);
 
@@ -569,6 +575,80 @@ class AppContentSeriesController extends Controller
     }
 
     /**
+     * @param array<string,mixed> $data
+     * @param array{raw:string,sections:array<string,string>,derived:array<string,mixed>} $completeBriefing
+     * @return array<string,mixed>
+     */
+    private function hydrateSeriesDataFromCompleteBriefing(array $data, array $completeBriefing): array
+    {
+        if (trim((string) ($completeBriefing['raw'] ?? '')) === '') {
+            return $data;
+        }
+
+        $derived = (array) ($completeBriefing['derived'] ?? []);
+        $title = trim((string) ($derived['title'] ?? ''));
+        $primaryKeyword = trim((string) ($derived['primary_keyword'] ?? ''));
+
+        if (trim((string) ($data['name'] ?? '')) === '' && $title !== '') {
+            $data['name'] = $title;
+        }
+
+        if (trim((string) ($data['main_topic'] ?? '')) === '') {
+            $data['main_topic'] = $primaryKeyword !== '' ? $primaryKeyword : $title;
+        }
+
+        if (trim((string) ($data['primary_keyword'] ?? '')) === '' && $primaryKeyword !== '') {
+            $data['primary_keyword'] = $primaryKeyword;
+        }
+
+        if (trim((string) ($data['supporting_keywords'] ?? '')) === '' && ! empty($derived['secondary_keywords'])) {
+            $data['supporting_keywords'] = implode("\n", (array) $derived['secondary_keywords']);
+        }
+
+        if (trim((string) ($data['audience'] ?? '')) === '' && ! empty($derived['target_audience'])) {
+            $data['audience'] = implode(', ', (array) $derived['target_audience']);
+        }
+
+        if (trim((string) ($data['tone'] ?? '')) === '' && trim((string) ($derived['tone'] ?? '')) !== '') {
+            $data['tone'] = (string) $derived['tone'];
+        }
+
+        if (trim((string) ($data['funnel_stage'] ?? '')) === '' && trim((string) ($derived['funnel_stage'] ?? '')) !== '') {
+            $data['funnel_stage'] = (string) $derived['funnel_stage'];
+        }
+
+        if (trim((string) ($data['strategic_positioning'] ?? '')) === '' && trim((string) ($derived['strategic_positioning'] ?? '')) !== '') {
+            $data['strategic_positioning'] = (string) $derived['strategic_positioning'];
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     */
+    private function assertRequiredSeriesData(array $data): void
+    {
+        $errors = [];
+
+        if (trim((string) ($data['name'] ?? '')) === '') {
+            $errors['name'] = 'Add a series name or paste a complete briefing with a working title.';
+        }
+
+        if (trim((string) ($data['main_topic'] ?? '')) === '') {
+            $errors['main_topic'] = 'Add a main topic or paste a complete briefing with a primary keyword.';
+        }
+
+        if (trim((string) ($data['primary_keyword'] ?? '')) === '') {
+            $errors['primary_keyword'] = 'Add a primary keyword or paste a complete briefing that includes one.';
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
      * @param  array<string, array<int, string>>  $errors
      */
     private function formatValidationMessages(array $errors): string
@@ -871,11 +951,14 @@ class AppContentSeriesController extends Controller
 
     /**
      * @param array<int,array{title:string,angle:string}> $editorialPlan
+     * @param array{raw:string,sections:array<string,string>,derived:array<string,mixed>} $completeBriefing
      * @return array<string,mixed>
      */
-    private function initialStrategyJson(array $editorialPlan, string $primaryKeyword, array $sourceReferences, ?string $strategicPositioning): ?array
+    private function initialStrategyJson(array $editorialPlan, string $primaryKeyword, array $sourceReferences, ?string $strategicPositioning, array $completeBriefing = []): ?array
     {
-        if ($editorialPlan === [] && $sourceReferences === [] && $strategicPositioning === null) {
+        $hasCompleteBriefing = trim((string) ($completeBriefing['raw'] ?? '')) !== '';
+
+        if ($editorialPlan === [] && $sourceReferences === [] && $strategicPositioning === null && ! $hasCompleteBriefing) {
             return null;
         }
 
@@ -897,6 +980,15 @@ class AppContentSeriesController extends Controller
 
         if ($strategicPositioning !== null) {
             $strategy['meta']['strategic_positioning'] = $strategicPositioning;
+        }
+
+        if ($hasCompleteBriefing) {
+            $strategy['meta']['complete_briefing'] = [
+                'raw' => (string) $completeBriefing['raw'],
+                'sections' => (array) ($completeBriefing['sections'] ?? []),
+                'derived' => (array) ($completeBriefing['derived'] ?? []),
+                'created_at' => now()->toIso8601String(),
+            ];
         }
 
         return $strategy;

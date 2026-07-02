@@ -126,6 +126,15 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->prepend(BlockSuspiciousTraffic::class);
+        $middleware->redirectUsersTo(function (Request $request): string {
+            $user = $request->user();
+
+            if ($user && (bool) ($user->is_admin ?? false)) {
+                return \App\Support\DomainHelper::url('admin', '/dashboard');
+            }
+
+            return \App\Support\DomainHelper::url('app', '/dashboard');
+        });
 
         // Route middleware (vervanger van $routeMiddleware)
         $middleware->alias([

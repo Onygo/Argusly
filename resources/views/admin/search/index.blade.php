@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['title' => 'Search'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Search</x-slot:title>
+        <x-slot:description>Results for "{{ $q !== '' ? $q : '...' }}"</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-textPrimary">Search</h1>
-        <p class="mt-1 text-sm text-textSecondary">Results for "{{ $q !== '' ? $q : '...' }}"</p>
-    </div>
 
     @if($q === '')
         <div class="rounded-lg border border-border bg-surface p-5 text-sm text-textSecondary">

@@ -11,6 +11,7 @@ use App\Models\TeamMember;
 use App\Models\Workspace;
 use App\Models\WriterProfile;
 use App\Services\Credits\GenerationPricing;
+use App\Services\ContentVisuals\VisualPlanService;
 use App\Services\Editorial\EditorialPlanningService;
 use App\Services\HumanSignals\HumanSignalContextBuilder;
 use App\Services\Llm\Data\LlmMessage;
@@ -34,8 +35,10 @@ class DraftGenerationService
         protected CreditWalletService $credits,
         protected LlmManager $llmManager,
         protected GenerationPricing $pricing,
+        protected ?VisualPlanService $visualPlans = null,
         protected ?HumanSignalContextBuilder $humanSignalContext = null,
         protected ?HeadingQualityEvaluator $headingQualityEvaluator = null,
+        protected ?HeadingRepairService $headingRepairService = null,
         protected ?EditorialPlanningService $editorialPlanningService = null,
     ) {}
 
@@ -178,6 +181,8 @@ class DraftGenerationService
 
         $result = $this->normalizeGeneratedSeoMetadata($result);
         $result = $this->normalizeGeneratedDutchCasing($draft, $result);
+        $result = $this->repairHeadingQuality($draft, $result, $payload);
+        $result = $this->normalizeGeneratedDutchCasing($draft, $result);
         $result = $this->attachHeadingQualityScore($draft, $result);
 
         $this->validateResult($result);
@@ -191,8 +196,39 @@ class DraftGenerationService
         $normalized['required_credits'] = (int) data_get($draft->meta, 'required_credits', (int) ($draft->credit_cost ?? 0));
         $normalized['charged_credits'] = (int) ($draft->credit_cost ?? 0);
         $normalized['model_used'] = (string) $response->modelUsed;
+        $normalized['settings'] = [
+            'temperature' => (float) config('llm.defaults.temperature', 0.3),
+            'max_tokens' => $maxOutputTokens,
+            'response_format' => 'json',
+        ];
+        $normalized['prompt_snapshot'] = [
+            'system' => $this->promptProvenanceSnapshot((string) ($payload['system'] ?? '')),
+            'user' => $this->promptProvenanceSnapshot((string) ($payload['user'] ?? '')),
+        ];
 
         return $normalized;
+    }
+
+    /**
+     * @return array{hash:?string,summary:?string,contains_redactions:bool}
+     */
+    private function promptProvenanceSnapshot(string $prompt): array
+    {
+        $prompt = trim($prompt);
+
+        if ($prompt === '') {
+            return [
+                'hash' => null,
+                'summary' => null,
+                'contains_redactions' => true,
+            ];
+        }
+
+        return [
+            'hash' => 'sha256:' . hash('sha256', $prompt),
+            'summary' => Str::limit(preg_replace('/\s+/u', ' ', $prompt) ?: $prompt, 500, ''),
+            'contains_redactions' => true,
+        ];
     }
 
     private function generateJsonWithTokenFallback(
@@ -423,6 +459,8 @@ class DraftGenerationService
             'Output must follow the requested JSON schema only.',
             'Do not include markdown fences and do not include commentary.',
             'HTML inside the JSON must be valid and use h2, h3, p, ul, ol, li, strong, em, a.',
+            'When a visual would improve comprehension, include it in visual_plan and add a matching <figure data-asset-key="..."></figure> placeholder after the relevant paragraph or section.',
+            'Visual placeholders must use only figure tags with data-asset-key; do not generate img, svg, canvas, chart HTML, or fake image URLs.',
             'Do not include html, head, or body tags.',
             'Do not create a generic "Related reading" paragraph or placeholder links.',
             'Internal links will be injected by the application after generation.',
@@ -975,7 +1013,25 @@ class DraftGenerationService
             '  ],',
             '  "links": [',
             '    { "href": "string", "anchor": "string", "rel": "string|null" }',
-            '  ]',
+            '  ],',
+            '  "visual_plan": {',
+            '    "featured": { "prompt": "string", "alt_text": "string", "caption": "string" },',
+            '    "assets": [',
+            '      {',
+            '        "asset_key": "kebab-case-stable-key",',
+            '        "type": "bar_chart|stat_card|comparison_visual|simple_process_diagram|image|diagram|conceptual_visual",',
+            '        "placement": "string, e.g. after H2: Section title",',
+            '        "caption": "string",',
+            '        "alt_text": "string",',
+            '        "prompt": "string instructions for image/diagram generation",',
+            '        "required": false,',
+            '        "structured_data": {',
+            '          "title": "string",',
+            '          "data": [{ "label": "string", "value": 0, "text": "string" }]',
+            '        }',
+            '      }',
+            '    ]',
+            '  }',
             '}',
         ]);
     }
@@ -1117,18 +1173,6 @@ class DraftGenerationService
             throw new RuntimeException('Meta description exceeds 155 characters.');
         }
 
-        $headingQuality = Arr::get($result, 'meta.heading_quality', []);
-        $passed = (bool) Arr::get($headingQuality, 'passed', false);
-        $score = (int) Arr::get($headingQuality, 'score', 0);
-        if (! $passed || $score < HeadingQualityEvaluator::MIN_SCORE) {
-            $issues = array_slice((array) Arr::get($headingQuality, 'issues', []), 0, 5);
-            $message = 'Heading Quality Score failed: ' . $score . '/100.';
-            if ($issues !== []) {
-                $message .= ' ' . implode(' ', array_map('strval', $issues));
-            }
-
-            throw new RuntimeException($message);
-        }
     }
 
     /**
@@ -1230,11 +1274,19 @@ class DraftGenerationService
             $meta = [];
         }
 
-        $meta['heading_quality'] = [
+        $existingHeadingQuality = Arr::get($meta, 'heading_quality', []);
+        $existingRepair = Arr::get($meta, 'heading_quality_repair', []);
+        $repairStatus = is_array($existingRepair) ? (string) ($existingRepair['status'] ?? '') : '';
+        $needsEditorialReview = $repairStatus === 'needs_editorial_review' && ! (bool) $evaluation['passed'];
+
+        $meta['heading_quality'] = array_merge(is_array($existingHeadingQuality) ? $existingHeadingQuality : [], [
             'score' => $evaluation['score'],
             'passed' => $evaluation['passed'],
             'threshold' => HeadingQualityEvaluator::MIN_SCORE,
             'issues' => $evaluation['issues'],
+            'status' => (bool) $evaluation['passed'] ? 'passed' : ($needsEditorialReview ? 'needs_editorial_review' : 'failed_soft'),
+            'blocks_generation' => false,
+            'needs_editorial_review' => $needsEditorialReview,
             'headings' => collect($evaluation['headings'])
                 ->map(fn (array $heading): array => [
                     'text' => (string) ($heading['text'] ?? ''),
@@ -1242,10 +1294,92 @@ class DraftGenerationService
                     'score' => (int) ($heading['score'] ?? 0),
                     'passed' => (bool) ($heading['passed'] ?? false),
                     'issue' => $heading['issue'] ?? null,
+                    'source' => $heading['source'] ?? null,
                 ])
                 ->values()
                 ->all(),
-        ];
+        ]);
+
+        Arr::set($result, 'meta', $meta);
+
+        return $result;
+    }
+
+    /**
+     * @param  array<string,mixed>  $result
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>
+     */
+    private function repairHeadingQuality(Draft $draft, array $result, array $payload): array
+    {
+        $evaluationResult = $this->resultForHeadingQualityEvaluation($result);
+        $evaluation = $this->headingQuality()->evaluateResult($evaluationResult, $this->headingQualityContext($draft));
+
+        if ((bool) $evaluation['passed']) {
+            return $this->markHeadingRepairSkipped($result, 'not_needed');
+        }
+
+        try {
+            return $this->headingRepair()->repair(
+                draft: $draft,
+                result: $result,
+                context: $this->headingQualityContext($draft),
+                llmOptions: [
+                    'provider' => (string) ($payload['provider'] ?? ''),
+                    'model' => (string) ($payload['model'] ?? ''),
+                    'workspace_id' => (string) ($payload['workspace_id'] ?? ''),
+                ],
+                maxIterations: 3,
+            );
+        } catch (Throwable $exception) {
+            Log::warning('Draft heading quality repair failed; preserving generated draft for editorial review.', [
+                'draft_id' => (string) ($draft->id ?? ''),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $this->markHeadingRepairSkipped($result, 'needs_editorial_review', $exception->getMessage());
+        }
+    }
+
+    /**
+     * @param  array<string,mixed>  $result
+     * @return array<string,mixed>
+     */
+    private function resultForHeadingQualityEvaluation(array $result): array
+    {
+        $evaluationResult = $result;
+        $sections = Arr::get($evaluationResult, 'sections', []);
+        if (is_array($sections) && isset($sections[0]) && is_array($sections[0])) {
+            $firstHeading = trim((string) Arr::get($sections[0], 'heading', ''));
+            if ($this->isIntroHeading($firstHeading)) {
+                Arr::set($sections[0], 'heading', '');
+                Arr::set($evaluationResult, 'sections', $sections);
+            }
+        }
+
+        return $evaluationResult;
+    }
+
+    /**
+     * @param  array<string,mixed>  $result
+     * @return array<string,mixed>
+     */
+    private function markHeadingRepairSkipped(array $result, string $status, ?string $reason = null): array
+    {
+        $meta = Arr::get($result, 'meta', []);
+        if (! is_array($meta)) {
+            $meta = [];
+        }
+
+        $meta['heading_quality_repair'] = array_filter([
+            'version' => 'heading_repair_v1',
+            'status' => $status,
+            'iterations' => [],
+            'repaired_headings' => 0,
+            'remaining_issues' => [],
+            'reason' => $reason !== null ? Str::limit($reason, 500) : null,
+            'repaired_at' => now()->toIso8601String(),
+        ], fn (mixed $value): bool => $value !== null);
 
         Arr::set($result, 'meta', $meta);
 
@@ -1269,6 +1403,11 @@ class DraftGenerationService
     private function headingQuality(): HeadingQualityEvaluator
     {
         return $this->headingQualityEvaluator ??= app(HeadingQualityEvaluator::class);
+    }
+
+    private function headingRepair(): HeadingRepairService
+    {
+        return $this->headingRepairService ??= app(HeadingRepairService::class);
     }
 
     private function humanSignalContext(): HumanSignalContextBuilder
@@ -1378,6 +1517,10 @@ class DraftGenerationService
             $links = [];
         }
 
+        $visualPlans = $this->visualPlans ??= app(VisualPlanService::class);
+        $visualPlan = $visualPlans->normalize(Arr::get($result, 'visual_plan', []));
+        $meta = $visualPlans->putInMeta($meta, $visualPlan);
+
         $actualWordCount = str_word_count(strip_tags($contentHtml));
         if ($draft->content_id) {
             Content::query()
@@ -1390,6 +1533,7 @@ class DraftGenerationService
             'content_html' => $contentHtml,
             'meta' => $meta,
             'links' => $links,
+            'visual_plan' => $visualPlan,
         ];
     }
 

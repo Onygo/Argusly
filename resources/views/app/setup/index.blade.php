@@ -1,12 +1,15 @@
 @extends('layouts.app', ['title' => 'Setup'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Setup</x-slot:title>
+        <x-slot:description>Prepare this workspace for Signal Intelligence, AI Visibility, Opportunity Intelligence, execution planning and content operations.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Setup</h1>
-                <p class="mt-1 max-w-3xl text-sm leading-6 text-textSecondary">Prepare this workspace for Signal Intelligence, AI Visibility, Opportunity Intelligence, execution planning and content operations.</p>
-            </div>
             <form method="GET" action="{{ route('app.setup.index') }}">
                 <select name="workspace" class="pl-work-select" onchange="this.form.submit()">
                     @foreach ($workspaces as $option)

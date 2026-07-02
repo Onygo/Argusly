@@ -465,7 +465,7 @@ class PushContentFeaturedImageToWordPress
             return null;
         }
 
-        $disk = Storage::disk((string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public')));
+        $disk = Storage::disk((string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images')));
         if (! $disk->exists($path)) {
             return null;
         }

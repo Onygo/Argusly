@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Learnings'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Analytics Not Configured</x-slot:title>
+        <x-slot:description>Enable analytics to start tracking page views and engagement.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <x-app.insights-header
@@ -16,10 +23,8 @@
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accentYellow-100">
             <i data-lucide="bar-chart-3" class="h-8 w-8 text-accentYellow-900"></i>
         </div>
-        <h2 class="text-lg font-semibold text-textPrimary">Analytics Not Configured</h2>
 
         @if (!$analyticsSite)
-            <p class="mt-2 text-textSecondary">Enable analytics to start tracking page views and engagement.</p>
             <a href="{{ route('app.sites.analytics.show', $site) }}" class="mt-4 inline-block rounded bg-primary px-4 py-2 text-sm text-white">
                 Enable Analytics
             </a>

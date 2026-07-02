@@ -1,44 +1,44 @@
 @extends('layouts.admin', ['title' => 'User detail'])
 
+@php
+    $userStatusLabel = ! $managedUser->approved_at
+        ? 'Pending'
+        : ($managedUser->active ? 'Active' : 'Disabled');
+    $userStatusClass = ! $managedUser->approved_at
+        ? 'border-amber-300/80 bg-amber-500/10 text-amber-800'
+        : ($managedUser->active ? 'border-emerald-300/80 bg-emerald-500/10 text-emerald-800' : 'border-border bg-background text-textSecondary');
+    $latestAccessOverride = $managedUser->latestAccessOverride;
+    $latestAccessOverrideStatus = $latestAccessOverride?->effectiveStatus();
+    $activeOverrideStatus = $activeAccessOverride?->effectiveStatus();
+    $formAction = $openAccessOverride
+        ? route('admin.users.access-overrides.extend', [$managedUser, $openAccessOverride])
+        : route('admin.users.access-overrides.store', $managedUser);
+    $defaultStartsAt = old('starts_at', now()->format('Y-m-d\TH:i'));
+    $defaultType = old('type', $openAccessOverride?->type?->value ?? \App\Enums\AccessOverrideType::EARLY_ACCESS->value);
+    $defaultEndsAt = old('ends_at', optional($openAccessOverride?->ends_at)->format('Y-m-d\TH:i'));
+    $defaultReason = old('reason', $openAccessOverride?->reason);
+    $defaultNotes = old('notes', $openAccessOverride?->notes);
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$managedUser->name">
+        <x-slot:description>{{ $managedUser->email }}</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $userStatusClass }}">
+        {{ $userStatusLabel }}
+    </span>
+    @if ($latestAccessOverrideStatus)
+        <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $latestAccessOverrideStatus->badgeClasses() }}">
+            {{ $latestAccessOverrideStatus->label() }}
+        </span>
+    @endif
+    <a href="{{ route('admin.users') }}" class="pl-btn-secondary">Back to users</a>
+@endsection
+
 @section('content')
-    @php
-        $userStatusLabel = ! $managedUser->approved_at
-            ? 'Pending'
-            : ($managedUser->active ? 'Active' : 'Disabled');
-        $userStatusClass = ! $managedUser->approved_at
-            ? 'border-amber-300/80 bg-amber-500/10 text-amber-800'
-            : ($managedUser->active ? 'border-emerald-300/80 bg-emerald-500/10 text-emerald-800' : 'border-border bg-background text-textSecondary');
-        $latestAccessOverride = $managedUser->latestAccessOverride;
-        $latestAccessOverrideStatus = $latestAccessOverride?->effectiveStatus();
-        $activeOverrideStatus = $activeAccessOverride?->effectiveStatus();
-        $formAction = $openAccessOverride
-            ? route('admin.users.access-overrides.extend', [$managedUser, $openAccessOverride])
-            : route('admin.users.access-overrides.store', $managedUser);
-        $defaultStartsAt = old('starts_at', now()->format('Y-m-d\TH:i'));
-        $defaultType = old('type', $openAccessOverride?->type?->value ?? \App\Enums\AccessOverrideType::EARLY_ACCESS->value);
-        $defaultEndsAt = old('ends_at', optional($openAccessOverride?->ends_at)->format('Y-m-d\TH:i'));
-        $defaultReason = old('reason', $openAccessOverride?->reason);
-        $defaultNotes = old('notes', $openAccessOverride?->notes);
-    @endphp
-
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $managedUser->name }}</h1>
-            <p class="mt-1 text-sm text-textSecondary">{{ $managedUser->email }}</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $userStatusClass }}">
-                {{ $userStatusLabel }}
-            </span>
-            @if ($latestAccessOverrideStatus)
-                <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $latestAccessOverrideStatus->badgeClasses() }}">
-                    {{ $latestAccessOverrideStatus->label() }}
-                </span>
-            @endif
-            <a href="{{ route('admin.users') }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to users</a>
-        </div>
-    </div>
-
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

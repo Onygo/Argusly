@@ -25,79 +25,68 @@
     $changedLiveContent = $appliedChanges !== [] || data_get($result, 'created_draft_id') || data_get($result, 'created_content_id');
 @endphp
 
+@section('pageHeader')
+    <x-page-header :title="$action->opportunity?->title ?? str_replace('_', ' ', $action->action_type)" :eyebrow="$action->objective?->name ?? 'Agentic Marketing'">
+        <x-slot:actions>
+            <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $statusClasses[$action->status] ?? 'bg-slate-100 text-slate-700' }}">{{ ucfirst((string) $action->status) }}</span>
+            <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', (string) $action->action_type) }}</span>
+        </x-slot:actions>
+    </x-page-header>
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ data_get($action->payload, 'recommendation', 'Supervised Agentic Marketing action.') }}</x-page-description>
+@endsection
+
+@section('primaryActions')
+    @if ($action->opportunity)
+        <a href="{{ route('app.agentic-marketing.opportunities.execution.show', $action->opportunity) }}" class="pl-btn-ghost">
+            <i data-lucide="workflow" class="h-4 w-4"></i><span>Execution pipeline</span>
+        </a>
+    @endif
+    @if ($action->status === 'proposed')
+        <form method="POST" action="{{ route('app.agentic-marketing.actions.approve', $action) }}">
+            @csrf
+            <button class="pl-btn-primary" type="submit"><i data-lucide="check" class="h-4 w-4"></i><span>Approve</span></button>
+        </form>
+    @elseif ($action->status === 'approved')
+        <form method="POST" action="{{ route('app.agentic-marketing.actions.execute', $action) }}">
+            @csrf
+            <button class="pl-btn-primary" type="submit"><i data-lucide="play" class="h-4 w-4"></i><span>Execute</span></button>
+        </form>
+    @elseif ($action->status === 'failed')
+        <form method="POST" action="{{ route('app.agentic-marketing.actions.retry', $action) }}">
+            @csrf
+            <button class="pl-btn-primary" type="submit"><i data-lucide="rotate-cw" class="h-4 w-4"></i><span>Retry</span></button>
+        </form>
+    @endif
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Cost" :value="(int) ($action->estimated_credits ?? data_get($planning, 'estimated_credits', 0))" helper="estimated credits" />
+        <x-metric-card label="Risk" :value="ucfirst((string) data_get($planning, 'risk_level', 'n/a'))" :helper="data_get($planning, 'approval_required') ? 'approval required' : 'policy pre-cleared'" />
+        <x-metric-card label="Prerequisites" :value="data_get($planning, 'prerequisites.met') === false ? 'Blocked' : 'Ready'" :helper="data_get($planning, 'approval_reason', 'No policy note recorded.')" />
+        <x-metric-card label="Credits" :value="$action->credit_status === 'skipped' ? 'No charge' : ucfirst((string) ($action->credit_status ?? 'unreserved'))">
+            @if ($action->credit_status === 'skipped')
+                proposal-only execution
+            @elseif ($action->credits_captured)
+                captured {{ number_format((int) $action->credits_captured) }}
+            @elseif ($action->credits_reserved)
+                reserved {{ number_format((int) $action->credits_reserved) }}
+            @else
+                no reservation yet
+            @endif
+        </x-metric-card>
+    </x-metric-section>
+@endsection
+
 @section('content')
     <div class="space-y-6">
-        <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <a href="{{ route('app.agentic-marketing.objectives.show', $action->objective) }}" class="text-sm text-textSecondary hover:text-textPrimary">{{ $action->objective?->name ?? 'Agentic Marketing' }}</a>
-                <div class="mt-2 flex flex-wrap items-center gap-2">
-                    <h1 class="text-xl font-semibold text-textPrimary">{{ $action->opportunity?->title ?? str_replace('_', ' ', $action->action_type) }}</h1>
-                    <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $statusClasses[$action->status] ?? 'bg-slate-100 text-slate-700' }}">{{ ucfirst((string) $action->status) }}</span>
-                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', (string) $action->action_type) }}</span>
-                </div>
-                <p class="mt-2 max-w-4xl text-sm text-textSecondary">{{ data_get($action->payload, 'recommendation', 'Supervised Agentic Marketing action.') }}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                @if ($action->opportunity)
-                    <a href="{{ route('app.agentic-marketing.opportunities.execution.show', $action->opportunity) }}" class="pl-btn-ghost">
-                        <i data-lucide="workflow" class="h-4 w-4"></i><span>Execution pipeline</span>
-                    </a>
-                @endif
-                @if ($action->status === 'proposed')
-                    <form method="POST" action="{{ route('app.agentic-marketing.actions.approve', $action) }}">
-                        @csrf
-                        <button class="pl-btn-primary" type="submit"><i data-lucide="check" class="h-4 w-4"></i><span>Approve</span></button>
-                    </form>
-                @elseif ($action->status === 'approved')
-                    <form method="POST" action="{{ route('app.agentic-marketing.actions.execute', $action) }}">
-                        @csrf
-                        <button class="pl-btn-primary" type="submit"><i data-lucide="play" class="h-4 w-4"></i><span>Execute</span></button>
-                    </form>
-                @elseif ($action->status === 'failed')
-                    <form method="POST" action="{{ route('app.agentic-marketing.actions.retry', $action) }}">
-                        @csrf
-                        <button class="pl-btn-primary" type="submit"><i data-lucide="rotate-cw" class="h-4 w-4"></i><span>Retry</span></button>
-                    </form>
-                @endif
-            </div>
-        </header>
 
         @if (session('status'))
             <x-alert class="mb-4">{{ session('status') }}</x-alert>
         @endif
-
-        <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Cost</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ (int) ($action->estimated_credits ?? data_get($planning, 'estimated_credits', 0)) }}</div>
-                <p class="mt-1 text-xs text-textSecondary">estimated credits</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Risk</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ ucfirst((string) data_get($planning, 'risk_level', 'n/a')) }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ data_get($planning, 'approval_required') ? 'approval required' : 'policy pre-cleared' }}</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Prerequisites</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ data_get($planning, 'prerequisites.met') === false ? 'Blocked' : 'Ready' }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ data_get($planning, 'approval_reason', 'No policy note recorded.') }}</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Credits</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $action->credit_status === 'skipped' ? 'No charge' : ucfirst((string) ($action->credit_status ?? 'unreserved')) }}</div>
-                <p class="mt-1 text-xs text-textSecondary">
-                    @if ($action->credit_status === 'skipped')
-                        proposal-only execution
-                    @elseif ($action->credits_captured)
-                        captured {{ number_format((int) $action->credits_captured) }}
-                    @elseif ($action->credits_reserved)
-                        reserved {{ number_format((int) $action->credits_reserved) }}
-                    @else
-                        no reservation yet
-                    @endif
-                </p>
-            </div>
-        </section>
 
         <section class="grid gap-4 xl:grid-cols-2">
             <div class="rounded-lg border border-border bg-surface">

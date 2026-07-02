@@ -1,7 +1,6 @@
 @extends('layouts.app', ['title' => 'Draft detail'])
 
-@section('content')
-    @php
+@php
         $latestAnalysis = $draft->analysis;
         $analysisPayload = $latestAnalysis?->canonicalPayload() ?? [];
         $analysisSections = collect($draftIntelligenceSections ?? []);
@@ -38,6 +37,8 @@
             ? data_get($draft->meta, 'human_content_gate')
             : (is_array(data_get($analysisPayload, 'human_content_gate')) ? data_get($analysisPayload, 'human_content_gate') : []);
         $humanContentGateReasons = collect((array) data_get($humanContentGate, 'reasons', []))->filter()->values();
+        $isHumanContentGateBlocked = $humanContentGateReasons->isNotEmpty()
+            && ! (bool) data_get($humanContentGate, 'passed', false);
         $humanizationMeta = is_array(data_get($draft->meta, 'humanization')) ? data_get($draft->meta, 'humanization') : [];
         $humanizationNotes = collect((array) data_get($humanizationMeta, 'before_after_notes', []))->filter()->take(5)->values();
         $humanContentAfter = is_array(data_get($draft->meta, 'human_content.after')) ? data_get($draft->meta, 'human_content.after') : [];
@@ -79,10 +80,11 @@
         $opportunityId = trim((string) data_get($sourceContext, 'opportunity_id', ''));
         $signalDetectionIds = collect((array) data_get($sourceContext, 'signal_detection_ids', []))->filter()->values();
         $draftContent = $draft->content;
-        $draftSiteType = \App\Models\ClientSite::normalizeType((string) ($draft->clientSite?->type ?? ''));
-        $supportsImmediatePublish = $draftContent && in_array($draftSiteType, [
-            \App\Models\ClientSite::TYPE_WORDPRESS,
-            \App\Models\ClientSite::TYPE_LARAVEL,
+        $draftDestinationType = \App\Enums\ContentDestinationType::normalize($draftContent?->contentDestination?->type?->value ?? $draftContent?->contentDestination?->type)
+            ?? \App\Enums\ContentDestinationType::fromNormalized($draftContent?->clientSite?->type ?? $draft->clientSite?->type)?->value;
+        $supportsImmediatePublish = $draftContent && in_array($draftDestinationType, [
+            \App\Enums\ContentDestinationType::WORDPRESS->value,
+            \App\Enums\ContentDestinationType::LARAVEL->value,
         ], true);
         $statusPresenter = $draftContent ? \App\View\Presenters\ContentStatusPresenter::for($draftContent) : null;
         $publishStatus = trim((string) ($draftContent?->publish_status ?: $draftContent?->status ?: $draft->delivery_status ?: $draft->status));
@@ -105,24 +107,42 @@
             in_array($publishStatus, ['failed', 'missing_remote', 'failed_delivered'], true) => 'Retry publish',
             default => 'Publish article',
         };
-        $destinationLabel = match ($draftSiteType) {
-            \App\Models\ClientSite::TYPE_WORDPRESS => 'WordPress',
-            \App\Models\ClientSite::TYPE_LARAVEL => 'Laravel',
-            default => 'No publish destination',
-        };
+        $destinationLabel = \App\Enums\ContentDestinationType::label($draftDestinationType);
+        if ($destinationLabel === 'Unknown destination') {
+            $destinationLabel = 'No publish destination';
+        } elseif ($draftContent?->clientSite?->name) {
+            $destinationLabel .= ' · '.$draftContent->clientSite->name;
+        }
         $editorialPlan = is_array(data_get($draft->meta, 'editorial_plan')) ? data_get($draft->meta, 'editorial_plan') : [];
         $editorialSectionIntentions = collect((array) data_get($editorialPlan, 'section_intentions', []))->take(6)->values();
         $editorialEvidencePlan = collect((array) data_get($editorialPlan, 'evidence_plan', []))->take(5)->values();
         $editorialAvoidList = collect((array) data_get($editorialPlan, 'things_to_avoid', []))->take(5)->values();
         $editorialPrimaryPattern = is_array(data_get($editorialPlan, 'primary_pattern')) ? data_get($editorialPlan, 'primary_pattern') : [];
         $editorialSecondaryPattern = is_array(data_get($editorialPlan, 'secondary_pattern')) ? data_get($editorialPlan, 'secondary_pattern') : [];
-    @endphp
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$draft->title" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Status: {{ $draft->status }} · Language: {{ $draftLocaleLabel }}@if ($draft->isTranslation() && $sourceDraftLocaleLabel) (Source: {{ $sourceDraftLocaleLabel }})@endif · Type: {{ $draft->draft_type->label() }}</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Status" :value="$draft->status" />
+        <x-metric-card label="Language" :value="$draftLocaleLabel" :helper="$sourceDraftLocaleLabel ? 'Source: '.$sourceDraftLocaleLabel : null" />
+        <x-metric-card label="Type" :value="$draft->draft_type->label()" />
+        <x-metric-card label="Destination" :value="$destinationLabel" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <div class="mb-6">
         <div class="flex items-start justify-between gap-3">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $draft->title }}</h1>
-                <p class="text-textSecondary mt-1">Status: {{ $draft->status }}</p>
                 <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
                     <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1 text-textPrimary">
                         Language: {{ $draftLocaleLabel }}@if ($draft->isTranslation() && $sourceDraftLocaleLabel) (Source: {{ $sourceDraftLocaleLabel }})@endif
@@ -143,7 +163,7 @@
                     </a>
                 @endif
 
-                @if ($supportsImmediatePublish && $draftContent)
+                @if ($supportsImmediatePublish && $draftContent && ! $isHumanContentGateBlocked)
                     @can('update', $draftContent)
                         <form method="POST" action="{{ $publishActionRoute }}">
                             @csrf
@@ -578,6 +598,49 @@
                 </div>
             </div>
 
+            @php
+                $draftVisualPlan = app(\App\Services\ContentVisuals\VisualPlanService::class)
+                    ->fromMeta(is_array($draft->meta) ? $draft->meta : []);
+            @endphp
+            @if (($draftVisualPlan['featured'] ?? null) || !empty($draftVisualPlan['assets']))
+                <div class="rounded-lg border border-border bg-surface p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="text-sm font-medium text-textPrimary">Visual plan</div>
+                            <div class="mt-1 text-xs text-textSecondary">Planned visuals generated with this draft.</div>
+                        </div>
+                        <span class="rounded border border-border bg-background px-2 py-1 text-xs text-textSecondary">{{ count($draftVisualPlan['assets']) }} inline</span>
+                    </div>
+
+                    @if ($draftVisualPlan['featured'] ?? null)
+                        <div class="mt-3 rounded-md border border-border bg-background p-3 text-sm">
+                            <div class="font-medium text-textPrimary">Featured image suggestion</div>
+                            <div class="mt-1 text-textSecondary">{{ $draftVisualPlan['featured']['prompt'] ?? $draftVisualPlan['featured']['caption'] ?? 'Suggested featured image.' }}</div>
+                        </div>
+                    @endif
+
+                    @if (!empty($draftVisualPlan['assets']))
+                        <div class="mt-3 grid gap-2">
+                            @foreach ($draftVisualPlan['assets'] as $visualAsset)
+                                <div class="rounded-md border border-border bg-background p-3">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="font-mono text-xs text-textSecondary">{{ $visualAsset['asset_key'] }}</span>
+                                        <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">{{ str_replace('_', ' ', $visualAsset['type']) }}</span>
+                                        <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">{{ $visualAsset['status'] ?? 'pending' }}</span>
+                                    </div>
+                                    @if (!empty($visualAsset['caption']))
+                                        <div class="mt-2 text-sm text-textPrimary">{{ $visualAsset['caption'] }}</div>
+                                    @endif
+                                    @if (!empty($visualAsset['placement']))
+                                        <div class="mt-1 text-xs text-textSecondary">{{ $visualAsset['placement'] }}</div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <div class="rounded-lg border border-border bg-surface p-4 space-y-4">
                 <div class="rounded-md border border-border bg-background p-3">
                     <div class="flex items-start justify-between gap-3">
@@ -600,24 +663,36 @@
                     <div class="mt-3 flex flex-wrap gap-2">
                         @if ($supportsImmediatePublish && $draftContent)
                             @can('update', $draftContent)
-                                <form method="POST" action="{{ $publishActionRoute }}">
+                                <form method="POST" action="{{ $publishActionRoute }}" class="{{ $isHumanContentGateBlocked ? 'w-full space-y-2' : '' }}">
                                     @csrf
                                     <input type="hidden" name="locale" value="{{ $draft->language->value }}">
+                                    @if ($isHumanContentGateBlocked)
+                                        <label class="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                            <input
+                                                type="checkbox"
+                                                name="human_content_override"
+                                                value="1"
+                                                required
+                                                class="mt-0.5 h-4 w-4 rounded border-amber-300 text-primary focus:ring-primary"
+                                            >
+                                            <span>I reviewed this draft and want to override the Human Content gate for this manual publish.</span>
+                                        </label>
+                                    @endif
                                     <button
                                         class="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primaryHover disabled:cursor-not-allowed disabled:opacity-60"
                                         @disabled($isPublishInProgress)
                                     >
                                         <i data-lucide="{{ $isPublished ? 'refresh-cw' : 'send' }}" class="h-4 w-4" aria-hidden="true"></i>
-                                        {{ $publishActionLabel }}
+                                        {{ $isHumanContentGateBlocked ? 'Override and publish' : $publishActionLabel }}
                                     </button>
                                 </form>
                             @endcan
                         @endif
 
                         @if ($draftContent)
-                            <a href="{{ route('app.content.show', ['content' => $draftContent, 'tab' => 'overview']) }}" class="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                            <a href="{{ route('app.content.show', ['content' => $draftContent, 'tab' => 'overview', 'focus' => 'destination']) }}#publishing-destination" class="inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
                                 <i data-lucide="settings-2" class="h-4 w-4" aria-hidden="true"></i>
-                                Settings
+                                {{ $supportsImmediatePublish ? 'Settings' : 'Set destination' }}
                             </a>
                         @endif
 

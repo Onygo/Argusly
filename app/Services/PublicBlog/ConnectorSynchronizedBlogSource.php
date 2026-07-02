@@ -4,6 +4,7 @@ namespace App\Services\PublicBlog;
 
 use App\Contracts\PublicBlogSource;
 use App\Exceptions\PublicBlogSourceUnavailableException;
+use App\Models\ContentImage;
 use App\Services\Content\AnswerBlockInjectorService;
 use App\Services\Content\AnswerBlockSchemaService;
 use App\Models\Content;
@@ -534,9 +535,9 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
             return '';
         }
 
-        $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
+        $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images'));
 
-        return (string) Storage::disk($disk)->url($path);
+        return ContentImage::publicUrlForStorageValue((string) Storage::disk($disk)->url($path));
     }
 
     private function resolveLocale(Content $content, array $meta): ?string

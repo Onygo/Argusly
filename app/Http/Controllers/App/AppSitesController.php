@@ -17,6 +17,10 @@ use App\Services\PluginUpdates\PluginReleaseService;
 use App\Services\SubscriptionService;
 use App\Services\Sites\SiteApiKeyService;
 use App\Services\Sites\SiteConnectivityService;
+use App\Support\Interaction\Action;
+use App\Support\Interaction\AppInteractionRegistry;
+use App\Support\Interaction\ResourceContext;
+use App\Support\Interaction\ResourceType;
 use App\Support\SiteUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +54,10 @@ class AppSitesController extends Controller
             ->orderByDesc('created_at')
             ->simplePaginate(15)
             ->withQueryString();
+        [$interactionResourcesByKey, $interactionActionsByKey] = $this->resolveSiteIndexInteractionMetadata(
+            $sites->getCollection(),
+            $workspace
+        );
 
         $limits = $entitlements->limits($workspace);
         $usage = $entitlements->usage($workspace);
@@ -68,7 +76,67 @@ class AppSitesController extends Controller
             'hasActiveSubscription' => $hasActiveSubscription,
             'generatedKey' => session('site_plain_key'),
             'generatedSiteId' => session('site_generated_for'),
+            'interactionResourcesByKey' => $interactionResourcesByKey,
+            'interactionActionsByKey' => $interactionActionsByKey,
         ]);
+    }
+
+    /**
+     * @param iterable<int, ClientSite> $sites
+     * @return array{0: array<string, array>, 1: array<string, array<string, array>>}
+     */
+    private function resolveSiteIndexInteractionMetadata(iterable $sites, Workspace $workspace): array
+    {
+        $user = request()->user();
+        $sites = collect($sites)->values();
+        $resourceRegistry = AppInteractionRegistry::resourceRegistryFor($sites);
+        $actionRegistry = AppInteractionRegistry::actionRegistry();
+
+        $resourcesByKey = [];
+        $actionsByKey = [];
+
+        foreach ($sites as $site) {
+            $resourceKey = ResourceType::SITE.':'.$site->getKey();
+            $context = ResourceContext::make([
+                'user' => $user,
+                'surface' => Action::SURFACE_ROW,
+                'page_key' => 'app.sites.index',
+                'route_name' => 'app.sites',
+                'workspace_id' => $workspace->getKey(),
+                'organization_id' => $user?->organization_id,
+                'site_id' => $site->getKey(),
+                'resource_type' => ResourceType::SITE,
+                'resource_id' => $site->getKey(),
+                'subject' => $site,
+                'metadata' => [
+                    'site' => $site,
+                    'subject' => $site,
+                ],
+            ]);
+
+            $resource = $resourceRegistry->resolve($resourceKey, $context);
+
+            if ($resource === null || ! $resource['visible']) {
+                continue;
+            }
+
+            $resourcesByKey[$resourceKey] = $resource;
+            $actionsByKey[$resourceKey] = [];
+
+            foreach ($resource['available_actions'] as $actionKey) {
+                if (! $actionRegistry->has($actionKey)) {
+                    continue;
+                }
+
+                $action = $actionRegistry->resolve($actionKey, $context->toActionContext());
+
+                if ($action['visible'] && $action['method'] === 'GET') {
+                    $actionsByKey[$resourceKey][$actionKey] = $action;
+                }
+            }
+        }
+
+        return [$resourcesByKey, $actionsByKey];
     }
 
     public function store(

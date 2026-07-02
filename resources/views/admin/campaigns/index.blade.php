@@ -1,11 +1,14 @@
 @extends('layouts.admin', ['title' => 'Campaigns'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Campaigns</x-slot:title>
+        <x-slot:description>Agentic Marketing campaign orchestration across workspaces, content assets, approvals, and distribution plans.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Campaigns</h1>
-            <p class="mt-1 text-sm text-textSecondary">Agentic Marketing campaign orchestration across workspaces, content assets, approvals, and distribution plans.</p>
-        </div>
         <div class="rounded border border-border px-3 py-2 text-sm text-textSecondary">
             {{ number_format($channelCount) }} distribution channels configured
         </div>
@@ -21,52 +24,47 @@
         <button class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Apply</button>
     </form>
 
-    <div class="overflow-x-auto rounded-lg border border-border bg-surface">
-        <table class="w-full text-left text-sm">
-            <thead class="text-textSecondary">
-            <tr>
-                <th class="px-3 py-2">Campaign</th>
-                <th class="px-3 py-2">Workspace</th>
-                <th class="px-3 py-2">Status</th>
-                <th class="px-3 py-2">Schedule</th>
-                <th class="px-3 py-2">Assets</th>
-                <th class="px-3 py-2">Distribution</th>
-                <th class="px-3 py-2">Updated</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
+    <x-data-table label="Campaigns" description="Agentic marketing campaigns with workspace, status, schedule, assets, distribution, and update time." density="compact">
+            <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Campaign</x-data-table.cell>
+                <x-data-table.cell heading>Workspace</x-data-table.cell>
+                <x-data-table.cell heading>Status</x-data-table.cell>
+                <x-data-table.cell heading>Schedule</x-data-table.cell>
+                <x-data-table.cell heading>Assets</x-data-table.cell>
+                <x-data-table.cell heading>Distribution</x-data-table.cell>
+                <x-data-table.cell heading>Updated</x-data-table.cell>
+            </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
             @forelse ($campaigns as $campaign)
-                <tr>
-                    <td class="px-3 py-2">
+                <x-data-table.row>
+                    <x-data-table.cell label="Campaign">
                         <a href="{{ route('admin.campaigns.show', $campaign) }}" class="font-medium text-primary hover:underline">{{ $campaign->name }}</a>
                         <div class="text-xs text-textSecondary">{{ $campaign->objective ?: $campaign->slug }}</div>
-                    </td>
-                    <td class="px-3 py-2 text-textSecondary">
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Workspace" class="text-textSecondary">
                         <div>{{ $campaign->workspace?->organization?->name ?? '-' }}</div>
                         <div class="text-xs">{{ $campaign->workspace?->display_name ?? $campaign->workspace?->name ?? $campaign->workspace_id }}</div>
-                    </td>
-                    <td class="px-3 py-2">
-                        <span class="rounded bg-slate-500/10 px-2 py-1 text-xs text-slate-700">{{ str_replace('_', ' ', $campaign->status?->value ?? $campaign->status) }}</span>
-                        <span class="ml-1 rounded bg-blue-500/10 px-2 py-1 text-xs text-blue-700">{{ str_replace('_', ' ', $campaign->approval_status?->value ?? $campaign->approval_status) }}</span>
-                    </td>
-                    <td class="px-3 py-2 text-textSecondary">
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Status">
+                        <x-data-table.badge :label="str_replace('_', ' ', $campaign->status?->value ?? $campaign->status)" />
+                        <x-data-table.badge tone="info" :label="str_replace('_', ' ', $campaign->approval_status?->value ?? $campaign->approval_status)" class="ml-1" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Schedule" class="text-textSecondary">
                         {{ $campaign->planned_start_date?->format('Y-m-d') ?? '-' }}
                         @if ($campaign->planned_end_date)
                             <span class="text-textFaint">to</span> {{ $campaign->planned_end_date->format('Y-m-d') }}
                         @endif
-                    </td>
-                    <td class="px-3 py-2 text-textSecondary">{{ number_format($campaign->contents_count) }}</td>
-                    <td class="px-3 py-2 text-textSecondary">{{ number_format($campaign->distribution_plans_count) }}</td>
-                    <td class="px-3 py-2 text-textSecondary">{{ $campaign->updated_at?->format('Y-m-d H:i') }}</td>
-                </tr>
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Assets" class="text-textSecondary">{{ number_format($campaign->contents_count) }}</x-data-table.cell>
+                    <x-data-table.cell label="Distribution" class="text-textSecondary">{{ number_format($campaign->distribution_plans_count) }}</x-data-table.cell>
+                    <x-data-table.cell label="Updated" class="text-textSecondary">{{ $campaign->updated_at?->format('Y-m-d H:i') }}</x-data-table.cell>
+                </x-data-table.row>
             @empty
-                <tr>
-                    <td colspan="7" class="px-3 py-6 text-center text-textSecondary">No campaigns found.</td>
-                </tr>
+                <x-data-table.empty colspan="7" title="No campaigns found" />
             @endforelse
             </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">{{ $campaigns->links() }}</div>
+        <x-slot:pagination>{{ $campaigns->links() }}</x-slot:pagination>
+    </x-data-table>
 @endsection

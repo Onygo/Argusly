@@ -1,10 +1,16 @@
 @extends('layouts.app', ['title' => 'Campaign Cluster Planning'])
 
+@section('pageHeader')
+    <x-page-header title="Campaign Cluster Planning">
+        <x-slot:description>Plan strategic content ecosystems with authority maps, funnel coverage, internal linking, localization, and campaign timelines.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Campaign Cluster Planning</h1>
+                <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">Campaign Cluster Planning</h2>
                 <p class="mt-1 max-w-3xl text-textSecondary">Plan strategic content ecosystems with authority maps, funnel coverage, internal linking, localization, and campaign timelines.</p>
             </div>
             <form method="POST" action="{{ route('app.agentic-marketing.campaign-clusters.run') }}" class="flex flex-wrap items-center gap-2">

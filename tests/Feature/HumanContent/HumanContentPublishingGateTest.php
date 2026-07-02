@@ -62,6 +62,27 @@ it('blocks failing generated content from auto-publishing', function (): void {
     Queue::assertNotPushed(PublishToWordPressJob::class);
 });
 
+it('allows an explicit manual override for failing generated content publication', function (): void {
+    Queue::fake();
+
+    [$user, , $content, $draft] = makeHumanContentGateContext();
+    $draft->forceFill(['meta' => humanContentGateMeta(52, 54, 49, 78, severe: true)])->save();
+
+    $dispatch = app(ContentPublicationService::class)->dispatchWordPressPublication($content->fresh(), $draft->fresh(), [
+        'source' => 'test.manual_publish',
+        'human_content_override' => true,
+        'user_id' => $user->id,
+    ]);
+
+    expect($dispatch['queued'])->toBeTrue()
+        ->and($content->fresh()->publish_status)->toBe('publishing')
+        ->and(data_get($draft->fresh()->meta, 'publish_gate_status'))->toBe(HumanContentGate::STATUS_PASSED)
+        ->and(data_get($draft->fresh()->meta, 'human_content_gate.manual_override'))->toBeTrue()
+        ->and(data_get($draft->fresh()->meta, 'human_content_gate_override.original_reasons'))->toContain('Human content score is below 70.');
+
+    Queue::assertPushed(PublishToWordPressJob::class);
+});
+
 it('marks blocked automation items as needing editorial review without failing the run item', function (): void {
     Queue::fake([PublishToWordPressJob::class]);
 

@@ -27,6 +27,7 @@ use App\Models\AgentRun;
 use App\Models\ContentImage;
 use App\Models\ContentImprovementRun;
 use App\Models\ContentPublication;
+use App\Models\ContentDestination;
 use App\Models\MarketingBlogRedirect;
 use App\Models\ContentPublishTarget;
 use App\Models\ContentAutomation;
@@ -54,6 +55,8 @@ use App\Services\Content\ContentLocalizationService;
 use App\Services\Content\LocalePublishingSyncService;
 use App\Services\Content\LocaleMismatchService;
 use App\Services\Content\ContentTranslationCoordinator;
+use App\Services\ContentImages\UploadedContentImageAssetService;
+use App\Services\ContentVisuals\VisualPlanService;
 use App\Services\CreditWalletService;
 use App\Services\DraftDelivery\PushContentFeaturedImageToWordPress;
 use App\Services\DraftDelivery\PushContentOgImageToWordPress;
@@ -417,7 +420,7 @@ class AppContentController extends Controller
         $query
             ->when($status === '', fn (Builder $builder) => $builder->where('status', '!=', 'archived'))
             ->when($inbox !== '', fn (Builder $builder) => $this->applyInboxFilter($builder, $inbox))
-            ->when($status !== '', fn (Builder $builder) => $builder->where('status', $status))
+            ->when($status !== '', fn (Builder $builder) => $this->applyContentStatusFilter($builder, $status))
             ->when($siteId !== '', fn (Builder $builder) => $builder->where('client_site_id', $siteId))
             ->when($authorId !== '', fn (Builder $builder) => $builder->where('created_by', $authorId))
             ->when($publishStatus !== '', fn (Builder $builder) => $builder->where('publish_status', $publishStatus))
@@ -451,6 +454,15 @@ class AppContentController extends Controller
         $this->applyLocaleScopeFilter($query, $localeScope);
 
         return $query;
+    }
+
+    private function applyContentStatusFilter(Builder $query, string $status): Builder
+    {
+        if ($status === 'draft') {
+            return $query->draftState();
+        }
+
+        return $query->where('status', $status);
     }
 
     private function applyContentIndexSort(Builder $query, string $sort): Builder
@@ -1033,6 +1045,7 @@ class AppContentController extends Controller
             'draftVersion',
             'brief.drafts' => fn ($query) => $query->latest('created_at')->limit(1),
             'drafts' => fn ($query) => $query->latest(),
+            'images',
             'featuredImage',
             'ogImage',
             'chainGuidance',
@@ -1123,6 +1136,17 @@ class AppContentController extends Controller
             ->where('type', ImageGenerationService::OG_TYPE)
             ->latest('created_at')
             ->limit(12)
+            ->get();
+
+        $contentImageAssets = ContentImage::query()
+            ->where('content_id', $content->id)
+            ->whereIn('type', [
+                ImageGenerationService::FEATURED_TYPE,
+                ImageGenerationService::OG_TYPE,
+                'social',
+            ])
+            ->latest('created_at')
+            ->limit(24)
             ->get();
 
         $contentInsight = $contentPerformanceInsightService->forContent($content);
@@ -1282,6 +1306,22 @@ class AppContentController extends Controller
                 ->get() ?? collect();
         }
 
+        $availablePublishingDestinations = ContentDestination::query()
+            ->where('workspace_id', (string) $content->workspace_id)
+            ->where('status', 'active')
+            ->whereIn('type', [
+                ContentDestinationType::WORDPRESS->value,
+                ContentDestinationType::LARAVEL->value,
+            ])
+            ->orderBy('name')
+            ->get(['id', 'workspace_id', 'name', 'type', 'status', 'config']);
+        $currentPublishingSite = $content->clientSite;
+        $usesImplicitPublishingSite = ! $content->contentDestination
+            && in_array(ContentDestinationType::fromNormalized($currentPublishingSite?->type)?->value, [
+                ContentDestinationType::WORDPRESS->value,
+                ContentDestinationType::LARAVEL->value,
+            ], true);
+
         return view('app.content.show', [
             'content' => $content,
             'activeTab' => $requestedTab,
@@ -1299,10 +1339,14 @@ class AppContentController extends Controller
             'featuredImageHistory' => $featuredImageHistory,
             'ogImage' => $content->ogImage,
             'ogImageHistory' => $ogImageHistory,
+            'contentImageAssets' => $contentImageAssets,
             'hasWpImagePushConnection' => $this->hasWpImagePushConnection($content, $latestDraft),
             'wordpressSites' => $wordpressSites,
             'contentInsight' => $contentInsight,
             'destination' => $destination,
+            'availablePublishingDestinations' => $availablePublishingDestinations,
+            'currentPublishingSite' => $currentPublishingSite,
+            'usesImplicitPublishingSite' => $usesImplicitPublishingSite,
             'isWordPressSite' => $isWordPressSite,
             'laravelDestination' => $laravelDestination,
             'laravelPublication' => $laravelPublication,
@@ -1978,6 +2022,58 @@ class AppContentController extends Controller
         return back()->with('status', 'Featured image generation queued.');
     }
 
+    public function generateInlineVisualImage(
+        Request $request,
+        Content $content,
+        string $assetKey,
+        ImageGenerationService $imageGenerationService,
+        CreditWalletService $creditWalletService,
+        VisualPlanService $visualPlans
+    ): RedirectResponse {
+        $this->assertContentInUserOrganization($request, $content);
+        $this->authorize('generateImage', $content);
+
+        if (! $content->client_site_id) {
+            return back()->withErrors(['image_generate' => 'Content is not linked to a site with a credit wallet.']);
+        }
+
+        $content->loadMissing('currentRevision');
+        $plan = $visualPlans->fromMeta(is_array($content->currentRevision?->meta) ? $content->currentRevision->meta : []);
+        $asset = collect($plan['assets'])->firstWhere('asset_key', $assetKey);
+
+        if (! is_array($asset)) {
+            return back()->withErrors(['image_generate' => 'Visual asset was not found in the content visual plan.']);
+        }
+
+        if (! in_array((string) ($asset['type'] ?? ''), ['image', 'diagram', 'conceptual_visual'], true)) {
+            return back()->withErrors(['image_generate' => 'This visual type is rendered from structured data and does not need AI image generation.']);
+        }
+
+        $activeGeneration = ContentImage::query()
+            ->where('content_id', $content->id)
+            ->where('type', ImageGenerationService::INLINE_TYPE)
+            ->where('metadata->asset_key', $assetKey)
+            ->whereIn('status', ['queued', 'generating'])
+            ->exists();
+
+        if ($activeGeneration) {
+            return back()->withErrors(['image_generate' => 'Inline visual generation is already running.']);
+        }
+
+        $cost = $imageGenerationService->resolveCreditCost();
+        $available = $creditWalletService->getAvailableForClientSite((string) $content->client_site_id);
+        if ($available < $cost) {
+            return back()->withErrors([
+                'image_generate' => sprintf('Insufficient credits. Required: %d, available: %d.', $cost, $available),
+            ]);
+        }
+
+        $content->forceFill(['updated_by' => $request->user()->id])->save();
+        $imageGenerationService->generateInlineVisualImage($content, $asset);
+
+        return back()->with('status', 'Inline visual generation queued.');
+    }
+
     public function pushFeaturedImageToWordPress(
         Request $request,
         Content $content,
@@ -2000,7 +2096,8 @@ class AppContentController extends Controller
     public function useUnsplashFeaturedImage(
         Request $request,
         Content $content,
-        UnsplashImageService $unsplashImageService
+        UnsplashImageService $unsplashImageService,
+        UploadedContentImageAssetService $imageAssetService
     ): RedirectResponse {
         $this->assertContentInUserOrganization($request, $content);
         $this->authorize('update', $content);
@@ -2019,15 +2116,33 @@ class AppContentController extends Controller
             'photo.description' => ['nullable', 'string', 'max:500'],
             'photo.width' => ['nullable', 'integer', 'min:0'],
             'photo.height' => ['nullable', 'integer', 'min:0'],
+            'display_on_website' => ['nullable', 'boolean'],
+            'display_as_featured_image' => ['nullable', 'boolean'],
+            'use_as_meta_image' => ['nullable', 'boolean'],
+            'use_as_social_image' => ['nullable', 'boolean'],
+            'use_for_linkedin' => ['nullable', 'boolean'],
         ]);
+
+        $usage = [
+            'display_on_website' => (bool) ($data['display_on_website'] ?? false),
+            'display_as_featured_image' => (bool) ($data['display_as_featured_image'] ?? false),
+            'use_as_meta_image' => (bool) ($data['use_as_meta_image'] ?? false),
+            'use_as_social_image' => (bool) ($data['use_as_social_image'] ?? false),
+            'use_for_linkedin' => (bool) ($data['use_for_linkedin'] ?? false),
+        ];
+
+        if (! in_array(true, $usage, true)) {
+            $usage['display_as_featured_image'] = true;
+        }
 
         try {
             $content->forceFill(['updated_by' => $request->user()->id])->save();
-            $unsplashImageService->usePhoto(
+            $image = $unsplashImageService->usePhoto(
                 $content,
                 (array) $data['photo'],
                 (string) $request->user()->id
             );
+            $imageAssetService->assignUsageForContent($content, $image, $usage);
         } catch (Throwable $exception) {
             return back()->withErrors(['stock_image' => $exception->getMessage()]);
         }
@@ -2326,6 +2441,10 @@ class AppContentController extends Controller
 
         $siteType = ClientSite::normalizeType((string) ($content->clientSite?->type ?? ''));
         $laravelDestination = $laravelDestinationResolver->resolveForContent($content);
+        $humanContentPublicationContext = [
+            'human_content_override' => $request->boolean('human_content_override'),
+            'user_id' => $request->user()?->id,
+        ];
 
         if ($siteType === ClientSite::TYPE_LARAVEL) {
             $draft = Draft::query()
@@ -2342,7 +2461,7 @@ class AppContentController extends Controller
                     'source' => 'app.content.republish',
                     'force' => true,
                     'allow_stale_reclaim' => true,
-                ]);
+                ] + $humanContentPublicationContext);
 
                 return back()->with('status', (bool) ($dispatch['queued'] ?? false)
                     ? 'Content queued for Laravel publication.'
@@ -2350,7 +2469,7 @@ class AppContentController extends Controller
             }
 
             try {
-                $laravelPublishingService->publish($content, $draft, 'manual_resync', 'app.content.republish');
+                $laravelPublishingService->publish($content, $draft, 'manual_resync', 'app.content.republish', $humanContentPublicationContext);
             } catch (Throwable $exception) {
                 Log::error('content.republish.local_laravel_failed', [
                     'content_id' => (string) $content->id,
@@ -2820,6 +2939,75 @@ class AppContentController extends Controller
         return back()->with('status', 'Linked locale publishing settings updated.');
     }
 
+    public function updatePublishingDestination(Request $request, Content $content): RedirectResponse
+    {
+        $this->assertContentInUserOrganization($request, $content);
+        $this->authorize('update', $content);
+
+        $data = $request->validate([
+            'content_destination_id' => ['nullable', 'uuid'],
+        ]);
+        $destinationId = trim((string) ($data['content_destination_id'] ?? ''));
+        $destination = null;
+
+        if ($destinationId !== '') {
+            $destination = ContentDestination::query()
+                ->where('workspace_id', (string) $content->workspace_id)
+                ->where('status', 'active')
+                ->whereIn('type', [
+                    ContentDestinationType::WORDPRESS->value,
+                    ContentDestinationType::LARAVEL->value,
+                ])
+                ->find($destinationId);
+
+            if (! $destination) {
+                return back()->withErrors([
+                    'publish_destination' => 'Selected publishing destination is not available for this workspace.',
+                ]);
+            }
+        }
+
+        $billingSiteId = trim((string) data_get($destination?->config, 'billing_client_site_id', ''));
+        $billingSite = $billingSiteId !== ''
+            ? ClientSite::query()
+                ->where('workspace_id', (string) $content->workspace_id)
+                ->where('id', $billingSiteId)
+                ->first()
+            : null;
+
+        DB::transaction(function () use ($content, $destination, $billingSite): void {
+            $contentUpdates = [
+                'content_destination_id' => $destination?->id,
+                'publish_error' => null,
+                'updated_by' => request()->user()?->id,
+            ];
+
+            if ($billingSite) {
+                $contentUpdates['client_site_id'] = (string) $billingSite->id;
+            }
+
+            $content->forceFill($contentUpdates)->save();
+
+            $relatedUpdates = ['content_destination_id' => $destination?->id];
+            if ($billingSite) {
+                $relatedUpdates['client_site_id'] = (string) $billingSite->id;
+            }
+
+            Draft::query()
+                ->where('content_id', (string) $content->id)
+                ->update($relatedUpdates);
+
+            Brief::query()
+                ->where('content_id', (string) $content->id)
+                ->update($relatedUpdates);
+        });
+
+        return back()->with('status', $destination
+            ? 'Publishing destination updated.'
+            : 'Publishing destination cleared.'
+        );
+    }
+
     public function schedule(Request $request, Content $content): \Illuminate\Http\JsonResponse|RedirectResponse
     {
         $this->assertContentInUserOrganization($request, $content);
@@ -3041,14 +3229,21 @@ class AppContentController extends Controller
 
         $data = $request->validate([
             'locale' => ['nullable', 'string'],
+            'human_content_override' => ['nullable', 'boolean'],
         ]);
         $requestedLocale = filled($data['locale'] ?? null)
             ? SupportedLanguage::fromStringOrDefault((string) $data['locale'])->value
             : null;
+        $humanContentPublicationContext = [
+            'human_content_override' => $request->boolean('human_content_override'),
+            'user_id' => $request->user()?->id,
+        ];
 
-        $siteType = ClientSite::normalizeType((string) ($content->clientSite?->type ?? ''));
+        $content->loadMissing('clientSite', 'contentDestination');
+        $destinationType = $content->contentDestination?->resolvedType()
+            ?? ContentDestinationType::fromNormalized($content->clientSite?->type);
 
-        if ($siteType === ClientSite::TYPE_WORDPRESS) {
+        if ($destinationType === ContentDestinationType::WORDPRESS) {
             $publishContent = $requestedLocale !== null
                 ? $content->localizedVariantFor($requestedLocale)
                 : $content;
@@ -3069,7 +3264,7 @@ class AppContentController extends Controller
             $dispatch = $publicationService->dispatchWordPressPublication($publishContent, null, [
                 'source' => 'app.content.publish_now',
                 'locale' => $publishContent->localeCode(),
-            ]);
+            ] + $humanContentPublicationContext);
 
             if (! $publishContent->isTranslationVariant()) {
                 $localePublishingSyncService->syncSourceImmediatePublish(
@@ -3082,7 +3277,7 @@ class AppContentController extends Controller
                 : 'Publication was already queued or processed.');
         }
 
-        if ($siteType === ClientSite::TYPE_LARAVEL) {
+        if ($destinationType === ContentDestinationType::LARAVEL) {
             $destination = $laravelDestinationResolver->resolveForContent($content);
 
             if ($destination || $requestedLocale !== null) {
@@ -3090,7 +3285,7 @@ class AppContentController extends Controller
                     $result = $publicationService->publishVariantNow(
                         $content,
                         $requestedLocale ?? $content->localeCode(),
-                        ['source' => 'app.content.publish-now']
+                        ['source' => 'app.content.publish-now'] + $humanContentPublicationContext
                     );
                 } catch (RuntimeException $exception) {
                     if ($request->expectsJson() || $request->ajax()) {
@@ -3131,7 +3326,7 @@ class AppContentController extends Controller
             }
 
             try {
-                $laravelPublishingService->publish($content, null, 'publish_now', 'app.content.publish-now');
+                $laravelPublishingService->publish($content, null, 'publish_now', 'app.content.publish-now', $humanContentPublicationContext);
             } catch (RuntimeException $exception) {
                 return back()->withErrors(['publish' => $exception->getMessage()]);
             }

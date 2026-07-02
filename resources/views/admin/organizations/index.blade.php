@@ -1,16 +1,18 @@
 @extends('layouts.admin', ['title' => 'Organizations'])
 
-@section('content')
-    <div class="mb-6 flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Organizations</h1>
-            <p class="text-textSecondary mt-1">All organizations and status.</p>
-        </div>
-        @can('admin-area-superadmin')
-            <a href="{{ route('admin.organizations.create') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Create organization</a>
-        @endcan
-    </div>
+@section('pageHeader')
+    <x-page-header title="Organizations">
+        <x-slot:description>All organizations and status.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    @can('admin-area-superadmin')
+        <a href="{{ route('admin.organizations.create') }}" class="pl-btn-secondary">Create organization</a>
+    @endcan
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

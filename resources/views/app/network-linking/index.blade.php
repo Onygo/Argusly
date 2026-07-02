@@ -1,10 +1,13 @@
 @extends('layouts.app', ['title' => 'Network Linking'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Network Linking</x-slot:title>
+        <x-slot:description>Manage link profiles and cross-domain permissions.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Network Linking</h1>
-        <p class="text-textSecondary mt-1">Manage link profiles and cross-domain permissions.</p>
-    </div>
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
@@ -61,25 +64,27 @@
 
     <div class="mt-8 rounded-lg border border-border bg-surface p-4">
         <h2 class="font-semibold text-textPrimary">Permissions</h2>
-        <div class="mt-3 overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-left text-textSecondary">
-                        <th class="py-2">From</th>
-                        <th class="py-2">To</th>
-                        <th class="py-2">Status</th>
-                        <th class="py-2">Type</th>
-                        <th class="py-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
-                    @forelse ($permissions as $permission)
-                        <tr>
-                            <td class="py-2">{{ $permission->fromWorkspace?->name }}</td>
-                            <td class="py-2">{{ $permission->toWorkspace?->name }}</td>
-                            <td class="py-2">{{ $permission->status }}</td>
-                            <td class="py-2">{{ $permission->relationship_type }}</td>
-                            <td class="py-2 flex flex-wrap gap-2">
+        <x-data-table label="Network linking permissions" description="Cross-domain link permissions by source workspace, target workspace, status, relationship type, and available actions." density="compact" class="mt-3 border-0 shadow-none">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>From</x-data-table.cell>
+                    <x-data-table.cell heading>To</x-data-table.cell>
+                    <x-data-table.cell heading>Status</x-data-table.cell>
+                    <x-data-table.cell heading>Type</x-data-table.cell>
+                    <x-data-table.cell heading>Actions</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody class="divide-y divide-border">
+                @forelse ($permissions as $permission)
+                    <x-data-table.row>
+                        <x-data-table.cell label="From">{{ $permission->fromWorkspace?->name }}</x-data-table.cell>
+                        <x-data-table.cell label="To">{{ $permission->toWorkspace?->name }}</x-data-table.cell>
+                        <x-data-table.cell label="Status">
+                            <x-data-table.badge :tone="$permission->status === 'approved' ? 'success' : ($permission->status === 'revoked' ? 'danger' : 'warning')" :label="$permission->status" />
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Type">{{ $permission->relationship_type }}</x-data-table.cell>
+                        <x-data-table.cell label="Actions">
+                            <x-data-table.actions align="start">
                                 @can('approve', $permission)
                                     @if ($permission->status !== 'approved')
                                         <form method="POST" action="{{ route('app.network-linking.permissions.approve', $permission) }}">
@@ -100,15 +105,13 @@
                                 @else
                                     <span class="text-xs text-textSecondary">No action</span>
                                 @endcan
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td class="py-4 text-textSecondary" colspan="5">No permissions yet.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </x-data-table.actions>
+                        </x-data-table.cell>
+                    </x-data-table.row>
+                @empty
+                    <x-data-table.empty colspan="5" title="No permissions yet" />
+                @endforelse
+            </tbody>
+        </x-data-table>
     </div>
 @endsection

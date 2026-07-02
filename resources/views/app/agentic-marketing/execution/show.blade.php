@@ -1,27 +1,42 @@
 @extends('layouts.app', ['title' => 'Opportunity execution', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header :title="$opportunity->title" :eyebrow="$opportunity->objective?->name ?? 'Agentic Marketing'" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Prepare briefs, drafts, answer blocks, internal links, schema, metadata, CTA blocks, social post handoff copy, reviewer flow, and automation schedules. Social posts are prepared for external publishing tools; Argusly does not publish them.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <form method="POST" action="{{ route('app.agentic-marketing.opportunities.execution.prepare', $opportunity) }}" class="flex flex-wrap items-center gap-2">
+        @csrf
+        <select name="mode" class="pl-input text-sm">
+            <option value="manual">Manual</option>
+            <option value="semi_autonomous">Assisted prep</option>
+            <option value="autonomous">Future auto-prep</option>
+        </select>
+        <label class="inline-flex items-center gap-2 text-xs text-textSecondary">
+            <input type="checkbox" name="run_inline" value="1">
+            Prepare immediately
+        </label>
+        <button class="pl-btn-primary"><i data-lucide="workflow" class="h-4 w-4"></i><span>Prepare review assets</span></button>
+    </form>
+@endsection
+
+@section('metricSection')
+    @if ($pipeline)
+        <x-metric-section>
+            <x-metric-card label="Status" :value="str_replace('_', ' ', $pipeline->status)" />
+            <x-metric-card label="Approvals" :value="str_replace('_', ' ', $pipeline->approval_status)" />
+            <x-metric-card label="Publishing readiness" :value="str_replace('_', ' ', $pipeline->publishing_readiness)" />
+            <x-metric-card label="Generated assets" :value="$pipeline->assets_count" />
+        </x-metric-section>
+    @endif
+@endsection
+
 @section('content')
     <div class="space-y-6">
-        <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <a href="{{ route('app.agentic-marketing.objectives.show', $opportunity->objective) }}" class="text-sm text-textSecondary hover:text-textPrimary">{{ $opportunity->objective?->name ?? 'Agentic Marketing' }}</a>
-                <h1 class="mt-2 text-xl font-semibold text-textPrimary">{{ $opportunity->title }}</h1>
-                <p class="mt-1 max-w-4xl text-sm text-textSecondary">Prepare briefs, drafts, answer blocks, internal links, schema, metadata, CTA blocks, social post handoff copy, reviewer flow, and automation schedules. Social posts are prepared for external publishing tools; Argusly does not publish them.</p>
-            </div>
-            <form method="POST" action="{{ route('app.agentic-marketing.opportunities.execution.prepare', $opportunity) }}" class="flex flex-wrap items-center gap-2">
-                @csrf
-                <select name="mode" class="pl-input text-sm">
-                    <option value="manual">Manual</option>
-                    <option value="semi_autonomous">Assisted prep</option>
-                    <option value="autonomous">Future auto-prep</option>
-                </select>
-                <label class="inline-flex items-center gap-2 text-xs text-textSecondary">
-                    <input type="checkbox" name="run_inline" value="1">
-                    Prepare immediately
-                </label>
-                <button class="pl-btn-primary"><i data-lucide="workflow" class="h-4 w-4"></i><span>Prepare review assets</span></button>
-            </form>
-        </header>
 
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
@@ -54,25 +69,6 @@
                     'changes_requested' => 'border-rose-200 bg-rose-50 text-rose-900',
                 ];
             @endphp
-
-            <section class="grid gap-3 md:grid-cols-4">
-                <div class="rounded-lg border border-border bg-surface p-4">
-                    <p class="text-xs text-textSecondary">Status</p>
-                    <p class="mt-1 text-lg font-semibold text-textPrimary">{{ str_replace('_', ' ', $pipeline->status) }}</p>
-                </div>
-                <div class="rounded-lg border border-border bg-surface p-4">
-                    <p class="text-xs text-textSecondary">Approvals</p>
-                    <p class="mt-1 text-lg font-semibold text-textPrimary">{{ str_replace('_', ' ', $pipeline->approval_status) }}</p>
-                </div>
-                <div class="rounded-lg border border-border bg-surface p-4">
-                    <p class="text-xs text-textSecondary">Publishing readiness</p>
-                    <p class="mt-1 text-lg font-semibold text-textPrimary">{{ str_replace('_', ' ', $pipeline->publishing_readiness) }}</p>
-                </div>
-                <div class="rounded-lg border border-border bg-surface p-4">
-                    <p class="text-xs text-textSecondary">Generated assets</p>
-                    <p class="mt-1 text-lg font-semibold text-textPrimary">{{ $pipeline->assets_count }}</p>
-                </div>
-            </section>
 
             <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
                 <div class="rounded-lg border border-border bg-surface p-5">

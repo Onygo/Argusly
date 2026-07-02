@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['title' => 'Invoices'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Invoices</x-slot:title>
+        <x-slot:description>All subscription and credit-pack invoices.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Invoices</h1>
-        <p class="mt-1 text-textSecondary">All subscription and credit-pack invoices.</p>
-    </div>
 
     <form method="GET" class="mb-4 grid gap-2 lg:grid-cols-5">
         <select name="organization_id" class="rounded border border-border bg-background px-2 py-2 text-xs">
@@ -30,30 +33,31 @@
         </div>
     </form>
 
-    <div class="rounded-lg border border-border bg-surface p-4 overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-textSecondary">
-                    <th class="pb-3 font-medium">Number</th>
-                    <th class="pb-3 font-medium">Organization</th>
-                    <th class="pb-3 font-medium">Type</th>
-                    <th class="pb-3 font-medium">Status</th>
-                    <th class="pb-3 font-medium">Total</th>
-                    <th class="pb-3 font-medium">Issued</th>
-                    <th class="pb-3 font-medium">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
+    <x-data-table label="Invoices" description="Subscription and credit-pack invoices with organization, type, status, totals, issue date, and actions." density="compact">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Number</x-data-table.cell>
+                    <x-data-table.cell heading>Organization</x-data-table.cell>
+                    <x-data-table.cell heading>Type</x-data-table.cell>
+                    <x-data-table.cell heading>Status</x-data-table.cell>
+                    <x-data-table.cell heading>Total</x-data-table.cell>
+                    <x-data-table.cell heading>Issued</x-data-table.cell>
+                    <x-data-table.cell heading>Actions</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
                 @forelse($invoices as $invoice)
-                    <tr>
-                        <td class="py-3">{{ $invoice->number }}</td>
-                        <td class="py-3">{{ $invoice->organization?->name }}</td>
-                        <td class="py-3">{{ $invoice->type }}</td>
-                        <td class="py-3">{{ $invoice->status }}</td>
-                        <td class="py-3">{{ number_format((float) ($invoice->total_gross ?? ($invoice->total_cents / 100)), 2) }} {{ $invoice->currency }}</td>
-                        <td class="py-3">{{ optional($invoice->issued_at)->format('Y-m-d') }}</td>
-                        <td class="py-3">
-                            <div class="flex items-center gap-2">
+                    <x-data-table.row>
+                        <x-data-table.cell label="Number">{{ $invoice->number }}</x-data-table.cell>
+                        <x-data-table.cell label="Organization">{{ $invoice->organization?->name }}</x-data-table.cell>
+                        <x-data-table.cell label="Type" class="text-textSecondary">{{ $invoice->type }}</x-data-table.cell>
+                        <x-data-table.cell label="Status">
+                            <x-data-table.badge :tone="$invoice->status === 'refunded' ? 'warning' : 'success'" :label="$invoice->status" />
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Total">{{ number_format((float) ($invoice->total_gross ?? ($invoice->total_cents / 100)), 2) }} {{ $invoice->currency }}</x-data-table.cell>
+                        <x-data-table.cell label="Issued">{{ optional($invoice->issued_at)->format('Y-m-d') }}</x-data-table.cell>
+                        <x-data-table.cell label="Actions">
+                            <x-data-table.actions align="start">
                                 <a href="{{ route('admin.invoices.download', $invoice) }}" class="inline-flex items-center rounded border border-border px-2 py-1 text-xs">Download</a>
                                 @if($invoice->status !== 'refunded')
                                     <form method="POST" action="{{ route('admin.invoices.refund', $invoice) }}" class="inline-flex items-center gap-2">
@@ -62,15 +66,13 @@
                                         <button class="inline-flex items-center rounded border border-border px-2 py-1 text-xs">Mark refunded</button>
                                     </form>
                                 @endif
-                            </div>
-                        </td>
-                    </tr>
+                            </x-data-table.actions>
+                        </x-data-table.cell>
+                    </x-data-table.row>
                 @empty
-                    <tr><td colspan="7" class="py-4 text-textSecondary">No invoices found.</td></tr>
+                    <x-data-table.empty colspan="7" title="No invoices found" />
                 @endforelse
             </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">{{ $invoices->links() }}</div>
+        <x-slot:pagination>{{ $invoices->links() }}</x-slot:pagination>
+    </x-data-table>
 @endsection

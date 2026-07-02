@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Image Presets'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Image Presets</x-slot:title>
+        <x-slot:description>Define visual styles for AI-generated images. The default preset is used automatically during image generation.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="space-y-3">
@@ -9,10 +16,6 @@
                 <span class="text-textPrimary">Image Presets</span>
             </nav>
             <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Image Presets</h1>
-                    <p class="text-textSecondary mt-1">Define visual styles for AI-generated images. The default preset is used automatically during image generation.</p>
-                </div>
                 <a href="{{ route('app.settings.image-presets.create') }}" class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">
                     <i data-lucide="plus" class="h-4 w-4"></i>
                     Create preset

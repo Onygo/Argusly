@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Opportunity Execution Plan'])
 
+@section('pageHeader')
+    <x-page-header :title="$plan->title">
+        <x-slot:description>{{ $plan->summary }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
 @php
     $formatLabel = fn (?string $value): string => $value ? str($value)->replace(['_', '-'], ' ')->headline()->toString() : 'n/a';
@@ -12,7 +18,7 @@
                 <i data-lucide="arrow-left" class="h-4 w-4"></i>
                 Linked opportunity
             </a>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $plan->title }}</h1>
+            <h2 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">{{ $plan->title }}</h2>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">{{ $plan->summary }}</p>
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 <x-status-badge :status="$plan->status" :color="match($plan->status) { 'approved', 'planned' => 'green', 'reviewing' => 'amber', 'archived' => 'slate', default => 'blue' }" />

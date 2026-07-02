@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Opportunity Review'])
 
+@section('pageHeader')
+    <x-page-header title="Opportunity Review">
+        <x-slot:description>Review detected opportunity candidates and decide which ones should move forward.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
 @php
     $formatLabel = fn (?string $value): string => $value ? str($value)->replace(['_', '-'], ' ')->headline()->toString() : 'n/a';
@@ -19,7 +25,7 @@
                 <i data-lucide="arrow-left" class="h-4 w-4"></i>
                 Signal Intelligence
             </a>
-            <h1 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">Opportunity Review</h1>
+            <h2 class="mt-3 text-2xl font-semibold tracking-tight text-textPrimary">Opportunity Review</h2>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">
                 Review the first opportunity candidate before Opportunity Intelligence opens the planning workflow.
             </p>

@@ -1,11 +1,17 @@
 @extends('layouts.app', ['title' => 'Content Intelligence'])
 
+@section('pageHeader')
+    <x-page-header title="Content Intelligence">
+        <x-slot:description>Review quality, originality, structure, and improvement signals across workspace content.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
                 <p class="text-xs font-medium uppercase tracking-wide text-textFaint">{{ $workspace->display_name ?: $workspace->name }}</p>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Content Intelligence</h1>
+                <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">Content Intelligence</h2>
                 <p class="mt-1 max-w-3xl text-sm text-textSecondary">Review AI readiness, GEO signals, source coverage, structure, and duplicate-title opportunities for this workspace only.</p>
             </div>
         </div>

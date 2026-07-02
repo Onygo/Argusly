@@ -27,7 +27,7 @@ return [
             'provider' => env('ARGUSLY_AI_IMAGE_PROVIDER', 'openai'),
             'credit_cost' => (int) env('ARGUSLY_AI_IMAGE_CREDIT_COST', 6),
             'generation_lock_timeout_minutes' => (int) env('ARGUSLY_AI_IMAGE_LOCK_TIMEOUT_MINUTES', 5),
-            'storage_disk' => env('ARGUSLY_AI_IMAGE_STORAGE_DISK', 'public'),
+            'storage_disk' => env('ARGUSLY_AI_IMAGE_STORAGE_DISK', 'content_images'),
             'og' => [
                 'width' => (int) env('ARGUSLY_OG_IMAGE_WIDTH', 1200),
                 'height' => (int) env('ARGUSLY_OG_IMAGE_HEIGHT', 630),
@@ -68,7 +68,8 @@ return [
 
     'images' => [
         'enabled' => (bool) env('ARGUSLY_IMAGES_ENABLED', true),
-        'disk' => env('ARGUSLY_IMAGES_DISK', env('ARGUSLY_AI_IMAGE_STORAGE_DISK', 'public')),
+        'disk' => env('ARGUSLY_IMAGES_DISK', env('ARGUSLY_AI_IMAGE_STORAGE_DISK', 'content_images')),
+        'path' => env('ARGUSLY_IMAGES_PATH', 'content-images'),
     ],
 
     'mail' => [

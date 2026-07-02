@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Storage;
 
 it('prefers webp ui urls when available', function () {
     Storage::fake('public');
+    config()->set('argusly.images.disk', 'public');
 
     $image = new ContentImage([
         'thumbnail_path' => 'content-images/x-thumb.jpg',
@@ -15,13 +16,17 @@ it('prefers webp ui urls when available', function () {
         'original_path' => 'content-images/x-original.jpg',
     ]);
 
-    expect($image->thumbnail_ui_url)->toContain('x-thumb.webp')
-        ->and($image->medium_ui_url)->toContain('x-medium.webp')
-        ->and($image->original_ui_url)->toContain('x-original.jpg');
+    expect($image->thumbnail_ui_url)->toContain('/content-images/x-thumb.webp')
+        ->and($image->thumbnail_ui_url)->not->toContain('/storage/content-images/')
+        ->and($image->medium_ui_url)->toContain('/content-images/x-medium.webp')
+        ->and($image->medium_ui_url)->not->toContain('/storage/content-images/')
+        ->and($image->original_ui_url)->toContain('/content-images/x-original.jpg')
+        ->and($image->original_ui_url)->not->toContain('/storage/content-images/');
 });
 
 it('falls back to jpg png ui urls when webp is missing', function () {
     Storage::fake('public');
+    config()->set('argusly.images.disk', 'public');
 
     $image = new ContentImage([
         'thumbnail_path' => 'content-images/y-thumb.jpg',
@@ -69,6 +74,7 @@ it('falls back safely when webp is allowed but missing', function () {
 
 it('falls back to image_url when storage path is missing for ui and wordpress url', function () {
     Storage::fake('public');
+    config()->set('argusly.images.disk', 'public');
 
     $image = new ContentImage([
         'image_path' => 'content-images/missing-original.png',
@@ -83,6 +89,7 @@ it('falls back to image_url when storage path is missing for ui and wordpress ur
 
 it('builds an absolute wordpress upload url from connector public url when storage url is relative', function () {
     Storage::fake('public');
+    config()->set('argusly.images.disk', 'public');
     Storage::disk('public')->put('content-images/wp-medium.jpg', 'image');
     config()->set('argusly.webhooks.connector_public_url', 'https://connector.argusly.test');
 
@@ -92,7 +99,7 @@ it('builds an absolute wordpress upload url from connector public url when stora
     ]);
 
     expect($image->getWordPressUploadUrl(new ClientSite(['capabilities' => []])))
-        ->toBe('https://connector.argusly.test/storage/content-images/wp-medium.jpg');
+        ->toBe('https://connector.argusly.test/content-images/wp-medium.jpg');
 });
 
 it('rewrites localhost wordpress upload url to connector public url', function () {
@@ -104,5 +111,26 @@ it('rewrites localhost wordpress upload url to connector public url', function (
     ]);
 
     expect($image->getWordPressUploadUrl(new ClientSite(['capabilities' => []])))
-        ->toBe('https://connector.argusly.test/storage/content-images/missing.png');
+        ->toBe('https://connector.argusly.test/content-images/missing.png');
+});
+
+it('normalizes legacy stored content image urls to the public content images path', function () {
+    $fromRelativeStorage = new ContentImage([
+        'image_url' => 'storage/content-images/legacy-relative.png',
+    ]);
+
+    $fromAbsoluteStorage = new ContentImage([
+        'image_url' => 'http://localhost/storage/content-images/legacy-absolute.png',
+    ]);
+
+    $fromCurrentPath = new ContentImage([
+        'image_url' => 'content-images/current.png',
+    ]);
+
+    expect($fromRelativeStorage->original_ui_url)
+        ->toBe(asset('content-images/legacy-relative.png'))
+        ->and($fromAbsoluteStorage->original_ui_url)
+        ->toBe('http://localhost/content-images/legacy-absolute.png')
+        ->and($fromCurrentPath->original_ui_url)
+        ->toBe(asset('content-images/current.png'));
 });

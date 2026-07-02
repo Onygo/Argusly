@@ -1,9 +1,15 @@
 @extends('layouts.app', ['title' => 'Bedrijfsgegevens', 'pageWidth' => 'constrained'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Bedrijfsgegevens</x-slot:title>
+        <x-slot:description>Alleen een eigenaar of admin van je organisatie kan deze gegevens aanpassen.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mx-auto max-w-3xl space-y-6">
         <div class="rounded-lg border border-border bg-surface p-5">
-            <h1 class="text-xl font-semibold text-textPrimary">Bedrijfsgegevens</h1>
         </div>
 
         <div class="rounded-lg border border-border bg-surface p-5">
@@ -26,9 +32,6 @@
                     </div>
                 </form>
             @else
-                <p class="text-sm text-textSecondary">
-                    Alleen een eigenaar of admin van je organisatie kan deze gegevens aanpassen.
-                </p>
             @endif
         </div>
 

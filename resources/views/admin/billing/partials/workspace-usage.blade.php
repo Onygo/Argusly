@@ -12,57 +12,53 @@
         </form>
     </div>
 
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-            <tr class="text-left text-textSecondary">
-                <th class="pb-2 font-medium">Workspace</th>
-                <th class="pb-2 font-medium">Sites</th>
-                <th class="pb-2 font-medium">Articles generated</th>
-                <th class="pb-2 font-medium">LLM queries</th>
-                <th class="pb-2 font-medium">Audit pages</th>
-                <th class="pb-2 font-medium">Competitors</th>
-            </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-            @forelse ($workspaceUsageRows as $row)
-                <tr>
-                    <td class="py-2">{{ $row['workspace_name'] }}</td>
-                    <td class="py-2">{{ $row['sites_count'] }}</td>
-                    <td class="py-2">
-                        {{ $row['usage']['articles_generated'] }}
-                    </td>
-                    <td class="py-2">
-                        {{ $row['usage']['llm_queries_run'] }}
-                        @if ($row['limits']['llm_queries_run'] >= 0)
-                            / {{ $row['limits']['llm_queries_run'] }}
-                        @else
-                            / ∞
-                        @endif
-                    </td>
-                    <td class="py-2">
-                        {{ $row['usage']['audit_pages_crawled'] }}
-                        @if ($row['limits']['audit_pages_crawled'] >= 0)
-                            / {{ $row['limits']['audit_pages_crawled'] }}
-                        @else
-                            / ∞
-                        @endif
-                    </td>
-                    <td class="py-2">
-                        {{ $row['usage']['competitor_slots_used'] }}
-                        @if ($row['limits']['competitor_slots_used'] >= 0)
-                            / {{ $row['limits']['competitor_slots_used'] }}
-                        @else
-                            / ∞
-                        @endif
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="6" class="py-3 text-textSecondary">No workspace usage found.</td>
-                </tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
+    <x-data-table label="Workspace quota usage" description="Monthly workspace quota usage by workspace, sites, articles, LLM queries, audit pages, and competitor slots." density="compact" class="border-0 shadow-none">
+        <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Workspace</x-data-table.cell>
+                <x-data-table.cell heading>Sites</x-data-table.cell>
+                <x-data-table.cell heading>Articles generated</x-data-table.cell>
+                <x-data-table.cell heading>LLM queries</x-data-table.cell>
+                <x-data-table.cell heading>Audit pages</x-data-table.cell>
+                <x-data-table.cell heading>Competitors</x-data-table.cell>
+            </x-data-table.row>
+        </x-data-table.header>
+        <tbody class="divide-y divide-border">
+        @forelse ($workspaceUsageRows as $row)
+            <x-data-table.row>
+                <x-data-table.cell label="Workspace">{{ $row['workspace_name'] }}</x-data-table.cell>
+                <x-data-table.cell label="Sites">{{ $row['sites_count'] }}</x-data-table.cell>
+                <x-data-table.cell label="Articles generated">
+                    {{ $row['usage']['articles_generated'] }}
+                </x-data-table.cell>
+                <x-data-table.cell label="LLM queries">
+                    {{ $row['usage']['llm_queries_run'] }}
+                    @if ($row['limits']['llm_queries_run'] >= 0)
+                        / {{ $row['limits']['llm_queries_run'] }}
+                    @else
+                        / ∞
+                    @endif
+                </x-data-table.cell>
+                <x-data-table.cell label="Audit pages">
+                    {{ $row['usage']['audit_pages_crawled'] }}
+                    @if ($row['limits']['audit_pages_crawled'] >= 0)
+                        / {{ $row['limits']['audit_pages_crawled'] }}
+                    @else
+                        / ∞
+                    @endif
+                </x-data-table.cell>
+                <x-data-table.cell label="Competitors">
+                    {{ $row['usage']['competitor_slots_used'] }}
+                    @if ($row['limits']['competitor_slots_used'] >= 0)
+                        / {{ $row['limits']['competitor_slots_used'] }}
+                    @else
+                        / ∞
+                    @endif
+                </x-data-table.cell>
+            </x-data-table.row>
+        @empty
+            <x-data-table.empty colspan="6" title="No workspace usage found" />
+        @endforelse
+        </tbody>
+    </x-data-table>
 </div>

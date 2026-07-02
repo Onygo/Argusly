@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Generate Brand with AI'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Generate Brand with AI</x-slot:title>
+        <x-slot:description>Provide source material and let AI generate your company profile, brand voices, buyer personas, and team personas.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6">
         <nav class="mb-2 text-sm text-textSecondary">
@@ -7,8 +14,6 @@
             <span class="mx-1">/</span>
             <span class="text-textPrimary">Generate with AI</span>
         </nav>
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Generate Brand with AI</h1>
-        <p class="mt-1 text-textSecondary">Provide source material and let AI generate your company profile, brand voices, buyer personas, and team personas.</p>
     </div>
 
     @if ($errors->any())

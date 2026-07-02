@@ -1,22 +1,33 @@
 @extends('layouts.app', ['title' => 'Site Setup'])
 
-@section('content')
-    @php
-        $siteType = \App\Models\ClientSite::normalizeType((string) ($site->type ?? 'wordpress'));
-        $isLaravel = $siteType === \App\Models\ClientSite::TYPE_LARAVEL;
-        $isWordPress = $siteType === \App\Models\ClientSite::TYPE_WORDPRESS;
-    @endphp
+@php
+    $siteType = \App\Models\ClientSite::normalizeType((string) ($site->type ?? 'wordpress'));
+    $isLaravel = $siteType === \App\Models\ClientSite::TYPE_LARAVEL;
+    $isWordPress = $siteType === \App\Models\ClientSite::TYPE_WORDPRESS;
+@endphp
 
-    <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $site->name }}</h1>
-            <p class="mt-1 text-textSecondary">{{ $site->base_url ?: $site->site_url }} · {{ strtoupper($siteType) }}</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ route('app.sites.insights.index', $site) }}" class="rounded border border-border px-3 py-2 text-sm">View insights</a>
-            <a href="{{ route('app.sites') }}" class="rounded border border-border px-3 py-2 text-sm">Back to sites</a>
-        </div>
-    </div>
+@section('pageHeader')
+    <x-page-header :title="$site->name" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ $site->base_url ?: $site->site_url }} · {{ strtoupper($siteType) }}</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.sites.insights.index', $site) }}" class="rounded border border-border px-3 py-2 text-sm">View insights</a>
+    <a href="{{ route('app.sites') }}" class="rounded border border-border px-3 py-2 text-sm">Back to sites</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Site type" :value="strtoupper($siteType)" />
+        <x-metric-card label="Connector" :value="$isLaravel ? 'Laravel' : ($isWordPress ? 'WordPress' : 'Custom')" />
+        <x-metric-card label="Workspace" :value="$workspace?->name ?? 'n/a'" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>

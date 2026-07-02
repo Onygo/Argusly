@@ -1,21 +1,38 @@
 @extends('layouts.app', ['title' => 'Create Content Series', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Step 1: Series setup</h1>
-            <p class="mt-1 text-textSecondary">Define the core topic, targeting, and article count for your chained content plan.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Step 1: Series setup</x-slot:title>
+        <x-slot:description>Define the core topic, targeting, and article count for your chained content plan.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('app.content.series.index') }}" class="rounded border border-border px-3 py-2 text-sm">Back to series</a>
-    </div>
+@endsection
+
+@section('content')
 
     <form method="POST" action="{{ route('app.content.series.store') }}" class="space-y-5 rounded-lg border border-border bg-surface p-4 sm:p-5">
         @csrf
 
+        <div class="rounded-lg border border-border bg-background p-3">
+            <label class="mb-1 block text-xs font-medium text-textPrimary">Complete briefing</label>
+            <textarea
+                name="complete_briefing"
+                rows="10"
+                class="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+                placeholder="Paste a complete content or chain briefing with working title, keywords, audience, core message, angle, structure, and notes."
+            >{{ old('complete_briefing') }}</textarea>
+            <p class="mt-1 text-xs text-textSecondary">Optional. Argusly uses this briefing as strategic context and fills missing setup fields where possible.</p>
+            @error('complete_briefing')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+        </div>
+
         <div class="grid gap-4 md:grid-cols-2">
             <div>
                 <label class="mb-1 block text-xs text-textSecondary">Series name</label>
-                <input type="text" name="name" value="{{ old('name', $prefill['name'] ?? '') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" required>
+                <input type="text" name="name" value="{{ old('name', $prefill['name'] ?? '') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                @error('name')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="mb-1 block text-xs text-textSecondary">Site</label>
@@ -47,11 +64,13 @@
         <div class="grid gap-4 md:grid-cols-2">
             <div>
                 <label class="mb-1 block text-xs text-textSecondary">Main topic</label>
-                <input type="text" name="main_topic" value="{{ old('main_topic', $prefill['main_topic'] ?? '') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" required>
+                <input type="text" name="main_topic" value="{{ old('main_topic', $prefill['main_topic'] ?? '') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                @error('main_topic')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="mb-1 block text-xs text-textSecondary">Primary keyword</label>
-                <input type="text" name="primary_keyword" value="{{ old('primary_keyword', $prefill['primary_keyword'] ?? '') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" required>
+                <input type="text" name="primary_keyword" value="{{ old('primary_keyword', $prefill['primary_keyword'] ?? '') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                @error('primary_keyword')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
             </div>
         </div>
 

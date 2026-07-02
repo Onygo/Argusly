@@ -1,8 +1,7 @@
 @extends('layouts.app', ['title' => 'Share of AI Attention'])
 
-@section('content')
-    @php
-        $summary = $indexSummary ?? [];
+@php
+    $summary = $indexSummary ?? [];
         $trend = $siteTrend ?? [];
         $filters = $filters ?? [];
         $querySets = $querySets ?? collect();
@@ -56,8 +55,32 @@
                 'value' => (int) data_get($summary, 'queries_with_runs', 0),
                 'helper' => (int) data_get($summary, 'active_queries', 0) . ' active queries',
             ],
-        ];
-    @endphp
+    ];
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Share of AI Attention" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>AI Visibility Score for tracked prompts, providers, citations, brand mentions, and competitor pressure.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.insights.index') }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">All sites</a>
+    <a href="{{ route('app.sites.show', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Site setup</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="AI Visibility Score" :value="is_numeric(data_get($summary, 'ai_visibility_score')) ? number_format((float) data_get($summary, 'ai_visibility_score'), 1) : '-'" helper="Average across latest filtered runs" />
+        @foreach ($summaryCards as $card)
+            <x-metric-card :label="$card['label']" :value="$card['value']" :helper="$card['helper']" />
+        @endforeach
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <div class="space-y-5">
         <x-app.insights-header
@@ -65,9 +88,8 @@
             title="Share of AI Attention"
             description="AI Visibility Score for tracked prompts, providers, citations, brand mentions, and competitor pressure."
             active="llm"
+            :show-heading="false"
         >
-            <a href="{{ route('app.insights.index') }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">All sites</a>
-            <a href="{{ route('app.sites.show', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Site setup</a>
         </x-app.insights-header>
 
         @if (session('status'))
@@ -151,23 +173,6 @@
                 </div>
             </section>
         @endif
-
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-7">
-            <div class="rounded-lg border border-sky-200 bg-sky-50/70 p-5 md:col-span-3 xl:col-span-2">
-                <p class="text-xs font-semibold uppercase tracking-widest text-sky-800">AI Visibility Score</p>
-                <div class="mt-3 flex items-end justify-between gap-4">
-                    <p class="text-4xl font-semibold leading-none text-textPrimary">{{ is_numeric(data_get($summary, 'ai_visibility_score')) ? number_format((float) data_get($summary, 'ai_visibility_score'), 1) : '-' }}</p>
-                    <p class="max-w-40 text-right text-xs leading-5 text-sky-900/80">Average across latest filtered runs</p>
-                </div>
-            </div>
-            @foreach ($summaryCards as $card)
-                <div class="rounded-lg border border-border bg-surface p-4">
-                    <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-textMuted">{{ $card['label'] }}</p>
-                    <p class="mt-2 text-2xl font-semibold leading-none text-textPrimary">{{ $card['value'] }}</p>
-                    <p class="mt-2 text-xs text-textSecondary">{{ $card['helper'] }}</p>
-                </div>
-            @endforeach
-        </div>
 
         <div class="grid gap-4 lg:grid-cols-4">
             <div class="rounded-lg border border-border bg-surface p-4">
@@ -375,64 +380,60 @@
                     </div>
                 </div>
 
-                <div class="max-h-96 overflow-auto border-t border-border/70">
-                    <table class="min-w-[1320px] text-sm text-textPrimary">
-                        <thead class="sticky top-0 z-10 bg-surface">
-                            <tr class="text-left text-[11px] uppercase tracking-[0.08em] text-textSecondary">
-                                <th class="w-56 px-4 py-3 font-medium">Query</th>
-                                <th class="w-72 px-4 py-3 font-medium">Prompt</th>
-                                <th class="w-44 px-4 py-3 font-medium">Target</th>
-                                <th class="w-40 px-4 py-3 font-medium">Set</th>
-                                <th class="w-24 px-4 py-3 font-medium">Cadence</th>
-                                <th class="w-24 px-4 py-3 font-medium">Status</th>
-                                <th class="w-32 px-4 py-3 font-medium">Last run</th>
-                                <th class="w-24 px-4 py-3 font-medium">AI visibility</th>
-                                <th class="w-32 px-4 py-3 font-medium">Presence</th>
-                                <th class="w-24 px-4 py-3 font-medium">Citation</th>
-                                <th class="w-28 px-4 py-3 font-medium">Context</th>
-                                <th class="w-36 px-4 py-3 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border/70">
+                <x-data-table label="Tracking Queries" description="LLM tracking query management with prompt, target, cadence, run metrics, and row actions." sticky max-height="24rem" table-class="min-w-[1320px]" class="border-x-0 border-b-0 rounded-none">
+                        <x-data-table.header sticky>
+                            <x-data-table.row>
+                                <x-data-table.cell heading class="w-56">Query</x-data-table.cell>
+                                <x-data-table.cell heading class="w-72">Prompt</x-data-table.cell>
+                                <x-data-table.cell heading class="w-44">Target</x-data-table.cell>
+                                <x-data-table.cell heading class="w-40">Set</x-data-table.cell>
+                                <x-data-table.cell heading class="w-24">Cadence</x-data-table.cell>
+                                <x-data-table.cell heading class="w-24">Status</x-data-table.cell>
+                                <x-data-table.cell heading class="w-32">Last run</x-data-table.cell>
+                                <x-data-table.cell heading class="w-24">AI visibility</x-data-table.cell>
+                                <x-data-table.cell heading class="w-32">Presence</x-data-table.cell>
+                                <x-data-table.cell heading class="w-24">Citation</x-data-table.cell>
+                                <x-data-table.cell heading class="w-28">Context</x-data-table.cell>
+                                <x-data-table.cell heading class="w-36">Actions</x-data-table.cell>
+                            </x-data-table.row>
+                        </x-data-table.header>
+                        <tbody>
                             @forelse ($queries as $query)
                                 @php($latestRun = $query->runs->first())
-                                <tr class="align-top hover:bg-surfaceSubtle/60">
-                                    <td class="px-4 py-3">
+                                <x-data-table.row>
+                                    <x-data-table.cell label="Query">
                                         <div class="font-medium leading-5">{{ $query->name }}</div>
-                                    </td>
-                                    <td class="px-4 py-3">
+                                    </x-data-table.cell>
+                                    <x-data-table.cell label="Prompt">
                                         <div class="text-xs leading-5 text-textSecondary">{{ \Illuminate\Support\Str::limit($query->query_text, 140) }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 text-xs leading-5">
+                                    </x-data-table.cell>
+                                    <x-data-table.cell label="Target" class="text-xs leading-5">
                                         <div class="font-medium text-textPrimary">{{ $query->target_brand ?: 'Not set' }}</div>
                                         <div class="mt-1 text-textSecondary">{{ $query->target_domain ?: 'No domain' }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 text-xs">{{ $query->querySet?->name ?: 'Unassigned' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $frequencyLabel($query->frequency) }}</td>
-                                    <td class="px-4 py-3 text-xs">
-                                        <span class="inline-flex rounded-full px-2 py-1 {{ $query->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-surfaceSubtle text-textSecondary' }}">{{ $query->is_active ? 'Active' : 'Inactive' }}</span>
-                                    </td>
-                                    <td class="px-4 py-3 text-xs">{{ optional($latestRun?->run_at)->toDateTimeString() ?? 'Never' }}</td>
-                                    <td class="px-4 py-3 text-xs font-semibold text-textPrimary">{{ is_numeric($latestRun?->ai_visibility_score) ? number_format(((float) $latestRun->ai_visibility_score) * 100, 1) : '-' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $latestRun ? ($latestRun->brand_mentioned ? 'Argusly present' : 'Missing') : 'No run yet' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $latestRun && (((float) ($latestRun->citation_score ?? 0)) > 0 || $latestRun->urls_cited) ? 'Present' : 'Missing' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $contextLabel($latestRun?->context_label ?? $latestRun?->sentiment_label) }}</td>
-                                    <td class="px-4 py-3">
-                                        <div class="flex flex-wrap gap-2">
+                                    </x-data-table.cell>
+                                    <x-data-table.cell label="Set" class="text-xs">{{ $query->querySet?->name ?: 'Unassigned' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Cadence" class="text-xs">{{ $frequencyLabel($query->frequency) }}</x-data-table.cell>
+                                    <x-data-table.cell label="Status" class="text-xs">
+                                        <x-data-table.badge :tone="$query->is_active ? 'success' : 'neutral'" :label="$query->is_active ? 'Active' : 'Inactive'" />
+                                    </x-data-table.cell>
+                                    <x-data-table.cell label="Last run" class="text-xs">{{ optional($latestRun?->run_at)->toDateTimeString() ?? 'Never' }}</x-data-table.cell>
+                                    <x-data-table.cell label="AI visibility" class="text-xs font-semibold text-textPrimary">{{ is_numeric($latestRun?->ai_visibility_score) ? number_format(((float) $latestRun->ai_visibility_score) * 100, 1) : '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Presence" class="text-xs">{{ $latestRun ? ($latestRun->brand_mentioned ? 'Argusly present' : 'Missing') : 'No run yet' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Citation" class="text-xs">{{ $latestRun && (((float) ($latestRun->citation_score ?? 0)) > 0 || $latestRun->urls_cited) ? 'Present' : 'Missing' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Context" class="text-xs">{{ $contextLabel($latestRun?->context_label ?? $latestRun?->sentiment_label) }}</x-data-table.cell>
+                                    <x-data-table.cell label="Actions">
+                                        <x-data-table.actions align="start">
                                             <a href="{{ route('app.sites.llm-tracking.show', [$site, $query]) }}" class="rounded border border-border px-2 py-1 text-xs">Open</a>
                                             <form method="POST" action="{{ route('app.sites.llm-tracking.toggle', [$site, $query]) }}">@csrf<button class="rounded border border-border px-2 py-1 text-xs">{{ $query->is_active ? 'Deactivate' : 'Activate' }}</button></form>
                                             <form method="POST" action="{{ route('app.sites.llm-tracking.run-now', [$site, $query]) }}">@csrf<button class="rounded border border-border px-2 py-1 text-xs">Run now</button></form>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </x-data-table.actions>
+                                    </x-data-table.cell>
+                                </x-data-table.row>
                             @empty
-                                <tr>
-                                    <td colspan="12" class="px-4 py-3 text-textSecondary">No tracking queries configured yet.</td>
-                                </tr>
+                                <x-data-table.empty colspan="12" title="No tracking queries configured yet" />
                             @endforelse
                         </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
 
             <details class="self-start rounded-lg border border-border bg-surface p-5">
@@ -523,78 +524,74 @@
                 <div class="p-5">
                     <h2 class="text-sm font-semibold text-textPrimary">Query Performance</h2>
                 </div>
-                <div class="max-h-96 overflow-auto border-t border-border/70">
-                    <table class="min-w-full text-sm text-textPrimary">
-                        <thead class="sticky top-0 z-10 bg-surface">
-                            <tr class="text-left text-[11px] uppercase tracking-[0.08em] text-textSecondary">
-                                <th class="px-4 py-3 font-medium">Query</th>
-                                <th class="px-4 py-3 font-medium">Latest</th>
-                                <th class="px-4 py-3 font-medium">Average</th>
-                                <th class="px-4 py-3 font-medium">Presence</th>
-                                <th class="px-4 py-3 font-medium">Citation</th>
-                                <th class="px-4 py-3 font-medium">Top competitor</th>
-                                <th class="px-4 py-3 font-medium">Trend</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border/70">
+                <x-data-table label="Query Performance" description="Latest and average AI visibility performance, presence, citation, competitor, and trend metrics by query." sticky max-height="24rem" class="border-x-0 border-b-0 rounded-none">
+                        <x-data-table.header sticky>
+                            <x-data-table.row>
+                                <x-data-table.cell heading>Query</x-data-table.cell>
+                                <x-data-table.cell heading>Latest</x-data-table.cell>
+                                <x-data-table.cell heading>Average</x-data-table.cell>
+                                <x-data-table.cell heading>Presence</x-data-table.cell>
+                                <x-data-table.cell heading>Citation</x-data-table.cell>
+                                <x-data-table.cell heading>Top competitor</x-data-table.cell>
+                                <x-data-table.cell heading>Trend</x-data-table.cell>
+                            </x-data-table.row>
+                        </x-data-table.header>
+                        <tbody>
                             @forelse ($queryPerformanceRows as $row)
-                                <tr class="hover:bg-surfaceSubtle/60">
-                                    <td class="px-4 py-3">{{ data_get($row, 'query.name') }}</td>
-                                    <td class="px-4 py-3 font-semibold">{{ is_numeric(data_get($row, 'latest_score')) ? number_format((float) data_get($row, 'latest_score'), 1) : '-' }}</td>
-                                    <td class="px-4 py-3">{{ is_numeric(data_get($row, 'average_score')) ? number_format((float) data_get($row, 'average_score'), 1) : '-' }}</td>
-                                    <td class="px-4 py-3">{{ number_format((float) data_get($row, 'presence_percentage', 0), 1) }}%</td>
-                                    <td class="px-4 py-3">{{ number_format((float) data_get($row, 'citation_percentage', 0), 1) }}%</td>
-                                    <td class="px-4 py-3">{{ data_get($row, 'top_competitor', '-') ?: '-' }}</td>
-                                    <td class="px-4 py-3">{{ is_numeric(data_get($row, 'trend')) ? number_format((float) data_get($row, 'trend'), 1) : '-' }}</td>
-                                </tr>
+                                <x-data-table.row>
+                                    <x-data-table.cell label="Query">{{ data_get($row, 'query.name') }}</x-data-table.cell>
+                                    <x-data-table.cell label="Latest" class="font-semibold">{{ is_numeric(data_get($row, 'latest_score')) ? number_format((float) data_get($row, 'latest_score'), 1) : '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Average">{{ is_numeric(data_get($row, 'average_score')) ? number_format((float) data_get($row, 'average_score'), 1) : '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Presence">{{ number_format((float) data_get($row, 'presence_percentage', 0), 1) }}%</x-data-table.cell>
+                                    <x-data-table.cell label="Citation">{{ number_format((float) data_get($row, 'citation_percentage', 0), 1) }}%</x-data-table.cell>
+                                    <x-data-table.cell label="Top competitor">{{ data_get($row, 'top_competitor', '-') ?: '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Trend">{{ is_numeric(data_get($row, 'trend')) ? number_format((float) data_get($row, 'trend'), 1) : '-' }}</x-data-table.cell>
+                                </x-data-table.row>
                             @empty
-                                <tr><td colspan="7" class="px-4 py-3 text-textSecondary">No query performance data yet.</td></tr>
+                                <x-data-table.empty colspan="7" title="No query performance data yet" />
                             @endforelse
                         </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
 
             <div class="rounded-lg border border-border bg-surface">
                 <div class="p-5">
                     <h2 class="text-sm font-semibold text-textPrimary">Latest Answers</h2>
                 </div>
-                <div class="max-h-96 overflow-auto border-t border-border/70">
-                    <table class="min-w-full text-sm text-textPrimary">
-                        <thead class="sticky top-0 z-10 bg-surface">
-                            <tr class="text-left text-[11px] uppercase tracking-[0.08em] text-textSecondary">
-                                <th class="px-4 py-3 font-medium">Date</th>
-                                <th class="px-4 py-3 font-medium">Provider</th>
-                                <th class="px-4 py-3 font-medium">Model</th>
-                                <th class="px-4 py-3 font-medium">Query</th>
-                                <th class="px-4 py-3 font-medium">Score</th>
-                                <th class="px-4 py-3 font-medium">Brand</th>
-                                <th class="px-4 py-3 font-medium">Citation</th>
-                                <th class="px-4 py-3 font-medium">Context</th>
-                                <th class="px-4 py-3 font-medium">Detail</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border/70">
+                <x-data-table label="Latest Answers" description="Latest tracked answer runs with provider, model, query, score, brand presence, citation, context, and detail link." sticky max-height="24rem" class="border-x-0 border-b-0 rounded-none">
+                        <x-data-table.header sticky>
+                            <x-data-table.row>
+                                <x-data-table.cell heading>Date</x-data-table.cell>
+                                <x-data-table.cell heading>Provider</x-data-table.cell>
+                                <x-data-table.cell heading>Model</x-data-table.cell>
+                                <x-data-table.cell heading>Query</x-data-table.cell>
+                                <x-data-table.cell heading>Score</x-data-table.cell>
+                                <x-data-table.cell heading>Brand</x-data-table.cell>
+                                <x-data-table.cell heading>Citation</x-data-table.cell>
+                                <x-data-table.cell heading>Context</x-data-table.cell>
+                                <x-data-table.cell heading>Detail</x-data-table.cell>
+                            </x-data-table.row>
+                        </x-data-table.header>
+                        <tbody>
                             @forelse ($latestResponseRows as $row)
                                 @php($run = $row['run'])
                                 @php($query = $row['query'])
-                                <tr class="hover:bg-surfaceSubtle/60">
-                                    <td class="px-4 py-3 text-xs">{{ optional($run->run_at)->toDateTimeString() }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $run->provider ?: '-' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $run->model ?: '-' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $query->name }}</td>
-                                    <td class="px-4 py-3 text-xs font-semibold">{{ is_numeric($row['score']) ? number_format((float) $row['score'], 1) : '-' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $row['brand_mentioned'] ? 'Yes' : 'No' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $row['citation_present'] ? 'Yes' : 'No' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $contextLabel($row['context_label']) }}</td>
-                                    <td class="px-4 py-3"><a href="{{ route('app.sites.llm-tracking.show', [$site, $query]) }}" class="rounded border border-border px-2 py-1 text-xs">Open</a></td>
-                                </tr>
+                                <x-data-table.row>
+                                    <x-data-table.cell label="Date" class="text-xs">{{ optional($run->run_at)->toDateTimeString() }}</x-data-table.cell>
+                                    <x-data-table.cell label="Provider" class="text-xs">{{ $run->provider ?: '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Model" class="text-xs">{{ $run->model ?: '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Query" class="text-xs">{{ $query->name }}</x-data-table.cell>
+                                    <x-data-table.cell label="Score" class="text-xs font-semibold">{{ is_numeric($row['score']) ? number_format((float) $row['score'], 1) : '-' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Brand" class="text-xs">{{ $row['brand_mentioned'] ? 'Yes' : 'No' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Citation" class="text-xs">{{ $row['citation_present'] ? 'Yes' : 'No' }}</x-data-table.cell>
+                                    <x-data-table.cell label="Context" class="text-xs">{{ $contextLabel($row['context_label']) }}</x-data-table.cell>
+                                    <x-data-table.cell label="Detail"><a href="{{ route('app.sites.llm-tracking.show', [$site, $query]) }}" class="rounded border border-border px-2 py-1 text-xs">Open</a></x-data-table.cell>
+                                </x-data-table.row>
                             @empty
-                                <tr><td colspan="9" class="px-4 py-3 text-textSecondary">No tracked answers yet.</td></tr>
+                                <x-data-table.empty colspan="9" title="No tracked answers yet" />
                             @endforelse
                         </tbody>
-                    </table>
-                </div>
+                </x-data-table>
             </div>
         </div>
 
@@ -670,36 +667,34 @@
 
                 <div class="rounded-lg border border-border bg-surface p-6">
                     <h2 class="text-sm font-semibold text-textPrimary">Trend Over Time</h2>
-                    <div class="mt-3 overflow-x-auto">
-                        <table class="min-w-full text-xs text-textSecondary">
-                            <thead>
-                                <tr class="text-left">
-                                    <th class="pb-2 font-medium">Week</th>
-                                    <th class="pb-2 font-medium">AI visibility</th>
-                                    <th class="pb-2 font-medium">Presence</th>
-                                    <th class="pb-2 font-medium">Citation</th>
-                                    <th class="pb-2 font-medium">Positive context</th>
-                                    <th class="pb-2 font-medium">Position</th>
-                                    <th class="pb-2 font-medium">Runs</th>
-                                </tr>
-                            </thead>
+                    <x-data-table label="Trend Over Time" description="Weekly AI visibility, presence, citation, context, position, and run count trend." density="compact" class="mt-3 border-0 rounded-none" table-class="text-xs">
+                            <x-data-table.header>
+                                <x-data-table.row>
+                                    <x-data-table.cell heading>Week</x-data-table.cell>
+                                    <x-data-table.cell heading>AI visibility</x-data-table.cell>
+                                    <x-data-table.cell heading>Presence</x-data-table.cell>
+                                    <x-data-table.cell heading>Citation</x-data-table.cell>
+                                    <x-data-table.cell heading>Positive context</x-data-table.cell>
+                                    <x-data-table.cell heading>Position</x-data-table.cell>
+                                    <x-data-table.cell heading>Runs</x-data-table.cell>
+                                </x-data-table.row>
+                            </x-data-table.header>
                             <tbody>
                                 @forelse ($trend as $row)
-                                    <tr class="border-t border-border/60">
-                                        <td class="py-2 text-textPrimary">{{ optional(data_get($row, 'period_start'))->format('Y-m-d') }}</td>
-                                        <td class="py-2">{{ is_numeric(data_get($row, 'ai_visibility_score')) ? number_format(((float) data_get($row, 'ai_visibility_score')) * 100, 1) : '-' }}</td>
-                                        <td class="py-2">{{ is_numeric(data_get($row, 'presence_rate')) ? number_format(((float) data_get($row, 'presence_rate')) * 100, 1) . '%' : '-' }}</td>
-                                        <td class="py-2">{{ is_numeric(data_get($row, 'citation_rate')) ? number_format(((float) data_get($row, 'citation_rate')) * 100, 1) . '%' : '-' }}</td>
-                                        <td class="py-2">{{ is_numeric(data_get($row, 'positive_context_rate')) ? number_format(((float) data_get($row, 'positive_context_rate')) * 100, 1) . '%' : '-' }}</td>
-                                        <td class="py-2">{{ is_numeric(data_get($row, 'average_position_score')) ? number_format(((float) data_get($row, 'average_position_score')) * 100, 1) : '-' }}</td>
-                                        <td class="py-2">{{ (int) data_get($row, 'run_count', 0) }}</td>
-                                    </tr>
+                                    <x-data-table.row>
+                                        <x-data-table.cell label="Week" class="text-textPrimary">{{ optional(data_get($row, 'period_start'))->format('Y-m-d') }}</x-data-table.cell>
+                                        <x-data-table.cell label="AI visibility">{{ is_numeric(data_get($row, 'ai_visibility_score')) ? number_format(((float) data_get($row, 'ai_visibility_score')) * 100, 1) : '-' }}</x-data-table.cell>
+                                        <x-data-table.cell label="Presence">{{ is_numeric(data_get($row, 'presence_rate')) ? number_format(((float) data_get($row, 'presence_rate')) * 100, 1) . '%' : '-' }}</x-data-table.cell>
+                                        <x-data-table.cell label="Citation">{{ is_numeric(data_get($row, 'citation_rate')) ? number_format(((float) data_get($row, 'citation_rate')) * 100, 1) . '%' : '-' }}</x-data-table.cell>
+                                        <x-data-table.cell label="Positive context">{{ is_numeric(data_get($row, 'positive_context_rate')) ? number_format(((float) data_get($row, 'positive_context_rate')) * 100, 1) . '%' : '-' }}</x-data-table.cell>
+                                        <x-data-table.cell label="Position">{{ is_numeric(data_get($row, 'average_position_score')) ? number_format(((float) data_get($row, 'average_position_score')) * 100, 1) : '-' }}</x-data-table.cell>
+                                        <x-data-table.cell label="Runs">{{ (int) data_get($row, 'run_count', 0) }}</x-data-table.cell>
+                                    </x-data-table.row>
                                 @empty
-                                    <tr><td colspan="7" class="py-3 text-textSecondary">No aggregate trend data yet.</td></tr>
+                                    <x-data-table.empty colspan="7" title="No aggregate trend data yet" />
                                 @endforelse
                             </tbody>
-                        </table>
-                    </div>
+                    </x-data-table>
                 </div>
             </div>
         </div>

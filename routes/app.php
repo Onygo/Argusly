@@ -17,6 +17,7 @@ use App\Http\Controllers\App\ActivationController;
 use App\Http\Controllers\App\AppAgenticApprovalInboxController;
 use App\Http\Controllers\App\AppAgenticMarketingController;
 use App\Http\Controllers\App\AppAgentOrchestrationController;
+use App\Http\Controllers\App\AppAiTrustCenterController;
 use App\Http\Controllers\App\Api\AppBillingUpgradeStatusController;
 use App\Http\Controllers\App\AppBillingController;
 use App\Http\Controllers\App\Api\AppBrandFieldActionsController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\App\AppContentOpportunityController;
 use App\Http\Controllers\App\AppContentPipelineController;
 use App\Http\Controllers\App\AppContentAutomationsController;
 use App\Http\Controllers\App\AppContentChainController;
+use App\Http\Controllers\App\AppContentImageAssetController;
 use App\Http\Controllers\App\AppContentQualityController;
 use App\Http\Controllers\App\AppContentNetworkController;
 use App\Http\Controllers\App\AppContentPackageController;
@@ -215,6 +217,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
             Route::post('/opportunity-intelligence/opportunities/{opportunity}/dismiss', [AppOpportunityIntelligenceController::class, 'dismiss'])->name('app.opportunity-intelligence.opportunities.dismiss');
             Route::post('/opportunity-intelligence/opportunities/{opportunity}/resolve', [AppOpportunityIntelligenceController::class, 'resolve'])->name('app.opportunity-intelligence.opportunities.resolve');
             Route::post('/opportunity-intelligence/opportunities/{opportunity}/archive', [AppOpportunityIntelligenceController::class, 'archive'])->name('app.opportunity-intelligence.opportunities.archive');
+            Route::get('/opportunity-intelligence/opportunities/{opportunity}/execution-plans', [AppOpportunityIntelligenceController::class, 'indexExecutionPlans'])->name('app.opportunity-intelligence.opportunities.execution-plans.index');
             Route::post('/opportunity-intelligence/opportunities/{opportunity}/execution-plans', [AppOpportunityIntelligenceController::class, 'storeExecutionPlan'])->name('app.opportunity-intelligence.opportunities.execution-plans.store');
             Route::get('/opportunity-intelligence/execution-plans/{plan}', [AppOpportunityIntelligenceController::class, 'showExecutionPlan'])->name('app.opportunity-intelligence.execution-plans.show');
             Route::post('/opportunity-intelligence/execution-plans/{plan}/review', [AppOpportunityIntelligenceController::class, 'reviewExecutionPlan'])->name('app.opportunity-intelligence.execution-plans.review');
@@ -563,6 +566,12 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::delete('/content/automations/{automation}', [AppContentAutomationsController::class, 'destroy'])->name('app.content.automations.destroy');
         Route::get('/content/{content}.md', [AppContentController::class, 'markdownDocument'])->name('app.content.markdown');
         Route::get('/content/{content}/answers', [AppContentController::class, 'answersDocument'])->name('app.content.answers');
+        Route::get('/content/{content}/trust-center', [AppAiTrustCenterController::class, 'show'])->name('app.content.ai-trust.show');
+        Route::get('/content/{content}/trust-center/audit-report', [AppAiTrustCenterController::class, 'downloadAuditReport'])->name('app.content.ai-trust.audit-report');
+        Route::post('/content/{content}/trust-center/disclosure', [AppAiTrustCenterController::class, 'updateDisclosure'])->name('app.content.ai-trust.disclosure');
+        Route::post('/content/{content}/trust-center/review', [AppAiTrustCenterController::class, 'review'])->name('app.content.ai-trust.review');
+        Route::post('/content/{content}/trust-center/fact-check', [AppAiTrustCenterController::class, 'factCheck'])->name('app.content.ai-trust.fact-check');
+        Route::post('/content/{content}/trust-center/source-trace', [AppAiTrustCenterController::class, 'sourceTrace'])->name('app.content.ai-trust.source-trace');
         Route::get('/content/{content}', [AppContentController::class, 'show'])->name('app.content.show');
 
         // Content Lifecycle Actions
@@ -595,6 +604,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/content/{content}/chain-suggestions/{suggestion}/create', [AppContentChainController::class, 'createFromSuggestion'])->name('app.content.chain-suggestions.create');
         Route::post('/content/{content}/schedule', [AppContentController::class, 'schedule'])->name('app.content.schedule');
         Route::post('/content/{content}/publish-now', [AppContentController::class, 'publishNow'])->name('app.content.publish-now');
+        Route::post('/content/{content}/publishing-destination', [AppContentController::class, 'updatePublishingDestination'])->name('app.content.publishing-destination.update');
         Route::post('/content/{content}/publishing-sync', [AppContentController::class, 'updatePublishingSyncSettings'])->name('app.content.publishing-sync.update');
         Route::post('/content/{content}/push-to-site', [AppContentController::class, 'pushToSite'])->name('app.content.push-to-site');
         Route::post('/content/{content}/translate', [AppContentController::class, 'translate'])->name('app.content.translate');
@@ -616,6 +626,9 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/content/{content}/verify-remote', [AppContentController::class, 'verifyRemote'])->name('app.content.verify-remote');
         Route::post('/content/{content}/unpublish-remote', [AppContentController::class, 'unpublishRemote'])->name('app.content.unpublish-remote');
         Route::post('/content/{content}/images/featured/generate', [AppContentController::class, 'generateFeaturedImage'])->middleware('protect.heavy:ai')->name('app.content.images.featured.generate');
+        Route::post('/content/{content}/images/upload', [AppContentImageAssetController::class, 'storeForContent'])->name('app.content.images.upload');
+        Route::post('/content/{content}/images/{imageVersion}/usage', [AppContentImageAssetController::class, 'updateUsageForContent'])->name('app.content.images.usage.update');
+        Route::post('/content/{content}/images/inline/{assetKey}/generate', [AppContentController::class, 'generateInlineVisualImage'])->middleware('protect.heavy:ai')->name('app.content.images.inline.generate');
         Route::post('/content/{content}/images/featured/unsplash', [AppContentController::class, 'useUnsplashFeaturedImage'])->name('app.content.images.featured.unsplash');
         Route::post('/content/{content}/images/featured/push', [AppContentController::class, 'pushFeaturedImageToWordPress'])->name('app.content.images.featured.push');
         Route::post('/content/{content}/images/{imageVersion}/restore', [AppContentController::class, 'restoreImageVersion'])->name('app.content.images.versions.restore');
@@ -623,6 +636,9 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/content/{content}/images/preferences', [AppContentController::class, 'updateImageGenerationPreferences'])->name('app.content.images.preferences.update');
         Route::post('/content/{content}/images/og/generate', [AppContentController::class, 'generateOgImage'])->middleware('protect.heavy:ai')->name('app.content.images.og.generate');
         Route::post('/content/{content}/images/og/push', [AppContentController::class, 'pushOgImageToWordPress'])->name('app.content.images.og.push');
+        Route::post('/campaigns/{campaign}/images/upload', [AppContentImageAssetController::class, 'storeForCampaign'])->name('app.campaigns.images.upload');
+        Route::post('/campaigns/{campaign}/images/{imageVersion}/usage', [AppContentImageAssetController::class, 'updateUsageForCampaign'])->name('app.campaigns.images.usage.update');
+        Route::post('/social-publications/{socialPublication}/images/upload', [AppContentImageAssetController::class, 'storeForSocialPublication'])->name('app.social-publications.images.upload');
         Route::get('/drafts', function (Request $request) {
             return redirect()->route('app.content.index', array_merge(
                 $request->query(),

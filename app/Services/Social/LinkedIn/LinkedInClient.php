@@ -4,6 +4,7 @@ namespace App\Services\Social\LinkedIn;
 
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class LinkedInClient
 {
@@ -60,5 +61,83 @@ class LinkedInClient
         return Http::withToken($accessToken)
             ->withHeaders(['X-Restli-Protocol-Version' => '2.0.0'])
             ->post('https://api.linkedin.com/v2/ugcPosts', $payload);
+    }
+
+    /**
+     * @return array{asset:string,upload_url:string,response:array<string,mixed>}
+     */
+    public function registerImageUpload(string $accessToken, string $ownerUrn): array
+    {
+        $response = Http::withToken($accessToken)
+            ->withHeaders(['X-Restli-Protocol-Version' => '2.0.0'])
+            ->post('https://api.linkedin.com/v2/assets?action=registerUpload', [
+                'registerUploadRequest' => [
+                    'recipes' => ['urn:li:digitalmediaRecipe:feedshare-image'],
+                    'owner' => $ownerUrn,
+                    'serviceRelationships' => [[
+                        'relationshipType' => 'OWNER',
+                        'identifier' => 'urn:li:userGeneratedContent',
+                    ]],
+                ],
+            ]);
+
+        $payload = $response->throw()->json();
+        $uploadMechanism = (array) data_get($payload, 'value.uploadMechanism', []);
+        $httpRequest = (array) ($uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'] ?? []);
+
+        return [
+            'asset' => (string) data_get($payload, 'value.asset'),
+            'upload_url' => (string) ($httpRequest['uploadUrl'] ?? ''),
+            'response' => $payload,
+        ];
+    }
+
+    /**
+     * @return array{asset:string,upload_url:string,register_response:array<string,mixed>,image_status:int,upload_status:int}
+     */
+    public function uploadImage(string $accessToken, string $ownerUrn, string $imageUrl): array
+    {
+        $registered = $this->registerImageUpload($accessToken, $ownerUrn);
+
+        if ($registered['asset'] === '' || $registered['upload_url'] === '') {
+            throw new \RuntimeException('LinkedIn image upload registration did not return an asset URN.');
+        }
+
+        $image = Http::get($imageUrl);
+        if ($image->failed()) {
+            throw new \RuntimeException('LinkedIn image source could not be fetched.');
+        }
+
+        $upload = Http::withBody($image->body(), $this->contentType($imageUrl, $image->header('Content-Type')))
+            ->put($registered['upload_url']);
+        if ($upload->failed()) {
+            throw new \RuntimeException('LinkedIn image upload failed.');
+        }
+
+        return [
+            'asset' => $registered['asset'],
+            'upload_url' => $registered['upload_url'],
+            'register_response' => $registered['response'],
+            'image_status' => $image->status(),
+            'upload_status' => $upload->status(),
+        ];
+    }
+
+    private function contentType(string $imageUrl, ?string $responseContentType): string
+    {
+        $contentType = trim((string) $responseContentType);
+        if (Str::startsWith($contentType, 'image/')) {
+            return $contentType;
+        }
+
+        $extension = strtolower((string) pathinfo(parse_url($imageUrl, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => 'application/octet-stream',
+        };
     }
 }

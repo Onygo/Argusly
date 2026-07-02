@@ -1,9 +1,12 @@
 @extends('layouts.app', ['title' => 'Content detail'])
 
-@section('content')
-    @php
-        $destinationType = \App\Enums\ContentDestinationType::normalize($destination?->type?->value ?? $destination?->type);
+@php
+        $destinationType = \App\Enums\ContentDestinationType::normalize($destination?->type?->value ?? $destination?->type)
+            ?? \App\Enums\ContentDestinationType::fromNormalized($content->clientSite?->type)?->value;
         $destinationLabel = \App\Enums\ContentDestinationType::label($destinationType);
+        $currentPublishingSite = $currentPublishingSite ?? $content->clientSite;
+        $usesImplicitPublishingSite = (bool) ($usesImplicitPublishingSite ?? false);
+        $currentPublishingSiteType = \App\Enums\ContentDestinationType::label(\App\Enums\ContentDestinationType::fromNormalized($currentPublishingSite?->type)?->value);
         $statusPresenter = \App\View\Presenters\ContentStatusPresenter::for($content);
         $publicLiveUrl = app(\App\Services\Seo\CanonicalUrlService::class)->liveUrlForContent($content);
         $isWordPressDestination = $destinationType === \App\Enums\ContentDestinationType::WORDPRESS->value;
@@ -29,6 +32,11 @@
             && (bool) ($content->sync_with_source ?? true)
             && (bool) ($localizedContentSource?->auto_publish ?? true);
         $linkedSourceSchedule = $localizedContentSource?->scheduled_publish_at;
+        $isScheduleDue = $content->scheduled_publish_at && $content->scheduled_publish_at->lessThanOrEqualTo(now());
+        $isPublishedState = in_array((string) ($content->publish_status ?? ''), ['published', 'delivered'], true)
+            || in_array((string) ($content->status ?? ''), ['published', 'delivered'], true)
+            || filled($content->published_url ?? null);
+        $isScheduleOverdue = $isScheduleDue && ! $isPublishedState;
         $latestDraft = $generationDraft ?? $legacyDraft;
         $latestDraftTimestamp = $latestDraft?->updated_at;
         $currentVersionTimestamp = $content->currentVersion?->updated_at ?? $content->currentVersion?->created_at;
@@ -142,7 +150,26 @@
             ->where('meta->source', 'programmatic_publication_scheduler')
             ->latest()
             ->first();
-    @endphp
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$content->title" eyebrow="Editorial Header" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ $content->clientSite?->name ?? 'No site' }} · {{ $livePublicationLabel }} / {{ $liveRemoteLabel }} · {{ $contentLocaleLabel }}@if($contentSourceLocaleLabel) · SRC {{ $contentSourceLocaleLabel }}@endif</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Publish State" :value="$livePublicationLabel" :helper="$liveRemoteLabel" />
+        <x-metric-card label="Updated" :value="$content->updated_at?->diffForHumans() ?? 'n/a'" />
+        <x-metric-card label="Language" :value="$contentLocaleLabel" :helper="$contentSourceLocaleLabel ? 'Source: '.$contentSourceLocaleLabel : null" />
+        <x-metric-card label="Destination" :value="$destinationLabel" />
+    </x-metric-section>
+@endsection
+
+@section('content')
     <section class="mb-6 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-white via-surface to-surfaceSubtle">
         <div class="border-b border-border/70 px-4 py-4 sm:px-6">
             <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -152,7 +179,6 @@
                         <span class="h-1 w-1 rounded-full bg-border"></span>
                         <span>{{ $content->clientSite?->name ?? 'No site' }}</span>
                     </div>
-                    <h1 class="mt-3 break-words text-2xl font-semibold tracking-tight text-textPrimary sm:text-3xl">{{ $content->title }}</h1>
                     <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
                         <span class="pl-badge {{ $lifecycleBadgeClasses }}"><span class="pl-badge__label">{{ $statusPresenter->lifecycleLabel() }}</span></span>
                         <span class="pl-badge {{ $deliveryBadgeClasses }}"><span class="pl-badge__label">{{ $livePublicationLabel }}</span></span>
@@ -266,6 +292,7 @@
                         <a href="{{ $publicLiveUrl }}" target="_blank" rel="noopener" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Open Live</a>
                     @endif
                     <a href="{{ route('app.content.markdown', $content) }}" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Open `.md`</a>
+                    <a href="{{ route('app.content.ai-trust.show', $content) }}" class="shrink-0 rounded-full border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">AI Trust</a>
                     </div>
                 </div>
 
@@ -757,7 +784,9 @@
 
                     <div class="mt-4 space-y-3">
                         @foreach(($localizedContentStatuses ?? collect()) as $localizedStatus)
-                            @php($variantContent = $localizedStatus['content'])
+                            @php
+                                $variantContent = $localizedStatus['content'];
+                            @endphp
                             <div class="rounded-2xl border border-border/70 bg-white px-4 py-4">
                                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                                     <div class="min-w-0">
@@ -883,7 +912,9 @@
                                 <div class="text-xs font-medium uppercase tracking-[0.18em] text-textSecondary">Translate or refresh</div>
                                 <div class="mt-3 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                                     @foreach(($localizedTranslationTargets ?? collect()) as $target)
-                                        @php($targetLocale = \App\Enums\SupportedLanguage::fromStringOrDefault((string) $target['value'])->value)
+                                        @php
+                                            $targetLocale = \App\Enums\SupportedLanguage::fromStringOrDefault((string) $target['value'])->value;
+                                        @endphp
                                         <div class="rounded-2xl border border-border/70 bg-white px-4 py-4 text-xs text-textPrimary">
                                             <div class="flex items-center gap-2">
                                                 <span>{{ strtoupper($targetLocale) }}</span>
@@ -966,7 +997,43 @@
 
             @can('update', $content)
                 <details class="mt-4 rounded-2xl border border-border/80 bg-white p-5">
-                    <summary class="cursor-pointer list-none text-sm font-semibold text-textPrimary">Advanced publishing controls</summary>
+                    <summary class="cursor-pointer list-none text-sm font-semibold text-textPrimary">Publishing controls</summary>
+                    <div id="publishing-destination" class="mt-4 rounded border border-border p-3">
+                        <div class="mb-2 text-sm font-medium text-textPrimary">Publishing destination</div>
+                        @if ($currentPublishingSite)
+                            <div class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                                Current publishing site: <span class="font-medium">{{ $currentPublishingSite->name }}</span>
+                                @if ($currentPublishingSiteType !== 'Unknown destination')
+                                    · {{ $currentPublishingSiteType }}
+                                @endif
+                                @if ($usesImplicitPublishingSite)
+                                    · Uses the site connection, no separate destination required.
+                                @endif
+                            </div>
+                        @endif
+                        <form method="POST" action="{{ route('app.content.publishing-destination.update', $content) }}" class="flex flex-wrap items-end gap-2">
+                            @csrf
+                            <div class="min-w-64 flex-1">
+                                <label class="mb-1 block text-xs text-textSecondary">Connector destination override</label>
+                                <select name="content_destination_id" class="w-full rounded border border-border px-2 py-2 text-sm">
+                                    <option value="">Use current site</option>
+                                    @foreach (($availablePublishingDestinations ?? collect()) as $destinationOption)
+                                        <option value="{{ $destinationOption->id }}" @selected((string) old('content_destination_id', $content->content_destination_id) === (string) $destinationOption->id)>
+                                            {{ $destinationOption->name }} · {{ $destinationOption->typeLabel() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button class="rounded border border-border px-3 py-2 text-sm">Save destination</button>
+                        </form>
+                        @if (($availablePublishingDestinations ?? collect())->isEmpty())
+                            <p class="mt-2 text-xs text-textSecondary">
+                                No connector overrides are configured. Publishing will use the current site connection.
+                            </p>
+                        @else
+                            <p class="mt-2 text-xs text-textSecondary">Leave this on current site unless this content must publish through a specific connector destination.</p>
+                        @endif
+                    </div>
                     <div class="mt-4 rounded border border-border p-3">
                     @if ($isSyncedTranslation)
                         <div class="rounded border border-border bg-background px-3 py-2 text-xs text-textSecondary">
@@ -989,6 +1056,12 @@
                     @if ($supportsImmediatePublish)
                         <form method="POST" action="{{ route('app.content.publish-now', $content) }}" class="mt-2">
                             @csrf
+                            @if (str_contains((string) $content->publish_error, 'Human Content publishing gate blocked'))
+                                <label class="mb-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    <input type="checkbox" name="human_content_override" value="1" required class="mt-0.5 h-4 w-4 rounded border-amber-300 text-primary focus:ring-primary">
+                                    <span>I reviewed this content and want to override the Human Content gate for this manual publish.</span>
+                                </label>
+                            @endif
                             <button class="rounded border border-border px-3 py-2 text-sm">Publish now</button>
                         </form>
                     @endif
@@ -1069,14 +1142,18 @@
                 </details>
             @endcan
         @elseif ($activeTab === 'brief')
-            @php($brief = $content->briefVersion)
+            @php
+                $brief = $content->briefVersion;
+            @endphp
             @if ($brief)
                 <div class="space-y-3">
                     <div class="text-xs text-textSecondary">Received at {{ $brief->created_at?->format('Y-m-d H:i') }} via {{ $brief->source }}</div>
                     <pre class="whitespace-pre-wrap rounded border border-border bg-background p-3 text-xs">{{ $brief->body }}</pre>
                 </div>
             @elseif (!empty($legacyBrief))
-                @php($latestBriefDraft = $legacyBriefLatestDraft ?? null)
+                @php
+                    $latestBriefDraft = $legacyBriefLatestDraft ?? null;
+                @endphp
                 <div class="space-y-3">
                     <div class="text-xs text-textSecondary">Received at {{ $legacyBrief->created_at?->format('Y-m-d H:i') }} via legacy brief</div>
                     <div class="flex flex-wrap items-center gap-2">
@@ -1197,12 +1274,14 @@
                 @include('app.content.partials.answer-block-list', ['content' => $content])
             </div>
         @elseif ($activeTab === 'draft')
-            @php($draft = $content->currentVersion)
-            @php($draftBody = trim((string) ($draft?->body ?? '')))
-            @php($fallbackDraftBody = trim((string) ($legacyDraft->content_html ?? '')))
-            @php($regenDraft = $generationDraft ?? $legacyDraft)
-            @php($estimatedCredits = (int) ($regenDraft->credit_cost ?? 0))
-            @php($availableCredits = (int) data_get($creditSummary, 'available', 0))
+            @php
+                $draft = $content->currentVersion;
+                $draftBody = trim((string) ($draft?->body ?? ''));
+                $fallbackDraftBody = trim((string) ($legacyDraft->content_html ?? ''));
+                $regenDraft = $generationDraft ?? $legacyDraft;
+                $estimatedCredits = (int) ($regenDraft->credit_cost ?? 0);
+                $availableCredits = (int) data_get($creditSummary, 'available', 0);
+            @endphp
             <div class="mb-4 rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">
                 Language: {{ $contentLocaleLabel }}@if($contentSourceLocaleLabel) <span class="text-textSecondary">(Source: {{ $contentSourceLocaleLabel }})</span>@endif
             </div>
@@ -1341,22 +1420,64 @@
                 <div class="text-sm text-textSecondary">No draft version found.</div>
             @endif
         @elseif ($activeTab === 'images')
-            @php($image = $featuredImage ?? null)
-            @php($og = $ogImage ?? null)
-            @php($isGenerating = in_array((string) ($image->status ?? ''), ['queued', 'generating'], true))
-            @php($isGeneratingOg = in_array((string) ($og->status ?? ''), ['queued', 'generating'], true))
-            @php($imagePreviewBase = $image?->medium_ui_url ?: $image?->original_ui_url)
-            @php($ogPreviewBase = $og?->medium_ui_url ?: $og?->original_ui_url)
-            @php($imageVersion = $image?->updated_at?->getTimestamp())
-            @php($ogVersion = $og?->updated_at?->getTimestamp())
-            @php($imagePreviewUrl = $imagePreviewBase ? $imagePreviewBase.(str_contains((string) $imagePreviewBase, '?') ? '&' : '?').'v='.(string) ($imageVersion ?? time()) : null)
-            @php($ogPreviewUrl = $ogPreviewBase ? $ogPreviewBase.(str_contains((string) $ogPreviewBase, '?') ? '&' : '?').'v='.(string) ($ogVersion ?? time()) : null)
-            @php($canPush = $image && $image->status === 'ready' && !empty($image->getWordPressUploadUrl($content->clientSite)))
-            @php($canPushOg = $og && $og->status === 'ready' && !empty($og->getWordPressUploadUrl($content->clientSite)))
-            @php($featuredImageHistoryCollection = collect($featuredImageHistory ?? []))
-            @php($ogImageHistoryCollection = collect($ogImageHistory ?? []))
-            @php($featuredAttribution = is_array($image?->metadata ?? null) ? data_get($image->metadata, 'attribution') : null)
+            @php
+                $image = $featuredImage ?? null;
+                $og = $ogImage ?? null;
+                $isGenerating = in_array((string) ($image->status ?? ''), ['queued', 'generating'], true);
+                $isGeneratingOg = in_array((string) ($og->status ?? ''), ['queued', 'generating'], true);
+                $imagePreviewBase = $image?->medium_ui_url ?: $image?->original_ui_url;
+                $ogPreviewBase = $og?->medium_ui_url ?: $og?->original_ui_url;
+                $imageVersion = $image?->updated_at?->getTimestamp();
+                $ogVersion = $og?->updated_at?->getTimestamp();
+                $imagePreviewUrl = $imagePreviewBase ? $imagePreviewBase.(str_contains((string) $imagePreviewBase, '?') ? '&' : '?').'v='.(string) ($imageVersion ?? time()) : null;
+                $ogPreviewUrl = $ogPreviewBase ? $ogPreviewBase.(str_contains((string) $ogPreviewBase, '?') ? '&' : '?').'v='.(string) ($ogVersion ?? time()) : null;
+                $canPush = $image && $image->status === 'ready' && !empty($image->getWordPressUploadUrl($content->clientSite));
+                $canPushOg = $og && $og->status === 'ready' && !empty($og->getWordPressUploadUrl($content->clientSite));
+                $featuredImageHistoryCollection = collect($featuredImageHistory ?? []);
+                $ogImageHistoryCollection = collect($ogImageHistory ?? []);
+                $contentImageAssetCollection = collect($contentImageAssets ?? []);
+                $featuredAttribution = is_array($image?->metadata ?? null) ? data_get($image->metadata, 'attribution') : null;
+                $contentImageResolver = app(\App\Services\ContentImages\ContentImageAssetResolver::class);
+                $websiteImageAsset = $contentImageResolver->imageForContent($content, \App\Models\ContentImage::USAGE_WEBSITE);
+                $metaImageAsset = $contentImageResolver->imageForContent($content, \App\Models\ContentImage::USAGE_META);
+                $linkedinImageAsset = $contentImageResolver->imageForContent($content, \App\Models\ContentImage::USAGE_LINKEDIN, 'linkedin');
+                $imageUsageTargets = [
+                    'display_on_website' => 'Website image',
+                    'display_as_featured_image' => 'Featured image',
+                    'use_as_meta_image' => 'Meta image',
+                    'use_as_social_image' => 'Social image',
+                    'use_for_linkedin' => 'LinkedIn image',
+                ];
+            @endphp
             <div class="space-y-4">
+                <div class="grid gap-3 md:grid-cols-3">
+                    @foreach ([
+                        ['label' => 'Website image', 'asset' => $websiteImageAsset, 'ratio' => 'h-32'],
+                        ['label' => 'Meta image', 'asset' => $metaImageAsset, 'ratio' => 'aspect-[1200/630]'],
+                        ['label' => 'LinkedIn image', 'asset' => $linkedinImageAsset, 'ratio' => 'aspect-[1200/627]'],
+                    ] as $preview)
+                        @php
+                            $previewAsset = $preview['asset'];
+                            $previewUrl = $previewAsset?->medium_ui_url ?: $previewAsset?->original_ui_url;
+                        @endphp
+                        <div class="rounded border border-border bg-white p-3">
+                            <div class="mb-2 flex items-center justify-between gap-2">
+                                <span class="text-sm font-semibold text-textPrimary">{{ $preview['label'] }}</span>
+                                <span class="rounded bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">{{ $previewAsset?->source ?? 'not set' }}</span>
+                            </div>
+                            @if ($previewUrl)
+                                <div class="overflow-hidden rounded border border-border bg-background">
+                                    <img src="{{ $previewUrl }}" alt="{{ $preview['label'] }} preview" class="{{ $preview['ratio'] }} w-full object-cover">
+                                </div>
+                            @else
+                                <div class="{{ $preview['ratio'] }} flex items-center justify-center rounded border border-dashed border-border bg-background px-3 text-center text-xs text-textSecondary">
+                                    No image selected
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
                 @can('update', $content)
                     <div class="rounded border border-border p-4">
                         <div class="mb-2 text-sm font-medium text-textPrimary">Image generation instructions</div>
@@ -1399,6 +1520,48 @@
                                 placeholder="Example: no text, high contrast, cinematic lighting, realistic photo, avoid people."
                             >{{ old('image_prompt_instructions', (string) ($content->image_prompt_instructions ?? '')) }}</textarea>
                             <button class="rounded border border-border px-3 py-2 text-sm">Save image instructions</button>
+                        </form>
+                    </div>
+                @endcan
+
+                @can('update', $content)
+                    <div class="rounded border border-border bg-white p-4">
+                        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-semibold text-textPrimary">Upload image asset</h3>
+                                <p class="mt-1 text-xs text-textSecondary">Choose exactly where this image may be used.</p>
+                            </div>
+                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">JPG · PNG · WebP</span>
+                        </div>
+
+                        <form method="POST" action="{{ route('app.content.images.upload', $content) }}" enctype="multipart/form-data" class="space-y-3">
+                            @csrf
+                            <div class="grid gap-3 md:grid-cols-[1fr_1fr]">
+                                <input
+                                    type="file"
+                                    name="image"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    class="w-full rounded border border-border px-3 py-2 text-sm"
+                                    required
+                                >
+                                <input
+                                    name="alt_text"
+                                    value="{{ old('alt_text') }}"
+                                    class="w-full rounded border border-border px-3 py-2 text-sm"
+                                    placeholder="Alt text"
+                                >
+                            </div>
+
+                            <div class="grid gap-2 text-sm text-textSecondary md:grid-cols-2 lg:grid-cols-5">
+                                @foreach ($imageUsageTargets as $field => $label)
+                                    <label class="flex items-center gap-2 rounded border border-border px-3 py-2">
+                                        <input type="checkbox" name="{{ $field }}" value="1">
+                                        <span>{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            <button class="rounded border border-border px-3 py-2 text-sm">Upload asset</button>
                         </form>
                     </div>
                 @endcan
@@ -1461,20 +1624,89 @@
                                                 <input type="hidden" name="photo[alt_description]" value="{{ $stockImage['alt_text'] }}">
                                                 <input type="hidden" name="photo[width]" value="{{ $stockImage['width'] }}">
                                                 <input type="hidden" name="photo[height]" value="{{ $stockImage['height'] }}">
+                                                <div class="mb-3 grid gap-1.5 text-xs text-textSecondary">
+                                                    @foreach ($imageUsageTargets as $field => $label)
+                                                        <label class="flex items-center gap-2 rounded border border-border px-2 py-1.5">
+                                                            <input type="checkbox" name="{{ $field }}" value="1" @checked($field === 'display_as_featured_image')>
+                                                            <span>{{ $label }}</span>
+                                                        </label>
+                                                    @endforeach
+                                                </div>
                                                 <button class="w-full rounded border border-border px-3 py-2 text-sm">Use photo</button>
                                             </form>
                                         </div>
                                     @endforeach
+                                </div>
+                            @elseif (($stockImageQuery ?? '') !== '' && empty($stockImageSearchError))
+                                <div class="mt-3 rounded border border-border bg-background px-3 py-2 text-xs text-textSecondary">
+                                    No Unsplash images found for "{{ $stockImageQuery }}". Try broader terms.
                                 </div>
                             @endif
                         @endif
                     </div>
                 @endcan
 
+                <div class="rounded border border-border bg-white p-4">
+                    <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                            <h3 class="text-base font-semibold text-textPrimary">Available image assets</h3>
+                            <p class="mt-1 text-xs text-textSecondary">Reuse generated, uploaded, or stock images for website, meta, and LinkedIn independently.</p>
+                        </div>
+                        <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{{ $contentImageAssetCollection->count() }} assets</span>
+                    </div>
+
+                    @if ($contentImageAssetCollection->isEmpty())
+                        <div class="rounded border border-dashed border-border p-4 text-sm text-textSecondary">No reusable image assets yet.</div>
+                    @else
+                        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                            @foreach ($contentImageAssetCollection as $asset)
+                                @php
+                                    $assetPreviewUrl = $asset->medium_ui_url ?: $asset->original_ui_url;
+                                    $activeLabels = collect($imageUsageTargets)
+                                        ->filter(fn ($label, $field) => (bool) $asset->{$field})
+                                        ->values();
+                                @endphp
+                                <div class="rounded border border-border p-3">
+                                    @if ($assetPreviewUrl)
+                                        <a href="{{ $assetPreviewUrl }}" target="_blank" class="mb-3 block overflow-hidden rounded border border-border bg-background">
+                                            <img src="{{ $asset->thumbnail_ui_url ?: $assetPreviewUrl }}" alt="{{ $asset->alt_text ?: 'Image asset preview' }}" class="h-28 w-full object-cover">
+                                        </a>
+                                    @else
+                                        <div class="mb-3 flex h-28 items-center justify-center rounded border border-dashed border-border bg-background text-xs text-textSecondary">No preview</div>
+                                    @endif
+
+                                    <div class="mb-3 flex flex-wrap items-center gap-1.5 text-[11px] text-textSecondary">
+                                        <span class="rounded bg-gray-100 px-2 py-0.5">{{ $asset->source ?: $asset->provider ?: 'asset' }}</span>
+                                        <span class="rounded bg-gray-100 px-2 py-0.5">{{ $asset->type ?: 'image' }}</span>
+                                        @foreach ($activeLabels as $label)
+                                            <span class="rounded bg-green-100 px-2 py-0.5 text-green-700">{{ $label }}</span>
+                                        @endforeach
+                                    </div>
+
+                                    @can('update', $content)
+                                        <form method="POST" action="{{ route('app.content.images.usage.update', ['content' => $content, 'imageVersion' => $asset]) }}" class="space-y-2">
+                                            @csrf
+                                            <div class="grid gap-1.5 text-xs text-textSecondary">
+                                                @foreach ($imageUsageTargets as $field => $label)
+                                                    <label class="flex items-center gap-2 rounded border border-border px-2 py-1.5">
+                                                        <input type="checkbox" name="{{ $field }}" value="1" @checked((bool) $asset->{$field})>
+                                                        <span>{{ $label }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            <button class="w-full rounded border border-border px-3 py-2 text-sm">Save usage targets</button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
                 <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
                     <div class="rounded-lg border border-border bg-white p-6">
                         <div class="mb-4 flex items-center justify-between gap-3">
-                            <h3 class="text-lg font-semibold text-textPrimary">Current Featured Image</h3>
+                            <h3 class="text-lg font-semibold text-textPrimary">Website image</h3>
                             @if ($image?->is_active)
                                 <span class="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">Active</span>
                             @endif
@@ -1486,12 +1718,14 @@
                             </div>
                         @else
                             <div class="mb-4 rounded-lg border border-dashed border-border p-6 text-sm text-textSecondary">
-                                No featured image available.
+                                No website image available.
                             </div>
                         @endif
 
-                        @php($featuredFilename = basename((string) ($image?->image_path ?: $image?->original_path ?: $image?->medium_path ?: '')))
-                        @php($featuredDimensions = ($image?->width && $image?->height) ? ($image->width.'x'.$image->height) : 'n/a')
+                        @php
+                            $featuredFilename = basename((string) ($image?->image_path ?: $image?->original_path ?: $image?->medium_path ?: ''));
+                            $featuredDimensions = ($image?->width && $image?->height) ? ($image->width.'x'.$image->height) : 'n/a';
+                        @endphp
                         <div class="grid gap-2 text-sm text-textSecondary">
                             <div>Filename: <span class="font-medium text-textPrimary">{{ $featuredFilename !== '' ? $featuredFilename : 'n/a' }}</span></div>
                             <div>Dimensions: <span class="font-medium text-textPrimary">{{ $featuredDimensions }}</span></div>
@@ -1539,7 +1773,7 @@
 
                     <div class="rounded-lg border border-border bg-white p-6">
                         <div class="mb-4 flex items-center justify-between gap-3">
-                            <h3 class="text-lg font-semibold text-textPrimary">Current OG Image</h3>
+                            <h3 class="text-lg font-semibold text-textPrimary">Meta image</h3>
                             @if ($og)
                                 <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
                                     {{ (($og->provider ?? '') === 'pl-renderer') ? 'Generated' : 'Custom' }}
@@ -1550,7 +1784,7 @@
                         </div>
 
                         <p class="mb-3 text-xs text-textSecondary">
-                            Generated at 1200x630 with Argusly overlay template.
+                            Used for Open Graph and metadata previews.
                         </p>
 
                         @if ($og && !empty($ogPreviewUrl))
@@ -1559,11 +1793,13 @@
                             </div>
                         @else
                             <div class="mb-4 rounded-lg border border-dashed border-border p-6 text-sm text-textSecondary">
-                                No OG image available.
+                                No meta image available.
                             </div>
                         @endif
 
-                        @php($ogDimensions = ($og?->width && $og?->height) ? ($og->width.'x'.$og->height) : 'n/a')
+                        @php
+                            $ogDimensions = ($og?->width && $og?->height) ? ($og->width.'x'.$og->height) : 'n/a';
+                        @endphp
                         <div class="grid gap-2 text-sm text-textSecondary">
                             <div>Type: <span class="font-medium text-textPrimary">{{ (($og?->provider ?? '') === 'pl-renderer') ? 'Generated' : 'Custom' }}</span></div>
                             <div>Dimensions: <span class="font-medium text-textPrimary">{{ $ogDimensions }}</span></div>
@@ -1612,6 +1848,74 @@
                     </div>
                 </div>
 
+                @php
+                    $contentVisualPlan = app(\App\Services\ContentVisuals\VisualPlanService::class)
+                        ->fromMeta(is_array($content->currentRevision?->meta) ? $content->currentRevision->meta : []);
+                    $inlineVisualImages = $content->images
+                        ->filter(fn ($contentImage) => ($contentImage->type ?? '') === 'inline')
+                        ->groupBy(fn ($contentImage) => data_get($contentImage->metadata, 'asset_key'));
+                @endphp
+                @if (!empty($contentVisualPlan['assets']))
+                    <div class="mt-8 rounded-lg border border-border bg-white p-6">
+                        <div class="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-lg font-semibold text-textPrimary">Inline Visuals</h3>
+                                <p class="mt-1 text-sm text-textSecondary">Visuals planned during content creation and matched to inline placeholders.</p>
+                            </div>
+                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{{ count($contentVisualPlan['assets']) }} planned</span>
+                        </div>
+
+                        <div class="grid gap-3">
+                            @foreach ($contentVisualPlan['assets'] as $visualAsset)
+                                @php
+                                    $assetImage = ($inlineVisualImages->get($visualAsset['asset_key'] ?? '') ?? collect())
+                                        ->sortByDesc('created_at')
+                                        ->first();
+                                    $canGenerateInline = in_array((string) ($visualAsset['type'] ?? ''), ['image', 'diagram', 'conceptual_visual'], true);
+                                @endphp
+                                <div class="rounded-md border border-border bg-background p-4">
+                                    <div class="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <span class="font-mono text-xs text-textSecondary">{{ $visualAsset['asset_key'] }}</span>
+                                                <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">{{ str_replace('_', ' ', $visualAsset['type']) }}</span>
+                                                <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">{{ $assetImage->status ?? ($visualAsset['status'] ?? 'pending') }}</span>
+                                            </div>
+                                            @if (!empty($visualAsset['caption']))
+                                                <p class="mt-2 text-sm font-medium text-textPrimary">{{ $visualAsset['caption'] }}</p>
+                                            @endif
+                                            @if (!empty($visualAsset['alt_text']))
+                                                <p class="mt-1 text-xs text-textSecondary">{{ $visualAsset['alt_text'] }}</p>
+                                            @endif
+                                        </div>
+
+                                        @if ($canGenerateInline)
+                                            @can('generateImage', $content)
+                                                <form method="POST" action="{{ route('app.content.images.inline.generate', ['content' => $content, 'assetKey' => $visualAsset['asset_key']]) }}" class="inline-flex">
+                                                    @csrf
+                                                    <button class="rounded border border-border px-3 py-2 text-sm">
+                                                        {{ $assetImage ? 'Regenerate' : 'Generate image' }}
+                                                    </button>
+                                                </form>
+                                            @endcan
+                                        @endif
+                                    </div>
+
+                                    @if ($assetImage && !empty($assetImage->medium_ui_url))
+                                        <div class="mt-3 overflow-hidden rounded border border-border bg-surface">
+                                            <img src="{{ $assetImage->medium_ui_url }}" alt="{{ $visualAsset['alt_text'] ?? $assetImage->alt_text ?? '' }}" class="max-h-72 w-full object-cover">
+                                        </div>
+                                    @elseif (!$canGenerateInline)
+                                        <div class="mt-3 rounded border border-dashed border-border p-3 text-xs text-textSecondary">
+                                            This visual is rendered from structured data in previews and publishing.
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 <div class="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
                     <div class="rounded-lg border border-border bg-white p-6">
                         <h3 class="mb-4 text-lg font-semibold text-textPrimary">Featured Image History</h3>
@@ -1621,7 +1925,9 @@
                         @else
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 @foreach ($featuredImageHistoryCollection as $historyItem)
-                                    @php($historyImageUrl = $historyItem->medium_ui_url ?: $historyItem->original_ui_url)
+                                    @php
+                                        $historyImageUrl = $historyItem->medium_ui_url ?: $historyItem->original_ui_url;
+                                    @endphp
                                     <div class="rounded-lg border p-3 {{ $historyItem->is_active ? 'border-green-300 bg-green-50/60' : 'border-border bg-white' }}">
                                         @if(!empty($historyImageUrl))
                                             <a href="{{ $historyImageUrl }}" target="_blank" class="mb-3 block overflow-hidden rounded border border-border">
@@ -1670,7 +1976,9 @@
                         @else
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 @foreach ($ogImageHistoryCollection as $historyItem)
-                                    @php($historyImageUrl = $historyItem->medium_ui_url ?: $historyItem->original_ui_url)
+                                    @php
+                                        $historyImageUrl = $historyItem->medium_ui_url ?: $historyItem->original_ui_url;
+                                    @endphp
                                     <div class="rounded-lg border p-3 {{ $historyItem->is_active ? 'border-green-300 bg-green-50/60' : 'border-border bg-white' }}">
                                         @if(!empty($historyImageUrl))
                                             <a href="{{ $historyImageUrl }}" target="_blank" class="mb-3 block overflow-hidden rounded border border-border">
@@ -1715,8 +2023,10 @@
         @elseif ($activeTab === 'revisions')
             <div class="space-y-2">
                 @forelse ($content->versions as $version)
-                    @php($versionLabel = data_get($version->meta, 'label'))
-                    @php($versionNote = data_get($version->meta, 'note'))
+                    @php
+                        $versionLabel = data_get($version->meta, 'label');
+                        $versionNote = data_get($version->meta, 'note');
+                    @endphp
                     <div class="rounded border border-border p-3 flex flex-wrap items-center justify-between gap-2 text-sm">
                         <div>
                             <strong>{{ $version->type }}</strong> · {{ $version->created_at?->format('Y-m-d H:i') }}
@@ -1792,10 +2102,16 @@
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <div class="text-sm font-medium text-textPrimary">
-                            {{ $hasUnsavedChanges ? 'Draft updated and awaiting publish decision' : 'Workflow ready' }}
+                            @if ($isScheduleOverdue)
+                                Scheduled publish overdue
+                            @else
+                                {{ $hasUnsavedChanges ? 'Draft updated and awaiting publish decision' : 'Workflow ready' }}
+                            @endif
                         </div>
                         <div class="mt-1 text-xs text-textSecondary">
-                            @if ($content->scheduled_publish_at)
+                            @if ($isScheduleOverdue)
+                                Scheduled for {{ $content->scheduled_publish_at->format('M j, H:i') }}. Publish now or reschedule.
+                            @elseif ($content->scheduled_publish_at)
                                 Scheduled for {{ $content->scheduled_publish_at->format('M j, H:i') }}
                             @elseif ($publicLiveUrl)
                                 Live route available at {{ $publicLiveUrl }}

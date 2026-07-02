@@ -1,31 +1,28 @@
 @extends('layouts.app', ['title' => app()->getLocale() === 'nl' ? __('app.runtime.Company Profile') : 'Company Profile'])
 
+@php
+    $rt = function (string $value): string {
+        $key = 'app.runtime.'.$value;
+
+        return app()->getLocale() === 'nl' && \Illuminate\Support\Facades\Lang::has($key)
+            ? __($key)
+            : $value;
+    };
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Company Profile" eyebrow="Brand">
+        <x-slot:description>Build a reusable company context with AI first, then fine-tune descriptions, positioning, services and audience manually.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.workspace-intelligence.index') }}" class="pl-btn-secondary">
+        {{ $rt('Workspace Intelligence') }}
+    </a>
+@endsection
+
 @section('content')
-    @php
-        $rt = function (string $value): string {
-            $key = 'app.runtime.'.$value;
-
-            return app()->getLocale() === 'nl' && \Illuminate\Support\Facades\Lang::has($key)
-                ? __($key)
-                : $value;
-        };
-    @endphp
-
-    <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
-            <nav class="mb-2 text-sm text-textSecondary">
-                <span>Brand</span>
-                <span class="mx-1">/</span>
-                <span class="text-textPrimary">Company Profile</span>
-            </nav>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Company Profile</h1>
-            <p class="mt-1 text-textSecondary">Build a reusable company context with AI first, then fine-tune descriptions, positioning, services and audience manually.</p>
-        </div>
-        <a href="{{ route('app.workspace-intelligence.index') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
-            {{ $rt('Workspace Intelligence') }}
-        </a>
-    </div>
-
     @include('app.brand.partials.tabs')
 
     @if (session('status'))

@@ -16,13 +16,20 @@ class ContentImage extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'workspace_id',
         'content_id',
+        'campaign_id',
+        'social_publication_id',
+        'social_post_variant_id',
         'type',
+        'source',
         'prompt',
         'provider',
         'model',
         'image_path',
         'image_url',
+        'original_filename',
+        'mime_type',
         'alt_text',
         'original_path',
         'medium_path',
@@ -42,9 +49,15 @@ class ContentImage extends Model
         'file_size',
         'status',
         'is_active',
+        'display_on_website',
+        'display_as_featured_image',
+        'use_as_meta_image',
+        'use_as_social_image',
+        'use_for_linkedin',
         'error_message',
         'metadata',
         'created_by',
+        'uploaded_by',
     ];
 
     protected $casts = [
@@ -54,12 +67,105 @@ class ContentImage extends Model
         'height' => 'integer',
         'file_size' => 'integer',
         'is_active' => 'boolean',
+        'display_on_website' => 'boolean',
+        'display_as_featured_image' => 'boolean',
+        'use_as_meta_image' => 'boolean',
+        'use_as_social_image' => 'boolean',
+        'use_for_linkedin' => 'boolean',
         'metadata' => 'array',
     ];
+
+    public const SOURCE_GENERATED = 'generated';
+
+    public const SOURCE_UPLOAD = 'upload';
+
+    public const SOURCE_STOCK = 'stock';
+
+    public const USAGE_WEBSITE = 'website';
+
+    public const USAGE_FEATURED = 'featured';
+
+    public const USAGE_META = 'meta';
+
+    public const USAGE_SOCIAL = 'social';
+
+    public const USAGE_LINKEDIN = 'linkedin';
+
+    public static function storageDirectory(): string
+    {
+        $directory = trim((string) config('argusly.images.path', 'content-images'), '/');
+
+        return $directory !== '' ? $directory : 'content-images';
+    }
+
+    public static function storagePath(string $path): string
+    {
+        return static::storageDirectory().'/'.ltrim($path, '/');
+    }
+
+    public static function publicUrlForStorageValue(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (str_starts_with($value, '//')) {
+            return static::publicUrlForStorageValue('https:'.$value);
+        }
+
+        $parts = parse_url($value);
+        $path = (string) ($parts['path'] ?? '');
+
+        if (($parts['scheme'] ?? null) !== null && ($parts['host'] ?? null) !== null) {
+            $normalizedPath = static::normalizePublicContentImagePath($path);
+            if ($normalizedPath === null) {
+                return $value;
+            }
+
+            $port = isset($parts['port']) ? ':'.$parts['port'] : '';
+            $query = isset($parts['query']) ? '?'.$parts['query'] : '';
+            $fragment = isset($parts['fragment']) ? '#'.$parts['fragment'] : '';
+
+            return $parts['scheme'].'://'.$parts['host'].$port.$normalizedPath.$query.$fragment;
+        }
+
+        $normalizedPath = static::normalizePublicContentImagePath($value);
+        if ($normalizedPath === null) {
+            return $value;
+        }
+
+        return asset(ltrim($normalizedPath, '/'));
+    }
+
+    public static function isPublicContentImageValue(string $value): bool
+    {
+        return static::normalizePublicContentImagePath($value) !== null;
+    }
 
     public function content(): BelongsTo
     {
         return $this->belongsTo(Content::class);
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    public function campaign(): BelongsTo
+    {
+        return $this->belongsTo(Campaign::class);
+    }
+
+    public function socialPublication(): BelongsTo
+    {
+        return $this->belongsTo(SocialPublication::class);
+    }
+
+    public function socialPostVariant(): BelongsTo
+    {
+        return $this->belongsTo(SocialPostVariant::class);
     }
 
     public function workspaceCreditWallet(): BelongsTo
@@ -96,6 +202,48 @@ class ContentImage extends Model
         return trim((string) (data_get($metadata, 'remote_url') ?? '')) !== ''
             || trim((string) (data_get($metadata, 'wp.attachment_id') ?? '')) !== ''
             || trim((string) (data_get($metadata, 'wp.media_id') ?? '')) !== '';
+    }
+
+    public function allowsUsage(string $usage): bool
+    {
+        return match ($usage) {
+            self::USAGE_WEBSITE => (bool) $this->display_on_website || (bool) $this->display_as_featured_image,
+            self::USAGE_FEATURED => (bool) $this->display_as_featured_image,
+            self::USAGE_META => (bool) $this->use_as_meta_image,
+            self::USAGE_LINKEDIN => (bool) $this->use_for_linkedin || (bool) $this->use_as_social_image,
+            self::USAGE_SOCIAL => (bool) $this->use_as_social_image || (bool) $this->use_for_linkedin,
+            default => false,
+        };
+    }
+
+    public function bestUrlForUsage(string $usage = self::USAGE_WEBSITE): string
+    {
+        $candidates = match ($usage) {
+            self::USAGE_WEBSITE, self::USAGE_FEATURED => [
+                $this->medium_ui_url,
+                $this->original_ui_url,
+                $this->image_url,
+            ],
+            self::USAGE_META, self::USAGE_SOCIAL, self::USAGE_LINKEDIN => [
+                $this->original_ui_url,
+                $this->medium_ui_url,
+                $this->image_url,
+            ],
+            default => [
+                $this->original_ui_url,
+                $this->medium_ui_url,
+                $this->image_url,
+            ],
+        };
+
+        foreach ($candidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 
     public function isFailedWithoutOutput(): bool
@@ -220,7 +368,7 @@ class ContentImage extends Model
     private function resolveStorageUrl(array $candidates): string
     {
         $disk = Storage::disk($this->resolveImageDisk());
-        $fallbackUrl = trim((string) ($this->image_url ?? ''));
+        $fallbackUrl = static::publicUrlForStorageValue((string) ($this->image_url ?? ''));
 
         foreach ($candidates as $candidate) {
             $value = trim((string) ($candidate ?? ''));
@@ -229,14 +377,24 @@ class ContentImage extends Model
             }
 
             if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://') || str_starts_with($value, '/')) {
-                return $value;
+                return static::publicUrlForStorageValue($value);
+            }
+
+            $normalizedValue = static::publicUrlForStorageValue($value);
+            $relativeValue = ltrim(str_replace('\\', '/', $value), '/');
+            if (static::isPublicContentImageValue($value)
+                && ($fallbackUrl === ''
+                    || $fallbackUrl === $normalizedValue
+                    || str_starts_with($relativeValue, 'storage/'.static::storageDirectory().'/')
+                    || str_starts_with($relativeValue, 'public/'.static::storageDirectory().'/'))) {
+                return $normalizedValue;
             }
 
             if ($fallbackUrl !== '' && ! $disk->exists($value)) {
                 continue;
             }
 
-            return (string) Storage::disk($this->resolveImageDisk())->url($value);
+            return static::publicUrlForStorageValue((string) Storage::disk($this->resolveImageDisk())->url($value));
         }
 
         return '';
@@ -244,11 +402,12 @@ class ContentImage extends Model
 
     private function resolveImageDisk(): string
     {
-        return (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
+        return (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images'));
     }
 
     private function normalizeWordPressUploadUrl(string $value): string
     {
+        $value = static::publicUrlForStorageValue($value);
         $value = trim($value);
         if ($value === '') {
             return '';
@@ -321,5 +480,28 @@ class ContentImage extends Model
             FILTER_VALIDATE_IP,
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
         );
+    }
+
+    private static function normalizePublicContentImagePath(string $value): ?string
+    {
+        $value = trim(str_replace('\\', '/', $value));
+        if ($value === '') {
+            return null;
+        }
+
+        $directory = static::storageDirectory();
+        $relative = ltrim($value, '/');
+
+        foreach ([
+            'public/'.$directory.'/',
+            'storage/'.$directory.'/',
+            $directory.'/',
+        ] as $prefix) {
+            if (str_starts_with($relative, $prefix)) {
+                return '/'.$directory.'/'.substr($relative, strlen($prefix));
+            }
+        }
+
+        return null;
     }
 }

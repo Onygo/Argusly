@@ -6,8 +6,11 @@ use App\Models\Content;
 use App\Models\ContentDestination;
 use App\Models\Draft;
 use BackedEnum;
+use App\Services\AiTransparency\AiTransparencyService;
 use App\Services\Content\AnswerBlockInjectorService;
 use App\Services\Content\AnswerBlockSchemaService;
+use App\Services\ContentImages\ContentImageAssetResolver;
+use App\Models\ContentImage;
 use App\Services\Content\LocalizedContentSlugService;
 use App\Support\ImageAttribution;
 use App\Support\SeoMetadata;
@@ -230,6 +233,7 @@ class LaravelConnectorPayloadFactory
             'publish_url_key' => $this->nullableString($content->publish_url_key),
             'canonical_url_key' => $this->nullableString($content->canonical_url_key),
             'published_url' => $this->nullableString($content->published_url),
+            'ai_transparency' => app(AiTransparencyService::class)->exportMachineMetadataForContent($content),
         ];
     }
 
@@ -384,6 +388,13 @@ class LaravelConnectorPayloadFactory
 
     private function resolveSeoField(string $field, Content $content, ?Draft $draft): ?string
     {
+        if ($field === 'seo_og_image') {
+            $assetUrl = trim((string) app(ContentImageAssetResolver::class)->urlForContent($content, ContentImage::USAGE_META));
+            if ($assetUrl !== '') {
+                return $assetUrl;
+            }
+        }
+
         $resolved = SeoMetadata::resolveForDraftContext($draft, [
             'seo_title' => $content->seo_title,
             'seo_meta_description' => $content->seo_meta_description,
@@ -397,14 +408,12 @@ class LaravelConnectorPayloadFactory
 
     private function resolveFeaturedImageUrl(Content $content, ?Draft $draft): ?string
     {
-        $imageUrl = trim((string) ($content->featuredImage?->medium_ui_url ?: $content->featuredImage?->original_ui_url ?: ''));
+        $imageUrl = trim((string) app(ContentImageAssetResolver::class)->urlForContent($content, ContentImage::USAGE_WEBSITE));
         if ($imageUrl !== '') {
             return $imageUrl;
         }
 
-        $fallback = trim((string) ($draft?->seo_og_image ?: $content->seo_og_image ?: ''));
-
-        return $fallback !== '' ? $fallback : null;
+        return null;
     }
 
     private function resolveFeaturedImageAttributionText(Content $content): ?string

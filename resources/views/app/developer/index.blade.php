@@ -1,48 +1,63 @@
 @extends('layouts.app', ['title' => 'Developer'])
 
-@section('content')
-    @php
-        use App\View\Presenters\PublicationDestinationPresenter;
+@php
+    use App\View\Presenters\PublicationDestinationPresenter;
 
-        $tab = in_array($activeTab, ['overview', 'destinations', 'keys', 'webhooks', 'usage', 'docs'], true) ? $activeTab : 'overview';
-        $section = in_array($tab, ['destinations', 'webhooks', 'docs'], true) ? $tab : 'api';
-        $sectionNavItems = [
-            [
-                'id' => 'api',
-                'label' => 'API',
-                'url' => route('app.developer.api'),
-                'active' => $section === 'api',
-            ],
-            [
-                'id' => 'destinations',
-                'label' => 'Destinations',
-                'url' => route('app.developer.index', ['tab' => 'destinations']),
-                'active' => $section === 'destinations',
-            ],
-            [
-                'id' => 'webhooks',
-                'label' => 'Webhooks',
-                'url' => route('app.developer.webhooks'),
-                'active' => $section === 'webhooks',
-            ],
-            [
-                'id' => 'docs',
-                'label' => 'Docs',
-                'url' => route('app.developer.docs'),
-                'active' => $section === 'docs',
-            ],
-        ];
-    @endphp
+    $tab = in_array($activeTab, ['overview', 'destinations', 'keys', 'webhooks', 'usage', 'docs'], true) ? $activeTab : 'overview';
+    $section = in_array($tab, ['destinations', 'webhooks', 'docs'], true) ? $tab : 'api';
+    $sectionNavItems = [
+        [
+            'id' => 'api',
+            'label' => 'API',
+            'url' => route('app.developer.api'),
+            'active' => $section === 'api',
+        ],
+        [
+            'id' => 'destinations',
+            'label' => 'Destinations',
+            'url' => route('app.developer.index', ['tab' => 'destinations']),
+            'active' => $section === 'destinations',
+        ],
+        [
+            'id' => 'webhooks',
+            'label' => 'Webhooks',
+            'url' => route('app.developer.webhooks'),
+            'active' => $section === 'webhooks',
+        ],
+        [
+            'id' => 'docs',
+            'label' => 'Docs',
+            'url' => route('app.developer.docs'),
+            'active' => $section === 'docs',
+        ],
+    ];
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Developer" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Manage API-only and hybrid integrations for this workspace.</x-page-description>
+@endsection
+
+@section('metricSection')
+    @if ($tab === 'overview')
+        <x-metric-section>
+            <x-metric-card label="Destinations" :value="$destinations->count()" helper="Content endpoints available for connected CMS, API-only, or hybrid." />
+            <x-metric-card label="Active API keys" :value="(int) ($credentialSummary['active_workspace_api_keys'] ?? $apiKeys->whereNull('revoked_at')->count())" helper="Scoped integration tokens for server-to-server access." />
+            <x-metric-card label="Webhooks" :value="$webhooks->where('is_active', true)->count()" helper="Active outbound webhook subscriptions." />
+        </x-metric-section>
+    @endif
+@endsection
+
+@section('content')
 
     <div class="space-y-6">
-        <header class="space-y-2">
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Developer</h1>
-            <p class="text-textSecondary">Manage API-only and hybrid integrations for this workspace.</p>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Workspace: {{ $workspace->display_name }}</span>
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Organization: {{ auth()->user()->organization->name }}</span>
-            </div>
-        </header>
+        <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
+            <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Workspace: {{ $workspace->display_name }}</span>
+            <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Organization: {{ auth()->user()->organization->name }}</span>
+        </div>
 
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
@@ -68,26 +83,6 @@
         @endif
 
         <x-app.section-nav :items="$sectionNavItems" />
-
-        @if ($tab === 'overview')
-            <div class="grid gap-6 lg:grid-cols-3">
-                <div class="rounded-lg border border-border bg-background p-4">
-                    <p class="text-xs uppercase tracking-wide text-textSecondary">Destinations</p>
-                    <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ $destinations->count() }}</p>
-                    <p class="mt-1 text-xs text-textSecondary">Content endpoints available for connected CMS, API-only, or hybrid.</p>
-                </div>
-                <div class="rounded-lg border border-border bg-background p-4">
-                    <p class="text-xs uppercase tracking-wide text-textSecondary">Active API keys</p>
-                    <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ (int) ($credentialSummary['active_workspace_api_keys'] ?? $apiKeys->whereNull('revoked_at')->count()) }}</p>
-                    <p class="mt-1 text-xs text-textSecondary">Scoped integration tokens for server-to-server access.</p>
-                </div>
-                <div class="rounded-lg border border-border bg-background p-4">
-                    <p class="text-xs uppercase tracking-wide text-textSecondary">Webhooks</p>
-                    <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ $webhooks->where('is_active', true)->count() }}</p>
-                    <p class="mt-1 text-xs text-textSecondary">Active outbound webhook subscriptions.</p>
-                </div>
-            </div>
-        @endif
 
         @if ($tab === 'destinations')
             <x-settings.section-card title="Create destination" description="Set up where generated content should be routed.">

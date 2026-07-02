@@ -1,10 +1,13 @@
 @extends('layouts.app', ['title' => 'Billing & Credits'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Billing & Credits</x-slot:title>
+        <x-slot:description>{{ $organization->name ?? 'Organization' }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Billing & Credits</h1>
-        <p class="mt-1 text-textSecondary">{{ $organization->name ?? 'Organization' }}</p>
-    </div>
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>

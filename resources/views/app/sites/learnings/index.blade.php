@@ -1,5 +1,46 @@
 @extends('layouts.app', ['title' => 'Learnings'])
 
+@section('pageHeader')
+    <x-page-header title="Learnings">
+        <x-slot:description>Review content performance, engagement patterns, and AI SEO signals from tracked traffic.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.sites.show', $site) }}" class="pl-btn-secondary">Site setup</a>
+@endsection
+
+@section('filterBar')
+    <form method="GET" class="flex flex-wrap gap-2">
+        <select name="days" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
+            <option value="7" {{ $days == 7 ? 'selected' : '' }}>Last 7 days</option>
+            <option value="14" {{ $days == 14 ? 'selected' : '' }}>Last 14 days</option>
+            <option value="30" {{ $days == 30 ? 'selected' : '' }}>Last 30 days</option>
+            <option value="90" {{ $days == 90 ? 'selected' : '' }}>Last 90 days</option>
+        </select>
+        <select name="scope" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
+            <option value="all" {{ $scope === 'all' ? 'selected' : '' }}>All pages</option>
+            <option value="argusly_content" {{ $scope === 'argusly_content' ? 'selected' : '' }}>Argusly content</option>
+            <option value="other_page" {{ $scope === 'other_page' ? 'selected' : '' }}>Other site pages</option>
+        </select>
+        <select name="sort" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
+            <option value="views" {{ ($sort ?? 'views') === 'views' ? 'selected' : '' }}>Sort: Views</option>
+            <option value="roi_score" {{ ($sort ?? 'views') === 'roi_score' ? 'selected' : '' }}>Sort: Content ROI</option>
+            <option value="ai_seo_score" {{ ($sort ?? 'views') === 'ai_seo_score' ? 'selected' : '' }}>Sort: AI SEO Score</option>
+        </select>
+    </form>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Page Views" :value="number_format($summary['total_views'])" />
+        <x-metric-card label="Unique Visitors" :value="number_format($summary['total_uniques'])" />
+        <x-metric-card label="Engaged" :value="number_format($summary['total_engaged'])" />
+        <x-metric-card label="Read-through" :value="number_format($summary['total_read_through'])" />
+        <x-metric-card label="Engagement Rate" :value="$summary['engagement_rate'].'%'" />
+    </x-metric-section>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <x-app.insights-header
@@ -7,50 +48,8 @@
             title="Learnings"
             description="Review content performance, engagement patterns, and AI SEO signals from tracked traffic."
             active="learnings"
-        >
-            <form method="GET" class="flex flex-wrap gap-2">
-                <select name="days" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
-                    <option value="7" {{ $days == 7 ? 'selected' : '' }}>Last 7 days</option>
-                    <option value="14" {{ $days == 14 ? 'selected' : '' }}>Last 14 days</option>
-                    <option value="30" {{ $days == 30 ? 'selected' : '' }}>Last 30 days</option>
-                    <option value="90" {{ $days == 90 ? 'selected' : '' }}>Last 90 days</option>
-                </select>
-                <select name="scope" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
-                    <option value="all" {{ $scope === 'all' ? 'selected' : '' }}>All pages</option>
-                    <option value="argusly_content" {{ $scope === 'argusly_content' ? 'selected' : '' }}>Argusly content</option>
-                    <option value="other_page" {{ $scope === 'other_page' ? 'selected' : '' }}>Other site pages</option>
-                </select>
-                <select name="sort" onchange="this.form.submit()" class="rounded border border-border bg-background px-3 py-2 text-sm">
-                    <option value="views" {{ ($sort ?? 'views') === 'views' ? 'selected' : '' }}>Sort: Views</option>
-                    <option value="roi_score" {{ ($sort ?? 'views') === 'roi_score' ? 'selected' : '' }}>Sort: Content ROI</option>
-                    <option value="ai_seo_score" {{ ($sort ?? 'views') === 'ai_seo_score' ? 'selected' : '' }}>Sort: AI SEO Score</option>
-                </select>
-            </form>
-            <a href="{{ route('app.sites.show', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Site setup</a>
-        </x-app.insights-header>
-
-        <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            <div class="rounded-lg border border-border bg-surface p-6">
-            <p class="text-sm text-textSecondary">Page Views</p>
-            <p class="text-2xl font-semibold text-textPrimary">{{ number_format($summary['total_views']) }}</p>
-        </div>
-            <div class="rounded-lg border border-border bg-surface p-6">
-            <p class="text-sm text-textSecondary">Unique Visitors</p>
-            <p class="text-2xl font-semibold text-textPrimary">{{ number_format($summary['total_uniques']) }}</p>
-        </div>
-            <div class="rounded-lg border border-border bg-surface p-6">
-            <p class="text-sm text-textSecondary">Engaged</p>
-            <p class="text-2xl font-semibold text-textPrimary">{{ number_format($summary['total_engaged']) }}</p>
-        </div>
-            <div class="rounded-lg border border-border bg-surface p-6">
-            <p class="text-sm text-textSecondary">Read-through</p>
-            <p class="text-2xl font-semibold text-textPrimary">{{ number_format($summary['total_read_through']) }}</p>
-        </div>
-            <div class="rounded-lg border border-border bg-surface p-6">
-            <p class="text-sm text-textSecondary">Engagement Rate</p>
-            <p class="text-2xl font-semibold text-textPrimary">{{ $summary['engagement_rate'] }}%</p>
-        </div>
-        </div>
+            :show-heading="false"
+        />
         <p class="text-xs text-textSecondary">
             Engaged means visitors stayed active for at least {{ $metricThresholds['engaged_after_seconds'] }} seconds or interacted.
             Read-through counts visitors who reached {{ $metricThresholds['read_through_scroll_percent'] }}% scroll depth or stayed at least {{ $metricThresholds['read_through_fallback_seconds'] }} seconds on short pages.

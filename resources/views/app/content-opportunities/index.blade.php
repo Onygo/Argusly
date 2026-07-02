@@ -1,10 +1,16 @@
 @extends('layouts.app', ['title' => 'Content Opportunity Engine'])
 
+@section('pageHeader')
+    <x-page-header title="Content Opportunity Engine">
+        <x-slot:description>Generate net-new content ideas from company, competitor, SEO/AEO, lifecycle, AI visibility, and buyer journey signals.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Content Opportunity Engine</h1>
+                <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">Content Opportunity Engine</h2>
                 <p class="mt-1 text-textSecondary">Generate net-new content ideas from company, competitor, SEO/AEO, lifecycle, AI visibility, and buyer journey signals.</p>
             </div>
             <form method="POST" action="{{ route('app.agentic-marketing.content-opportunities.run') }}" class="flex flex-wrap items-center gap-2">

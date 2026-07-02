@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['pageWidth' => 'constrained'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Analytics Settings</x-slot:title>
+        <x-slot:description>Configure tracking scripts for public pages.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h2 class="text-xl font-semibold text-textPrimary">Analytics Settings</h2>
-        <p class="mt-1 text-sm text-textSecondary">Configure tracking scripts for public pages.</p>
-    </div>
 
     @if (session('status'))
         <div class="mb-6 rounded-lg border border-accentGreen-200 bg-accentGreen-50 p-4">

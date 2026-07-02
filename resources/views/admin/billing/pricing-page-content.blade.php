@@ -1,15 +1,17 @@
 @extends('layouts.admin', ['title' => 'Pricing Page Content', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Pricing Page Content</h1>
-        <p class="text-textSecondary mt-1">Manage the public pricing page copy. Leave fields blank to use default translations.</p>
-        <div class="mt-2 flex gap-2">
-            <a href="{{ route('admin.billing.index') }}" class="inline-flex items-center rounded border border-border px-3 py-1.5 text-xs">Back to Billing</a>
-            <a href="{{ route('pricing') }}" target="_blank" class="inline-flex items-center rounded border border-border px-3 py-1.5 text-xs">View public pricing page</a>
-        </div>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Pricing Page Content">
+        <x-slot:description>Manage the public pricing page copy. Leave fields blank to use default translations.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('admin.billing.index') }}" class="pl-btn-secondary">Back to Billing</a>
+    <a href="{{ route('pricing') }}" target="_blank" class="pl-btn-secondary">View public pricing page</a>
+@endsection
+
+@section('content')
     @if (session('status'))
         <div class="mb-4 rounded-lg border border-green-300 bg-green-50 p-4 text-sm text-green-700">
             {{ session('status') }}

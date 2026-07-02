@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => $title ?? 'Opportunities'])
 
+@section('pageHeader')
+    <x-page-header title="Opportunities" eyebrow="Opportunities Workspace">
+        <x-slot:description>Review what matters, decide the next step, and turn the best opportunities into execution.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $activeItems = $mode === 'decisions' ? $decisionItems : $inboxItems;
@@ -8,7 +14,7 @@
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Opportunities Workspace</p>
-            <h1 class="mt-1 text-2xl font-semibold tracking-tight text-textPrimary">Opportunities</h1>
+            <h2 class="mt-1 text-2xl font-semibold tracking-tight text-textPrimary">Opportunities</h2>
             <p class="mt-1 max-w-2xl text-sm text-textSecondary">Review what matters, decide the next step, and turn the best opportunities into execution.</p>
         </div>
         @if ($workspaces->count() > 1)

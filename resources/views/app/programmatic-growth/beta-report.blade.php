@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Programmatic Growth Beta Report'])
 
+@section('pageHeader')
+    <x-page-header title="Programmatic Growth Beta Report">
+        <x-slot:description>Operational report for the programmatic growth beta workflow.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $formatMinutes = function ($minutes) {
@@ -21,7 +27,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Internal beta</p>
-                <h1 class="mt-1 text-2xl font-semibold tracking-tight text-textPrimary">Programmatic Growth Beta Report</h1>
+                <h2 class="mt-1 text-2xl font-semibold tracking-tight text-textPrimary">Programmatic Growth Beta Report</h2>
                 <p class="mt-2 max-w-3xl text-sm text-textSecondary">Product validation signals for internal testers. This report tracks clarity, speed to value and blockers without relying on live publishing.</p>
             </div>
             <form method="POST" action="{{ route('app.programmatic-growth.internal-beta-mode') }}">

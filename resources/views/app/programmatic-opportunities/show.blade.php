@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Programmatic Opportunity'])
 
+@section('pageHeader')
+    <x-page-header :title="$opportunity->base_topic" eyebrow="Programmatic Opportunity">
+        <x-slot:description>{{ str($opportunity->status)->headline() }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $pattern = $opportunity->pattern_type instanceof \App\Enums\ProgrammaticPatternType ? $opportunity->pattern_type : \App\Enums\ProgrammaticPatternType::tryFrom((string) $opportunity->pattern_type);
@@ -16,7 +22,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.programmatic-opportunities.index', ['workspace_id' => $workspace->id]) }}" class="text-sm font-medium text-textSecondary hover:text-textPrimary">Programmatic Opportunities</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $opportunity->base_topic }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $opportunity->base_topic }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ $pattern?->label() ?? $opportunity->pattern_type }} · {{ str($opportunity->status)->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">

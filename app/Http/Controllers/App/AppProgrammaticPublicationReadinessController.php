@@ -66,12 +66,12 @@ class AppProgrammaticPublicationReadinessController extends Controller
             ->with('status', 'Publication readiness check completed.');
     }
 
-    public function approve(ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator): RedirectResponse
+    public function approve(Request $request, ProgrammaticPublicationReadiness $readiness, GrowthProgramOrchestrator $orchestrator): RedirectResponse
     {
         $this->authorize('approve', $readiness);
 
         try {
-            $readiness->approve(request()->user());
+            $readiness->approve($request->user(), override: $request->boolean('override'));
         } catch (\InvalidArgumentException $exception) {
             return back()->withErrors(['publication_readiness' => $exception->getMessage()]);
         }

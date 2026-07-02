@@ -1,11 +1,12 @@
 @extends('layouts.admin', ['title' => 'LLM Settings'])
 
-@section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">LLM Settings</h1>
-        <p class="text-sm text-textSecondary mt-1">Configure default providers, feature routing, and workspace overrides with full audit history.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header title="LLM Settings">
+        <x-slot:description>Configure default providers, feature routing, and workspace overrides with full audit history.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

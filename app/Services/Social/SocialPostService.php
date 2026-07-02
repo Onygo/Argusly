@@ -69,7 +69,14 @@ class SocialPostService
                 'error_message' => null,
             ])->save();
 
-            $this->attempt($post, 'published', $result['payload'], $result['response']->json() ?? [], $result['response']->status());
+            $this->attempt($post, 'published', [
+                'payload' => $result['payload'],
+                'linkedin_image' => $result['image'] ?? [],
+            ], [
+                'linkedin_response' => $result['response']->json() ?? [],
+                'linkedin_post_id' => $result['provider_post_id'],
+                'linkedin_image' => $result['image'] ?? [],
+            ], $result['response']->status());
 
             return true;
         } catch (LinkedInPublishException $exception) {

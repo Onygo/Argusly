@@ -37,37 +37,49 @@
     };
 @endphp
 
+@section('pageHeader')
+    <x-page-header :title="$objective->name" eyebrow="Agentic Marketing">
+        <x-slot:actions>
+            <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $statusClasses[$objective->status] ?? 'bg-slate-100 text-slate-700' }}">{{ ucfirst((string) $objective->status) }}</span>
+            <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ strtoupper((string) $objective->locale) }}</span>
+            <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', (string) $objective->approval_mode) }}</span>
+        </x-slot:actions>
+    </x-page-header>
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ $objective->goal }}</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <form method="POST" action="{{ route('app.agentic-marketing.objectives.scan', $objective) }}">
+        @csrf
+        <button class="pl-btn-primary" type="submit">
+            <i data-lucide="sparkles" class="h-4 w-4"></i>
+            <span>Find actions</span>
+        </button>
+    </form>
+    <a href="{{ route('app.agentic-marketing.index', ['objective' => $objective->id]) }}" class="pl-btn-ghost">
+        <i data-lucide="list-filter" class="h-4 w-4"></i>
+        <span>Queue</span>
+    </a>
+    <a href="{{ route('app.agentic-marketing.objectives.edit', $objective) }}" class="pl-btn-primary">
+        <i data-lucide="pencil" class="h-4 w-4"></i>
+        <span>Edit</span>
+    </a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Open Opportunities" :value="$health['open_opportunities']" :helper="'avg priority '.($health['average_priority'] ?: 0)" />
+        <x-metric-card label="Needs Review" :value="$proposedActions->count()" :helper="$approvedActions->count().' approved, '.$runningActions->count().' running'" />
+        <x-metric-card label="Cost Forecast" :value="number_format((int) $health['forecast_credits'])" :helper="number_format((int) ($budgetSummary['remaining'] ?? 0)).' credits remaining'" />
+        <x-metric-card label="Runs" :value="$objective->runs_count" :helper="$failedActions->count().' failed actions'" />
+    </x-metric-section>
+@endsection
+
 @section('content')
     <div class="space-y-5">
-        <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <a href="{{ route('app.agentic-marketing.index') }}" class="text-sm text-textSecondary hover:text-textPrimary">Agentic Marketing</a>
-                <div class="mt-2 flex flex-wrap items-center gap-2">
-                    <h1 class="text-xl font-semibold text-textPrimary">{{ $objective->name }}</h1>
-                    <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $statusClasses[$objective->status] ?? 'bg-slate-100 text-slate-700' }}">{{ ucfirst((string) $objective->status) }}</span>
-                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ strtoupper((string) $objective->locale) }}</span>
-                    <span class="rounded-full border border-border px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', (string) $objective->approval_mode) }}</span>
-                </div>
-                <p class="mt-2 max-w-4xl text-sm text-textSecondary">{{ $objective->goal }}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <form method="POST" action="{{ route('app.agentic-marketing.objectives.scan', $objective) }}">
-                    @csrf
-                    <button class="pl-btn-primary" type="submit">
-                        <i data-lucide="sparkles" class="h-4 w-4"></i>
-                        <span>Find actions</span>
-                    </button>
-                </form>
-                <a href="{{ route('app.agentic-marketing.index', ['objective' => $objective->id]) }}" class="pl-btn-ghost">
-                    <i data-lucide="list-filter" class="h-4 w-4"></i>
-                    <span>Queue</span>
-                </a>
-                <a href="{{ route('app.agentic-marketing.objectives.edit', $objective) }}" class="pl-btn-primary">
-                    <i data-lucide="pencil" class="h-4 w-4"></i>
-                    <span>Edit</span>
-                </a>
-            </div>
-        </header>
 
         @if (session('status'))
             <x-alert class="mb-4">{{ session('status') }}</x-alert>
@@ -87,29 +99,6 @@
                 @endif
             </div>
         @endif
-
-        <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Open Opportunities</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $health['open_opportunities'] }}</div>
-                <p class="mt-1 text-xs text-textSecondary">avg priority {{ $health['average_priority'] ?: 0 }}</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Needs Review</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $proposedActions->count() }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ $approvedActions->count() }} approved, {{ $runningActions->count() }} running</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Cost Forecast</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ number_format((int) $health['forecast_credits']) }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ number_format((int) ($budgetSummary['remaining'] ?? 0)) }} credits remaining</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Runs</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $objective->runs_count }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ $failedActions->count() }} failed actions</p>
-            </div>
-        </section>
 
         <section class="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.55fr)]">
             <div class="rounded-lg border border-border bg-surface">

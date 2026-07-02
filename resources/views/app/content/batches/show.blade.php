@@ -1,15 +1,14 @@
 @extends('layouts.app', ['title' => 'Content Batch'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Content batch</x-slot:title>
+        <x-slot:description>Main keyword: {{ $batch->main_keyword }} · Status: {{ $batch->status }} · Progress: {{ $batch->items_done }} / {{ $batch->items_total }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Content batch</h1>
-            <p class="mt-1 text-textSecondary">
-                Main keyword: <strong>{{ $batch->main_keyword }}</strong>
-                · Status: <span class="pl-badge">{{ $batch->status }}</span>
-                · Progress: {{ $batch->items_done }} / {{ $batch->items_total }}
-            </p>
-        </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('app.content.index') }}" class="rounded border border-border px-3 py-2 text-sm">Back to content</a>
             @if (in_array((string) $batch->status, ['draft', 'running', 'failed', 'partially_completed'], true))
@@ -65,36 +64,38 @@
         </div>
     </div>
 
-    <div class="rounded-lg border border-border bg-surface p-4 overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-textSecondary">
-                    <th class="pb-2 font-medium">#</th>
-                    <th class="pb-2 font-medium">Subkeyword</th>
-                    <th class="pb-2 font-medium">Angle</th>
-                    <th class="pb-2 font-medium">Intent</th>
-                    <th class="pb-2 font-medium">Status</th>
-                    <th class="pb-2 font-medium">Brief</th>
-                    <th class="pb-2 font-medium">Draft</th>
-                    <th class="pb-2 font-medium">Action</th>
-                </tr>
-            </thead>
+    <div class="rounded-lg border border-border bg-surface p-4">
+        <x-data-table label="Batch items" description="Generated batch items with keyword angle, intent, status, linked brief or draft, and retry action." density="compact" class="border-0 shadow-none" table-class="min-w-[900px] text-sm">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>#</x-data-table.cell>
+                    <x-data-table.cell heading>Subkeyword</x-data-table.cell>
+                    <x-data-table.cell heading>Angle</x-data-table.cell>
+                    <x-data-table.cell heading>Intent</x-data-table.cell>
+                    <x-data-table.cell heading>Status</x-data-table.cell>
+                    <x-data-table.cell heading>Brief</x-data-table.cell>
+                    <x-data-table.cell heading>Draft</x-data-table.cell>
+                    <x-data-table.cell heading>Action</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
             <tbody class="divide-y divide-border">
                 @forelse ($items as $item)
-                    <tr>
-                        <td class="py-3">{{ $item->sort_order }}</td>
-                        <td class="py-3 text-textPrimary">{{ $item->subkeyword }}</td>
-                        <td class="py-3 text-textSecondary">{{ $item->angle ?: '-' }}</td>
-                        <td class="py-3 text-textSecondary">{{ $item->intent ?: '-' }}</td>
-                        <td class="py-3"><span class="pl-badge">{{ $item->status }}</span></td>
-                        <td class="py-3">
+                    <x-data-table.row>
+                        <x-data-table.cell label="#">{{ $item->sort_order }}</x-data-table.cell>
+                        <x-data-table.cell label="Subkeyword" class="text-textPrimary">{{ $item->subkeyword }}</x-data-table.cell>
+                        <x-data-table.cell label="Angle" class="text-textSecondary">{{ $item->angle ?: '-' }}</x-data-table.cell>
+                        <x-data-table.cell label="Intent" class="text-textSecondary">{{ $item->intent ?: '-' }}</x-data-table.cell>
+                        <x-data-table.cell label="Status">
+                            <x-data-table.badge :label="$item->status" />
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Brief">
                             @if ($item->brief_id)
                                 <a href="{{ route('app.content.workspace.show', $item->brief_id) }}" class="text-link hover:text-linkHover underline">Open content workspace</a>
                             @else
                                 -
                             @endif
-                        </td>
-                        <td class="py-3">
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Draft">
                             @if ($item->draft?->content_id)
                                 <a href="{{ route('app.content.show', $item->draft->content_id) }}" class="text-link hover:text-linkHover underline">Open draft</a>
                             @elseif ($item->draft_id)
@@ -102,8 +103,8 @@
                             @else
                                 -
                             @endif
-                        </td>
-                        <td class="py-3">
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Action">
                             @if ($item->status === 'failed')
                                 <form method="POST" action="{{ route('app.content.batches.items.retry', [$batch, $item]) }}">
                                     @csrf
@@ -112,19 +113,17 @@
                             @else
                                 -
                             @endif
-                        </td>
-                    </tr>
+                        </x-data-table.cell>
+                    </x-data-table.row>
                     @if (!empty($item->error_message))
-                        <tr>
-                            <td colspan="8" class="pb-3 text-xs text-rose-700">{{ $item->error_message }}</td>
-                        </tr>
+                        <x-data-table.row>
+                            <x-data-table.cell colspan="8" class="pb-3 text-xs text-rose-700">{{ $item->error_message }}</x-data-table.cell>
+                        </x-data-table.row>
                     @endif
                 @empty
-                    <tr>
-                        <td class="py-6 text-center text-textSecondary" colspan="8">No batch items found.</td>
-                    </tr>
+                    <x-data-table.empty colspan="8" title="No batch items found" />
                 @endforelse
             </tbody>
-        </table>
+        </x-data-table>
     </div>
 @endsection

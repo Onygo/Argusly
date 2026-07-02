@@ -1,15 +1,19 @@
 @extends('layouts.admin', ['title' => 'Product Updates'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Product updates</h1>
-            <p class="mt-1 text-textSecondary">Manage internal changelog entries and release notes.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Product updates</x-slot:title>
+        <x-slot:description>Manage internal changelog entries and release notes.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.product-updates.create') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">
             Create update
         </a>
-    </div>
+@endsection
+
+@section('content')
 
     @if (session('status'))
         <div class="mb-4 rounded border border-border bg-surface px-3 py-2 text-sm text-textPrimary">

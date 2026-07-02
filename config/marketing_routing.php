@@ -78,6 +78,10 @@ return [
             'en' => 'security',
             'nl' => 'beveiliging',
         ],
+        'ai_transparency' => [
+            'en' => 'ai-transparency',
+            'nl' => 'ai-transparantie',
+        ],
         'cookies' => [
             'en' => 'cookies',
             'nl' => 'cookies',

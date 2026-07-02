@@ -27,6 +27,13 @@ class ContentRenderer
         'ol',
         'li',
         'blockquote',
+        'figure',
+        'figcaption',
+        'img',
+        'div',
+        'span',
+        'i',
+        'b',
         'strong',
         'em',
         'a',
@@ -250,7 +257,13 @@ class ContentRenderer
 
     private function sanitizeAttributes(DOMElement $element, string $tag): void
     {
-        $allowedAttributes = $tag === 'a' ? ['href', 'title'] : [];
+        $allowedAttributes = match ($tag) {
+            'a' => ['href', 'title'],
+            'img' => ['src', 'alt', 'loading', 'width', 'height'],
+            'figure' => ['class', 'data-asset-key', 'data-visual-type'],
+            'div', 'span', 'i', 'b', 'ol', 'li', 'table' => ['class', 'style'],
+            default => [],
+        };
 
         $attributeNames = [];
         foreach ($element->attributes as $attribute) {
@@ -260,7 +273,7 @@ class ContentRenderer
         foreach ($attributeNames as $name) {
             $normalizedName = strtolower($name);
 
-            if (str_starts_with($normalizedName, 'on') || $normalizedName === 'style') {
+            if (str_starts_with($normalizedName, 'on') || ($normalizedName === 'style' && ! $this->isAllowedVisualStyle($element, $tag))) {
                 $element->removeAttribute($name);
 
                 continue;
@@ -272,6 +285,13 @@ class ContentRenderer
         }
 
         if ($tag !== 'a') {
+            if ($tag === 'img') {
+                $src = trim((string) $element->getAttribute('src'));
+                if ($src === '' || ! $this->isSafeHref($src)) {
+                    $element->parentNode?->removeChild($element);
+                }
+            }
+
             return;
         }
 
@@ -347,6 +367,21 @@ class ContentRenderer
         }
 
         return $host !== $appHost;
+    }
+
+    private function isAllowedVisualStyle(DOMElement $element, string $tag): bool
+    {
+        if ($tag !== 'i') {
+            return false;
+        }
+
+        $parentClass = $element->parentNode instanceof DOMElement
+            ? (string) $element->parentNode->getAttribute('class')
+            : '';
+        $style = trim((string) $element->getAttribute('style'));
+
+        return str_contains($parentClass, 'argusly')
+            && preg_match('/^width:\s*(100|[1-9]?\d)%$/', $style) === 1;
     }
 
     private function unwrapElement(DOMElement $element): void

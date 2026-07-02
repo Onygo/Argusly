@@ -1,45 +1,43 @@
 @extends('layouts.admin', ['title' => 'Company Intelligence'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Company Intelligence</x-slot:title>
+        <x-slot:description>AI-ready company intelligence profiles across workspaces and brands.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold text-textPrimary">Company Intelligence</h1>
-        <p class="mt-1 text-sm text-textSecondary">AI-ready company intelligence profiles across workspaces and brands.</p>
-    </div>
 
-    <div class="overflow-hidden rounded-lg border border-border bg-surface">
-        <table class="w-full text-left text-sm">
-            <thead class="border-b border-border bg-surfaceMuted text-xs uppercase text-textSecondary">
-                <tr>
-                    <th class="px-4 py-3">Company</th>
-                    <th class="px-4 py-3">Organization</th>
-                    <th class="px-4 py-3">Workspace</th>
-                    <th class="px-4 py-3">Brand</th>
-                    <th class="px-4 py-3">Completeness</th>
-                    <th class="px-4 py-3">Embedding</th>
-                    <th class="px-4 py-3">Updated</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-                @forelse ($profiles as $profile)
-                    <tr>
-                        <td class="px-4 py-3 font-medium text-textPrimary">{{ $profile->company_name }}</td>
-                        <td class="px-4 py-3 text-textSecondary">{{ $profile->organization?->name }}</td>
-                        <td class="px-4 py-3 text-textSecondary">{{ $profile->workspace?->display_name }}</td>
-                        <td class="px-4 py-3 text-textSecondary">{{ $profile->brand_key }} @if($profile->is_default) · default @endif</td>
-                        <td class="px-4 py-3 text-textPrimary">{{ $profile->completeness_score }}%</td>
-                        <td class="px-4 py-3 text-textSecondary">{{ str($profile->embedding_status)->headline() }}</td>
-                        <td class="px-4 py-3 text-textSecondary">{{ $profile->updated_at?->diffForHumans() }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="px-4 py-6 text-center text-textSecondary">No company intelligence profiles yet.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-
-    <div class="mt-4">
-        {{ $profiles->links() }}
-    </div>
+    <x-data-table label="Company intelligence profiles" description="AI-ready company intelligence profiles across workspaces and brands.">
+        <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Company</x-data-table.cell>
+                <x-data-table.cell heading>Organization</x-data-table.cell>
+                <x-data-table.cell heading>Workspace</x-data-table.cell>
+                <x-data-table.cell heading>Brand</x-data-table.cell>
+                <x-data-table.cell heading>Completeness</x-data-table.cell>
+                <x-data-table.cell heading>Embedding</x-data-table.cell>
+                <x-data-table.cell heading>Updated</x-data-table.cell>
+            </x-data-table.row>
+        </x-data-table.header>
+        <tbody>
+            @forelse ($profiles as $profile)
+                <x-data-table.row>
+                    <x-data-table.cell label="Company" class="font-medium text-textPrimary">{{ $profile->company_name }}</x-data-table.cell>
+                    <x-data-table.cell label="Organization" class="text-textSecondary">{{ $profile->organization?->name }}</x-data-table.cell>
+                    <x-data-table.cell label="Workspace" class="text-textSecondary">{{ $profile->workspace?->display_name }}</x-data-table.cell>
+                    <x-data-table.cell label="Brand" class="text-textSecondary">{{ $profile->brand_key }} @if($profile->is_default) · default @endif</x-data-table.cell>
+                    <x-data-table.cell label="Completeness" class="text-textPrimary">{{ $profile->completeness_score }}%</x-data-table.cell>
+                    <x-data-table.cell label="Embedding" class="text-textSecondary">
+                        <x-data-table.badge :tone="$profile->embedding_status === 'ready' ? 'success' : 'neutral'" :label="str($profile->embedding_status)->headline()" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Updated" class="text-textSecondary">{{ $profile->updated_at?->diffForHumans() }}</x-data-table.cell>
+                </x-data-table.row>
+            @empty
+                <x-data-table.empty colspan="7" title="No company intelligence profiles yet" />
+            @endforelse
+        </tbody>
+        <x-slot:pagination>{{ $profiles->links() }}</x-slot:pagination>
+    </x-data-table>
 @endsection

@@ -106,6 +106,49 @@ it('creates a content series in the user organization scope', function () {
         ->and((int) $series->articles_count)->toBe(4)
         ->and((array) $series->supporting_keywords)->toContain('ai policy')
         ->and((array) $series->intent_keys)->toBe(['educate', 'commercial']);
+
+    $briefing = <<<'BRIEF'
+Content Briefing
+Working title
+
+The Biggest AI Bottleneck Isn't Talent. It's Your Marketing Operating System.
+Primary keyword
+
+AI marketing operating system
+Secondary keywords
+agentic marketing
+AI content operations
+AI governance marketing
+Target audience
+CMOs
+Marketing Directors
+Core message
+
+Build institutional AI capability through an AI Native Marketing Operating System.
+Angle
+
+Explain why AI capability should live inside the marketing operating system instead of a few specialists.
+BRIEF;
+
+    $this->actingAs($user)
+        ->post(route('app.content.series.store'), [
+            'site_id' => $site->id,
+            'content_type' => 'post',
+            'complete_briefing' => $briefing,
+            'articles_count' => 5,
+        ])
+        ->assertRedirect();
+
+    $briefedSeries = ContentSeries::query()
+        ->where('name', "The Biggest AI Bottleneck Isn't Talent. It's Your Marketing Operating System.")
+        ->firstOrFail();
+
+    expect((string) $briefedSeries->main_topic)->toBe('AI marketing operating system')
+        ->and((string) $briefedSeries->primary_keyword)->toBe('AI marketing operating system')
+        ->and((array) $briefedSeries->supporting_keywords)->toContain('agentic marketing')
+        ->and((string) $briefedSeries->audience)->toContain('CMOs')
+        ->and(data_get($briefedSeries->strategy_json, 'meta.complete_briefing.raw'))->toContain('Content Briefing')
+        ->and(data_get($briefedSeries->strategy_json, 'meta.strategic_positioning'))->toContain('AI Native Marketing Operating System');
 });
 
 it('stores supplied article titles as an initial editorial series plan', function () {
@@ -294,6 +337,7 @@ it('renders the series setup form with tag-based content intent selection', func
         ->get(route('app.content.series.create'))
         ->assertOk()
         ->assertSee('Step 1: Series setup')
+        ->assertSee('Complete briefing')
         ->assertSee('Select one or more intents')
         ->assertSee('Commercial')
         ->assertDontSee('Make pillar');

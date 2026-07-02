@@ -1,28 +1,45 @@
 @extends('layouts.app', ['title' => 'Settings'])
 
-@section('content')
-    @php
-        $workspaceName = $workspace?->display_name ?: ($workspace?->name ?? 'n/a');
-        $canManageOrganization = auth()->user()?->can('manage-organization') ?? false;
-        $advancedModeCanEnable = \App\Support\AdvancedMode::canEnable(auth()->user());
-        $advancedModeEnabled = \App\Support\AdvancedMode::enabled(request());
-        $advancedModeCanSeeDeveloperTools = \App\Support\AdvancedMode::canSeeDeveloperTools(auth()->user());
-        $roleLabels = [
-            'owner' => 'Owner',
-            'admin' => 'Admin',
-            'editor' => 'Editor',
-            'reviewer' => 'Reviewer',
-            'viewer' => 'Viewer',
-            'member' => 'Member',
-        ];
-        $rt = function (string $value): string {
-            $key = 'app.runtime.'.$value;
+@php
+    $workspaceName = $workspace?->display_name ?: ($workspace?->name ?? 'n/a');
+    $canManageOrganization = auth()->user()?->can('manage-organization') ?? false;
+    $advancedModeCanEnable = \App\Support\AdvancedMode::canEnable(auth()->user());
+    $advancedModeEnabled = \App\Support\AdvancedMode::enabled(request());
+    $advancedModeCanSeeDeveloperTools = \App\Support\AdvancedMode::canSeeDeveloperTools(auth()->user());
+    $roleLabels = [
+        'owner' => 'Owner',
+        'admin' => 'Admin',
+        'editor' => 'Editor',
+        'reviewer' => 'Reviewer',
+        'viewer' => 'Viewer',
+        'member' => 'Member',
+    ];
+    $rt = function (string $value): string {
+        $key = 'app.runtime.'.$value;
 
-            return app()->getLocale() === 'nl' && \Illuminate\Support\Facades\Lang::has($key)
-                ? __($key)
-                : $value;
-        };
-    @endphp
+        return app()->getLocale() === 'nl' && \Illuminate\Support\Facades\Lang::has($key)
+            ? __($key)
+            : $value;
+    };
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Settings" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Manage workspace preferences, team access, and technical configuration.</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Workspace" :value="$workspaceName" />
+        <x-metric-card label="Organization" :value="$organization->name" />
+        <x-metric-card label="Advanced Mode" :value="$advancedModeEnabled ? 'Enabled' : 'Disabled'" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <script>
         if (window.location.hash === '#api') {
@@ -31,15 +48,6 @@
     </script>
 
     <div class="space-y-6">
-        <header class="space-y-3">
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Settings</h1>
-            <p class="text-textSecondary">Manage workspace preferences, team access, and technical configuration.</p>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Workspace: {{ $workspaceName }}</span>
-                <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Organization: {{ $organization->name }}</span>
-            </div>
-        </header>
-
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
         @endif

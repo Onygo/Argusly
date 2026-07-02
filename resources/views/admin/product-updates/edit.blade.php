@@ -1,13 +1,17 @@
 @extends('layouts.admin', ['title' => 'Edit Product Update', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Edit product update</h1>
-            <p class="mt-1 text-textSecondary">Update content, visibility, tags, and publication timing.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Edit product update</x-slot:title>
+        <x-slot:description>Update content, visibility, tags, and publication timing.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.product-updates.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to updates</a>
-    </div>
+@endsection
+
+@section('content')
 
     @if (session('status'))
         <div class="mb-4 rounded border border-border bg-surface px-3 py-2 text-sm text-textPrimary">

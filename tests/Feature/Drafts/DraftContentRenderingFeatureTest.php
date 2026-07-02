@@ -8,6 +8,7 @@ use App\Models\Draft;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\HumanContent\HumanContentGate;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -65,6 +66,43 @@ it('surfaces the publish action on linked draft detail pages', function () {
         ->assertSee('Publishing')
         ->assertSee(route('app.content.publish-now', $content), false)
         ->assertSee('name="locale" value="en"', false);
+});
+
+it('requires an explicit human content gate override on blocked draft publish actions', function () {
+    [$user, $draft] = createDraftRenderingContext('<p>Needs a human review before publishing.</p>');
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $content = Content::query()->create([
+        'workspace_id' => (string) $draft->clientSite->workspace_id,
+        'client_site_id' => (string) $draft->client_site_id,
+        'title' => 'Blocked publish draft',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'draft',
+        'publish_status' => HumanContentGate::STATUS_NEEDS_EDITORIAL_REVIEW,
+        'publish_error' => 'Human Content publishing gate blocked auto-publication: Human content score is below 70.',
+        'delivery_status' => 'pending',
+    ]);
+    $draft->update([
+        'content_id' => (string) $content->id,
+        'meta' => [
+            'publish_gate_status' => HumanContentGate::STATUS_NEEDS_EDITORIAL_REVIEW,
+            'human_content_gate' => [
+                'passed' => false,
+                'status' => HumanContentGate::STATUS_NEEDS_EDITORIAL_REVIEW,
+                'reasons' => ['Human content score is below 70.'],
+            ],
+        ],
+    ]);
+    $draft->brief?->update(['content_id' => (string) $content->id]);
+
+    $this->actingAs($user)
+        ->get(route('app.drafts.show', $draft))
+        ->assertOk()
+        ->assertSee('name="human_content_override"', false)
+        ->assertSee('required', false)
+        ->assertSee('Override and publish')
+        ->assertSee('Human Content publishing gate blocked auto-publication');
 });
 
 /**

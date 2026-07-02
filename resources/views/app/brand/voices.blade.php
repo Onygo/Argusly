@@ -1,36 +1,32 @@
 @extends('layouts.app', ['title' => app()->getLocale() === 'nl' ? __('app.runtime.Brand Voices') : 'Brand Voices'])
 
+@php
+    $rt = function (string $value, array $replace = []): string {
+        $key = 'app.runtime.'.$value;
+        $translated = __($key, $replace);
+
+        return $translated === $key ? strtr($value, collect($replace)->mapWithKeys(fn ($replacement, $placeholder) => [':'.$placeholder => $replacement])->all()) : $translated;
+    };
+    $textProviders = collect((array) config('llm.capabilities', []))
+        ->filter(fn ($caps) => in_array('text', (array) $caps, true))
+        ->keys()
+        ->values()
+        ->all();
+    $providerLabels = [
+        'openai' => 'OpenAI',
+        'anthropic' => 'Claude (Anthropic)',
+        'gemini' => 'Gemini (Google)',
+        'mistral' => 'Mistral',
+    ];
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$rt('Brand Voices')" :eyebrow="$rt('Brand')">
+        <x-slot:description>{{ $rt('Generate distinct voice cards with AI, then refine descriptions, style guidance and examples manually.') }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    @php
-        $rt = function (string $value, array $replace = []): string {
-            $key = 'app.runtime.'.$value;
-            $translated = __($key, $replace);
-
-            return $translated === $key ? strtr($value, collect($replace)->mapWithKeys(fn ($replacement, $placeholder) => [':'.$placeholder => $replacement])->all()) : $translated;
-        };
-        $textProviders = collect((array) config('llm.capabilities', []))
-            ->filter(fn ($caps) => in_array('text', (array) $caps, true))
-            ->keys()
-            ->values()
-            ->all();
-        $providerLabels = [
-            'openai' => 'OpenAI',
-            'anthropic' => 'Claude (Anthropic)',
-            'gemini' => 'Gemini (Google)',
-            'mistral' => 'Mistral',
-        ];
-    @endphp
-
-    <div class="mb-6">
-        <nav class="mb-2 text-sm text-textSecondary">
-            <span>{{ $rt('Brand') }}</span>
-            <span class="mx-1">/</span>
-            <span class="text-textPrimary">{{ $rt('Brand Voices') }}</span>
-        </nav>
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $rt('Brand Voices') }}</h1>
-        <p class="mt-1 text-textSecondary">{{ $rt('Generate distinct voice cards with AI, then refine descriptions, style guidance and examples manually.') }}</p>
-    </div>
-
     @include('app.brand.partials.tabs')
 
     @if (session('status'))

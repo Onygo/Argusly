@@ -66,9 +66,9 @@ it('creates featured fallback and renders ready og image when no featured exists
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
+    Storage::fake('content_images');
     config([
-        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.images.disk' => 'content_images',
         'argusly.ai.images.openai.api_key' => 'test-key',
     ]);
 

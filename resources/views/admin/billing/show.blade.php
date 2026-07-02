@@ -1,11 +1,14 @@
 @extends('layouts.admin', ['title' => 'Billing'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Billing</x-slot:title>
+        <x-slot:description>{{ $organization->name }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Billing</h1>
-            <p class="mt-1 text-textSecondary">{{ $organization->name }}</p>
-        </div>
     </div>
 
     @if (session('status'))

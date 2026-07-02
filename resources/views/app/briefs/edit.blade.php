@@ -1,14 +1,18 @@
 @extends('layouts.app', ['title' => 'Edit Brief', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex items-start justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Edit brief</h1>
-            <p class="mt-1 text-textSecondary">Update briefing data before generating or regenerating a draft.</p>
-        </div>
-        <a href="{{ route('app.content.workspace.brief', $brief) }}" class="rounded border border-border px-3 py-2 text-sm">Back to workspace</a>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Edit brief">
+        <x-slot:description>Update briefing data before generating or regenerating a draft.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <div class="py-2">
+        <a href="{{ route('app.content.workspace.brief', $brief) }}" class="pl-btn-secondary">Back to workspace</a>
+    </div>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

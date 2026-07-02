@@ -1,9 +1,15 @@
 @extends('layouts.app', ['title' => $project->name])
 
+@section('pageHeader')
+    <x-page-header :title="$project->name">
+        <x-slot:description>Status: {{ $project->status?->value ?? $project->status }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex items-start justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $project->name }}</h1>
+            <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $project->name }}</h2>
             <p class="mt-1 text-textSecondary">Status: {{ $project->status?->value ?? $project->status }}</p>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -80,35 +86,33 @@
 
     <div class="mb-4 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Sources</h2>
-        <div class="mt-3 overflow-x-auto">
-            <table class="min-w-full text-sm text-textPrimary">
-                <thead>
-                    <tr class="text-left text-xs text-textSecondary">
-                        <th class="pb-2 font-medium">Title / URL</th>
-                        <th class="pb-2 font-medium">Type</th>
-                        <th class="pb-2 font-medium">Fetch status</th>
-                        <th class="pb-2 font-medium">Fetched at</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($project->sources as $source)
-                        <tr class="border-t border-border/70">
-                            <td class="py-2">
-                                <div class="font-medium">{{ $source->title ?: '-' }}</div>
-                                <div class="text-xs text-textSecondary break-all">{{ $source->url ?: '-' }}</div>
-                            </td>
-                            <td class="py-2">{{ $source->source_classification ?: ($source->source_type?->value ?? $source->source_type) }}</td>
-                            <td class="py-2"><span class="pl-badge">{{ $source->fetch_status?->value ?? $source->fetch_status }}</span></td>
-                            <td class="py-2">{{ optional($source->fetched_at)->toDateTimeString() ?: '-' }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="py-3 text-textSecondary">No sources found.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        <x-data-table label="Research sources" description="Sources gathered for this research project with URL, type, fetch status, and fetch time." density="compact" class="mt-3 border-0 shadow-none" table-class="min-w-full text-sm text-textPrimary">
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Title / URL</x-data-table.cell>
+                    <x-data-table.cell heading>Type</x-data-table.cell>
+                    <x-data-table.cell heading>Fetch status</x-data-table.cell>
+                    <x-data-table.cell heading>Fetched at</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
+                @forelse ($project->sources as $source)
+                    <x-data-table.row>
+                        <x-data-table.cell label="Title / URL">
+                            <div class="font-medium">{{ $source->title ?: '-' }}</div>
+                            <div class="break-all text-xs text-textSecondary">{{ $source->url ?: '-' }}</div>
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Type">{{ $source->source_classification ?: ($source->source_type?->value ?? $source->source_type) }}</x-data-table.cell>
+                        <x-data-table.cell label="Fetch status">
+                            <x-data-table.badge :label="$source->fetch_status?->value ?? $source->fetch_status" />
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Fetched at">{{ optional($source->fetched_at)->toDateTimeString() ?: '-' }}</x-data-table.cell>
+                    </x-data-table.row>
+                @empty
+                    <x-data-table.empty colspan="4" title="No sources found" />
+                @endforelse
+            </tbody>
+        </x-data-table>
     </div>
 
     <div class="mb-4 rounded-lg border border-border bg-surface p-4">

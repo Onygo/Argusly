@@ -1,50 +1,54 @@
 @extends('layouts.admin', ['title' => 'Users'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Users</h1>
-            <p class="mt-1 text-textSecondary">Manage platform users and access states.</p>
-        </div>
-        <form method="GET" class="grid w-full gap-2 sm:grid-cols-2 lg:w-auto lg:grid-cols-4">
-                <input
-                    type="text"
-                    name="q"
-                    value="{{ $filters['q'] }}"
-                    placeholder="Search name or email"
-                    class="pl-input sm:col-span-2 lg:w-56"
-                >
-            <select name="organization_id" class="pl-select bg-surface lg:w-44">
-                <option value="">All organizations</option>
-                @foreach ($organizations as $organization)
-                    <option value="{{ $organization->id }}" @selected($filters['organization_id'] === (string) $organization->id)>{{ $organization->name }}</option>
-                @endforeach
-            </select>
-            <div class="flex gap-2">
-                <select name="status" class="pl-select w-full bg-surface lg:w-36">
-                    <option value="">All status</option>
-                    <option value="active" @selected($filters['status'] === 'active')>Active</option>
-                    <option value="disabled" @selected($filters['status'] === 'disabled')>Disabled</option>
-                    <option value="pending" @selected($filters['status'] === 'pending')>Pending</option>
-                </select>
-                <select name="sort" class="pl-select w-full bg-surface lg:w-32">
-                    <option value="newest" @selected($filters['sort'] === 'newest')>Newest</option>
-                    <option value="oldest" @selected($filters['sort'] === 'oldest')>Oldest</option>
-                </select>
-            </div>
-            <div class="flex gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">
-                <button class="pl-btn-secondary">
-                    <i data-lucide="search" class="h-4 w-4"></i>
-                    Apply
-                </button>
-                <a href="{{ route('admin.users') }}" class="pl-btn-ghost h-10 border border-border">
-                    <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Users" />
+@endsection
 
+@section('pageDescription')
+    <x-page-description>Manage platform users and access states.</x-page-description>
+@endsection
+
+@section('filterBar')
+    <form method="GET" class="grid w-full gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <input
+            type="text"
+            name="q"
+            value="{{ $filters['q'] }}"
+            placeholder="Search name or email"
+            class="pl-input sm:col-span-2 lg:w-56"
+        >
+        <select name="organization_id" class="pl-select bg-surface lg:w-44">
+            <option value="">All organizations</option>
+            @foreach ($organizations as $organization)
+                <option value="{{ $organization->id }}" @selected($filters['organization_id'] === (string) $organization->id)>{{ $organization->name }}</option>
+            @endforeach
+        </select>
+        <div class="flex gap-2">
+            <select name="status" class="pl-select w-full bg-surface lg:w-36">
+                <option value="">All status</option>
+                <option value="active" @selected($filters['status'] === 'active')>Active</option>
+                <option value="disabled" @selected($filters['status'] === 'disabled')>Disabled</option>
+                <option value="pending" @selected($filters['status'] === 'pending')>Pending</option>
+            </select>
+            <select name="sort" class="pl-select w-full bg-surface lg:w-32">
+                <option value="newest" @selected($filters['sort'] === 'newest')>Newest</option>
+                <option value="oldest" @selected($filters['sort'] === 'oldest')>Oldest</option>
+            </select>
+        </div>
+        <div class="flex gap-2 sm:col-span-2 lg:col-span-4 lg:justify-end">
+            <button class="pl-btn-secondary">
+                <i data-lucide="search" class="h-4 w-4"></i>
+                Apply
+            </button>
+            <a href="{{ route('admin.users') }}" class="pl-btn-ghost h-10 border border-border">
+                <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                Reset
+            </a>
+        </div>
+    </form>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif
@@ -53,21 +57,18 @@
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first() }}</div>
     @endif
 
-    <div class="rounded-md border border-border bg-surface">
-        <div class="overflow-x-auto">
-            <div class="max-h-[68vh] overflow-y-auto">
-                <table class="min-w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-textSecondary">
-                            <th class="sticky top-0 z-10 bg-surfaceSubtle font-medium">User</th>
-                            <th class="sticky top-0 z-10 bg-surfaceSubtle font-medium">Organization</th>
-                            <th class="sticky top-0 z-10 bg-surfaceSubtle font-medium">Role</th>
-                            <th class="sticky top-0 z-10 bg-surfaceSubtle font-medium">Status</th>
-                            <th class="sticky top-0 z-10 bg-surfaceSubtle font-medium">Created</th>
-                            <th class="sticky top-0 z-10 bg-surfaceSubtle font-medium text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
+    <x-data-table label="Users" description="Filtered user list with organization, role, status, created date, and row actions." sticky max-height="68vh">
+                    <x-data-table.header sticky>
+                        <x-data-table.row>
+                            <x-data-table.cell heading>User</x-data-table.cell>
+                            <x-data-table.cell heading>Organization</x-data-table.cell>
+                            <x-data-table.cell heading>Role</x-data-table.cell>
+                            <x-data-table.cell heading>Status</x-data-table.cell>
+                            <x-data-table.cell heading>Created</x-data-table.cell>
+                            <x-data-table.cell heading align="right">Actions</x-data-table.cell>
+                        </x-data-table.row>
+                    </x-data-table.header>
+                    <tbody>
                         @forelse ($users as $user)
                             @php
                                 $statusLabel = 'Disabled';
@@ -100,13 +101,13 @@
                                     'admin_role' => (string) ($user->admin_role ?? ''),
                                 ];
                             @endphp
-                            <tr class="hover:bg-surfaceSubtle">
-                                <td class="align-top">
+                            <x-data-table.row>
+                                <x-data-table.cell label="User">
                                     <p class="font-medium text-textPrimary">{{ $user->name }}</p>
                                     <p class="text-xs text-textSecondary">{{ $user->email }}</p>
-                                </td>
-                                <td class="align-top text-textSecondary">{{ $user->organization?->name ?? 'N/A' }}</td>
-                                <td class="align-top">
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Organization" class="text-textSecondary">{{ $user->organization?->name ?? 'N/A' }}</x-data-table.cell>
+                                <x-data-table.cell label="Role">
                                     <span class="rounded border border-border px-2 py-0.5 text-xs text-textPrimary">{{ $user->role }}</span>
                                     <div class="mt-2">
                                         <span class="rounded border border-border px-2 py-0.5 text-xs text-textSecondary">
@@ -124,9 +125,9 @@
                                             <button class="inline-flex items-center justify-center rounded border border-border px-2 py-1 text-xs font-medium">Set</button>
                                         </form>
                                     @endcan
-                                </td>
-                                <td class="align-top">
-                                    <span class="{{ $statusClass }}">{{ $statusLabel }}</span>
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Status">
+                                    <x-data-table.badge :tone="$statusLabel === 'Active' ? 'success' : ($statusLabel === 'Pending' ? 'warning' : 'neutral')" :label="$statusLabel" />
                                     @if ($latestOverrideStatus)
                                         <div class="mt-2">
                                             <span class="inline-flex items-center rounded-sm border px-2 py-0.5 text-xs font-medium {{ $latestOverrideStatus->badgeClasses() }}">
@@ -134,21 +135,21 @@
                                             </span>
                                         </div>
                                     @endif
-                                </td>
-                                <td class="align-top text-xs text-textSecondary">{{ $user->created_at?->format('Y-m-d H:i') }}</td>
-                                <td class="align-top">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <a href="{{ route('admin.users.show', $user) }}" class="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-textSecondary hover:text-textPrimary" title="View">
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Created" class="text-xs text-textSecondary">{{ $user->created_at?->format('Y-m-d H:i') }}</x-data-table.cell>
+                                <x-data-table.cell label="Actions">
+                                    <x-data-table.actions>
+                                        <a href="{{ route('admin.users.show', $user) }}" class="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-textSecondary hover:text-textPrimary" title="View" aria-label="View {{ $user->name }}">
                                             <i data-lucide="eye" class="h-4 w-4"></i>
                                         </a>
-                                        <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-textSecondary hover:text-textPrimary" title="Edit" data-open-user-drawer data-drawer-mode="edit" data-user='@json($userPayload)'>
+                                        <button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-textSecondary hover:text-textPrimary" title="Edit" aria-label="Edit {{ $user->name }}" data-open-user-drawer data-drawer-mode="edit" data-user='@json($userPayload)'>
                                             <i data-lucide="pencil" class="h-4 w-4"></i>
                                         </button>
 
                                         @if (! $user->approved_at)
                                             <form method="POST" action="{{ route('admin.users.approve', $user) }}">
                                                 @csrf
-                                                <button class="inline-flex h-8 w-8 items-center justify-center rounded border border-emerald-500/40 text-emerald-700" title="Approve">
+                                                <button class="inline-flex h-8 w-8 items-center justify-center rounded border border-emerald-500/40 text-emerald-700" title="Approve" aria-label="Approve {{ $user->name }}">
                                                     <i data-lucide="badge-check" class="h-4 w-4"></i>
                                                 </button>
                                             </form>
@@ -157,33 +158,27 @@
                                         @if ($user->active)
                                             <form method="POST" action="{{ route('admin.users.disable', $user) }}">
                                                 @csrf
-                                                <button class="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-500/40 text-rose-700" title="Disable">
+                                                <button class="inline-flex h-8 w-8 items-center justify-center rounded border border-rose-500/40 text-rose-700" title="Disable" aria-label="Disable {{ $user->name }}">
                                                     <i data-lucide="user-x" class="h-4 w-4"></i>
                                                 </button>
                                             </form>
                                         @else
                                             <form method="POST" action="{{ route('admin.users.activate', $user) }}">
                                                 @csrf
-                                                <button class="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-textSecondary hover:text-textPrimary" title="Enable">
+                                                <button class="inline-flex h-8 w-8 items-center justify-center rounded border border-border text-textSecondary hover:text-textPrimary" title="Enable" aria-label="Enable {{ $user->name }}">
                                                     <i data-lucide="user-check" class="h-4 w-4"></i>
                                                 </button>
                                             </form>
                                         @endif
-                                    </div>
-                                </td>
-                            </tr>
+                                    </x-data-table.actions>
+                                </x-data-table.cell>
+                            </x-data-table.row>
                         @empty
-                            <tr>
-                                <td class="px-4 py-8 text-center text-textSecondary" colspan="6">No users found.</td>
-                            </tr>
+                            <x-data-table.empty colspan="6" title="No users found" description="No users match the current filters." />
                         @endforelse
                     </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-4">{{ $users->links() }}</div>
+        <x-slot:pagination>{{ $users->links() }}</x-slot:pagination>
+    </x-data-table>
 
     <div id="users-drawer-overlay" class="fixed inset-0 z-40 hidden bg-black/30" aria-hidden="true"></div>
     <aside id="users-drawer" class="fixed right-0 top-0 z-50 h-full w-full max-w-xl translate-x-full border-l border-border bg-surface shadow-2xl transition-transform duration-200">

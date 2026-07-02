@@ -1,14 +1,17 @@
 @extends('layouts.app', ['title' => 'Programmatic Brief Blueprints'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Programmatic Brief Blueprints</x-slot:title>
+        <x-slot:description>Reusable briefing preparation for programmatic cluster items.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
 
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Programmatic Brief Blueprints</h1>
-                <p class="mt-1 text-sm text-textSecondary">Reusable briefing preparation for programmatic cluster items.</p>
-            </div>
             <form method="GET" action="{{ route('app.programmatic-brief-blueprints.index') }}" class="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">
                 <select name="asset_type" class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">
@@ -31,41 +34,37 @@
             <x-alert>{{ session('status') }}</x-alert>
         @endif
 
-        <section class="rounded-lg border border-border bg-surface p-5">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-border text-sm">
-                    <thead>
-                        <tr class="text-left text-xs uppercase tracking-wide text-textSecondary">
-                            <th class="py-2 pr-4">Title</th>
-                            <th class="py-2 pr-4">Asset type</th>
-                            <th class="py-2 pr-4">Status</th>
-                            <th class="py-2 pr-4">Cluster</th>
-                            <th class="py-2 pr-4">Intent</th>
-                            <th class="py-2 pr-4">Primary keyword</th>
-                            <th class="py-2 pr-4">Readiness</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
+        <x-data-table label="Programmatic brief blueprints" description="Brief blueprints with asset type, status, cluster, intent, primary keyword, and readiness." density="compact">
+                <x-data-table.header>
+                    <x-data-table.row>
+                        <x-data-table.cell heading>Title</x-data-table.cell>
+                        <x-data-table.cell heading>Asset type</x-data-table.cell>
+                        <x-data-table.cell heading>Status</x-data-table.cell>
+                        <x-data-table.cell heading>Cluster</x-data-table.cell>
+                        <x-data-table.cell heading>Intent</x-data-table.cell>
+                        <x-data-table.cell heading>Primary keyword</x-data-table.cell>
+                        <x-data-table.cell heading>Readiness</x-data-table.cell>
+                    </x-data-table.row>
+                </x-data-table.header>
+                <tbody>
                         @forelse ($blueprints as $blueprint)
                             @php($type = $blueprint->growth_asset_type instanceof \App\Enums\GrowthAssetType ? $blueprint->growth_asset_type : \App\Enums\GrowthAssetType::tryFrom((string) $blueprint->growth_asset_type))
-                            <tr>
-                                <td class="py-2 pr-4 font-medium text-textPrimary"><a href="{{ route('app.programmatic-brief-blueprints.show', $blueprint) }}" class="hover:text-primary">{{ $blueprint->title }}</a></td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ $type?->label() ?? $blueprint->growth_asset_type }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ str($blueprint->status)->headline() }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ $blueprint->cluster?->name ?: 'n/a' }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ $blueprint->intent ?: 'n/a' }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ $blueprint->primary_keyword ?: 'n/a' }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ $blueprint->readinessPercentage() }}%</td>
-                            </tr>
+                            <x-data-table.row>
+                                <x-data-table.cell label="Title" class="font-medium text-textPrimary"><a href="{{ route('app.programmatic-brief-blueprints.show', $blueprint) }}" class="hover:text-primary">{{ $blueprint->title }}</a></x-data-table.cell>
+                                <x-data-table.cell label="Asset type" class="text-textSecondary">{{ $type?->label() ?? $blueprint->growth_asset_type }}</x-data-table.cell>
+                                <x-data-table.cell label="Status">
+                                    <x-data-table.badge :label="str($blueprint->status)->headline()" />
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Cluster" class="text-textSecondary">{{ $blueprint->cluster?->name ?: 'n/a' }}</x-data-table.cell>
+                                <x-data-table.cell label="Intent" class="text-textSecondary">{{ $blueprint->intent ?: 'n/a' }}</x-data-table.cell>
+                                <x-data-table.cell label="Primary keyword" class="text-textSecondary">{{ $blueprint->primary_keyword ?: 'n/a' }}</x-data-table.cell>
+                                <x-data-table.cell label="Readiness" class="text-textSecondary">{{ $blueprint->readinessPercentage() }}%</x-data-table.cell>
+                            </x-data-table.row>
                         @empty
-                            <tr>
-                                <td colspan="7" class="py-6 text-center text-sm text-textMuted">No brief blueprints prepared yet.</td>
-                            </tr>
+                            <x-data-table.empty colspan="7" title="No brief blueprints prepared yet" />
                         @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-4">{{ $blueprints->links() }}</div>
-        </section>
+                </tbody>
+            <x-slot:pagination>{{ $blueprints->links() }}</x-slot:pagination>
+        </x-data-table>
     </div>
 @endsection

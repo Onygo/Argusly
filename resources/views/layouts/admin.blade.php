@@ -352,7 +352,53 @@
                         </x-slot:actions>
                     </x-alert>
                 @endif
-                @yield('content')
+                <x-app-shell
+                    :title="$appShellTitle ?? null"
+                    :description="$appShellDescription ?? null"
+                    :breadcrumbs="$appShellBreadcrumbs ?? []"
+                >
+                    @hasSection('breadcrumb')
+                        <x-slot:breadcrumb>
+                            @yield('breadcrumb')
+                        </x-slot:breadcrumb>
+                    @endif
+                    @hasSection('pageHeader')
+                        <x-slot:pageHeader>
+                            @yield('pageHeader')
+                        </x-slot:pageHeader>
+                    @endif
+                    @hasSection('pageDescription')
+                        <x-slot:pageDescription>
+                            @yield('pageDescription')
+                        </x-slot:pageDescription>
+                    @endif
+                    @hasSection('primaryActions')
+                        <x-slot:primaryActions>
+                            @yield('primaryActions')
+                        </x-slot:primaryActions>
+                    @endif
+                    @hasSection('filterBar')
+                        <x-slot:filterBar>
+                            @yield('filterBar')
+                        </x-slot:filterBar>
+                    @endif
+                    @hasSection('metricSection')
+                        <x-slot:metricSection>
+                            @yield('metricSection')
+                        </x-slot:metricSection>
+                    @endif
+                    @yield('content')
+                    @hasSection('detailDrawer')
+                        <x-slot:detailDrawer>
+                            @yield('detailDrawer')
+                        </x-slot:detailDrawer>
+                    @endif
+                    @hasSection('footerActions')
+                        <x-slot:footerActions>
+                            @yield('footerActions')
+                        </x-slot:footerActions>
+                    @endif
+                </x-app-shell>
             </div>
         </main>
     </div>

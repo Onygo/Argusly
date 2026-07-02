@@ -5,6 +5,7 @@
     'active' => 'overview',
     'navItems' => null,
     'metaItems' => [],
+    'showHeading' => true,
 ])
 
 @php
@@ -57,13 +58,16 @@
 @endphp
 
 <div class="space-y-6">
-    <header class="flex flex-wrap items-start justify-between gap-4">
-        <div class="space-y-2">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $title }}</h1>
-                <p class="mt-1 text-textSecondary">{{ $description }}</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
+    @if ($showHeading || $actions !== '' || $site || ! empty($metaItems))
+        <header class="flex flex-wrap items-start justify-between gap-4">
+            <div class="space-y-2">
+                @if ($showHeading)
+                    <div>
+                        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $title }}</h1>
+                        <p class="mt-1 text-textSecondary">{{ $description }}</p>
+                    </div>
+                @endif
+                <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
                 @if ($site)
                     <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Site: {{ $site->name }}</span>
                     <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">Workspace: {{ $site->workspace?->name ?? 'n/a' }}</span>
@@ -72,15 +76,16 @@
                 @foreach ($metaItems as $item)
                     <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1">{{ $item }}</span>
                 @endforeach
+                </div>
             </div>
-        </div>
 
-        @if ($actions !== '')
-            <div class="flex flex-wrap items-center gap-2">
-                {{ $slot }}
-            </div>
-        @endif
-    </header>
+            @if ($actions !== '')
+                <div class="flex flex-wrap items-center gap-2">
+                    {{ $slot }}
+                </div>
+            @endif
+        </header>
+    @endif
 
     @if (! empty($navItems))
         <x-app.section-nav :items="$navItems" />

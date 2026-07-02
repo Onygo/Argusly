@@ -1,10 +1,16 @@
 @extends('layouts.app', ['title' => 'LinkedIn Integration'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>LinkedIn</x-slot:title>
+        <x-slot:description>{{ $accounts->filter(fn ($item) => $item->isConnected())->count() }} connected LinkedIn identity/identities in this workspace.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mx-auto max-w-4xl space-y-6">
         <div>
             <p class="text-sm text-textSecondary">Settings / Integrations</p>
-            <h1 class="text-xl font-semibold text-textPrimary">LinkedIn</h1>
         </div>
 
         @if (session('status'))

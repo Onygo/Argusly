@@ -31,6 +31,10 @@ use App\Services\LinkIntelligence\DefaultLinkSuggestionService;
 use App\Services\Seo\SeoFieldSyncCapabilityResolver;
 use App\Services\Translation\TranslationService;
 use App\Services\WordPress\WordPressLanguageSyncService;
+use App\Support\Interaction\Action;
+use App\Support\Interaction\AppInteractionRegistry;
+use App\Support\Interaction\ResourceContext;
+use App\Support\Interaction\ResourceType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -47,7 +51,7 @@ class AppDraftsController extends Controller
         $siteId = trim((string) request()->query('site', ''));
 
         $query = Draft::query()
-            ->with('brief', 'clientSite')
+            ->with('brief', 'content', 'clientSite.workspace')
             ->whereHas('clientSite.workspace', function ($query) use ($organization) {
                 $query->where('organization_id', $organization->id);
             })
@@ -58,10 +62,71 @@ class AppDraftsController extends Controller
         }
 
         $drafts = $query->paginate(20)->withQueryString();
+        [$interactionResourcesByKey, $interactionActionsByKey] = $this->resolveDraftIndexInteractionMetadata(
+            $drafts->getCollection()
+        );
 
         return view('app.drafts.index', [
             'drafts' => $drafts,
+            'interactionResourcesByKey' => $interactionResourcesByKey,
+            'interactionActionsByKey' => $interactionActionsByKey,
         ]);
+    }
+
+    /**
+     * @param iterable<int, Draft> $drafts
+     * @return array{0: array<string, array>, 1: array<string, array<string, array>>}
+     */
+    private function resolveDraftIndexInteractionMetadata(iterable $drafts): array
+    {
+        $user = request()->user();
+        $drafts = collect($drafts)->values();
+        $resourceRegistry = AppInteractionRegistry::resourceRegistryFor($drafts);
+        $actionRegistry = AppInteractionRegistry::actionRegistry();
+
+        $resourcesByKey = [];
+        $actionsByKey = [];
+
+        foreach ($drafts as $draft) {
+            $resourceKey = ResourceType::DRAFT.':'.$draft->getKey();
+            $context = ResourceContext::make([
+                'user' => $user,
+                'surface' => Action::SURFACE_ROW,
+                'page_key' => 'app.drafts.index',
+                'route_name' => 'app.drafts',
+                'organization_id' => $user?->organization_id,
+                'site_id' => $draft->client_site_id,
+                'resource_type' => ResourceType::DRAFT,
+                'resource_id' => $draft->getKey(),
+                'subject' => $draft,
+                'metadata' => [
+                    'subject' => $draft,
+                ],
+            ]);
+
+            $resource = $resourceRegistry->resolve($resourceKey, $context);
+
+            if ($resource === null) {
+                continue;
+            }
+
+            $resourcesByKey[$resourceKey] = $resource;
+            $actionsByKey[$resourceKey] = [];
+
+            foreach ($resource['available_actions'] as $actionKey) {
+                if (! $actionRegistry->has($actionKey)) {
+                    continue;
+                }
+
+                $action = $actionRegistry->resolve($actionKey, $context->toActionContext());
+
+                if ($action['visible']) {
+                    $actionsByKey[$resourceKey][$actionKey] = $action;
+                }
+            }
+        }
+
+        return [$resourcesByKey, $actionsByKey];
     }
 
     public function show(
@@ -79,6 +144,8 @@ class AppDraftsController extends Controller
         $draft->load([
             'brief',
             'content',
+            'content.contentDestination',
+            'content.clientSite',
             'content.publishTargets',
             'clientSite.workspace',
             'sourceDraft.content.publishTargets',

@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Starter Queries'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>{{ count($suggestions) }} starter {{ count($suggestions) === 1 ? 'query' : 'queries' }} available</x-slot:title>
+        <x-slot:description>These prompts use your brand, website, Company Intelligence and competitors. Creating them does not start runs and does not use credits.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $categoryLabels = [
@@ -29,7 +36,6 @@
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Preview</p>
-                    <h1 class="mt-2 text-xl font-semibold text-textPrimary">{{ count($suggestions) }} starter {{ count($suggestions) === 1 ? 'query' : 'queries' }} available</h1>
                     <p class="mt-1 max-w-3xl text-sm leading-6 text-textSecondary">
                         These prompts use your brand, website, Company Intelligence and competitors. Creating them does not start runs and does not use credits.
                     </p>

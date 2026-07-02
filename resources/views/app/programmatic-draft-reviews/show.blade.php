@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Draft Review'])
 
+@section('pageHeader')
+    <x-page-header :title="$review->draft?->title" eyebrow="Draft Reviews">
+        <x-slot:description>{{ str($review->status)->headline() }} · overall {{ number_format((float) $review->overall_score, 1) }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
 
@@ -7,7 +13,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.programmatic-draft-reviews.index', ['workspace_id' => $workspace->id]) }}" class="text-sm font-medium text-textSecondary hover:text-textPrimary">Draft Reviews</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $review->draft?->title }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $review->draft?->title }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ str($review->status)->headline() }} · overall {{ number_format((float) $review->overall_score, 1) }}</p>
             </div>
             <div class="flex flex-wrap gap-2">

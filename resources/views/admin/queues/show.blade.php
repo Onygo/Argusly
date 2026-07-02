@@ -1,35 +1,30 @@
 @extends('layouts.admin', ['title' => 'Failed Job'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Failed job detail</h1>
-            <p class="mt-1 text-textSecondary">{{ $job['job_name'] }}</p>
-        </div>
-        <a href="{{ route('admin.queues.index', request()->query()) }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to queues</a>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Failed job detail">
+        <x-slot:description>{{ $job['job_name'] }}</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('admin.queues.index', request()->query()) }}" class="pl-btn-secondary">Back to queues</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Failed at" :value="$job['failed_at']" />
+        <x-metric-card label="Queue / connection" :value="$job['queue'].' / '.$job['connection']" />
+        <x-metric-card label="Attempts" :value="$job['attempts']" />
+    </x-metric-section>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif
     @if ($errors->has('queues'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('queues') }}</div>
     @endif
-
-    <div class="mb-6 grid gap-4 md:grid-cols-3">
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Failed at</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['failed_at'] }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Queue / connection</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['queue'] }} / {{ $job['connection'] }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Attempts</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['attempts'] }}</p>
-        </div>
-    </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Context</h2>

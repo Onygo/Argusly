@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['title' => 'Feature Flags'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Feature Flags</x-slot:title>
+        <x-slot:description>Database flags override config defaults when present.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Feature Flags</h1>
-        <p class="mt-1 text-textSecondary">Database flags override config defaults when present.</p>
-    </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Create flag override</h2>
@@ -31,31 +34,31 @@
         </form>
     </div>
 
-    <div class="rounded-lg border border-border bg-surface p-4">
-        <h2 class="text-sm font-semibold text-textPrimary">Effective flags</h2>
-        <div class="mt-3 overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead>
-                <tr class="border-b border-border text-xs uppercase tracking-wide text-textFaint">
-                    <th class="px-3 py-2">Key</th>
-                    <th class="px-3 py-2">Description</th>
-                    <th class="px-3 py-2">Source</th>
-                    <th class="px-3 py-2">State</th>
-                    <th class="px-3 py-2"></th>
-                </tr>
-                </thead>
-                <tbody>
+    <x-data-table label="Effective flags" description="Effective feature flags with source, state, and database override actions." density="compact">
+            <x-slot:toolbar>
+                <x-data-table.toolbar title="Effective flags" />
+            </x-slot:toolbar>
+
+            <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Key</x-data-table.cell>
+                    <x-data-table.cell heading>Description</x-data-table.cell>
+                    <x-data-table.cell heading>Source</x-data-table.cell>
+                    <x-data-table.cell heading>State</x-data-table.cell>
+                    <x-data-table.cell heading align="right">Actions</x-data-table.cell>
+                </x-data-table.row>
+            </x-data-table.header>
+            <tbody>
                 @forelse ($flags as $flag)
-                    <tr class="border-b border-border/60">
-                        <td class="px-3 py-2 font-mono text-xs text-textPrimary">{{ $flag['key'] }}</td>
-                        <td class="px-3 py-2 text-textSecondary">{{ $flag['description'] ?: '—' }}</td>
-                        <td class="px-3 py-2 text-xs uppercase tracking-wide text-textFaint">{{ $flag['source'] }}</td>
-                        <td class="px-3 py-2">
-                            <span class="rounded border px-2 py-0.5 text-xs {{ $flag['enabled'] ? 'border-success/30 text-success' : 'border-border text-textSecondary' }}">
-                                {{ $flag['enabled'] ? 'Enabled' : 'Disabled' }}
-                            </span>
-                        </td>
-                        <td class="px-3 py-2">
+                    <x-data-table.row>
+                        <x-data-table.cell label="Key" class="font-mono text-xs text-textPrimary">{{ $flag['key'] }}</x-data-table.cell>
+                        <x-data-table.cell label="Description" class="text-textSecondary">{{ $flag['description'] ?: '—' }}</x-data-table.cell>
+                        <x-data-table.cell label="Source" class="text-xs uppercase tracking-wide text-textFaint">{{ $flag['source'] }}</x-data-table.cell>
+                        <x-data-table.cell label="State">
+                            <x-data-table.badge :tone="$flag['enabled'] ? 'success' : 'neutral'" :label="$flag['enabled'] ? 'Enabled' : 'Disabled'" />
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Actions">
+                            <x-data-table.actions>
                             @if (($flag['source'] ?? '') === 'database' && isset($flag['id']))
                                 <form method="POST" action="{{ route('admin.feature-flags.update', $flag['id']) }}" class="flex items-center gap-2">
                                     @csrf
@@ -69,15 +72,12 @@
                             @else
                                 <span class="text-xs text-textFaint">Config only</span>
                             @endif
-                        </td>
-                    </tr>
+                            </x-data-table.actions>
+                        </x-data-table.cell>
+                    </x-data-table.row>
                 @empty
-                    <tr>
-                        <td colspan="5" class="px-3 py-6 text-sm text-textSecondary">No feature flags configured yet.</td>
-                    </tr>
+                    <x-data-table.empty colspan="5" title="No feature flags configured yet" />
                 @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
+            </tbody>
+    </x-data-table>
 @endsection

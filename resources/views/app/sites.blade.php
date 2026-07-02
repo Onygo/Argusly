@@ -1,11 +1,14 @@
 @extends('layouts.app', ['title' => 'Sites'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Sites</x-slot:title>
+        <x-slot:description>Connect WordPress or Laravel sites to start generating briefs and drafts.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Sites</h1>
-            <p class="mt-1 text-textSecondary">Connect WordPress or Laravel sites to start generating briefs and drafts.</p>
-        </div>
     </div>
 
     @if (session('status'))
@@ -101,64 +104,50 @@
         </form>
     </div>
 
-    <div class="rounded-lg border border-border bg-surface p-4">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-textSecondary">
-                    <th class="pb-2 font-medium">Site</th>
-                    <th class="pb-2 font-medium">Type</th>
-                    <th class="pb-2 font-medium">URL</th>
-                    <th class="pb-2 font-medium">Status</th>
-                    <th class="pb-2 font-medium">Last seen</th>
-                    <th class="pb-2 font-medium">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-                @forelse ($sites as $site)
-                    <tr>
-                        <td class="py-3">
-                            <div class="font-medium text-textPrimary">{{ $site->name }}</div>
-                            <div class="text-xs text-textSecondary">{{ $site->workspace?->name }}</div>
-                        </td>
-                        <td class="py-3">
-                            @php
-                                $type = \App\Models\ClientSite::normalizeType((string) $site->type);
-                            @endphp
-                            <span class="inline-flex rounded px-2 py-1 text-xs {{ $type === 'laravel' ? 'bg-sky-100 text-sky-800' : 'bg-violet-100 text-violet-800' }}">
-                                {{ strtoupper($type) }}
-                            </span>
-                        </td>
-                        <td class="py-3">{{ $site->base_url ?: $site->site_url }}</td>
-                        <td class="py-3">
-                            @php
-                                $badge = match($site->status) {
-                                    'connected' => 'bg-emerald-100 text-emerald-800',
-                                    'error' => 'bg-rose-100 text-rose-800',
-                                    'disabled' => 'bg-amber-100 text-amber-800',
-                                    default => 'bg-slate-100 text-slate-700',
-                                };
-                            @endphp
-                            <span class="inline-flex rounded px-2 py-1 text-xs {{ $badge }}">{{ $site->status }}</span>
-                        </td>
-                        <td class="py-3">{{ optional($site->last_seen_at)->diffForHumans() ?? 'Never' }}</td>
-                        <td class="py-3">
+    <x-data-table label="Connected sites" description="Connected workspace sites with type, URL, status, last seen time, and setup actions.">
+        <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Site</x-data-table.cell>
+                <x-data-table.cell heading>Type</x-data-table.cell>
+                <x-data-table.cell heading>URL</x-data-table.cell>
+                <x-data-table.cell heading>Status</x-data-table.cell>
+                <x-data-table.cell heading>Last seen</x-data-table.cell>
+                <x-data-table.cell heading>Actions</x-data-table.cell>
+            </x-data-table.row>
+        </x-data-table.header>
+        <tbody class="divide-y divide-border">
+            @forelse ($sites as $site)
+                <x-data-table.row>
+                    <x-data-table.cell label="Site">
+                        <div class="font-medium text-textPrimary">{{ $site->name }}</div>
+                        <div class="text-xs text-textSecondary">{{ $site->workspace?->name }}</div>
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Type">
+                        @php
+                            $type = \App\Models\ClientSite::normalizeType((string) $site->type);
+                        @endphp
+                        <x-data-table.badge :tone="$type === 'laravel' ? 'info' : 'neutral'" :label="strtoupper($type)" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="URL">{{ $site->base_url ?: $site->site_url }}</x-data-table.cell>
+                    <x-data-table.cell label="Status">
+                        <x-data-table.badge :tone="$site->status === 'connected' ? 'success' : ($site->status === 'error' ? 'danger' : ($site->status === 'disabled' ? 'warning' : 'neutral'))" :label="$site->status" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Last seen">{{ optional($site->last_seen_at)->diffForHumans() ?? 'Never' }}</x-data-table.cell>
+                    <x-data-table.cell label="Actions">
+                        <x-data-table.actions align="start">
                             @include('app.sites.partials.row-actions', ['site' => $site])
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td class="py-6 text-center text-textSecondary" colspan="6">No sites connected yet.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                        </x-data-table.actions>
+                    </x-data-table.cell>
+                </x-data-table.row>
+            @empty
+                <x-data-table.empty colspan="6" title="No sites connected yet" />
+            @endforelse
+        </tbody>
 
-    @if (method_exists($sites, 'links'))
-        <div class="mt-4">
-            {{ $sites->links() }}
-        </div>
-    @endif
+        @if (method_exists($sites, 'links'))
+            <x-slot:pagination>{{ $sites->links() }}</x-slot:pagination>
+        @endif
+    </x-data-table>
 
     <script>
         (function () {

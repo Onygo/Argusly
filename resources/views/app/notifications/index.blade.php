@@ -1,11 +1,14 @@
 @extends('layouts.app', ['title' => 'Notifications'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Notifications</x-slot:title>
+        <x-slot:description>Action required, system updates, and announcements.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Notifications</h1>
-            <p class="mt-1 text-textSecondary">Action required, system updates, and announcements.</p>
-        </div>
 
         @if ($filters['workspace_id'] !== '')
             <form method="POST" action="{{ route('app.notifications.read-all') }}">

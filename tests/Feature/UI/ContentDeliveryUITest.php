@@ -747,6 +747,106 @@ it('renders laravel failures without stale wordpress error messaging', function 
     $response->assertDontSee('Webhook failed, http 405');
 });
 
+it('uses the linked laravel site as the detail destination label when no connector destination is set', function () {
+    $user = createDeliveryUITestUser();
+    [$content] = createDeliveryUITestContext(
+        deliveryStatus: 'pending',
+        user: $user,
+        createPublication: false,
+        siteType: ClientSite::TYPE_LARAVEL
+    );
+
+    ContentDestination::query()->whereKey($content->content_destination_id)->delete();
+    $content->forceFill(['content_destination_id' => null])->save();
+
+    $response = actingAs($user)->get(route('app.content.show', $content));
+
+    $response->assertOk();
+    $response->assertSee('Laravel · draft');
+    $response->assertDontSee('Unknown destination · draft');
+});
+
+it('lets users set a publishing destination after draft generation', function () {
+    $user = createDeliveryUITestUser();
+    [$content] = createDeliveryUITestContext(
+        deliveryStatus: 'pending',
+        user: $user,
+        createPublication: false,
+        siteType: ClientSite::TYPE_WORDPRESS
+    );
+
+    $workspaceId = (string) $content->workspace_id;
+    $laravelSite = ClientSite::create([
+        'workspace_id' => $workspaceId,
+        'type' => ClientSite::TYPE_LARAVEL,
+        'name' => 'Later Laravel Site',
+        'site_url' => 'https://later-laravel.example.com',
+        'base_url' => 'https://later-laravel.example.com',
+        'allowed_domains' => ['later-laravel.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+    $laravelDestination = ContentDestination::create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspaceId,
+        'name' => 'Later Laravel Destination',
+        'type' => ClientSite::TYPE_LARAVEL,
+        'status' => 'active',
+        'environment' => 'production',
+        'default_language' => 'en',
+        'config' => [
+            'billing_client_site_id' => (string) $laravelSite->id,
+            'laravel_connector' => [
+                'base_url' => 'https://later-laravel.example.com',
+                'site_id' => 'later-laravel',
+                'enabled' => true,
+            ],
+        ],
+    ]);
+
+    $content->forceFill([
+        'content_destination_id' => null,
+        'publish_error' => 'No publish destination configured.',
+    ])->save();
+    $brief = Brief::create([
+        'client_site_id' => (string) $content->client_site_id,
+        'content_id' => (string) $content->id,
+        'status' => 'done',
+        'progress' => 1,
+        'title' => 'Brief needing destination',
+        'language' => SupportedLanguage::EN->value,
+        'output_type' => 'kb_article',
+    ]);
+    $draft = Draft::create([
+        'brief_id' => (string) $brief->id,
+        'content_id' => (string) $content->id,
+        'client_site_id' => (string) $content->client_site_id,
+        'status' => 'ready',
+        'title' => 'Draft needing destination',
+        'language' => SupportedLanguage::EN->value,
+        'content_html' => '<p>Ready draft.</p>',
+    ]);
+
+    $response = actingAs($user)->get(route('app.content.show', ['content' => $content, 'tab' => 'overview']));
+    $response->assertOk();
+    $response->assertSee('Publishing destination');
+    $response->assertSee('Later Laravel Destination');
+
+    actingAs($user)
+        ->post(route('app.content.publishing-destination.update', $content), [
+            'content_destination_id' => (string) $laravelDestination->id,
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Publishing destination updated.');
+
+    expect($content->fresh()->content_destination_id)->toBe((string) $laravelDestination->id)
+        ->and($content->fresh()->client_site_id)->toBe((string) $laravelSite->id)
+        ->and($brief->fresh()->content_destination_id)->toBe((string) $laravelDestination->id)
+        ->and($brief->fresh()->client_site_id)->toBe((string) $laravelSite->id)
+        ->and($draft->fresh()->content_destination_id)->toBe((string) $laravelDestination->id)
+        ->and($draft->fresh()->client_site_id)->toBe((string) $laravelSite->id);
+});
+
 it('prefers the laravel canonical publication over stale wordpress publication rows', function () {
     [$content, $publication] = createDeliveryUITestContext(
         deliveryStatus: 'failed',
@@ -838,6 +938,44 @@ it('renders the draft tab without undefined variable errors for non-wordpress co
     $response->assertOk();
     $response->assertDontSee('Auto repush to WordPress after regenerate');
     $response->assertDontSee('Undefined variable');
+});
+
+it('renders the images tab when visual plan assets have no generated inline image yet', function () {
+    $user = createDeliveryUITestUser();
+    [$content] = createDeliveryUITestContext('pending', user: $user);
+
+    $revision = \App\Models\ContentRevision::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'revision_number' => 1,
+        'label' => 'R1',
+        'content_html' => '<p>Body</p><figure data-asset-key="market-map"></figure>',
+        'meta' => [
+            'visual_plan' => [
+                'version' => 1,
+                'featured' => null,
+                'assets' => [
+                    [
+                        'asset_key' => 'market-map',
+                        'type' => 'image',
+                        'caption' => 'Market map visual',
+                        'alt_text' => 'Conceptual market map',
+                        'prompt' => 'Create a market map visual.',
+                    ],
+                ],
+            ],
+        ],
+        'is_active' => true,
+    ]);
+
+    $content->update(['current_revision_id' => $revision->id]);
+
+    $response = actingAs($user)->get(route('app.content.show', ['content' => $content, 'tab' => 'images']));
+
+    $response->assertOk();
+    $response->assertSee('Inline Visuals');
+    $response->assertSee('Market map visual');
+    $response->assertSee('Generate image');
 });
 
 it('renders per-variant laravel publish actions in the language variants panel', function () {

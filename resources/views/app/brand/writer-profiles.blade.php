@@ -1,16 +1,12 @@
 @extends('layouts.app', ['title' => 'Writer Profiles'])
 
-@section('content')
-    <div class="mb-6">
-        <nav class="mb-2 text-sm text-textSecondary">
-            <span>Brand</span>
-            <span class="mx-1">/</span>
-            <span class="text-textPrimary">Writer Profiles</span>
-        </nav>
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Writer Profiles</h1>
-        <p class="mt-1 text-textSecondary">Dit profiel helpt Argusly schrijven in een herkenbare stijl zonder teksten letterlijk over te nemen.</p>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Writer Profiles" eyebrow="Brand">
+        <x-slot:description>Dit profiel helpt Argusly schrijven in een herkenbare stijl zonder teksten letterlijk over te nemen.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('content')
     @include('app.brand.partials.tabs')
 
     @if (session('status'))

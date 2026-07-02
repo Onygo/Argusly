@@ -1,13 +1,16 @@
 @extends('layouts.app', ['title' => 'Programmatic Clusters'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Programmatic Clusters</x-slot:title>
+        <x-slot:description>Preview clusters for scalable programmatic assets.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
 
     <div class="space-y-6">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Programmatic Clusters</h1>
-            <p class="mt-1 text-sm text-textSecondary">Preview clusters for scalable programmatic assets.</p>
-        </div>
 
         <form method="GET" action="{{ route('app.programmatic-clusters.index') }}" class="grid gap-3 rounded-lg border border-border bg-surface p-4 md:grid-cols-4">
             <select name="workspace_id" class="rounded-md border border-border bg-background px-3 py-2 text-sm">

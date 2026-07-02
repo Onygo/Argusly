@@ -1,9 +1,14 @@
 @extends('layouts.admin', ['title' => 'Billing'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Billing Overview</x-slot:title>
+        <x-slot:description>Credits status per company.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Billing Overview</h1>
-        <p class="text-textSecondary mt-1">Credits status per company.</p>
         <a href="{{ route('admin.invoices.index') }}" class="mt-2 inline-flex items-center rounded border border-border px-3 py-1.5 text-xs">Open invoice registry</a>
     </div>
 
@@ -28,58 +33,60 @@
         </form>
     </div>
 
-    <div class="rounded-lg border border-border bg-surface p-5 overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-textSecondary">
-                    <th class="pb-3 font-medium">Organization</th>
-                    <th class="pb-3 font-medium">Sites</th>
-                    <th class="pb-3 font-medium">Plan</th>
-                    <th class="pb-3 font-medium">Status</th>
-                    <th class="pb-3 font-medium">Next payment</th>
-                    <th class="pb-3 font-medium">Monthly credits</th>
-                    <th class="pb-3 font-medium">Remaining credits</th>
-                    <th class="pb-3 font-medium">Mollie subscription id</th>
-                    <th class="pb-3 font-medium">Payment health</th>
-                    <th class="pb-3 font-medium">Seats</th>
-                    <th class="pb-3 font-medium">Available</th>
-                    <th class="pb-3 font-medium">Reserved</th>
-                    <th class="pb-3 font-medium">Balance</th>
-                    <th class="pb-3 font-medium">Invoices</th>
-                    <th class="pb-3 font-medium">Action</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-                @forelse ($rows as $row)
-                    <tr>
-                        <td class="py-3">{{ $row['organization']->name }}</td>
-                        <td class="py-3">{{ $row['sites_count'] }}</td>
-                        <td class="py-3">{{ $row['plan_name'] }}</td>
-                        <td class="py-3">{{ $row['subscription_status'] }}</td>
-                        <td class="py-3">{{ optional($row['next_payment_at'])->format('Y-m-d') ?? 'n/a' }}</td>
-                        <td class="py-3">{{ number_format((int) ($row['monthly_credits'] ?? 0)) }}</td>
-                        <td class="py-3">{{ number_format((int) ($row['remaining_credits'] ?? 0)) }}</td>
-                        <td class="py-3">
-                            <span class="font-mono text-xs">{{ $row['mollie_subscription_id'] !== '' ? $row['mollie_subscription_id'] : '-' }}</span>
-                        </td>
-                        <td class="py-3">{{ $row['payment_health'] }}</td>
-                        <td class="py-3">{{ $row['seat_usage'] }}@if($row['seat_limit'] > 0)/{{ $row['seat_limit'] }}@endif</td>
-                        <td class="py-3">{{ $row['available'] }}</td>
-                        <td class="py-3">{{ $row['reserved_cached'] }}</td>
-                        <td class="py-3">{{ $row['balance_cached'] }}</td>
-                        <td class="py-3">{{ $row['invoices_count'] }}</td>
-                        <td class="py-3">
+    <x-data-table label="Billing organizations" description="Credit, subscription, payment health, usage, and invoice counts per organization." density="compact" table-class="min-w-[1200px]">
+        <x-data-table.header>
+            <x-data-table.row>
+                <x-data-table.cell heading>Organization</x-data-table.cell>
+                <x-data-table.cell heading>Sites</x-data-table.cell>
+                <x-data-table.cell heading>Plan</x-data-table.cell>
+                <x-data-table.cell heading>Status</x-data-table.cell>
+                <x-data-table.cell heading>Next payment</x-data-table.cell>
+                <x-data-table.cell heading>Monthly credits</x-data-table.cell>
+                <x-data-table.cell heading>Remaining credits</x-data-table.cell>
+                <x-data-table.cell heading>Mollie subscription id</x-data-table.cell>
+                <x-data-table.cell heading>Payment health</x-data-table.cell>
+                <x-data-table.cell heading>Seats</x-data-table.cell>
+                <x-data-table.cell heading>Available</x-data-table.cell>
+                <x-data-table.cell heading>Reserved</x-data-table.cell>
+                <x-data-table.cell heading>Balance</x-data-table.cell>
+                <x-data-table.cell heading>Invoices</x-data-table.cell>
+                <x-data-table.cell heading>Action</x-data-table.cell>
+            </x-data-table.row>
+        </x-data-table.header>
+        <tbody class="divide-y divide-border">
+            @forelse ($rows as $row)
+                <x-data-table.row>
+                    <x-data-table.cell label="Organization">{{ $row['organization']->name }}</x-data-table.cell>
+                    <x-data-table.cell label="Sites">{{ $row['sites_count'] }}</x-data-table.cell>
+                    <x-data-table.cell label="Plan">{{ $row['plan_name'] }}</x-data-table.cell>
+                    <x-data-table.cell label="Status">
+                        <x-data-table.badge :label="$row['subscription_status']" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Next payment">{{ optional($row['next_payment_at'])->format('Y-m-d') ?? 'n/a' }}</x-data-table.cell>
+                    <x-data-table.cell label="Monthly credits">{{ number_format((int) ($row['monthly_credits'] ?? 0)) }}</x-data-table.cell>
+                    <x-data-table.cell label="Remaining credits">{{ number_format((int) ($row['remaining_credits'] ?? 0)) }}</x-data-table.cell>
+                    <x-data-table.cell label="Mollie subscription id">
+                        <span class="font-mono text-xs">{{ $row['mollie_subscription_id'] !== '' ? $row['mollie_subscription_id'] : '-' }}</span>
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Payment health">
+                        <x-data-table.badge :tone="$row['payment_health'] === 'healthy' ? 'success' : ($row['payment_health'] === 'attention' ? 'warning' : 'neutral')" :label="$row['payment_health']" />
+                    </x-data-table.cell>
+                    <x-data-table.cell label="Seats">{{ $row['seat_usage'] }}@if($row['seat_limit'] > 0)/{{ $row['seat_limit'] }}@endif</x-data-table.cell>
+                    <x-data-table.cell label="Available">{{ $row['available'] }}</x-data-table.cell>
+                    <x-data-table.cell label="Reserved">{{ $row['reserved_cached'] }}</x-data-table.cell>
+                    <x-data-table.cell label="Balance">{{ $row['balance_cached'] }}</x-data-table.cell>
+                    <x-data-table.cell label="Invoices">{{ $row['invoices_count'] }}</x-data-table.cell>
+                    <x-data-table.cell label="Action">
+                        <x-data-table.actions align="start">
                             <a class="inline-flex items-center rounded border border-border px-3 py-1 text-xs" href="{{ route('admin.organizations.billing', $row['organization']) }}">View</a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="15" class="py-4 text-textSecondary">No organizations found.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+                        </x-data-table.actions>
+                    </x-data-table.cell>
+                </x-data-table.row>
+            @empty
+                <x-data-table.empty colspan="15" title="No organizations found" />
+            @endforelse
+        </tbody>
+    </x-data-table>
 
     @include('admin.billing.partials.plan-catalog')
 @endsection

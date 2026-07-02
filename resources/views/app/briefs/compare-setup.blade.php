@@ -1,26 +1,16 @@
 @extends('layouts.app', ['title' => 'Compare AI Drafts'])
 
-@section('content')
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <div class="flex items-center gap-3 mb-1">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Compare AI Drafts</h1>
-                    <p class="text-sm text-textSecondary">Configure a multi-model comparison for this content item.</p>
-                </div>
-            </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('app.content.workspace.show', $brief) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm hover:bg-surfaceSubtle transition-colors">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-                Back to content workspace
-            </a>
-        </div>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Compare AI Drafts" icon="bar-chart-3">
+        <x-slot:description>Configure a multi-model comparison for this content item.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('app.content.workspace.show', $brief) }}" class="pl-btn-secondary">Back to content workspace</a>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

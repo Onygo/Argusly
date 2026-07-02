@@ -1,11 +1,14 @@
 @extends('layouts.admin', ['title' => 'Admin Notifications'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Admin Notifications</x-slot:title>
+        <x-slot:description>Operational alerts for the admin team.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Admin Notifications</h1>
-            <p class="mt-1 text-textSecondary">Operational alerts for the admin team.</p>
-        </div>
 
         <form method="POST" action="{{ route('admin.notifications.read-all') }}">
             @csrf

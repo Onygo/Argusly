@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['title' => 'Default Brand Profiles'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Default Brand Profiles</x-slot:title>
+        <x-slot:description>Global defaults for tone and style rules.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Default Brand Profiles</h1>
-        <p class="mt-1 text-textSecondary">Global defaults for tone and style rules.</p>
-    </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Create profile</h2>

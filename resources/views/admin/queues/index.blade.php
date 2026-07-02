@@ -8,59 +8,48 @@
     $staleTranslationCount = $translationCollection->where('is_stale', true)->count();
 @endphp
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <div class="flex flex-wrap items-center gap-2">
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Queues</h1>
-                @if ($hasStuckQueues)
-                    <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-800">Stuck queue detected</span>
-                @endif
-            </div>
-            <p class="mt-1 text-textSecondary">Database queue overview, pending job controls, and failed job recovery.</p>
-        </div>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ route('admin.system-health.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">System health</a>
-            <a href="{{ route('admin.queues.index', ['focus_translations' => 1]) }}#translations" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Translations</a>
-            <a href="{{ route('admin.queues.index', ['focus_failed' => 1]) }}#failed-jobs" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Failed jobs</a>
-        </div>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Queues">
+        @if ($hasStuckQueues)
+            <x-slot:actions>
+                <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-800">Stuck queue detected</span>
+            </x-slot:actions>
+        @endif
+    </x-page-header>
+@endsection
 
+@section('pageDescription')
+    <x-page-description>Database queue overview, pending job controls, and failed job recovery.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('admin.system-health.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">System health</a>
+    <a href="{{ route('admin.queues.index', ['focus_translations' => 1]) }}#translations" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Translations</a>
+    <a href="{{ route('admin.queues.index', ['focus_failed' => 1]) }}#failed-jobs" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Failed jobs</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Worker status" :value="$worker_alive ? 'Alive' : 'No recent heartbeat'" :tone="$worker_alive ? 'success' : 'danger'">
+            <p>
+                Last heartbeat:
+                {{ $worker_last_heartbeat_at ? $worker_last_heartbeat_at->format('Y-m-d H:i:s') : 'never' }}
+            </p>
+            <p>Cache store: {{ $worker_heartbeat_cache_store }}</p>
+        </x-metric-card>
+        <x-metric-card label="Pending jobs" :value="$queue_stats['total_pending_jobs'] ?? 'N/A'" :helper="'Connection: '.$queue_connection.' ('.($queue_configured ? 'configured' : 'missing').')'" />
+        <x-metric-card label="Translations" :value="$translation_rows->total()" :helper="$staleTranslationCount.' stale lock(s) on this page. Failed jobs in current queue view: '.($failed_jobs_count ?? 'N/A')" />
+        <x-metric-card label="Processing rate" :value="$queue_stats['processing_rate_per_minute'] !== null ? number_format((float) $queue_stats['processing_rate_per_minute'], 2).' / min' : 'N/A'" helper="Computed from recent queue snapshots captured in admin." />
+    </x-metric-section>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif
     @if ($errors->has('queues'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('queues') }}</div>
     @endif
-
-    <div class="mb-6 grid gap-4 xl:grid-cols-4 md:grid-cols-2">
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Worker status</p>
-            <p class="mt-2 text-base font-semibold {{ $worker_alive ? 'text-success' : 'text-danger' }}">{{ $worker_alive ? 'Alive' : 'No recent heartbeat' }}</p>
-            <p class="mt-1 text-xs text-textSecondary">
-                Last heartbeat:
-                {{ $worker_last_heartbeat_at ? $worker_last_heartbeat_at->format('Y-m-d H:i:s') : 'never' }}
-            </p>
-            <p class="mt-1 text-xs text-textSecondary">Cache store: {{ $worker_heartbeat_cache_store }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Pending jobs</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ $queue_stats['total_pending_jobs'] ?? 'N/A' }}</p>
-            <p class="mt-1 text-xs text-textSecondary">Connection: {{ $queue_connection }} ({{ $queue_configured ? 'configured' : 'missing' }})</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Translations</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ $translation_rows->total() }}</p>
-            <p class="mt-1 text-xs text-textSecondary">{{ $staleTranslationCount }} stale lock(s) on this page. Failed jobs in current queue view: {{ $failed_jobs_count ?? 'N/A' }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Processing rate</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">
-                {{ $queue_stats['processing_rate_per_minute'] !== null ? number_format((float) $queue_stats['processing_rate_per_minute'], 2) . ' / min' : 'N/A' }}
-            </p>
-            <p class="mt-1 text-xs text-textSecondary">Computed from recent queue snapshots captured in admin.</p>
-        </div>
-    </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-4">
         <div class="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -70,45 +59,44 @@
             </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead>
-                <tr class="border-b border-border text-xs uppercase tracking-wide text-textFaint">
-                    <th class="px-3 py-2">Queue</th>
-                    <th class="px-3 py-2">Pending</th>
-                    <th class="px-3 py-2">Failed</th>
-                    <th class="px-3 py-2">Status</th>
-                    <th class="px-3 py-2">Actions</th>
-                    <th class="px-3 py-2">Oldest pending</th>
-                    <th class="px-3 py-2">Rate</th>
-                </tr>
-                </thead>
+        <x-data-table label="Queue overview" description="Pending counts, failed backlog, queue health, oldest pending jobs, processing rate, and queue recovery actions." density="compact">
+                <x-data-table.header>
+                <x-data-table.row>
+                    <x-data-table.cell heading>Queue</x-data-table.cell>
+                    <x-data-table.cell heading>Pending</x-data-table.cell>
+                    <x-data-table.cell heading>Failed</x-data-table.cell>
+                    <x-data-table.cell heading>Status</x-data-table.cell>
+                    <x-data-table.cell heading>Actions</x-data-table.cell>
+                    <x-data-table.cell heading>Oldest pending</x-data-table.cell>
+                    <x-data-table.cell heading>Rate</x-data-table.cell>
+                </x-data-table.row>
+                </x-data-table.header>
                 <tbody>
                 @forelse (($queue_stats['queues'] ?? []) as $queue)
-                    <tr class="border-b border-border/60 align-top">
-                        <td class="px-3 py-2 font-medium text-textPrimary">{{ $queue['name'] }}</td>
-                        <td class="px-3 py-2 text-textSecondary">{{ $queue['pending_count'] }}</td>
-                        <td class="px-3 py-2 text-textSecondary">
+                    <x-data-table.row>
+                        <x-data-table.cell label="Queue" class="font-medium text-textPrimary">{{ $queue['name'] }}</x-data-table.cell>
+                        <x-data-table.cell label="Pending" class="text-textSecondary">{{ $queue['pending_count'] }}</x-data-table.cell>
+                        <x-data-table.cell label="Failed" class="text-textSecondary">
                             @if ((int) $queue['failed_count'] > 0)
                                 <a href="{{ route('admin.queues.index', array_merge(request()->query(), ['queue' => $queue['name']])) }}#failed-jobs" class="font-medium text-danger hover:underline">{{ $queue['failed_count'] }}</a>
                             @else
                                 {{ $queue['failed_count'] }}
                             @endif
-                        </td>
-                        <td class="px-3 py-2">
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Status">
                             @if ($queue['is_stuck'])
-                                <span class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-800">Stuck</span>
+                                <x-data-table.badge tone="warning" label="Stuck" />
                                 @if ($queue['oldest_unreserved_job_at'])
                                     <div class="mt-1 text-xs text-textFaint">Oldest waiting job: {{ $queue['oldest_unreserved_job_at']->diffForHumans() }}</div>
                                 @endif
                             @elseif ((int) $queue['failed_count'] > 0)
-                                <span class="rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-800">Failed backlog</span>
+                                <x-data-table.badge tone="danger" label="Failed backlog" />
                             @else
-                                <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-800">Healthy</span>
+                                <x-data-table.badge tone="success" label="Healthy" />
                             @endif
-                        </td>
-                        <td class="px-3 py-2">
-                            <div class="flex flex-wrap gap-2">
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Actions">
+                            <x-data-table.actions align="start">
                                 <form method="POST" action="{{ route('admin.queues.pending.flush', request()->query()) }}" onsubmit="return confirm('Flush all pending jobs from queue {{ $queue['name'] }}?');">
                                     @csrf
                                     <input type="hidden" name="queue" value="{{ $queue['name'] }}">
@@ -124,28 +112,25 @@
                                     <input type="hidden" name="queue" value="{{ $queue['name'] }}">
                                     <button type="submit" class="rounded border border-danger/30 px-2 py-1 text-xs text-danger">Delete failed</button>
                                 </form>
-                            </div>
-                        </td>
-                        <td class="px-3 py-2 text-textSecondary">
+                            </x-data-table.actions>
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Oldest pending" class="text-textSecondary">
                             @if ($queue['oldest_job_at'])
                                 {{ $queue['oldest_job_at']->format('Y-m-d H:i:s') }}
                                 <div class="text-xs text-textFaint">{{ $queue['oldest_job_at']->diffForHumans() }}</div>
                             @else
                                 No pending jobs
                             @endif
-                        </td>
-                        <td class="px-3 py-2 text-textSecondary">
+                        </x-data-table.cell>
+                        <x-data-table.cell label="Rate" class="text-textSecondary">
                             {{ $queue['processing_rate_per_minute'] !== null ? number_format((float) $queue['processing_rate_per_minute'], 2) . ' / min' : 'N/A' }}
-                        </td>
-                    </tr>
+                        </x-data-table.cell>
+                    </x-data-table.row>
                 @empty
-                    <tr>
-                        <td colspan="7" class="px-3 py-4 text-sm text-textSecondary">No queue data available.</td>
-                    </tr>
+                    <x-data-table.empty colspan="7" title="No queue data available" />
                 @endforelse
                 </tbody>
-            </table>
-        </div>
+        </x-data-table>
     </div>
 
     <div class="mb-6 grid gap-4 xl:grid-cols-2">
@@ -260,25 +245,24 @@
         @if ($translation_rows->isEmpty())
             <p class="text-sm text-textSecondary">No translations found for the selected filters.</p>
         @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left text-sm">
-                    <thead>
-                    <tr class="border-b border-border text-xs uppercase tracking-wide text-textFaint">
-                        <th class="px-3 py-2">Content</th>
-                        <th class="px-3 py-2">Locales</th>
-                        <th class="px-3 py-2">Status</th>
-                        <th class="px-3 py-2">Lock</th>
-                        <th class="px-3 py-2">Attempts</th>
-                        <th class="px-3 py-2">Last error</th>
-                        <th class="px-3 py-2">Credits</th>
-                        <th class="px-3 py-2">Updated</th>
-                        <th class="px-3 py-2">Actions</th>
-                    </tr>
-                    </thead>
+            <x-data-table label="Translation queue state" description="Translation records, locale pairs, queue lock state, attempts, errors, credits, timestamps, and recovery actions." density="compact">
+                    <x-data-table.header>
+                    <x-data-table.row>
+                        <x-data-table.cell heading>Content</x-data-table.cell>
+                        <x-data-table.cell heading>Locales</x-data-table.cell>
+                        <x-data-table.cell heading>Status</x-data-table.cell>
+                        <x-data-table.cell heading>Lock</x-data-table.cell>
+                        <x-data-table.cell heading>Attempts</x-data-table.cell>
+                        <x-data-table.cell heading>Last error</x-data-table.cell>
+                        <x-data-table.cell heading>Credits</x-data-table.cell>
+                        <x-data-table.cell heading>Updated</x-data-table.cell>
+                        <x-data-table.cell heading>Actions</x-data-table.cell>
+                    </x-data-table.row>
+                    </x-data-table.header>
                     <tbody>
                     @foreach ($translation_rows as $translation)
-                        <tr class="border-b border-border/60 align-top {{ $translation['is_stale'] ? 'bg-amber-500/5' : '' }}">
-                            <td class="px-3 py-2 text-textPrimary">
+                        <x-data-table.row @class([$translation['is_stale'] ? 'bg-amber-500/5' : ''])>
+                            <x-data-table.cell label="Content" class="text-textPrimary">
                                 <div class="font-medium">{{ $translation['content_title'] }}</div>
                                 <div class="mt-1 text-xs text-textFaint">Content {{ $translation['content_id'] }}</div>
                                 <div class="text-xs text-textFaint">Family {{ $translation['family_id'] }}</div>
@@ -286,23 +270,19 @@
                                 @if ($translation['content_url'])
                                     <a href="{{ $translation['content_url'] }}" class="mt-1 inline-block text-xs text-link hover:underline">Open content</a>
                                 @endif
-                            </td>
-                            <td class="px-3 py-2 text-textSecondary">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Locales" class="text-textSecondary">
                                 <div>{{ strtoupper($translation['source_locale']) }} → {{ strtoupper($translation['target_locale']) }}</div>
                                 <div class="mt-1 text-xs text-textFaint">Translation {{ $translation['id'] }}</div>
-                            </td>
-                            <td class="px-3 py-2">
-                                <span class="rounded-full border px-2 py-1 text-xs font-medium {{
-                                    match ($translation['status_tone'] ?? 'slate') {
-                                        'green' => 'border-emerald-300 bg-emerald-50 text-emerald-800',
-                                        'amber' => 'border-amber-300 bg-amber-50 text-amber-800',
-                                        'red' => 'border-rose-300 bg-rose-50 text-rose-800',
-                                        'sky' => 'border-sky-300 bg-sky-50 text-sky-800',
-                                        default => 'border-border bg-background text-textPrimary',
-                                    }
-                                }}">
-                                    {{ $translation['display_state'] }}
-                                </span>
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Status">
+                                <x-data-table.badge :tone="match ($translation['status_tone'] ?? 'slate') {
+                                    'green' => 'success',
+                                    'amber' => 'warning',
+                                    'red' => 'danger',
+                                    'sky' => 'info',
+                                    default => 'neutral',
+                                }" :label="$translation['display_state']" />
                                 <div class="mt-1 text-xs text-textFaint">Raw status: {{ $translation['status'] }}</div>
                                 @if ($translation['recovery_hint'])
                                     <div class="mt-2 text-xs text-amber-800">{{ $translation['recovery_hint'] }}</div>
@@ -316,8 +296,8 @@
                                 @if ($translation['stale_reason'])
                                     <div class="mt-1 text-xs text-amber-800">{{ str_replace('_', ' ', $translation['stale_reason']) }}</div>
                                 @endif
-                            </td>
-                            <td class="px-3 py-2 text-textSecondary">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Lock" class="text-textSecondary">
                                 <div>{{ $translation['locked_at']?->format('Y-m-d H:i:s') ?? 'n/a' }}</div>
                                 <div class="mt-1 text-xs text-textFaint">Job {{ $translation['locked_by_job_id'] ?? 'n/a' }}</div>
                                 <div class="mt-1 text-xs text-textFaint">UUID {{ $translation['job_uuid'] ?? 'n/a' }}</div>
@@ -329,26 +309,26 @@
                                 @if ($translation['latest_failed_job'])
                                     <div class="mt-1 text-xs text-textFaint">Failed job {{ $translation['latest_failed_job']['id'] }}</div>
                                 @endif
-                            </td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $translation['attempts'] }}</td>
-                            <td class="px-3 py-2 text-xs text-textSecondary">{{ $translation['last_error'] ?? 'None' }}</td>
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Attempts" class="text-textSecondary">{{ $translation['attempts'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Last error" class="text-xs text-textSecondary">{{ $translation['last_error'] ?? 'None' }}</x-data-table.cell>
                             @if (($translation['failure_reason'] ?? null) === 'insufficient_credits')
-                                <td class="px-3 py-2 text-xs text-textSecondary">
+                                <x-data-table.cell label="Credits" class="text-xs text-textSecondary">
                                     <div>Required {{ (int) ($translation['required_credits'] ?? 0) }}</div>
                                     <div class="mt-1 text-textFaint">Available {{ (int) ($translation['available_credits'] ?? 0) }}</div>
                                     <div class="mt-1 text-textFaint">Balance {{ (int) ($translation['credit_balance'] ?? 0) }}</div>
                                     <div class="mt-1 text-textFaint">Plan {{ $translation['plan_name'] ?? 'n/a' }}</div>
                                     <div class="mt-1 text-textFaint">Entitlement {{ $translation['entitlement_source'] ?? 'n/a' }}</div>
-                                </td>
+                                </x-data-table.cell>
                             @else
-                                <td class="px-3 py-2 text-xs text-textFaint">n/a</td>
+                                <x-data-table.cell label="Credits" class="text-xs text-textFaint">n/a</x-data-table.cell>
                             @endif
-                            <td class="px-3 py-2 text-textSecondary">
+                            <x-data-table.cell label="Updated" class="text-textSecondary">
                                 <div>{{ $translation['created_at']?->format('Y-m-d H:i:s') ?? 'n/a' }}</div>
                                 <div class="mt-1 text-xs text-textFaint">Updated {{ $translation['updated_at']?->format('Y-m-d H:i:s') ?? 'n/a' }}</div>
-                            </td>
-                            <td class="px-3 py-2">
-                                <div class="flex flex-wrap gap-2">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Actions">
+                                <x-data-table.actions align="start">
                                     @can('admin-area-superadmin')
                                         @if ($translation['can_recover'])
                                             <form method="POST" action="{{ route('admin.queues.translations.retry', [$translation['id']] + request()->query()) }}">
@@ -386,17 +366,13 @@
                                     @else
                                         <span class="text-xs text-textFaint">View only</span>
                                     @endcan
-                                </div>
-                            </td>
-                        </tr>
+                                </x-data-table.actions>
+                            </x-data-table.cell>
+                        </x-data-table.row>
                     @endforeach
                     </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4">
-                {{ $translation_rows->onEachSide(1)->links() }}
-            </div>
+                <x-slot:pagination>{{ $translation_rows->onEachSide(1)->links() }}</x-slot:pagination>
+            </x-data-table>
         @endif
     </div>
 
@@ -450,37 +426,36 @@
         @if ($pending_jobs->isEmpty())
             <p class="text-sm text-textSecondary">No pending jobs found for the selected filters.</p>
         @else
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left text-sm">
-                    <thead>
-                    <tr class="border-b border-border text-xs uppercase tracking-wide text-textFaint">
-                        <th class="px-3 py-2">ID</th>
-                        <th class="px-3 py-2">Queue</th>
-                        <th class="px-3 py-2">Job</th>
-                        <th class="px-3 py-2">Attempts</th>
-                        <th class="px-3 py-2">Created</th>
-                        <th class="px-3 py-2">Age</th>
-                        <th class="px-3 py-2">Org/Site</th>
-                        <th class="px-3 py-2">Actions</th>
-                    </tr>
-                    </thead>
+            <x-data-table label="Pending queue jobs" description="Pending queue jobs with queue, class, attempts, timestamps, organization or site context, and requeue/delete actions." density="compact">
+                    <x-data-table.header>
+                    <x-data-table.row>
+                        <x-data-table.cell heading>ID</x-data-table.cell>
+                        <x-data-table.cell heading>Queue</x-data-table.cell>
+                        <x-data-table.cell heading>Job</x-data-table.cell>
+                        <x-data-table.cell heading>Attempts</x-data-table.cell>
+                        <x-data-table.cell heading>Created</x-data-table.cell>
+                        <x-data-table.cell heading>Age</x-data-table.cell>
+                        <x-data-table.cell heading>Org/Site</x-data-table.cell>
+                        <x-data-table.cell heading>Actions</x-data-table.cell>
+                    </x-data-table.row>
+                    </x-data-table.header>
                     <tbody>
                     @foreach ($pending_jobs as $job)
-                        <tr class="border-b border-border/60 align-top">
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['id'] }}</td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['queue'] }}</td>
-                            <td class="px-3 py-2 text-textPrimary">{{ $job['job_class'] }}</td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['attempts'] }}</td>
-                            <td class="px-3 py-2 text-textSecondary">
+                        <x-data-table.row>
+                            <x-data-table.cell label="ID" class="text-textSecondary">{{ $job['id'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Queue" class="text-textSecondary">{{ $job['queue'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Job" class="text-textPrimary">{{ $job['job_class'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Attempts" class="text-textSecondary">{{ $job['attempts'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Created" class="text-textSecondary">
                                 {{ $job['created_at']?->format('Y-m-d H:i:s') ?? 'Unknown' }}
                                 @if ($job['reserved_at'])
                                     <div class="text-xs text-textFaint">Reserved {{ $job['reserved_at']->diffForHumans() }}</div>
                                 @endif
-                            </td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['age_human'] ?? 'Unknown' }}</td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['org_site'] }}</td>
-                            <td class="px-3 py-2">
-                                <div class="flex flex-wrap gap-2">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Age" class="text-textSecondary">{{ $job['age_human'] ?? 'Unknown' }}</x-data-table.cell>
+                            <x-data-table.cell label="Org/Site" class="text-textSecondary">{{ $job['org_site'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Actions">
+                                <x-data-table.actions align="start">
                                     <a href="{{ route('admin.queues.pending.show', [$job['id']] + request()->query()) }}" class="rounded border border-border px-2 py-1 text-xs">Details</a>
                                     <form method="POST" action="{{ route('admin.queues.pending.requeue', [$job['id']] + request()->query()) }}" class="flex flex-wrap gap-2">
                                         @csrf
@@ -492,17 +467,13 @@
                                         @method('DELETE')
                                         <button type="submit" class="rounded border border-danger/30 px-2 py-1 text-xs text-danger">Delete</button>
                                     </form>
-                                </div>
-                            </td>
-                        </tr>
+                                </x-data-table.actions>
+                            </x-data-table.cell>
+                        </x-data-table.row>
                     @endforeach
                     </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4">
-                {{ $pending_jobs->onEachSide(1)->links() }}
-            </div>
+                <x-slot:pagination>{{ $pending_jobs->onEachSide(1)->links() }}</x-slot:pagination>
+            </x-data-table>
         @endif
     </div>
 
@@ -566,46 +537,50 @@
                 @csrf
             </form>
 
-            <div class="mb-3 flex flex-wrap gap-2">
-                <button form="failed-bulk-delete-form" type="submit" class="rounded border border-danger/30 px-3 py-2 text-sm text-danger hover:bg-danger/5" onclick="return confirm('Delete the selected failed job records?');">Delete selected</button>
-                <form method="POST" action="{{ route('admin.queues.retry-all', request()->query()) }}" onsubmit="return confirm('Retry all failed jobs in the current filter set?');">
-                    @csrf
-                    <button type="submit" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Retry all failed jobs</button>
-                </form>
-            </div>
+            <x-data-table label="Failed queue jobs" description="Failed database queue records with bulk deletion, retry actions, queue context, attempts, and error summaries." density="compact">
+                <x-slot:bulkActions>
+                    <x-data-table.bulk-actions>
+                        <div class="text-sm font-medium">Failed job bulk actions</div>
+                        <div class="flex flex-wrap gap-2">
+                            <button form="failed-bulk-delete-form" type="submit" class="rounded border border-white/30 px-3 py-2 text-sm text-textInverse hover:bg-white/10" onclick="return confirm('Delete the selected failed job records?');">Delete selected</button>
+                            <form method="POST" action="{{ route('admin.queues.retry-all', request()->query()) }}" onsubmit="return confirm('Retry all failed jobs in the current filter set?');">
+                                @csrf
+                                <button type="submit" class="rounded border border-white/30 px-3 py-2 text-sm text-textInverse hover:bg-white/10">Retry all failed jobs</button>
+                            </form>
+                        </div>
+                    </x-data-table.bulk-actions>
+                </x-slot:bulkActions>
 
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left text-sm">
-                    <thead>
-                    <tr class="border-b border-border text-xs uppercase tracking-wide text-textFaint">
-                        <th class="px-3 py-2">Select</th>
-                        <th class="px-3 py-2">Failed At</th>
-                        <th class="px-3 py-2">Job</th>
-                        <th class="px-3 py-2">Queue</th>
-                        <th class="px-3 py-2">Org/Site</th>
-                        <th class="px-3 py-2">Error Summary</th>
-                        <th class="px-3 py-2">Attempts</th>
-                        <th class="px-3 py-2">Actions</th>
-                    </tr>
-                    </thead>
+                    <x-data-table.header>
+                    <x-data-table.row>
+                        <x-data-table.cell heading>Select</x-data-table.cell>
+                        <x-data-table.cell heading>Failed At</x-data-table.cell>
+                        <x-data-table.cell heading>Job</x-data-table.cell>
+                        <x-data-table.cell heading>Queue</x-data-table.cell>
+                        <x-data-table.cell heading>Org/Site</x-data-table.cell>
+                        <x-data-table.cell heading>Error Summary</x-data-table.cell>
+                        <x-data-table.cell heading>Attempts</x-data-table.cell>
+                        <x-data-table.cell heading>Actions</x-data-table.cell>
+                    </x-data-table.row>
+                    </x-data-table.header>
                     <tbody>
                     @foreach ($failed_jobs as $job)
-                        <tr class="border-b border-border/60 align-top">
-                            <td class="px-3 py-2">
+                        <x-data-table.row>
+                            <x-data-table.cell label="Select">
                                 <input form="failed-bulk-delete-form" type="checkbox" name="job_ids[]" value="{{ $job['id'] }}" class="h-4 w-4 rounded border-border text-primary">
-                            </td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['failed_at'] }}</td>
-                            <td class="px-3 py-2 text-textPrimary">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Failed At" class="text-textSecondary">{{ $job['failed_at'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Job" class="text-textPrimary">
                                 <a href="{{ route('admin.queues.show', $job['id']) }}" class="hover:text-link">
                                     {{ $job['job_name'] }}
                                 </a>
-                            </td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['queue'] }}</td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['org_site'] }}</td>
-                            <td class="px-3 py-2 text-xs text-textSecondary">{{ $job['error_summary'] }}</td>
-                            <td class="px-3 py-2 text-textSecondary">{{ $job['attempts'] }}</td>
-                            <td class="px-3 py-2">
-                                <div class="flex flex-wrap gap-2">
+                            </x-data-table.cell>
+                            <x-data-table.cell label="Queue" class="text-textSecondary">{{ $job['queue'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Org/Site" class="text-textSecondary">{{ $job['org_site'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Error Summary" class="text-xs text-textSecondary">{{ $job['error_summary'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Attempts" class="text-textSecondary">{{ $job['attempts'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Actions">
+                                <x-data-table.actions align="start">
                                     <a href="{{ route('admin.queues.show', $job['id']) }}" class="rounded border border-border px-2 py-1 text-xs">Details</a>
                                     <form method="POST" action="{{ route('admin.queues.retry', [$job['id']] + request()->query()) }}">
                                         @csrf
@@ -616,17 +591,13 @@
                                         @method('DELETE')
                                         <button type="submit" class="rounded border border-danger/30 px-2 py-1 text-xs text-danger">Delete</button>
                                     </form>
-                                </div>
-                            </td>
-                        </tr>
+                                </x-data-table.actions>
+                            </x-data-table.cell>
+                        </x-data-table.row>
                     @endforeach
                     </tbody>
-                </table>
-            </div>
-
-            <div class="mt-4">
-                {{ $failed_jobs->onEachSide(1)->links() }}
-            </div>
+                <x-slot:pagination>{{ $failed_jobs->onEachSide(1)->links() }}</x-slot:pagination>
+            </x-data-table>
         @endif
     </div>
 @endsection

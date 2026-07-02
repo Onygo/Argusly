@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => $cluster->name])
 
+@section('pageHeader')
+    <x-page-header :title="$cluster->name" eyebrow="Programmatic Cluster">
+        <x-slot:description>{{ str($cluster->status)->headline() }} · {{ $cluster->items->count() }} items</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php($pattern = $cluster->pattern_type instanceof \App\Enums\ProgrammaticPatternType ? $cluster->pattern_type : \App\Enums\ProgrammaticPatternType::tryFrom((string) $cluster->pattern_type))
 
@@ -9,7 +15,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.programmatic-clusters.index', ['workspace_id' => $workspace->id]) }}" class="text-sm font-medium text-textSecondary hover:text-textPrimary">Programmatic Clusters</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $cluster->name }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $cluster->name }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ $pattern?->label() ?? $cluster->pattern_type }} · {{ str($cluster->status)->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">

@@ -1,32 +1,32 @@
 @extends('layouts.admin', ['title' => 'Pilot Application Detail'])
 
+@php
+    $status = $signup->status?->value ?? (string) $signup->status;
+    $statusClass = match ($status) {
+        'new' => 'border-amber-300/80 bg-amber-500/10 text-amber-800',
+        'reviewed' => 'border-slate-300/80 bg-slate-500/10 text-slate-800',
+        'approved' => 'border-sky-300/80 bg-sky-500/10 text-sky-800',
+        'invited' => 'border-indigo-300/80 bg-indigo-500/10 text-indigo-800',
+        'activated' => 'border-emerald-300/80 bg-emerald-500/10 text-emerald-800',
+        'rejected' => 'border-rose-300/80 bg-rose-500/10 text-rose-800',
+        default => 'border-border bg-background text-textSecondary',
+    };
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$signup->full_name">
+        <x-slot:description>{{ $signup->email }} · submitted {{ optional($signup->submitted_at ?? $signup->created_at)->format('Y-m-d H:i') }}</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
+        {{ $signup->status?->label() ?? ucfirst($status) }}
+    </span>
+    <a href="{{ route('admin.early-access.index') }}" class="pl-btn-secondary">Back to Pilot Program</a>
+@endsection
+
 @section('content')
-    @php
-        $status = $signup->status?->value ?? (string) $signup->status;
-        $statusClass = match ($status) {
-            'new' => 'border-amber-300/80 bg-amber-500/10 text-amber-800',
-            'reviewed' => 'border-slate-300/80 bg-slate-500/10 text-slate-800',
-            'approved' => 'border-sky-300/80 bg-sky-500/10 text-sky-800',
-            'invited' => 'border-indigo-300/80 bg-indigo-500/10 text-indigo-800',
-            'activated' => 'border-emerald-300/80 bg-emerald-500/10 text-emerald-800',
-            'rejected' => 'border-rose-300/80 bg-rose-500/10 text-rose-800',
-            default => 'border-border bg-background text-textSecondary',
-        };
-    @endphp
-
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ $signup->full_name }}</h1>
-            <p class="mt-1 text-sm text-textSecondary">{{ $signup->email }} · submitted {{ optional($signup->submitted_at ?? $signup->created_at)->format('Y-m-d H:i') }}</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <span class="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
-                {{ $signup->status?->label() ?? ucfirst($status) }}
-            </span>
-            <a href="{{ route('admin.early-access.index') }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to Pilot Program</a>
-        </div>
-    </div>
-
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif

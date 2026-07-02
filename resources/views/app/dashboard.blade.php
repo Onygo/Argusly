@@ -1,23 +1,39 @@
 @extends('layouts.app', ['title' => __('app.dashboard.title')])
 
-@section('content')
-    @php
-        $localeBadgeClasses = [
-            'source' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
-            'variant' => 'border-sky-200 bg-sky-50 text-sky-700',
-        ];
-        $openOpportunityCount = (int) data_get($actionFirstDashboard, 'open_opportunities.count', 0);
-        $recommendedActionCount = $openOpportunityCount + (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0);
-        $urgentDecisionCount = (int) data_get($actionFirstDashboard, 'risk_summary.count', 0) + (int) data_get($distributionSummary, 'failed_posts', 0) + (int) data_get($programmaticGrowthSummary, 'blocked_items', 0);
-        $progressScore = (int) data_get($actionFirstDashboard, 'journey_step.progress', 0);
-        $trackedContentCount = (int) data_get($performanceSummary, 'tracked_content_count', 0);
-    @endphp
+@php
+    $localeBadgeClasses = [
+        'source' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        'variant' => 'border-sky-200 bg-sky-50 text-sky-700',
+    ];
+    $openOpportunityCount = (int) data_get($actionFirstDashboard, 'open_opportunities.count', 0);
+    $recommendedActionCount = $openOpportunityCount + (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0);
+    $urgentDecisionCount = (int) data_get($actionFirstDashboard, 'risk_summary.count', 0) + (int) data_get($distributionSummary, 'failed_posts', 0) + (int) data_get($programmaticGrowthSummary, 'blocked_items', 0);
+    $progressScore = (int) data_get($actionFirstDashboard, 'journey_step.progress', 0);
+    $trackedContentCount = (int) data_get($performanceSummary, 'tracked_content_count', 0);
+@endphp
 
-    <div class="mb-6">
-        <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Argusly Command Center</p>
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">{{ __('app.dashboard.title') }}</h1>
-        <p class="text-textSecondary mt-1">{{ __('app.dashboard.subtitle') }}</p>
-    </div>
+@section('pageHeader')
+    <x-page-header :title="__('app.dashboard.title')" eyebrow="Argusly Command Center" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ __('app.dashboard.subtitle') }}</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section title="Growth Health" :description="$trackedContentCount.' tracked page'.($trackedContentCount === 1 ? '' : 's').' contributing to recent results'">
+        <x-metric-card label="Opportunities" :value="number_format($openOpportunityCount)" icon="target" :helper="(int) data_get($opportunityIntelligenceSummary, 'high_priority', 0).' high impact'" />
+        <x-metric-card label="Actions" :value="number_format($recommendedActionCount)" icon="list-checks" :helper="(int) data_get($distributionSummary, 'variants_pending', 0).' ready for review'" />
+        <x-metric-card label="Impact" :value="data_get($actionFirstDashboard, 'recommended_action.estimated_impact', __('app.dashboard_action_first.low'))" icon="trending-up" :helper="$urgentDecisionCount.' urgent decision'.($urgentDecisionCount === 1 ? '' : 's')" />
+        <x-metric-card label="Progress" :value="$progressScore.'%'" icon="gauge">
+            <div class="mt-3 h-2 overflow-hidden rounded-full bg-surfaceMuted">
+                <div class="h-full rounded-full bg-primary" style="width: {{ max(0, min(100, $progressScore)) }}%"></div>
+            </div>
+        </x-metric-card>
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <x-assistant.timeline
         class="mb-8"
@@ -25,52 +41,6 @@
         title="What Argusly is doing for you"
         description="Opportunities, actions, impact, progress, and decisions in one guided assistant view."
     />
-
-    <section class="mb-8 rounded-lg border border-border bg-surface p-5" aria-label="Growth Health">
-        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Growth Health</p>
-                <h2 class="mt-1 text-lg font-semibold text-textPrimary">What matters right now</h2>
-            </div>
-            <p class="text-sm text-textSecondary">{{ $trackedContentCount }} tracked page{{ $trackedContentCount === 1 ? '' : 's' }} contributing to recent results</p>
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-md border border-border bg-background p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-textSecondary">Opportunities</p>
-                    <i data-lucide="target" class="h-4 w-4 text-primary"></i>
-                </div>
-                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ number_format($openOpportunityCount) }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ (int) data_get($opportunityIntelligenceSummary, 'high_priority', 0) }} high impact</p>
-            </div>
-            <div class="rounded-md border border-border bg-background p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-textSecondary">Actions</p>
-                    <i data-lucide="list-checks" class="h-4 w-4 text-primary"></i>
-                </div>
-                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ number_format($recommendedActionCount) }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ (int) data_get($distributionSummary, 'variants_pending', 0) }} ready for review</p>
-            </div>
-            <div class="rounded-md border border-border bg-background p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-textSecondary">Impact</p>
-                    <i data-lucide="trending-up" class="h-4 w-4 text-primary"></i>
-                </div>
-                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ data_get($actionFirstDashboard, 'recommended_action.estimated_impact', __('app.dashboard_action_first.low')) }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ $urgentDecisionCount }} urgent decision{{ $urgentDecisionCount === 1 ? '' : 's' }}</p>
-            </div>
-            <div class="rounded-md border border-border bg-background p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-sm text-textSecondary">Progress</p>
-                    <i data-lucide="gauge" class="h-4 w-4 text-primary"></i>
-                </div>
-                <p class="mt-2 text-3xl font-semibold text-textPrimary">{{ $progressScore }}%</p>
-                <div class="mt-3 h-2 overflow-hidden rounded-full bg-surfaceMuted">
-                    <div class="h-full rounded-full bg-primary" style="width: {{ max(0, min(100, $progressScore)) }}%"></div>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <div class="mb-8 space-y-4">
         <x-dashboard.recommended-action-widget :action="data_get($actionFirstDashboard, 'recommended_action')" />

@@ -1,16 +1,17 @@
 @extends('layouts.admin', ['title' => 'Delete Organization'])
 
-@section('content')
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Delete Organization</h1>
-            <p class="mt-1 text-sm text-textSecondary">Permanently delete {{ $organization->name }}</p>
-        </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('admin.organizations.show', $organization) }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to organization</a>
-        </div>
-    </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Delete Organization</x-slot:title>
+        <x-slot:description>Permanently delete {{ $organization->name }}</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('admin.organizations.show', $organization) }}" class="inline-flex items-center rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-background">Back to organization</a>
+@endsection
+
+@section('content')
     @if ($errors->any())
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">
             @foreach ($errors->all() as $error)

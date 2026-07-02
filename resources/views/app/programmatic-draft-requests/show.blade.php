@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => $draftRequest->title])
 
+@section('pageHeader')
+    <x-page-header :title="$draftRequest->title" eyebrow="Draft Requests">
+        <x-slot:description>{{ str($draftRequest->status)->headline() }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php($type = $draftRequest->growth_asset_type instanceof \App\Enums\GrowthAssetType ? $draftRequest->growth_asset_type : \App\Enums\GrowthAssetType::tryFrom((string) $draftRequest->growth_asset_type))
     @php($linkedDraft = $draftRequest->linkedDraft())
@@ -11,7 +17,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.programmatic-draft-requests.index', ['workspace_id' => $workspace->id]) }}" class="text-sm font-medium text-textSecondary hover:text-textPrimary">Draft Requests</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $draftRequest->title }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $draftRequest->title }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ $type?->label() ?? $draftRequest->growth_asset_type }} · {{ str($draftRequest->status)->headline() }} · {{ str($draftRequest->generation_mode)->headline() }}</p>
             </div>
             <div class="flex flex-wrap gap-2">

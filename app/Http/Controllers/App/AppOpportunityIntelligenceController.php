@@ -151,8 +151,7 @@ class AppOpportunityIntelligenceController extends Controller
             'firstOpportunityCard' => $firstValue->opportunityCard($opportunity),
             'firstValueCelebrations' => $firstValue->celebrations($workspace),
             'executionPlanningEmptyState' => $readiness->getEmptyState($workspace, 'execution_planning'),
-            'canCreateExecutionPlan' => in_array((string) ($opportunity->status?->value ?? $opportunity->status), [OpportunityStatus::APPROVED->value, OpportunityStatus::REVIEWING->value], true)
-                && $opportunity->activeExecutionPlans->isEmpty(),
+            'canCreateExecutionPlan' => $this->canCreateExecutionPlan($opportunity, $request),
         ]);
     }
 
@@ -173,6 +172,35 @@ class AppOpportunityIntelligenceController extends Controller
             ->with('status', 'Execution plan created.');
     }
 
+    public function indexExecutionPlans(
+        Request $request,
+        Opportunity $opportunity,
+        FirstValueExperienceService $firstValue,
+    ): View
+    {
+        $workspace = $this->resolveWorkspace($request, $opportunity->workspace_id);
+        $this->assertOpportunityWorkspace($opportunity, $workspace);
+
+        $opportunity->load([
+            'workspace',
+            'activeExecutionPlans' => fn ($query) => $query->latest('created_at'),
+        ]);
+
+        $plan = $opportunity->activeExecutionPlans->first();
+
+        if ($plan instanceof OpportunityExecutionPlan) {
+            return $this->renderExecutionPlan($request, $plan, $workspace, $firstValue);
+        }
+
+        return view('app.opportunity-intelligence.execution-plans-index', [
+            'title' => 'Opportunity Execution Plans',
+            'workspace' => $workspace,
+            'opportunity' => $opportunity,
+            'firstValueCelebrations' => $firstValue->celebrations($workspace),
+            'canCreateExecutionPlan' => $this->canCreateExecutionPlan($opportunity, $request),
+        ]);
+    }
+
     public function showExecutionPlan(
         Request $request,
         OpportunityExecutionPlan $plan,
@@ -182,6 +210,16 @@ class AppOpportunityIntelligenceController extends Controller
         $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
         $this->assertPlanWorkspace($plan, $workspace);
 
+        return $this->renderExecutionPlan($request, $plan, $workspace, $firstValue);
+    }
+
+    private function renderExecutionPlan(
+        Request $request,
+        OpportunityExecutionPlan $plan,
+        Workspace $workspace,
+        FirstValueExperienceService $firstValue,
+    ): View
+    {
         $plan->load(['workspace', 'clientSite', 'opportunity.signals', 'creator', 'approver']);
 
         $signalDetectionIds = collect(data_get($plan->source_evidence, 'signals', []))
@@ -379,6 +417,15 @@ class AppOpportunityIntelligenceController extends Controller
     {
         return in_array((string) $plan->status, [OpportunityExecutionPlan::STATUS_APPROVED, OpportunityExecutionPlan::STATUS_PLANNED], true)
             && ! data_get($plan->metadata, 'brief_id')
+            && $request->user()
+            && ($request->user()->is_admin || in_array((string) $request->user()->role, ['owner', 'admin', 'editor'], true));
+    }
+
+    private function canCreateExecutionPlan(Opportunity $opportunity, Request $request): bool
+    {
+        return in_array((string) ($opportunity->status?->value ?? $opportunity->status), [OpportunityStatus::APPROVED->value, OpportunityStatus::REVIEWING->value], true)
+            && $opportunity->relationLoaded('activeExecutionPlans')
+            && $opportunity->activeExecutionPlans->isEmpty()
             && $request->user()
             && ($request->user()->is_admin || in_array((string) $request->user()->role, ['owner', 'admin', 'editor'], true));
     }

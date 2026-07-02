@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => $blueprint->title])
 
+@section('pageHeader')
+    <x-page-header :title="$blueprint->title" eyebrow="Brief Blueprints">
+        <x-slot:description>{{ str($blueprint->status)->headline() }} · {{ $blueprint->readinessPercentage() }}% readiness</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php($type = $blueprint->growth_asset_type instanceof \App\Enums\GrowthAssetType ? $blueprint->growth_asset_type : \App\Enums\GrowthAssetType::tryFrom((string) $blueprint->growth_asset_type))
     @php($linkedBrief = $blueprint->linkedBrief())
@@ -11,7 +17,7 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.programmatic-brief-blueprints.index', ['workspace_id' => $workspace->id]) }}" class="text-sm font-medium text-textSecondary hover:text-textPrimary">Brief Blueprints</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $blueprint->title }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $blueprint->title }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ $type?->label() ?? $blueprint->growth_asset_type }} · {{ str($blueprint->status)->headline() }} · {{ $blueprint->readinessPercentage() }}% readiness</p>
             </div>
             <div class="flex flex-wrap gap-2">

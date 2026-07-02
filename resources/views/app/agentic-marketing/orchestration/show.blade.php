@@ -12,12 +12,18 @@
         || count((array) data_get($context, 'existing_content', [])) > 0;
 @endphp
 
+@section('pageHeader')
+    <x-page-header title="What should the customer do next?" eyebrow="Agent orchestration">
+        <x-slot:description>{{ strtoupper($run->status) }} · {{ $run->completed_tasks_count }}/{{ $run->tasks_count }} agents completed · confidence {{ number_format((float) $run->confidence_score, 1) }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.agentic-marketing.orchestration.index', ['workspace_id' => $run->workspace_id]) }}" class="text-sm text-textSecondary hover:text-primary">Agent orchestration</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">What should the customer do next?</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">What should the customer do next?</h2>
                 <p class="mt-1 max-w-3xl text-textSecondary">
                     {{ strtoupper($run->status) }} · {{ $run->completed_tasks_count }}/{{ $run->tasks_count }} agents completed · confidence {{ number_format((float) $run->confidence_score, 1) }}
                 </p>

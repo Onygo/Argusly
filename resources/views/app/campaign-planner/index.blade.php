@@ -1,27 +1,30 @@
 @extends('layouts.app', ['title' => 'Campaign Planner', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header title="Campaign Planner" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Generate structured, approval-gated campaign plans from opportunities, goals, funnel stages, and distribution needs.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    @if ($selectedCampaign)
+        <form method="POST" action="{{ route('app.agentic-marketing.campaign-planner.generate', ['campaign' => $selectedCampaign->id, 'workspace_id' => $workspace->id]) }}">
+            @csrf
+            <button class="pl-btn-primary" type="submit">
+                <i data-lucide="file-plus-2" class="h-4 w-4"></i>
+                <span>Approve & generate drafts</span>
+            </button>
+        </form>
+        <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="pl-btn-ghost">
+            <i data-lucide="send" class="h-4 w-4"></i>
+            <span>Distribution</span>
+        </a>
+    @endif
+@endsection
+
 @section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Campaign Planner</h1>
-            <p class="mt-1 text-sm text-textSecondary">Generate structured, approval-gated campaign plans from opportunities, goals, funnel stages, and distribution needs.</p>
-        </div>
-        @if ($selectedCampaign)
-            <div class="flex flex-wrap items-center gap-2">
-                <form method="POST" action="{{ route('app.agentic-marketing.campaign-planner.generate', ['campaign' => $selectedCampaign->id, 'workspace_id' => $workspace->id]) }}">
-                    @csrf
-                    <button class="pl-btn-primary" type="submit">
-                        <i data-lucide="file-plus-2" class="h-4 w-4"></i>
-                        <span>Approve & generate drafts</span>
-                    </button>
-                </form>
-                <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="pl-btn-ghost">
-                    <i data-lucide="send" class="h-4 w-4"></i>
-                    <span>Distribution</span>
-                </a>
-            </div>
-        @endif
-    </div>
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
@@ -224,6 +227,95 @@
                             <div class="rounded-md border border-border bg-background px-3 py-2">End <span class="block font-medium text-textPrimary">{{ optional($selectedCampaign->planned_end_date)->toFormattedDateString() ?? 'Draft' }}</span></div>
                         </div>
                     </div>
+                </section>
+
+                @php
+                    $campaignImageAssetCollection = collect($campaignImageAssets ?? []);
+                    $campaignImageUsageTargets = [
+                        'display_on_website' => 'Website image',
+                        'display_as_featured_image' => 'Featured image',
+                        'use_as_meta_image' => 'Meta image',
+                        'use_as_social_image' => 'Social image',
+                        'use_for_linkedin' => 'LinkedIn image',
+                    ];
+                @endphp
+                <section class="rounded-lg border border-border bg-surface p-5">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div>
+                            <h2 class="text-sm font-semibold text-textPrimary">Campaign image assets</h2>
+                            <p class="mt-1 text-xs text-textSecondary">Upload campaign images and choose whether they are website, meta, or LinkedIn/social assets.</p>
+                        </div>
+                        <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ $campaignImageAssetCollection->count() }} assets</span>
+                    </div>
+
+                    <form method="POST" action="{{ route('app.campaigns.images.upload', $selectedCampaign) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
+                        @csrf
+                        <div class="grid gap-3 md:grid-cols-[1fr_1fr]">
+                            <input
+                                type="file"
+                                name="image"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="pl-input w-full text-sm"
+                                required
+                            >
+                            <input
+                                name="alt_text"
+                                value="{{ old('alt_text') }}"
+                                class="pl-input w-full text-sm"
+                                placeholder="Alt text"
+                            >
+                        </div>
+                        <div class="grid gap-2 text-sm text-textSecondary md:grid-cols-2 lg:grid-cols-5">
+                            @foreach ($campaignImageUsageTargets as $field => $label)
+                                <label class="flex items-center gap-2 rounded border border-border bg-background px-3 py-2">
+                                    <input type="checkbox" name="{{ $field }}" value="1">
+                                    <span>{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <button class="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">
+                            <i data-lucide="upload" class="h-4 w-4"></i>
+                            Upload image
+                        </button>
+                    </form>
+
+                    @if ($campaignImageAssetCollection->isNotEmpty())
+                        <div class="mt-4 grid gap-3 md:grid-cols-3">
+                            @foreach ($campaignImageAssetCollection as $campaignImageAsset)
+                                @php
+                                    $campaignAssetPreviewUrl = $campaignImageAsset->medium_ui_url ?: $campaignImageAsset->original_ui_url;
+                                    $campaignAssetLabels = collect($campaignImageUsageTargets)
+                                        ->filter(fn ($label, $field) => (bool) $campaignImageAsset->{$field})
+                                        ->values();
+                                @endphp
+                                <div class="rounded-md border border-border bg-background p-3">
+                                    @if ($campaignAssetPreviewUrl)
+                                        <img src="{{ $campaignAssetPreviewUrl }}" alt="{{ $campaignImageAsset->alt_text ?: 'Campaign image asset preview' }}" class="h-28 w-full rounded border border-border object-cover">
+                                    @else
+                                        <div class="flex h-28 items-center justify-center rounded border border-dashed border-border text-xs text-textSecondary">No preview</div>
+                                    @endif
+                                    <div class="mt-2 flex flex-wrap gap-1.5 text-[11px] text-textSecondary">
+                                        <span class="rounded bg-white px-2 py-0.5">{{ $campaignImageAsset->source ?: $campaignImageAsset->provider ?: 'asset' }}</span>
+                                        @foreach ($campaignAssetLabels as $label)
+                                            <span class="rounded bg-green-100 px-2 py-0.5 text-green-700">{{ $label }}</span>
+                                        @endforeach
+                                    </div>
+                                    <form method="POST" action="{{ route('app.campaigns.images.usage.update', ['campaign' => $selectedCampaign, 'imageVersion' => $campaignImageAsset]) }}" class="mt-3 space-y-2">
+                                        @csrf
+                                        <div class="grid gap-1.5 text-xs text-textSecondary">
+                                            @foreach ($campaignImageUsageTargets as $field => $label)
+                                                <label class="flex items-center gap-2 rounded border border-border bg-white px-2 py-1.5">
+                                                    <input type="checkbox" name="{{ $field }}" value="1" @checked((bool) $campaignImageAsset->{$field})>
+                                                    <span>{{ $label }}</span>
+                                                </label>
+                                            @endforeach
+                                        </div>
+                                        <button class="w-full rounded border border-border bg-white px-3 py-2 text-sm text-textPrimary hover:bg-surfaceMuted">Save usage targets</button>
+                                    </form>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </section>
 
                 <section class="rounded-lg border border-border bg-surface p-5">

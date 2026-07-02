@@ -69,6 +69,7 @@ class GenerateContentOgImageJob implements ShouldQueue
 
             $ogImage->update([
                 'status' => 'ready',
+                'source' => ContentImage::SOURCE_GENERATED,
                 'provider' => 'pl-renderer',
                 'model' => 'pl-renderer',
                 'image_path' => $rendered->path,
@@ -76,6 +77,9 @@ class GenerateContentOgImageJob implements ShouldQueue
                 'original_path' => $rendered->path,
                 'credit_cost' => 0,
                 'is_active' => true,
+                'use_as_meta_image' => true,
+                'use_as_social_image' => true,
+                'use_for_linkedin' => true,
                 'error_message' => null,
                 'metadata' => [
                     'mime' => 'image/png',

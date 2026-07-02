@@ -3,10 +3,17 @@
 namespace App\Services\Seo;
 
 use App\Models\Content;
+use App\Models\ContentImage;
+use App\Services\ContentImages\ContentImageAssetResolver;
 use Illuminate\Support\Str;
 
 class SeoMetadataService
 {
+    public function __construct(private ?ContentImageAssetResolver $assets = null)
+    {
+        $this->assets ??= app(ContentImageAssetResolver::class);
+    }
+
     /**
      * @param  array<string,mixed>  $post
      * @return array<string,mixed>
@@ -60,10 +67,34 @@ class SeoMetadataService
             'canonical' => $canonicalUrl ?: (string) ($content->seo_canonical ?? $content->published_url ?? ''),
             'og_title' => trim((string) ($content->seo_og_title ?? '')) ?: $title,
             'og_description' => trim((string) ($content->seo_og_description ?? '')) ?: $description,
-            'og_image' => $this->absoluteUrl((string) ($content->seo_og_image ?: $content->featuredImage?->original_ui_url)),
+            'og_image' => $this->absoluteUrl($this->resolveContentOgImage($content)),
             'twitter_title' => trim((string) ($content->seo_twitter_title ?? '')) ?: $title,
             'twitter_description' => trim((string) ($content->seo_twitter_description ?? '')) ?: $description,
         ];
+    }
+
+    private function resolveContentOgImage(Content $content): string
+    {
+        $assetUrl = $this->assets->urlForContent($content, ContentImage::USAGE_META);
+        if ($assetUrl !== '') {
+            return $assetUrl;
+        }
+
+        $legacyUrl = trim((string) ($content->seo_og_image ?? ''));
+        if ($legacyUrl !== '') {
+            return $legacyUrl;
+        }
+
+        $featured = $content->featuredImage;
+        if ($featured instanceof ContentImage) {
+            if ((string) ($featured->source ?? '') === ContentImage::SOURCE_UPLOAD && ! $featured->allowsUsage(ContentImage::USAGE_META)) {
+                return '';
+            }
+
+            return $featured->bestUrlForUsage(ContentImage::USAGE_META);
+        }
+
+        return '';
     }
 
     /**

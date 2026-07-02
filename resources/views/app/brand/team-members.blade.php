@@ -1,21 +1,18 @@
 @extends('layouts.app', ['title' => 'Team Member Personas'])
 
-@section('content')
-    <div class="mb-6 flex items-start justify-between gap-4">
-        <div>
-            <nav class="mb-2 text-sm text-textSecondary">
-                <span>Brand</span>
-                <span class="mx-1">/</span>
-                <span class="text-textPrimary">Team Member Personas</span>
-            </nav>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Team Personas</h1>
-            <p class="mt-1 text-textSecondary">Generate suggested authors with AI, then refine perspective, expertise and writing-role toggles manually.</p>
-        </div>
-        <a href="{{ route('app.workspace-intelligence.index') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
-            Workspace Intelligence
-        </a>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Team Personas" eyebrow="Brand">
+        <x-slot:description>Generate suggested authors with AI, then refine perspective, expertise and writing-role toggles manually.</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('app.workspace-intelligence.index') }}" class="pl-btn-secondary">
+        Workspace Intelligence
+    </a>
+@endsection
+
+@section('content')
     @include('app.brand.partials.tabs')
 
     @if (session('status'))

@@ -121,6 +121,51 @@ class HumanContentGate
 
     /**
      * @param array<string,mixed> $gate
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    public function applyManualPublicationOverride(?Draft $draft, ?Content $content, array $gate, array $context = []): array
+    {
+        if (($gate['passed'] ?? false) || ! $draft || ! $this->manualOverrideRequested($context)) {
+            return $gate;
+        }
+
+        $override = [
+            'type' => 'manual_publication_override',
+            'source' => trim((string) ($context['source'] ?? 'manual_publication')),
+            'user_id' => isset($context['user_id']) ? (string) $context['user_id'] : null,
+            'at' => now()->toIso8601String(),
+            'original_status' => (string) ($gate['status'] ?? self::STATUS_NEEDS_EDITORIAL_REVIEW),
+            'original_reasons' => array_values((array) ($gate['reasons'] ?? [])),
+        ];
+
+        $overridden = array_merge($gate, [
+            'passed' => true,
+            'status' => self::STATUS_PASSED,
+            'reasons' => [],
+            'manual_override' => true,
+            'override' => $override,
+        ]);
+
+        $meta = is_array($draft->meta) ? $draft->meta : [];
+        $meta['publish_gate_status'] = self::STATUS_PASSED;
+        $meta['human_content_gate'] = $overridden;
+        $meta['human_content_gate_override'] = $override;
+
+        $draft->forceFill(['meta' => $meta])->save();
+
+        if ($content && (string) $content->publish_status === self::STATUS_NEEDS_EDITORIAL_REVIEW) {
+            $content->forceFill([
+                'publish_status' => 'draft',
+                'publish_error' => null,
+            ])->save();
+        }
+
+        return $overridden;
+    }
+
+    /**
+     * @param array<string,mixed> $gate
      */
     public function message(array $gate): string
     {
@@ -129,6 +174,14 @@ class HumanContentGate
         return $reasons === []
             ? 'Human Content publishing gate passed.'
             : 'Human Content publishing gate blocked auto-publication: ' . implode(' ', $reasons);
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     */
+    private function manualOverrideRequested(array $context): bool
+    {
+        return filter_var($context['human_content_override'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

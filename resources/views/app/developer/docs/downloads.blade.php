@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'API Downloads'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>API Downloads</x-slot:title>
+        <x-slot:description>Download API specification files for use with external tools.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="space-y-2">
@@ -7,9 +14,7 @@
                 <a href="{{ route('app.developer.docs.index') }}" class="text-textSecondary hover:text-textPrimary">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">API Downloads</h1>
             </div>
-            <p class="text-textSecondary">Download API specification files for use with external tools.</p>
         </header>
 
         {{-- Statistics --}}

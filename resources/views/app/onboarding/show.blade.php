@@ -1,11 +1,14 @@
 @extends('layouts.app', ['title' => 'Onboarding'])
 
+@section('pageHeader')
+    <x-page-header title="Welcome to Argusly">
+        <x-slot:description>Complete setup to unlock your first content outcome.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="rounded-lg border border-border bg-surface p-5">
-            <h1 class="text-xl font-semibold text-textPrimary">Welcome to Argusly</h1>
-            <p class="mt-1 text-sm text-textSecondary">Complete setup to unlock your first content outcome.</p>
-
             <div class="mt-4 grid gap-2 sm:grid-cols-3">
                 <div class="rounded border border-border px-3 py-2 text-xs {{ $steps['intent'] ? 'bg-primarySoftBg text-textPrimary' : 'text-textSecondary' }}">
                     1. Choose intent

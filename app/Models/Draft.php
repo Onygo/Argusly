@@ -7,6 +7,7 @@ use App\Enums\DraftType;
 use App\Enums\SupportedLanguage;
 use App\Services\Content\ContentRenderer;
 use App\Services\Content\ContentRenderNormalizer;
+use App\Services\ContentVisuals\VisualRenderer;
 use App\Support\DescriptionSanitizer;
 use App\Support\TitleSanitizer;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -363,6 +364,11 @@ class Draft extends Model
         return $this->belongsTo(Content::class);
     }
 
+    public function aiTransparencyRecords(): HasMany
+    {
+        return $this->hasMany(AiTransparencyRecord::class);
+    }
+
     public function draftComparison(): BelongsTo
     {
         return $this->belongsTo(DraftComparison::class, 'draft_comparison_id');
@@ -540,7 +546,9 @@ class Draft extends Model
 
     public function getRenderedContentHtmlAttribute(): HtmlString
     {
-        return app(ContentRenderer::class)->renderToHtml((string) $this->content_html);
+        $html = app(VisualRenderer::class)->renderDraftHtml($this);
+
+        return app(ContentRenderer::class)->renderToHtml($html);
     }
 
     // 👇 altijd onderaan

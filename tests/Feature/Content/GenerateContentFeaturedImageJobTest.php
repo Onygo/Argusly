@@ -23,7 +23,7 @@ it('stores generated featured image and debits credits via wallet', function () 
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     $organization = Organization::query()->create([
         'name' => 'Image Job Org',
@@ -83,7 +83,7 @@ it('stores generated featured image and debits credits via wallet', function () 
     ]);
 
     config([
-        'argusly.ai.images.storage_disk' => 'public',
+        'argusly.images.disk' => 'content_images',
         'argusly.ai.images.openai.api_key' => 'test-key',
     ]);
 
@@ -102,19 +102,20 @@ it('stores generated featured image and debits credits via wallet', function () 
     expect($image->status)->toBe('ready')
         ->and($image->provider)->toBe('openai')
         ->and($image->image_path)->not->toBeNull()
-        ->and($image->image_url)->toContain('/storage/')
+        ->and($image->image_url)->toContain('/content-images/')
+        ->and($image->image_url)->not->toContain('/storage/content-images/')
         ->and($image->original_path)->toBe((string) $image->image_path)
         ->and($image->medium_path)->not->toBeNull()
         ->and($image->thumbnail_path)->not->toBeNull();
 
-    Storage::disk('public')->assertExists((string) $image->image_path);
-    Storage::disk('public')->assertExists((string) $image->medium_path);
-    Storage::disk('public')->assertExists((string) $image->thumbnail_path);
+    Storage::disk('content_images')->assertExists((string) $image->image_path);
+    Storage::disk('content_images')->assertExists((string) $image->medium_path);
+    Storage::disk('content_images')->assertExists((string) $image->thumbnail_path);
     if (function_exists('imagewebp')) {
         expect($image->medium_webp_path)->not->toBeNull()
             ->and($image->thumbnail_webp_path)->not->toBeNull();
-        Storage::disk('public')->assertExists((string) $image->medium_webp_path);
-        Storage::disk('public')->assertExists((string) $image->thumbnail_webp_path);
+        Storage::disk('content_images')->assertExists((string) $image->medium_webp_path);
+        Storage::disk('content_images')->assertExists((string) $image->thumbnail_webp_path);
     }
 
     $walletSummary = app(CreditWalletService::class)->getSummary((string) $site->id);
@@ -126,7 +127,7 @@ it('does not send response_format for gpt image models', function () {
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     $organization = Organization::query()->create([
         'name' => 'Image Job Org',
@@ -217,7 +218,7 @@ it('stores generated featured image with gemini provider', function () {
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     $organization = Organization::query()->create([
         'name' => 'Gemini Image Org',
@@ -332,13 +333,14 @@ it('stores generated featured image with gemini provider', function () {
     expect($image->status)->toBe('ready')
         ->and($image->provider)->toBe('gemini')
         ->and($image->image_path)->not->toBeNull()
-        ->and($image->image_url)->toContain('/storage/')
+        ->and($image->image_url)->toContain('/content-images/')
+        ->and($image->image_url)->not->toContain('/storage/content-images/')
         ->and($image->medium_path)->not->toBeNull()
         ->and($image->thumbnail_path)->not->toBeNull();
 
-    Storage::disk('public')->assertExists((string) $image->image_path);
-    Storage::disk('public')->assertExists((string) $image->medium_path);
-    Storage::disk('public')->assertExists((string) $image->thumbnail_path);
+    Storage::disk('content_images')->assertExists((string) $image->image_path);
+    Storage::disk('content_images')->assertExists((string) $image->medium_path);
+    Storage::disk('content_images')->assertExists((string) $image->thumbnail_path);
 
     Http::assertSent(function (Request $request) {
         return str_contains($request->url(), ':generateContent')
@@ -352,7 +354,7 @@ it('keeps job successful when webp encoding is disabled', function () {
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     $organization = Organization::query()->create([
         'name' => 'Image Job Org',
@@ -428,7 +430,7 @@ it('creates unique file paths across regenerated image versions without overwrit
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     $organization = Organization::query()->create([
         'name' => 'Image Job Org',
@@ -507,14 +509,14 @@ it('creates unique file paths across regenerated image versions without overwrit
         ->and($first->medium_path)->not->toBe($second->medium_path)
         ->and($first->thumbnail_path)->not->toBe($second->thumbnail_path);
 
-    Storage::disk('public')->assertExists((string) $first->image_path);
-    Storage::disk('public')->assertExists((string) $second->image_path);
-    Storage::disk('public')->assertExists((string) $first->medium_path);
-    Storage::disk('public')->assertExists((string) $second->medium_path);
+    Storage::disk('content_images')->assertExists((string) $first->image_path);
+    Storage::disk('content_images')->assertExists((string) $second->image_path);
+    Storage::disk('content_images')->assertExists((string) $first->medium_path);
+    Storage::disk('content_images')->assertExists((string) $second->medium_path);
 });
 
 it('releases reserved credits when featured image generation fails', function () {
-    Storage::fake('public');
+    Storage::fake('content_images');
 
     $organization = Organization::query()->create([
         'name' => 'Image Fail Org',

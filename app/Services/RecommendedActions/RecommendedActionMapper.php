@@ -419,16 +419,17 @@ class RecommendedActionMapper
         string $willDo,
         string $approval,
         string $effort,
-        float|int|null $baseScore,
-        float|int|null $confidenceScore,
-        float|int|null $impactScore,
+        mixed $baseScore,
+        mixed $confidenceScore,
+        mixed $impactScore,
         ?array $cta = null,
         array $context = [],
         array $metadata = [],
     ): array {
-        $confidence = $this->scoring->confidence($confidenceScore, $metadata);
-        $impact = $this->scoring->expectedImpact($impactScore, $outcome);
-        $priority = $this->scoring->priority($baseScore, $confidence, $impact, $context);
+        $normalizedBaseScore = $this->scoreValue($baseScore);
+        $confidence = $this->scoring->confidence($this->scoreValue($confidenceScore), $metadata);
+        $impact = $this->scoring->expectedImpact($this->scoreValue($impactScore), $outcome);
+        $priority = $this->scoring->priority($normalizedBaseScore, $confidence, $impact, $context);
 
         return array_filter([
             'workspace_id' => $workspace?->id,
@@ -456,7 +457,7 @@ class RecommendedActionMapper
             'primary_cta_url' => $cta[1] ?? null,
             'visible_at' => now(),
             'metadata' => array_filter(array_merge($metadata, [
-                'base_score' => $baseScore,
+                'base_score' => $normalizedBaseScore,
                 'context' => $context,
             ])),
         ], fn ($value): bool => $value !== null);
@@ -493,8 +494,43 @@ class RecommendedActionMapper
         return null;
     }
 
-    private function effortFromNumber(float|int|null $effort): string
+    private function scoreValue(mixed $score): float|int|null
     {
+        if (is_int($score) || is_float($score)) {
+            return $score;
+        }
+
+        if (! is_string($score)) {
+            return null;
+        }
+
+        $score = trim($score);
+
+        if ($score === '') {
+            return null;
+        }
+
+        if (is_numeric($score)) {
+            return str_contains($score, '.') ? (float) $score : (int) $score;
+        }
+
+        return match (strtolower($score)) {
+            'critical' => 90,
+            'high' => 80,
+            'medium' => 55,
+            'low' => 30,
+            default => null,
+        };
+    }
+
+    private function effortFromNumber(mixed $effort): string
+    {
+        if (is_string($effort) && in_array($effort, [RecommendedAction::EFFORT_LOW, RecommendedAction::EFFORT_MEDIUM, RecommendedAction::EFFORT_HIGH, RecommendedAction::EFFORT_AUTOMATED], true)) {
+            return $effort;
+        }
+
+        $effort = $this->scoreValue($effort);
+
         return match (true) {
             $effort === null => RecommendedAction::EFFORT_MEDIUM,
             $effort <= 35 => RecommendedAction::EFFORT_LOW,

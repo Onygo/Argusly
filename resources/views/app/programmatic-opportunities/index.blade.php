@@ -1,14 +1,17 @@
 @extends('layouts.app', ['title' => 'Programmatic Opportunities'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Programmatic Opportunities</x-slot:title>
+        <x-slot:description>Detected scalable opportunity patterns.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
 
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Programmatic Opportunities</h1>
-                <p class="mt-1 text-sm text-textSecondary">Detected scalable opportunity patterns.</p>
-            </div>
         </div>
 
         <form method="GET" action="{{ route('app.programmatic-opportunities.index') }}" class="grid gap-3 rounded-lg border border-border bg-surface p-4 md:grid-cols-5">

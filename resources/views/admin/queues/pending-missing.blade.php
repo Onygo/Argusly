@@ -1,13 +1,17 @@
 @extends('layouts.admin', ['title' => 'Pending Job Not Found'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Pending job not found</h1>
-            <p class="mt-1 text-textSecondary">Job #{{ $jobId }} is no longer present in the pending jobs table.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Pending job not found</x-slot:title>
+        <x-slot:description>Job #{{ $jobId }} is no longer present in the pending jobs table.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.queues.index', request()->query()) }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to queues</a>
-    </div>
+@endsection
+
+@section('content')
 
     <div class="mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900">
         This usually means the worker already picked up the job, the job completed, it was requeued with a different id, or it moved to failed jobs.
@@ -19,28 +23,26 @@
             @if (empty($nearbyPendingJobs))
                 <p class="mt-3 text-sm text-textSecondary">No nearby pending job ids are currently available.</p>
             @else
-                <div class="mt-3 overflow-x-auto">
-                    <table class="min-w-full text-left text-sm">
-                        <thead>
-                        <tr class="border-b border-border text-xs uppercase tracking-wide text-textFaint">
-                            <th class="px-2 py-2">ID</th>
-                            <th class="px-2 py-2">Queue</th>
-                            <th class="px-2 py-2">Job</th>
-                            <th class="px-2 py-2">Created</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @foreach ($nearbyPendingJobs as $nearby)
-                            <tr class="border-b border-border/60">
-                                <td class="px-2 py-2"><a href="{{ route('admin.queues.pending.show', [$nearby['id']] + request()->query()) }}" class="text-link underline">{{ $nearby['id'] }}</a></td>
-                                <td class="px-2 py-2 text-textSecondary">{{ $nearby['queue'] }}</td>
-                                <td class="px-2 py-2 text-textPrimary">{{ $nearby['job_name'] }}</td>
-                                <td class="px-2 py-2 text-textSecondary">{{ $nearby['created_at']?->format('Y-m-d H:i:s') ?? 'Unknown' }}</td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                <x-data-table label="Nearby pending jobs" description="Nearby pending job ids with queue, job name, and created time." density="compact" class="mt-3 border-0 shadow-none">
+                    <x-data-table.header>
+                        <x-data-table.row>
+                            <x-data-table.cell heading>ID</x-data-table.cell>
+                            <x-data-table.cell heading>Queue</x-data-table.cell>
+                            <x-data-table.cell heading>Job</x-data-table.cell>
+                            <x-data-table.cell heading>Created</x-data-table.cell>
+                        </x-data-table.row>
+                    </x-data-table.header>
+                    <tbody class="divide-y divide-border">
+                    @foreach ($nearbyPendingJobs as $nearby)
+                        <x-data-table.row>
+                            <x-data-table.cell label="ID"><a href="{{ route('admin.queues.pending.show', [$nearby['id']] + request()->query()) }}" class="text-link underline">{{ $nearby['id'] }}</a></x-data-table.cell>
+                            <x-data-table.cell label="Queue" class="text-textSecondary">{{ $nearby['queue'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Job" class="text-textPrimary">{{ $nearby['job_name'] }}</x-data-table.cell>
+                            <x-data-table.cell label="Created" class="text-textSecondary">{{ $nearby['created_at']?->format('Y-m-d H:i:s') ?? 'Unknown' }}</x-data-table.cell>
+                        </x-data-table.row>
+                    @endforeach
+                    </tbody>
+                </x-data-table>
             @endif
         </div>
 

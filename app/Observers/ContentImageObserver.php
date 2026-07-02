@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Content;
 use App\Models\ContentImage;
 use App\Services\Content\ContentCacheInvalidationService;
+use App\Services\Markdown\MarkdownArtifactService;
 use App\Services\PublicBlog\PublicBlogPerformanceDataService;
 use Illuminate\Support\Facades\DB;
 
@@ -12,6 +13,8 @@ class ContentImageObserver
 {
     public function saved(ContentImage $image): void
     {
+        $this->markVisualArtifactsStale($image);
+
         if (! $this->shouldSync($image)) {
             return;
         }
@@ -21,6 +24,8 @@ class ContentImageObserver
 
     public function deleted(ContentImage $image): void
     {
+        $this->markVisualArtifactsStale($image);
+
         if (! $this->shouldSync($image)) {
             return;
         }
@@ -31,6 +36,31 @@ class ContentImageObserver
     private function shouldSync(ContentImage $image): bool
     {
         return (string) $image->type === 'featured';
+    }
+
+    private function markVisualArtifactsStale(ContentImage $image): void
+    {
+        if (! in_array((string) $image->type, ['inline', 'diagram', 'chart'], true)) {
+            return;
+        }
+
+        $dispatch = function () use ($image): void {
+            $content = Content::query()
+                ->with(['workspace', 'renderArtifacts', 'publications'])
+                ->find((string) $image->content_id);
+
+            if ($content) {
+                app(MarkdownArtifactService::class)->markStaleForContent($content);
+            }
+        };
+
+        if (app()->runningUnitTests()) {
+            $dispatch();
+
+            return;
+        }
+
+        DB::afterCommit($dispatch);
     }
 
     private function dispatchSync(ContentImage $image): void

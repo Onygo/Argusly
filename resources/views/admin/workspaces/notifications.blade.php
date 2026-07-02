@@ -1,15 +1,13 @@
 @extends('layouts.admin', ['title' => 'Workspace Notifications'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Workspace Notifications</x-slot:title>
+        <x-slot:description>{{ $workspace->display_name ?: $workspace->name }} @if ($workspace->organization) · {{ $workspace->organization->name }} @endif</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Workspace Notifications</h1>
-        <p class="mt-1 text-textSecondary">
-            {{ $workspace->display_name ?: $workspace->name }}
-            @if ($workspace->organization)
-                · {{ $workspace->organization->name }}
-            @endif
-        </p>
-    </div>
 
     <form method="GET" class="mb-4 grid gap-2 md:grid-cols-4">
         <select name="type" class="pl-select bg-surface">

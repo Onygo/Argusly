@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => __('app.runtime.Workspace Intelligence')])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>{{ __('app.runtime.Workspace Intelligence') }}</x-slot:title>
+        <x-slot:description>Turn enrichment output into reusable operating context. Review approved brand context, personas, and team profiles in one place, then apply only the changes that improve your workspace.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6" data-workspace-intelligence data-workspace-intelligence-active-tab="{{ $activeTab }}">
         <header class="overflow-hidden rounded-lg border border-border bg-surface">
@@ -15,7 +22,6 @@
                     </div>
 
                     <div>
-                        <h1 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ __('app.runtime.Workspace Intelligence') }}</h1>
                         <p class="mt-3 max-w-3xl text-sm leading-6 text-textSecondary">
                             Turn enrichment output into reusable operating context. Review approved brand context, personas, and team profiles in one place, then apply only the changes that improve your workspace.
                         </p>

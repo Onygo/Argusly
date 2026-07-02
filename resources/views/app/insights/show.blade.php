@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Insights Overview'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Insights Overview</x-slot:title>
+        <x-slot:description>Visibility, analytics, audit, and competitor workflows for this site.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <x-app.insights-header
@@ -26,10 +33,6 @@
             @foreach ($overviewCards as $card)
                 <article class="rounded-lg border border-border bg-surface p-6">
                     <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <h2 class="text-lg font-semibold text-textPrimary">{{ $card['title'] }}</h2>
-                            <p class="mt-2 text-sm text-textSecondary">{{ $card['description'] }}</p>
-                        </div>
                         <span class="inline-flex rounded px-2 py-1 text-xs {{ $card['available'] ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' }}">
                             {{ $card['available'] ? 'Available' : 'Limited' }}
                         </span>

@@ -1,12 +1,13 @@
 @extends('layouts.app', ['title' => 'Insights'])
 
+@section('pageHeader')
+    <x-page-header title="Insights">
+        <x-slot:description>Open visibility, analytics, audit, and competitor workflows for a connected site.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
-        <header class="space-y-2">
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Insights</h1>
-            <p class="text-textSecondary">Open visibility, analytics, audit, and competitor workflows for a connected site.</p>
-        </header>
-
         @if ($sites->isEmpty())
             <x-settings.empty-state
                 title="No sites connected yet"

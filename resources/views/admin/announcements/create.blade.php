@@ -1,13 +1,17 @@
 @extends('layouts.admin', ['title' => 'Create Announcement', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Create Announcement</h1>
-            <p class="mt-1 text-textSecondary">Send a workspace notification of type announcement.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Create Announcement</x-slot:title>
+        <x-slot:description>Send a workspace notification of type announcement.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.announcements.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to announcements</a>
-    </div>
+@endsection
+
+@section('content')
 
     <div class="rounded-lg border border-border bg-surface p-4">
         <form method="POST" action="{{ route('admin.announcements.store') }}" class="grid gap-3 md:grid-cols-2">

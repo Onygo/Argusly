@@ -34,6 +34,16 @@ class BriefPromptBuilder
             'unique_angle' => (string) ($brief->unique_angle ?: ''),
             'key_points' => $keyPoints,
             'call_to_action' => (string) ($brief->call_to_action ?: ''),
+            'objectives' => $this->normalizeList(data_get($brief->client_refs, 'objectives', [])),
+            'key_questions' => $this->normalizeList(data_get($brief->client_refs, 'key_questions', [])),
+            'recommended_internal_links' => (array) data_get($brief->client_refs, 'recommended_internal_links', []),
+            'recommended_external_references' => (array) data_get($brief->client_refs, 'recommended_external_references', []),
+            'expected_entities' => $this->normalizeList(data_get($brief->client_refs, 'entity_coverage', [])),
+            'schema_recommendations' => $this->normalizeList(data_get($brief->client_refs, 'schema_recommendations', [])),
+            'faq_questions' => $this->normalizeList(data_get($brief->client_refs, 'faq_questions', [])),
+            'distribution_suggestions' => $this->normalizeList(data_get($brief->client_refs, 'distribution_suggestions', [])),
+            'success_metrics' => $this->normalizeList(data_get($brief->client_refs, 'success_metrics', [])),
+            'humanization_notes' => $this->normalizeList(data_get($brief->client_refs, 'humanization_notes', [])),
         ];
     }
 
@@ -83,7 +93,85 @@ class BriefPromptBuilder
             $lines[] = 'Call to action: ' . trim((string) $brief->call_to_action);
         }
 
+        $this->appendList($lines, 'Editorial objectives', data_get($brief->client_refs, 'objectives', []));
+        $this->appendList($lines, 'Key questions', data_get($brief->client_refs, 'key_questions', []));
+        $this->appendList($lines, 'Expected entity coverage', data_get($brief->client_refs, 'entity_coverage', []));
+        $this->appendList($lines, 'Schema recommendations', data_get($brief->client_refs, 'schema_recommendations', []));
+        $this->appendList($lines, 'FAQ suggestions', data_get($brief->client_refs, 'faq_questions', []));
+        $this->appendLinkList($lines, 'Recommended internal links', data_get($brief->client_refs, 'recommended_internal_links', []));
+        $this->appendReferenceList($lines, 'Recommended external references', data_get($brief->client_refs, 'recommended_external_references', []));
+        $this->appendList($lines, 'Distribution suggestions', data_get($brief->client_refs, 'distribution_suggestions', []));
+        $this->appendList($lines, 'Success metrics', data_get($brief->client_refs, 'success_metrics', []));
+        $this->appendList($lines, 'Humanization notes', data_get($brief->client_refs, 'humanization_notes', []));
+
+        $completeBriefing = trim((string) data_get($brief->client_refs, 'complete_briefing.raw', ''));
+        if ($completeBriefing !== '') {
+            $lines[] = '';
+            $lines[] = 'COMPLETE USER-SUPPLIED BRIEFING';
+            $lines[] = \Illuminate\Support\Str::limit($completeBriefing, 30000, '');
+            $lines[] = 'Treat the complete briefing as the source of truth when it conflicts with inferred defaults.';
+        }
+
         return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<int,string> $lines
+     */
+    private function appendList(array &$lines, string $label, mixed $value): void
+    {
+        $items = $this->normalizeList($value);
+        if ($items === []) {
+            return;
+        }
+
+        $lines[] = $label . ':';
+        foreach ($items as $item) {
+            $lines[] = '- ' . $item;
+        }
+    }
+
+    /**
+     * @param array<int,string> $lines
+     */
+    private function appendLinkList(array &$lines, string $label, mixed $value): void
+    {
+        $items = collect((array) $value)
+            ->filter(fn (mixed $item): bool => is_array($item))
+            ->values();
+
+        if ($items->isEmpty()) {
+            return;
+        }
+
+        $lines[] = $label . ':';
+        foreach ($items as $item) {
+            $title = trim((string) data_get($item, 'title', ''));
+            $anchor = trim((string) data_get($item, 'anchor_text', ''));
+            $reason = trim((string) data_get($item, 'reason', ''));
+            $lines[] = '- ' . trim($title . ($anchor !== '' ? ' | anchor: ' . $anchor : '') . ($reason !== '' ? ' | reason: ' . $reason : ''));
+        }
+    }
+
+    /**
+     * @param array<int,string> $lines
+     */
+    private function appendReferenceList(array &$lines, string $label, mixed $value): void
+    {
+        $items = collect((array) $value)
+            ->filter(fn (mixed $item): bool => is_array($item))
+            ->values();
+
+        if ($items->isEmpty()) {
+            return;
+        }
+
+        $lines[] = $label . ':';
+        foreach ($items as $item) {
+            $name = trim((string) data_get($item, 'name', ''));
+            $reason = trim((string) data_get($item, 'reason', ''));
+            $lines[] = '- ' . trim($name . ($reason !== '' ? ' | reason: ' . $reason : ''));
+        }
     }
 
     /**

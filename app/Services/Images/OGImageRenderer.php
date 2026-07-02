@@ -29,7 +29,7 @@ class OGImageRenderer
         $canvasHeight = (int) $template['canvas']['height'];
         $safePadding = (int) $template['canvas']['padding'];
 
-        $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
+        $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images'));
         $bgPath = (string) $bgImage->image_path;
         $bgBinary = Storage::disk($disk)->get($bgPath);
         $source = @imagecreatefromstring($bgBinary);
@@ -78,8 +78,8 @@ class OGImageRenderer
         }
 
         $filename = sprintf(
-            'content-images/%s/%s-og-%s.png',
-            (string) $content->id,
+            '%s/%s-og-%s.png',
+            ContentImage::storagePath((string) $content->id),
             now()->format('YmdHis'),
             Str::random(8)
         );
@@ -93,7 +93,7 @@ class OGImageRenderer
 
         return new RenderedImageResult(
             path: $filename,
-            url: Storage::disk($disk)->url($filename)
+            url: ContentImage::publicUrlForStorageValue((string) Storage::disk($disk)->url($filename))
         );
     }
 

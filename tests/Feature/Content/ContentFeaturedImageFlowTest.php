@@ -142,6 +142,73 @@ it('searches unsplash images from the images tab', function () {
     });
 });
 
+it('falls back to broader unsplash terms when niche ai query has no results', function () {
+    config(['argusly.stock_images.unsplash.access_key' => 'unsplash-test-key']);
+
+    [$user, $content] = createImageGenerationContext();
+
+    Http::fake([
+        'https://api.unsplash.com/search/photos*' => Http::sequence()
+            ->push(['results' => []], 200)
+            ->push([
+                'results' => [
+                    [
+                        'id' => 'unsplash-ai-fallback',
+                        'width' => 1600,
+                        'height' => 900,
+                        'alt_description' => 'Artificial intelligence dashboard',
+                        'urls' => [
+                            'regular' => 'https://images.unsplash.com/photo-ai?w=1080',
+                            'small' => 'https://images.unsplash.com/photo-ai?w=400',
+                        ],
+                        'links' => [
+                            'html' => 'https://unsplash.com/photos/photo-ai',
+                            'download_location' => 'https://api.unsplash.com/photos/photo-ai/download',
+                        ],
+                        'user' => [
+                            'name' => 'AI Creator',
+                            'links' => ['html' => 'https://unsplash.com/@aicreator'],
+                        ],
+                    ],
+                ],
+            ], 200),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', [
+            'content' => $content,
+            'tab' => 'images',
+            'stock_image_query' => 'AI Bottleneck',
+        ]))
+        ->assertOk()
+        ->assertSee('AI Creator')
+        ->assertSee('Use photo');
+
+    Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+        return str_starts_with($request->url(), 'https://api.unsplash.com/search/photos')
+            && $request['query'] === 'artificial intelligence technology';
+    });
+});
+
+it('shows an empty state when unsplash search has no results', function () {
+    config(['argusly.stock_images.unsplash.access_key' => 'unsplash-test-key']);
+
+    [$user, $content] = createImageGenerationContext();
+
+    Http::fake([
+        'https://api.unsplash.com/search/photos*' => Http::response(['results' => []], 200),
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', [
+            'content' => $content,
+            'tab' => 'images',
+            'stock_image_query' => 'zzzz impossible stock term',
+        ]))
+        ->assertOk()
+        ->assertSee('No Unsplash images found for "zzzz impossible stock term"', false);
+});
+
 it('uses an unsplash photo as active featured image with attribution and download tracking', function () {
     config(['argusly.stock_images.unsplash.access_key' => 'unsplash-test-key']);
 
@@ -447,6 +514,7 @@ it('allows image push action for laravel site type when connector is configured'
 
 it('uses medium non-webp path by default for wordpress payload', function () {
     Storage::fake('public');
+    config()->set('argusly.images.disk', 'public');
     Storage::disk('public')->put('content-images/test-medium.jpg', 'test-medium');
 
     [$user, $content, $site] = createImageGenerationContext(withSite: true, withDraftConnectorRefs: true);
@@ -480,12 +548,14 @@ it('uses medium non-webp path by default for wordpress payload', function () {
 
         return data_get($payload, 'featured_image_path') === 'content-images/test-medium.jpg'
             && data_get($payload, 'featured_image_mime') === 'image/jpeg'
-            && str_ends_with((string) data_get($payload, 'featured_image_url'), '/storage/content-images/test-medium.jpg');
+            && str_ends_with((string) data_get($payload, 'featured_image_url'), '/content-images/test-medium.jpg')
+            && ! str_contains((string) data_get($payload, 'featured_image_url'), '/storage/content-images/');
     });
 });
 
 it('uses medium webp path for wordpress payload when site supports webp', function () {
     Storage::fake('public');
+    config()->set('argusly.images.disk', 'public');
     Storage::disk('public')->put('content-images/test-medium.webp', 'test-medium-webp');
 
     [$user, $content, $site] = createImageGenerationContext(withSite: true, withDraftConnectorRefs: true);
@@ -519,7 +589,8 @@ it('uses medium webp path for wordpress payload when site supports webp', functi
 
         return data_get($payload, 'featured_image_path') === 'content-images/test-medium.webp'
             && data_get($payload, 'featured_image_mime') === 'image/webp'
-            && str_ends_with((string) data_get($payload, 'featured_image_url'), '/storage/content-images/test-medium.webp');
+            && str_ends_with((string) data_get($payload, 'featured_image_url'), '/content-images/test-medium.webp')
+            && ! str_contains((string) data_get($payload, 'featured_image_url'), '/storage/content-images/');
     });
 });
 

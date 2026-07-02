@@ -1,8 +1,7 @@
 @extends('layouts.app', ['title' => 'SEO Audit Run'])
 
-@section('content')
-    @php
-        $scope = data_get($dashboard, 'scope', 'all');
+@php
+    $scope = data_get($dashboard, 'scope', 'all');
         $issueFilter = data_get($dashboard, 'issue_filter', 'all');
         $issueType = data_get($dashboard, 'issue_type');
         $scopeTabs = data_get($dashboard, 'scope_tabs', []);
@@ -19,8 +18,33 @@
         $baseQuery = request()->query();
         $runStatus = data_get($dashboard, 'run_status', []);
         $diagnostics = data_get($dashboard, 'diagnostics', []);
-        $diagnosticSamples = collect(data_get($diagnostics, 'fetch_samples', []));
-    @endphp
+    $diagnosticSamples = collect(data_get($diagnostics, 'fetch_samples', []));
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="'Audit #'.$audit->id" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Review crawl results, issue priorities, and AI-assisted fixes from {{ optional($audit->started_at)->toDateTimeString() }}.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.sites.seo-audits.index', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to Audits</a>
+    <a href="{{ route('app.sites.show', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Site setup</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section title="SEO Health Summary" description="Focus on Priority Fixes first. AI suggestions never auto publish changes.">
+        <x-metric-card label="SEO Health Score" :value="number_format((float) data_get($summary, 'seo_health_score', 0), 1)" :helper="data_get($summary, 'seo_health_level.label', 'N/A')" />
+        <x-metric-card label="Issues Overview" :value="'Errors '.number_format((int) data_get($summary, 'issues.error', 0)).' · Warnings '.number_format((int) data_get($summary, 'issues.warning', 0))" :helper="'Total '.number_format((int) data_get($summary, 'issues.total', 0))" />
+        <x-metric-card label="Pages analysed" :value="number_format((int) data_get($summary, 'pages_analysed_total', 0))" :helper="'In scope: '.number_format((int) data_get($summary, 'scope_pages_count', 0))" />
+        <x-metric-card label="Argusly pages" :value="number_format((int) data_get($summary, 'argusly_pages_count', 0))" />
+        <x-metric-card label="Other pages" :value="number_format((int) data_get($summary, 'other_pages_count', 0))" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <div class="space-y-6">
         <x-app.insights-header
@@ -28,9 +52,8 @@
             :title="'Audit #'.$audit->id"
             :description="'Review crawl results, issue priorities, and AI-assisted fixes from '.optional($audit->started_at)->toDateTimeString().'.'"
             active="audits"
+            :show-heading="false"
         >
-            <a href="{{ route('app.sites.seo-audits.index', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to Audits</a>
-            <a href="{{ route('app.sites.show', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Site setup</a>
         </x-app.insights-header>
 
         @if (session('status'))
@@ -93,52 +116,6 @@
                 @endif
             </section>
         @endif
-
-    <section class="rounded-lg border border-border bg-surface p-6">
-        <div class="mb-6 flex items-start justify-between gap-3">
-            <div>
-                <h2 class="text-sm font-semibold text-textPrimary">SEO Health Summary</h2>
-                <p class="mt-1 text-xs text-textSecondary">Focus on Priority Fixes first. AI suggestions never auto publish changes.</p>
-            </div>
-            <span class="text-xs text-textSecondary">Run status: {{ $audit->status }}</span>
-        </div>
-
-        <div class="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-            <div class="rounded-lg border border-border bg-background p-4">
-                <p class="text-xs text-textSecondary">SEO Health Score</p>
-                <p class="mt-1 text-xl font-semibold {{ data_get($summary, 'seo_health_level.classes', 'text-textPrimary') }}">
-                    {{ number_format((float) data_get($summary, 'seo_health_score', 0), 1) }}
-                </p>
-                <p class="text-xs {{ data_get($summary, 'seo_health_level.classes', 'text-textSecondary') }}">{{ data_get($summary, 'seo_health_level.label', 'N/A') }}</p>
-            </div>
-
-            <div class="rounded-lg border border-border bg-background p-4">
-                <p class="text-xs text-textSecondary">Issues Overview</p>
-                <p class="mt-1 text-sm text-textPrimary">
-                    Errors {{ number_format((int) data_get($summary, 'issues.error', 0)) }}
-                    · Warnings {{ number_format((int) data_get($summary, 'issues.warning', 0)) }}
-                    · Improvements {{ number_format((int) data_get($summary, 'issues.improvement', 0)) }}
-                </p>
-                <p class="text-xs text-textSecondary">Total {{ number_format((int) data_get($summary, 'issues.total', 0)) }}</p>
-            </div>
-
-            <div class="rounded-lg border border-border bg-background p-4">
-                <p class="text-xs text-textSecondary">Pages analysed</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) data_get($summary, 'pages_analysed_total', 0)) }}</p>
-                <p class="text-xs text-textSecondary">In scope: {{ number_format((int) data_get($summary, 'scope_pages_count', 0)) }}</p>
-            </div>
-
-            <div class="rounded-lg border border-border bg-background p-4">
-                <p class="text-xs text-textSecondary">Argusly pages</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) data_get($summary, 'argusly_pages_count', 0)) }}</p>
-            </div>
-
-            <div class="rounded-lg border border-border bg-background p-4">
-                <p class="text-xs text-textSecondary">Other pages</p>
-                <p class="mt-1 text-xl font-semibold text-textPrimary">{{ number_format((int) data_get($summary, 'other_pages_count', 0)) }}</p>
-            </div>
-        </div>
-    </section>
 
     <section class="rounded-lg border border-border bg-surface p-6">
         <h2 class="text-sm font-semibold text-textPrimary">Scope</h2>

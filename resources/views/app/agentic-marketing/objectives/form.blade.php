@@ -17,13 +17,18 @@
     ];
 @endphp
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>{{ $isEdit ? 'Edit objective' : 'New objective' }}</x-slot:title>
+        <x-slot:description>Store the strategy and governance settings for supervised Agentic Marketing work. Approval mode is captured now for the future policy engine.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <a href="{{ $isEdit ? route('app.agentic-marketing.objectives.show', $objective) : route('app.agentic-marketing.index') }}" class="text-sm text-textSecondary hover:text-textPrimary">Agentic Marketing</a>
-                <h1 class="mt-2 text-xl font-semibold text-textPrimary">{{ $isEdit ? 'Edit objective' : 'New objective' }}</h1>
-                <p class="mt-1 max-w-3xl text-sm text-textSecondary">Store the strategy and governance settings for supervised Agentic Marketing work. Approval mode is captured now for the future policy engine.</p>
             </div>
         </header>
 

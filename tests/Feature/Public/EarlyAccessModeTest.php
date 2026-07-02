@@ -333,6 +333,7 @@ describe('route visibility in early access mode', function () {
             route('public.legal.privacy'),
             route('public.legal.terms'),
             route('public.legal.security'),
+            route('public.legal.ai-transparency'),
             route('public.legal.cookies'),
             route('public.legal.subprocessors'),
         ];
@@ -370,6 +371,7 @@ describe('route visibility in full marketing mode', function () {
             route('landing'),
             route('public.product.overview'),
             route('public.product.platform'),
+            route('public.product.governance'),
             route('public.company.about'),
             route('public.company.contact'),
             route('public.company.roadmap'),
@@ -378,6 +380,7 @@ describe('route visibility in full marketing mode', function () {
             route('public.legal.privacy'),
             route('public.legal.terms'),
             route('public.legal.security'),
+            route('public.legal.ai-transparency'),
             route('public.legal.cookies'),
             route('public.legal.subprocessors'),
         ];
@@ -388,7 +391,6 @@ describe('route visibility in full marketing mode', function () {
         }
 
         $this->get(route('public.product.capabilities'))->assertRedirect(route('public.product.platform') . '#capabilities');
-        $this->get(route('public.product.governance'))->assertRedirect(route('public.product.platform') . '#governance');
         $this->get(route('public.product.intelligence'))->assertRedirect(route('public.product.platform') . '#intelligence');
     });
 });

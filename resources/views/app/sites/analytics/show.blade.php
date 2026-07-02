@@ -1,5 +1,16 @@
 @extends('layouts.app', ['title' => 'Site Analytics'])
 
+@section('pageHeader')
+    <x-page-header title="Analytics">
+        <x-slot:description>Configure tracking, verify the domain, and review recent site performance.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.insights.index') }}" class="pl-btn-secondary">All sites</a>
+    <a href="{{ route('app.sites.show', $site) }}" class="pl-btn-secondary">Site setup</a>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <x-app.insights-header
@@ -7,10 +18,8 @@
             title="Analytics"
             description="Configure tracking, verify the domain, and review recent site performance."
             active="analytics"
-        >
-            <a href="{{ route('app.insights.index') }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">All sites</a>
-            <a href="{{ route('app.sites.show', $site) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Site setup</a>
-        </x-app.insights-header>
+            :show-heading="false"
+        />
 
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>

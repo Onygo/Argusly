@@ -7,6 +7,7 @@
         $termsUrl = \App\Support\LocalizedMarketingUrl::route('public.legal.terms');
         $privacyUrl = \App\Support\LocalizedMarketingUrl::route('public.legal.privacy');
         $showForgotPassword = \Illuminate\Support\Facades\Route::has('password.request');
+        $loginAction = url()->current();
     @endphp
 
     <main>
@@ -63,7 +64,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('login.store') }}" class="mt-9 space-y-5">
+                    <form method="POST" action="{{ $loginAction }}" class="mt-9 space-y-5">
                         @csrf
 
                         <label class="block">

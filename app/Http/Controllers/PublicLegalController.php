@@ -34,6 +34,13 @@ class PublicLegalController extends Controller
             'title_key' => 'public.legal.meta.security_title',
             'description_key' => 'public.legal.meta.security_description',
         ],
+        'ai-transparency' => [
+            'route' => 'public.legal.ai-transparency',
+            'key' => 'legal.ai-transparency',
+            'view' => 'public.legal.ai-transparency',
+            'title_key' => 'public.legal.meta.ai_transparency_title',
+            'description_key' => 'public.legal.meta.ai_transparency_description',
+        ],
         'cookies' => [
             'route' => 'public.legal.cookies',
             'key' => 'legal.cookies',
@@ -109,7 +116,7 @@ class PublicLegalController extends Controller
             'canonicalUrl' => $this->localizedRoute($config['route'], [], $locale),
             'hreflangUrls' => LocalizedMarketingUrl::hreflangsForRoute($config['route']),
             'ogType' => 'article',
-            'heroTitle' => __('public.legal.page_hero_title', ['page' => __('public.footer.' . $page)]),
+            'heroTitle' => __('public.legal.page_hero_title', ['page' => __('public.footer.' . str_replace('-', '_', $page))]),
             'heroSubtitle' => __('public.legal.page_hero_subtitle'),
             'activeLegal' => $page,
             'legalSidebarItems' => $this->legalSidebarItems($locale),
@@ -146,6 +153,11 @@ class PublicLegalController extends Controller
                 'url' => $this->localizedRoute('public.legal.security', [], $locale),
             ],
             [
+                'key' => 'ai-transparency',
+                'label' => __('public.footer.ai_transparency'),
+                'url' => $this->localizedRoute('public.legal.ai-transparency', [], $locale),
+            ],
+            [
                 'key' => 'cookies',
                 'label' => __('public.footer.cookies'),
                 'url' => $this->localizedRoute('public.legal.cookies', [], $locale),
@@ -165,7 +177,8 @@ class PublicLegalController extends Controller
     {
         $map = [
             'privacy' => ['cookies', 'subprocessors', 'security'],
-            'security' => ['privacy', 'subprocessors'],
+            'security' => ['privacy', 'subprocessors', 'ai-transparency'],
+            'ai-transparency' => ['privacy', 'security', 'subprocessors'],
             'cookies' => ['privacy'],
             'terms' => ['privacy'],
             'subprocessors' => ['privacy', 'security'],
@@ -174,7 +187,7 @@ class PublicLegalController extends Controller
         return collect($map[$page] ?? [])
             ->map(function (string $item) use ($locale): array {
                 return [
-                    'label' => __('public.footer.' . $item),
+                    'label' => __('public.footer.' . str_replace('-', '_', $item)),
                     'url' => $this->localizedRoute('public.legal.' . $item, [], $locale),
                 ];
             })

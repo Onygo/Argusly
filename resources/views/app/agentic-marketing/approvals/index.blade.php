@@ -1,12 +1,17 @@
 @extends('layouts.app', ['title' => 'Approval Conversations', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Approval Conversations</x-slot:title>
+        <x-slot:description>Argusly recommends what can be approved, explains what needs judgment, and calls out blocked actions before they reach execution.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <a href="{{ route('app.agentic-marketing.index') }}" class="text-sm text-textSecondary hover:text-textPrimary">Agentic Marketing</a>
-                <h1 class="mt-2 text-xl font-semibold text-textPrimary">Approval Conversations</h1>
-                <p class="mt-1 max-w-3xl text-sm text-textSecondary">Argusly recommends what can be approved, explains what needs judgment, and calls out blocked actions before they reach execution.</p>
             </div>
         </header>
 

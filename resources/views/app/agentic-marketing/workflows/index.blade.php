@@ -1,11 +1,17 @@
 @extends('layouts.app', ['title' => 'Autonomous workflows', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header title="Autonomous Workflow Orchestration" eyebrow="Agentic Marketing">
+        <x-slot:description>Run signal-driven marketing workflows with policy gates, confidence thresholds, human overrides, and audit-ready approval checkpoints.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
                 <p class="text-sm text-textSecondary">Agentic Marketing</p>
-                <h1 class="text-xl font-semibold text-textPrimary">Autonomous Workflow Orchestration</h1>
+                <h2 class="text-xl font-semibold text-textPrimary">Autonomous Workflow Orchestration</h2>
                 <p class="mt-1 max-w-3xl text-sm text-textSecondary">Run signal-driven marketing workflows with policy gates, confidence thresholds, human overrides, and audit-ready approval checkpoints.</p>
             </div>
             <form method="POST" action="{{ route('app.agentic-marketing.workflows.run', ['workspace_id' => $workspace->id]) }}" class="flex flex-wrap items-end gap-2">

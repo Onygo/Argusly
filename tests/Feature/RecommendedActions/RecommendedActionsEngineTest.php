@@ -5,12 +5,15 @@ use App\Enums\OpportunityStatus;
 use App\Http\Middleware\EnsureBillingOnboardingCompleted;
 use App\Models\AssistantFeedItem;
 use App\Models\ClientSite;
+use App\Models\Content;
+use App\Models\ContentRecommendation;
 use App\Models\ContentDestination;
 use App\Models\Opportunity;
 use App\Models\Organization;
 use App\Models\RecommendedAction;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Enums\ContentRecommendationStatus;
 use App\Services\Api\ApiScopes;
 use App\Services\Assistant\AssistantFeedService;
 use App\Services\Integrations\ApiKeyService;
@@ -152,6 +155,45 @@ it('renders the recommended actions inbox and dashboard widget', function (): vo
         ->assertOk()
         ->assertSee('Recommended Actions')
         ->assertSee('Open actions inbox');
+});
+
+it('normalizes string scores from content recommendations on the dashboard', function (): void {
+    $context = recommendedActionsContext('content-score');
+
+    $content = Content::query()->create([
+        'workspace_id' => $context['workspace']->id,
+        'client_site_id' => $context['site']->id,
+        'title' => 'Lifecycle content with string score recommendation',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+    ]);
+
+    ContentRecommendation::query()->create([
+        'content_id' => $content->id,
+        'type' => 'refresh_content',
+        'priority' => 'high',
+        'status' => ContentRecommendationStatus::PENDING->value,
+        'payload' => [
+            'title' => 'Refresh outdated lifecycle content',
+            'summary' => 'The article needs a content refresh.',
+            'confidence_score' => '72',
+            'expected_impact_score' => 'critical',
+        ],
+        'generated_by' => 'test',
+    ]);
+
+    $summary = app(RecommendedActionEngine::class)->dashboardSummary($context['workspace']);
+    $action = $summary['items']->first();
+
+    expect($summary['count'])->toBe(1)
+        ->and($action)->toBeInstanceOf(RecommendedAction::class)
+        ->and($action->priority_score)->toBe(82)
+        ->and($action->confidence_score)->toBe(72)
+        ->and($action->expected_impact_score)->toBe(90)
+        ->and($action->metadata['base_score'] ?? null)->toBe(80);
 });
 
 it('exposes recommended actions through the api', function (): void {

@@ -35,8 +35,13 @@ use App\Services\SourceBriefing\SourceBriefingService;
 use App\Services\SourceBriefing\Exceptions\SourceBriefingException;
 use App\Services\SourceBriefing\Exceptions\SourcePreviewException;
 use App\Support\FeatureFlags;
+use App\Support\CompleteContentBriefingParser;
 use App\Support\ContentPersistencePayloadNormalizer;
 use App\Support\EditorialTaxonomyService;
+use App\Support\Interaction\Action;
+use App\Support\Interaction\AppInteractionRegistry;
+use App\Support\Interaction\ResourceContext;
+use App\Support\Interaction\ResourceType;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -68,7 +73,7 @@ class AppBriefsController extends Controller
         ];
 
         $query = Brief::query()
-            ->with('clientSite')
+            ->with('clientSite.workspace', 'content')
             ->whereHas('clientSite.workspace', function ($q) use ($organization): void {
                 $q->where('organization_id', $organization->id);
             })
@@ -87,6 +92,9 @@ class AppBriefsController extends Controller
             ->orderByDesc('created_at');
 
         $briefs = $query->paginate(20)->withQueryString();
+        [$interactionResourcesByKey, $interactionActionsByKey] = $this->resolveBriefIndexInteractionMetadata(
+            $briefs->getCollection()
+        );
 
         return view('app.briefs.index', [
             'briefs' => $briefs,
@@ -95,7 +103,65 @@ class AppBriefsController extends Controller
             'statusOptions' => $this->statusOptions(),
             'sourceOptions' => $this->sourceOptions(),
             'contentTypeOptions' => $this->contentTypeOptions(),
+            'interactionResourcesByKey' => $interactionResourcesByKey,
+            'interactionActionsByKey' => $interactionActionsByKey,
         ]);
+    }
+
+    /**
+     * @param iterable<int, Brief> $briefs
+     * @return array{0: array<string, array>, 1: array<string, array<string, array>>}
+     */
+    private function resolveBriefIndexInteractionMetadata(iterable $briefs): array
+    {
+        $user = request()->user();
+        $briefs = collect($briefs)->values();
+        $resourceRegistry = AppInteractionRegistry::resourceRegistryFor($briefs);
+        $actionRegistry = AppInteractionRegistry::actionRegistry();
+
+        $resourcesByKey = [];
+        $actionsByKey = [];
+
+        foreach ($briefs as $brief) {
+            $resourceKey = ResourceType::BRIEF.':'.$brief->getKey();
+            $context = ResourceContext::make([
+                'user' => $user,
+                'surface' => Action::SURFACE_ROW,
+                'page_key' => 'app.briefs.index',
+                'route_name' => 'app.briefs',
+                'organization_id' => $user?->organization_id,
+                'site_id' => $brief->client_site_id,
+                'resource_type' => ResourceType::BRIEF,
+                'resource_id' => $brief->getKey(),
+                'subject' => $brief,
+                'metadata' => [
+                    'subject' => $brief,
+                ],
+            ]);
+
+            $resource = $resourceRegistry->resolve($resourceKey, $context);
+
+            if ($resource === null) {
+                continue;
+            }
+
+            $resourcesByKey[$resourceKey] = $resource;
+            $actionsByKey[$resourceKey] = [];
+
+            foreach ($resource['available_actions'] as $actionKey) {
+                if (! $actionRegistry->has($actionKey)) {
+                    continue;
+                }
+
+                $action = $actionRegistry->resolve($actionKey, $context->toActionContext());
+
+                if ($action['visible']) {
+                    $actionsByKey[$resourceKey][$actionKey] = $action;
+                }
+            }
+        }
+
+        return [$resourcesByKey, $actionsByKey];
     }
 
     public function create(
@@ -156,6 +222,9 @@ class AppBriefsController extends Controller
 
         $organizationId = (int) $request->user()->organization_id;
         $data = $this->validateBrief($request, true);
+        $completeBriefing = CompleteContentBriefingParser::parse((string) ($data['complete_briefing'] ?? ''));
+        $data = $this->hydrateBriefDataFromCompleteBriefing($data, $completeBriefing);
+        $this->assertRequiredBriefData($data);
         [$searchIntent, $audienceKeys, $audienceLabels] = $this->resolveTaxonomySelections($data, $organizationId, $taxonomyService);
 
         $destinationMode = (string) ($data['destination_mode'] ?? 'connected');
@@ -206,12 +275,18 @@ class AppBriefsController extends Controller
             'desired_length_max' => ($data['desired_length_max'] ?? 0) ?: null,
             'notes' => ($data['notes'] ?? '') ?: null,
             'progress' => 0,
-            'client_refs' => [
+            'client_refs' => array_filter([
                 'client_type' => 'client_ui',
                 'site_url' => (string) ($site->site_url ?? ''),
                 'destination_mode' => $destinationMode,
                 'content_destination_id' => $selectedDestination?->id,
-            ],
+                'complete_briefing' => $completeBriefing['raw'] !== '' ? [
+                    'raw' => $completeBriefing['raw'],
+                    'sections' => $completeBriefing['sections'],
+                    'derived' => $completeBriefing['derived'],
+                    'created_at' => now()->toIso8601String(),
+                ] : null,
+            ], fn ($value): bool => $value !== null),
             'wp_site_id' => (string) $site->id,
         ]);
 
@@ -1154,9 +1229,10 @@ class AppBriefsController extends Controller
             'destination_mode' => ['nullable', 'in:connected,api_only,hybrid'],
             'site_id' => $siteRule,
             'content_destination_id' => ['nullable', 'string'],
-            'title' => ['required', 'string', 'max:255'],
+            'title' => [$isCreate ? 'nullable' : 'required', 'string', 'max:255'],
             'content_type' => ['required', 'in:'.implode(',', array_keys($this->contentTypeOptions()))],
             'language' => ['required', 'in:nl,en'],
+            'complete_briefing' => ['nullable', 'string', 'max:50000'],
             'primary_keyword' => ['nullable', 'string', 'max:255'],
             'secondary_keywords' => ['nullable', 'string'],
             'audience_keys' => ['nullable', 'array'],
@@ -1189,6 +1265,77 @@ class AppBriefsController extends Controller
         }
 
         return $validated;
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     * @param array{raw:string,sections:array<string,string>,derived:array<string,mixed>} $completeBriefing
+     * @return array<string,mixed>
+     */
+    private function hydrateBriefDataFromCompleteBriefing(array $data, array $completeBriefing): array
+    {
+        if (($completeBriefing['raw'] ?? '') === '') {
+            return $data;
+        }
+
+        $derived = (array) ($completeBriefing['derived'] ?? []);
+        $fillString = function (string $key, string $derivedKey) use (&$data, $derived): void {
+            if (trim((string) ($data[$key] ?? '')) !== '') {
+                return;
+            }
+
+            $value = trim((string) ($derived[$derivedKey] ?? ''));
+            if ($value !== '') {
+                $data[$key] = $value;
+            }
+        };
+
+        $fillString('title', 'title');
+        $fillString('primary_keyword', 'primary_keyword');
+        $fillString('unique_angle', 'unique_angle');
+        $fillString('call_to_action', 'call_to_action');
+
+        if (trim((string) ($data['secondary_keywords'] ?? '')) === '' && ! empty($derived['secondary_keywords'])) {
+            $data['secondary_keywords'] = implode("\n", (array) $derived['secondary_keywords']);
+        }
+
+        if (trim((string) ($data['target_audience'] ?? '')) === '' && ! empty($derived['target_audience'])) {
+            $data['target_audience'] = implode(', ', (array) $derived['target_audience']);
+        }
+
+        if (trim((string) ($data['tone_of_voice'] ?? '')) === '' && trim((string) ($derived['tone'] ?? '')) !== '') {
+            $data['tone_of_voice'] = (string) $derived['tone'];
+        }
+
+        if (trim((string) ($data['funnel_stage'] ?? '')) === '' && trim((string) ($derived['funnel_stage'] ?? '')) !== '') {
+            $data['funnel_stage'] = (string) $derived['funnel_stage'];
+        }
+
+        if (trim((string) ($data['key_points'] ?? '')) === '' && ! empty($derived['key_points'])) {
+            $data['key_points'] = implode("\n", (array) $derived['key_points']);
+        }
+
+        $derivedNotes = trim((string) ($derived['notes'] ?? ''));
+        if ($derivedNotes !== '') {
+            $data['notes'] = trim(implode("\n\n", array_filter([
+                trim((string) ($data['notes'] ?? '')),
+                $derivedNotes,
+            ])));
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     */
+    private function assertRequiredBriefData(array $data): void
+    {
+        if (trim((string) ($data['title'] ?? '')) === '') {
+            throw ValidationException::withMessages([
+                'title' => 'Add a title or paste a complete briefing with a working title.',
+            ]);
+        }
     }
 
     private function canChangeBriefSite(Brief $brief): bool

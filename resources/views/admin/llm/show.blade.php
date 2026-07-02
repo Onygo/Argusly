@@ -1,13 +1,17 @@
 @extends('layouts.admin', ['title' => 'LLM Request Detail'])
 
-@section('content')
-    <div class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">LLM Request Detail</h1>
-            <p class="text-sm text-textSecondary mt-1">Safe request diagnostics with scoped debug data.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>LLM Request Detail</x-slot:title>
+        <x-slot:description>Safe request diagnostics with scoped debug data.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.llm.monitor') }}" class="inline-flex items-center rounded-md border border-border px-4 py-2 text-sm">Back to monitor</a>
-    </div>
+@endsection
+
+@section('content')
 
     <div class="rounded-lg border border-border bg-surface p-5 space-y-5">
         <dl class="grid gap-3 md:grid-cols-2 xl:grid-cols-4 text-sm">

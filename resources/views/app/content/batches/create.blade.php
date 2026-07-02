@@ -1,13 +1,17 @@
 @extends('layouts.app', ['title' => 'Generate Multiple Articles', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex items-start justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Generate multiple articles</h1>
-            <p class="mt-1 text-textSecondary">Create up to 10 related articles from one main keyword as a coherent content cluster.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Generate multiple articles</x-slot:title>
+        <x-slot:description>Create up to 10 related articles from one main keyword as a coherent content cluster.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('app.content.index') }}" class="rounded border border-border px-3 py-2 text-sm">Back to content</a>
-    </div>
+@endsection
+
+@section('content')
 
     @if ($errors->has('batch'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('batch') }}</div>

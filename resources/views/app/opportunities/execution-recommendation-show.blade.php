@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => $title ?? 'Execution Recommendation'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>{{ $plan->title }}</x-slot:title>
+        <x-slot:description>{{ $planCard['why_it_matters'] }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6">
         <a href="{{ route('app.opportunities.index', ['workspace' => $workspace->id]) }}" class="inline-flex items-center gap-2 text-sm font-medium text-textSecondary hover:text-textPrimary">
@@ -9,7 +16,6 @@
         <div class="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Execution Recommendation</p>
-                <h1 class="mt-1 max-w-3xl text-2xl font-semibold tracking-tight text-textPrimary">{{ $plan->title }}</h1>
                 <p class="mt-2 max-w-3xl text-sm leading-6 text-textSecondary">{{ $planCard['why_it_matters'] }}</p>
             </div>
             <div class="flex flex-wrap gap-2">

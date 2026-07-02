@@ -1,14 +1,17 @@
 @extends('layouts.app', ['title' => 'Programmatic Draft Reviews'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Programmatic Draft Reviews</x-slot:title>
+        <x-slot:description>Quality gates for generated programmatic drafts.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
 
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Programmatic Draft Reviews</h1>
-                <p class="mt-1 text-sm text-textSecondary">Quality gates for generated programmatic drafts.</p>
-            </div>
             <form method="GET" action="{{ route('app.programmatic-draft-reviews.index') }}" class="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">
                 <select name="status" class="rounded-md border border-border bg-background px-3 py-2 text-sm text-textPrimary">
@@ -25,36 +28,34 @@
             <x-alert>{{ session('status') }}</x-alert>
         @endif
 
-        <section class="rounded-lg border border-border bg-surface p-5">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-border text-sm">
-                    <thead>
-                        <tr class="text-left text-xs uppercase tracking-wide text-textSecondary">
-                            <th class="py-2 pr-4">Draft</th>
-                            <th class="py-2 pr-4">Status</th>
-                            <th class="py-2 pr-4">Overall</th>
-                            <th class="py-2 pr-4">SEO</th>
-                            <th class="py-2 pr-4">AI</th>
-                            <th class="py-2 pr-4">Risk</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
+        <x-data-table label="Programmatic draft reviews" description="Generated draft reviews with status and quality scores." density="compact">
+                <x-data-table.header>
+                    <x-data-table.row>
+                        <x-data-table.cell heading>Draft</x-data-table.cell>
+                        <x-data-table.cell heading>Status</x-data-table.cell>
+                        <x-data-table.cell heading>Overall</x-data-table.cell>
+                        <x-data-table.cell heading>SEO</x-data-table.cell>
+                        <x-data-table.cell heading>AI</x-data-table.cell>
+                        <x-data-table.cell heading>Risk</x-data-table.cell>
+                    </x-data-table.row>
+                </x-data-table.header>
+                <tbody>
                         @forelse ($reviews as $review)
-                            <tr>
-                                <td class="py-2 pr-4 font-medium text-textPrimary"><a href="{{ route('app.programmatic-draft-reviews.show', $review) }}" class="hover:text-primary">{{ $review->draft?->title }}</a></td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ str($review->status)->headline() }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ number_format((float) $review->overall_score, 1) }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ number_format((float) $review->seo_score, 1) }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ number_format((float) $review->ai_visibility_score, 1) }}</td>
-                                <td class="py-2 pr-4 text-textSecondary">{{ number_format((float) $review->risk_score, 1) }}</td>
-                            </tr>
+                            <x-data-table.row>
+                                <x-data-table.cell label="Draft" class="font-medium text-textPrimary"><a href="{{ route('app.programmatic-draft-reviews.show', $review) }}" class="hover:text-primary">{{ $review->draft?->title }}</a></x-data-table.cell>
+                                <x-data-table.cell label="Status">
+                                    <x-data-table.badge :label="str($review->status)->headline()" />
+                                </x-data-table.cell>
+                                <x-data-table.cell label="Overall" class="text-textSecondary">{{ number_format((float) $review->overall_score, 1) }}</x-data-table.cell>
+                                <x-data-table.cell label="SEO" class="text-textSecondary">{{ number_format((float) $review->seo_score, 1) }}</x-data-table.cell>
+                                <x-data-table.cell label="AI" class="text-textSecondary">{{ number_format((float) $review->ai_visibility_score, 1) }}</x-data-table.cell>
+                                <x-data-table.cell label="Risk" class="text-textSecondary">{{ number_format((float) $review->risk_score, 1) }}</x-data-table.cell>
+                            </x-data-table.row>
                         @empty
-                            <tr><td colspan="6" class="py-6 text-center text-sm text-textMuted">No draft reviews yet.</td></tr>
+                            <x-data-table.empty colspan="6" title="No draft reviews yet" />
                         @endforelse
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-4">{{ $reviews->links() }}</div>
-        </section>
+                </tbody>
+            <x-slot:pagination>{{ $reviews->links() }}</x-slot:pagination>
+        </x-data-table>
     </div>
 @endsection

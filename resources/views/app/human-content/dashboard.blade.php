@@ -13,23 +13,21 @@
     $sampleSize = (int) ($dashboard['sample_size'] ?? 0);
 @endphp
 
-@section('content')
-    <div class="space-y-6">
-        <header class="flex flex-wrap items-start justify-between gap-4">
-            <div class="space-y-2">
-                <a href="{{ route('app.insights.index') }}" class="inline-flex items-center gap-2 text-sm text-textSecondary hover:text-textPrimary">
-                    <i data-lucide="arrow-left" class="h-4 w-4"></i>
-                    Insights
-                </a>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Human Content Dashboard</h1>
-                <p class="text-textSecondary">Workspace-level editorial health from stored Human Content scores.</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-textSecondary">
-                {{ $sampleSize }} scored {{ Str::plural('draft', $sampleSize) }}
-            </div>
-        </header>
+@section('pageHeader')
+    <x-page-header title="Human Content Dashboard">
+        <x-slot:description>Workspace-level editorial health from stored Human Content scores.</x-slot:description>
+    </x-page-header>
+@endsection
 
-        <form method="GET" action="{{ route('app.insights.human-content.index') }}" class="rounded-lg border border-border bg-surface p-4">
+@section('primaryActions')
+    <a href="{{ route('app.insights.index') }}" class="pl-btn-secondary">Insights</a>
+    <span class="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-textSecondary">
+        {{ $sampleSize }} scored {{ Str::plural('draft', $sampleSize) }}
+    </span>
+@endsection
+
+@section('filterBar')
+    <form method="GET" action="{{ route('app.insights.human-content.index') }}">
             <div class="grid gap-3 md:grid-cols-5">
                 <label class="space-y-1 text-sm">
                     <span class="text-xs font-medium text-textSecondary">Workspace</span>
@@ -83,7 +81,22 @@
                 </button>
                 <a href="{{ route('app.insights.human-content.index') }}" class="inline-flex items-center rounded-md border border-border px-4 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Reset</a>
             </div>
-        </form>
+    </form>
+@endsection
+
+@section('metricSection')
+    @if ($sampleSize > 0)
+        <x-metric-section>
+            @foreach ($scoreCards as $card)
+                @php($value = $averages[$card['key']] ?? null)
+                <x-metric-card :label="$card['label']" :value="$value ?? 'n/a'" />
+            @endforeach
+        </x-metric-section>
+    @endif
+@endsection
+
+@section('content')
+    <div class="space-y-6">
 
         @if ($sampleSize === 0)
             <x-settings.empty-state
@@ -91,22 +104,6 @@
                 description="Generated or translated drafts will appear here after the Human Content scoring pipeline stores their score payload."
             />
         @else
-            <section class="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-                @foreach ($scoreCards as $card)
-                    @php
-                        $value = $averages[$card['key']] ?? null;
-                        $lower = (bool) ($card['lower'] ?? false);
-                        $tone = $value === null
-                            ? 'text-textSecondary'
-                            : ($lower ? ($value <= 35 ? 'text-emerald-700' : ($value <= 55 ? 'text-amber-700' : 'text-rose-700')) : ($value >= 75 ? 'text-emerald-700' : ($value >= 60 ? 'text-amber-700' : 'text-rose-700')));
-                    @endphp
-                    <div class="rounded-lg border border-border bg-surface p-4">
-                        <p class="text-xs font-medium uppercase tracking-wide text-textSecondary">{{ $card['label'] }}</p>
-                        <p class="mt-2 text-3xl font-semibold {{ $tone }}">{{ $value ?? 'n/a' }}</p>
-                    </div>
-                @endforeach
-            </section>
-
             <section class="grid gap-6 xl:grid-cols-3">
                 <div class="rounded-lg border border-border bg-surface p-5 xl:col-span-2">
                     <h2 class="text-sm font-semibold text-textPrimary">Trend Over Time</h2>

@@ -1,19 +1,21 @@
 @extends('layouts.app', ['title' => 'Create content', 'pageWidth' => 'wide'])
 
+@php
+    $singleSiteId = ($sites ?? collect())->count() === 1 ? (string) ($sites ?? collect())->first()->id : null;
+    $selectedCreateSiteId = old('site_id', $singleSiteId);
+@endphp
+
+@section('pageHeader')
+    <x-page-header title="Create content">
+        <x-slot:description>Define brief settings to start the content lifecycle. You can generate drafts and comparisons in the content workspace.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.content.index') }}" class="pl-btn-secondary">Back to content</a>
+@endsection
+
 @section('content')
-    @php
-        $singleSiteId = ($sites ?? collect())->count() === 1 ? (string) ($sites ?? collect())->first()->id : null;
-        $selectedCreateSiteId = old('site_id', $singleSiteId);
-    @endphp
-
-    <div class="mb-6 flex items-start justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Create content</h1>
-            <p class="mt-1 text-textSecondary">Define brief settings to start the content lifecycle. You can generate drafts and comparisons in the content workspace.</p>
-        </div>
-        <a href="{{ route('app.content.index') }}" class="rounded border border-border px-3 py-2 text-sm">Back to content</a>
-    </div>
-
     @if (!empty($briefIntelligenceEnabled))
         <div class="mb-4 rounded-lg border border-border bg-surface p-4">
             <div class="mb-3 flex items-center justify-between gap-2">
@@ -590,6 +592,18 @@
             <p class="mt-1 text-xs text-textSecondary">Phase 1 of the workflow: define what this content needs to achieve.</p>
         </div>
 
+        <div class="rounded-lg border border-border bg-background p-3">
+            <label class="mb-1 block text-xs font-medium text-textPrimary">Complete briefing</label>
+            <textarea
+                name="complete_briefing"
+                rows="10"
+                class="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+                placeholder="Paste a complete content briefing with working title, keywords, audience, message, angle, structure, and notes."
+            >{{ old('complete_briefing') }}</textarea>
+            <p class="mt-1 text-xs text-textSecondary">Optional. When filled, Argusly uses this as the source briefing and fills missing fields below where possible.</p>
+            @error('complete_briefing')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+        </div>
+
         <div class="grid gap-3 md:grid-cols-4">
             <div>
                 <label class="mb-1 block text-xs text-textSecondary">Destination mode</label>
@@ -644,7 +658,8 @@
 
         <div>
             <label class="mb-1 block text-xs text-textSecondary">Title</label>
-            <input type="text" name="title" value="{{ old('title') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" maxlength="255" required>
+            <input type="text" name="title" value="{{ old('title') }}" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" maxlength="255">
+            <p class="mt-1 text-xs text-textSecondary">Optional when the complete briefing contains a working title.</p>
             @error('title')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
         </div>
 

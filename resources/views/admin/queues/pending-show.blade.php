@@ -1,39 +1,31 @@
 @extends('layouts.admin', ['title' => 'Pending Job'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Pending job detail</h1>
-            <p class="mt-1 text-textSecondary">{{ $job['job_name'] }}</p>
-        </div>
-        <a href="{{ route('admin.queues.index', request()->query()) }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to queues</a>
-    </div>
+@section('pageHeader')
+    <x-page-header title="Pending job detail">
+        <x-slot:description>{{ $job['job_name'] }}</x-slot:description>
+    </x-page-header>
+@endsection
 
+@section('primaryActions')
+    <a href="{{ route('admin.queues.index', request()->query()) }}" class="pl-btn-secondary">Back to queues</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Queue" :value="$job['queue']" />
+        <x-metric-card label="Attempts" :value="$job['attempts']" />
+        <x-metric-card label="Created" :value="$job['created_at']?->format('Y-m-d H:i:s') ?? 'Unknown'" />
+        <x-metric-card label="Org / Site" :value="$job['org_site']" />
+    </x-metric-section>
+@endsection
+
+@section('content')
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif
     @if ($errors->has('queues'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('queues') }}</div>
     @endif
-
-    <div class="mb-6 grid gap-4 md:grid-cols-4">
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Queue</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['queue'] }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Attempts</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['attempts'] }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Created</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['created_at']?->format('Y-m-d H:i:s') ?? 'Unknown' }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Org / Site</p>
-            <p class="mt-2 text-sm font-semibold text-textPrimary">{{ $job['org_site'] }}</p>
-        </div>
-    </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Context</h2>

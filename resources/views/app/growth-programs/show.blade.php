@@ -1,7 +1,6 @@
 @extends('layouts.app', ['title' => 'Growth Program'])
 
-@section('content')
-    @php
+@php
         $status = $program->status instanceof \App\Enums\GrowthProgramStatus ? $program->status : \App\Enums\GrowthProgramStatus::tryFrom((string) $program->status);
         $programNameParts = collect(explode(':', (string) $program->name))
             ->map(fn ($part) => trim($part))
@@ -116,7 +115,25 @@
 
             return floor(((int) $minutes) / 60).'h '.(((int) $minutes) % 60).'m';
         };
-    @endphp
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$displayProgramName" eyebrow="Growth Program" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ $status?->label() ?? $program->status }}@if ($program->description) · {{ $program->description }}@endif</x-page-description>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Status" :value="$status?->label() ?? $program->status" />
+        <x-metric-card label="Program" :value="$programNameLabels->isNotEmpty() ? $programNameLabels->join(' · ') : 'Growth Program'" />
+        <x-metric-card label="Assets" :value="$program->assets->count()" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <div class="space-y-6">
         @include('app.programmatic-growth._beta-banner')
@@ -152,7 +169,6 @@
                         <span class="rounded-full border border-border bg-background px-2 py-0.5 font-medium text-textSecondary">{{ $label }}</span>
                     @endforeach
                 </div>
-                <h1 class="mt-1 max-w-5xl text-2xl font-semibold tracking-tight text-textPrimary" title="{{ $program->name }}">{{ $displayProgramName }}</h1>
                 @if ($program->description)
                     <p class="mt-2 max-w-3xl text-textSecondary">{{ $program->description }}</p>
                 @endif

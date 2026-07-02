@@ -40,6 +40,7 @@ return [
         'privacy' => 'Privacy',
         'terms' => 'Voorwaarden',
         'security' => 'Beveiliging',
+        'ai_transparency' => 'AI Transparantie',
         'cookies' => 'Cookies',
         'subprocessors' => 'Subverwerkers',
     ],
@@ -119,8 +120,8 @@ return [
         'autonomous_marketing_description' => 'Autonome marketinguitvoering met governance, approvals en controle.',
         'integrations' => 'Integraties',
         'integrations_description' => 'Koppel signalen, content en publicatiekanalen in één workflow.',
-        'governance_security' => 'Governance & Beveiliging',
-        'governance_security_description' => 'Houd controle over approvals, rollen, auditability en risico.',
+        'governance_security' => 'AI Governance & Transparantie',
+        'governance_security_description' => 'Houd controle over approvals, AI disclosure, provenance, auditability en risico.',
     ],
     'solutions' => [
         'discover_opportunities' => 'Kansen Ontdekken',
@@ -283,6 +284,82 @@ return [
                 ['label' => 'Intelligence', 'href' => '#intelligence'],
             ],
         ],
+        'governance' => [
+            'primary_cta' => 'Plan AI governance walkthrough',
+            'secondary_cta' => 'Lees transparency statement',
+            'platform_cta' => 'Bekijk platform',
+            'panel_label' => 'Trust layer',
+            'panel_title' => 'AI-assisted content record',
+            'panel_state' => 'Audit-ready',
+            'hero_stats' => [
+                ['label' => 'AI disclosure', 'value' => 'Per asset vastgelegd'],
+                ['label' => 'Menselijke review', 'value' => 'Approval workflow'],
+                ['label' => 'Provenance', 'value' => 'Timeline en historie'],
+                ['label' => 'Audit export', 'value' => 'PDF en API'],
+            ],
+            'trust_eyebrow' => 'Transparantie by design',
+            'trust_title' => 'Governance-signalen die teams echt kunnen gebruiken',
+            'trust_text' => 'Argusly is ontworpen om AI-inzet zichtbaar, reviewbaar en uitlegbaar te maken zonder teams naar losse compliance-spreadsheets te duwen.',
+            'trust_cards' => [
+                ['icon' => 'badge-check', 'title' => 'AI disclosure', 'text' => 'Koppel een duidelijke AI-badge en disclosure-status aan elk governed contentasset.'],
+                ['icon' => 'history', 'title' => 'Provenance timeline', 'text' => 'Volg betekenisvolle gebeurtenissen rond een asset: generatie, review, fact-check, goedkeuring, publicatie en export.'],
+                ['icon' => 'bot', 'title' => 'Model- en promptgeschiedenis', 'text' => 'Bewaar modelgebruik, promptversies, output-hashes en generatiecontext wanneer AI wordt ingezet.'],
+                ['icon' => 'link-2', 'title' => 'Source traceability', 'text' => 'Verbind bronnen en bewijs aan de contentworkflow zodat teams kunnen inspecteren waarop output is gebaseerd.'],
+                ['icon' => 'user-check', 'title' => 'Human-in-the-loop controle', 'text' => 'Reviewstatussen, approvals en redactionele verantwoordelijkheid blijven onderdeel van het publicatiepad.'],
+                ['icon' => 'file-check-2', 'title' => 'Auditrapporten', 'text' => 'Exporteer audit-ready PDF-rapporten en machine-readable disclosure-data voor enterprise review.'],
+            ],
+            'workflow' => [
+                'eyebrow' => 'Governed workflow',
+                'title' => 'Van AI-output naar accountable content',
+                'text' => 'Het doel is niet om AI-gebruik te stoppen. Het doel is om het proces rond AI-assisted werk traceerbaar, reviewbaar en geschikt voor professionele publicatie te maken.',
+                'steps' => [
+                    ['title' => 'Genereer of assisteer', 'text' => 'AI helpt bij drafts, antwoorden, verbeteringen, vertalingen of campagne-assets binnen een gecontroleerde workspace.'],
+                    ['title' => 'Leg provenance vast', 'text' => 'Argusly bewaart model, prompt, bron, status en workflow events als onderdeel van de assethistorie.'],
+                    ['title' => 'Review en keur goed', 'text' => 'Mensen controleren claims, merkfit, bronkwaliteit en publicatiegereedheid voordat content doorgaat.'],
+                    ['title' => 'Publiceer en audit', 'text' => 'Publicatie blijft gekoppeld aan disclosure metadata, versiehistorie en downloadbaar auditbewijs.'],
+                ],
+            ],
+            'readiness' => [
+                'eyebrow' => 'EU AI Act readiness',
+                'title' => 'Een praktische basis voor transparantieverplichtingen',
+                'text' => 'Argusly vervangt geen juridisch advies. Het geeft organisaties operationele controls die transparante AI-assisted contentworkflows ondersteunen.',
+                'points' => [
+                    'Menselijk leesbare AI disclosure voor governed contentassets',
+                    'Machine-readable metadata ontworpen voor herkenning door downstream systemen',
+                    'Menselijke review en workflows voor redactionele verantwoordelijkheid',
+                    'Traceerbaarheid voor prompts, modellen, bronnen, versies en approvals',
+                ],
+            ],
+            'enterprise' => [
+                'title' => 'Enterprise governance voor marketingteams',
+                'text' => 'Enterprise-kopers vragen niet alleen of content gegenereerd kan worden. Ze vragen wie het heeft goedgekeurd, welk model eraan heeft bijgedragen, welke bronnen zijn gebruikt en of de organisatie dat proces later kan aantonen.',
+                'points' => [
+                    'Ontworpen voor legal, compliance, marketing operations en brand stakeholders',
+                    'Bruikbaar voor procurement, security review en responsible AI gesprekken',
+                    'Afgestemd op privacy-first workflows en GDPR-bewuste dataverwerking',
+                    'Een sterker enterprise-verhaal dan weer een losse AI-schrijftool',
+                ],
+            ],
+            'capabilities' => [
+                'title' => 'AI Governance mogelijkheden',
+                'items' => [
+                    'Human Review',
+                    'AI Provenance',
+                    'AI Disclosure',
+                    'Trust Score',
+                    'Workflow Audit',
+                    'Content Lineage',
+                    'Source Verification',
+                    'Approval Flows',
+                    'Prompt History',
+                    'Model History',
+                    'Audit PDF',
+                    'Disclosure API',
+                ],
+            ],
+            'cta_title' => 'Bouw AI-assisted contentoperaties die mensen kunnen vertrouwen.',
+            'cta_text' => 'Laat enterprise stakeholders zien hoe Argusly AI-generatie, review, publicatie en auditbewijs in één governed workflow verbindt.',
+        ],
         'overview' => [
             'badge' => 'Content Operations Platform',
             'hero_title' => 'Contentoperaties, governed by design.',
@@ -378,6 +455,19 @@ return [
             ['icon' => 'eye', 'title' => 'Zichtbaarheidsgaten hebben een oorzaak nodig', 'text' => 'Een ontbrekende vermelding is niet genoeg. Teams moeten weten of het probleem bewijs, structuur, autoriteit, contentkwaliteit of concurrentie is.'],
             ['icon' => 'crosshair', 'title' => 'Prioriteiten zijn lastig te onderbouwen', 'text' => 'Zonder gedeeld beeld van impact en effort blijft discussie ontstaan over welke pagina, welk topic of welk kanaal eerst aandacht verdient.'],
             ['icon' => 'zap', 'title' => 'Uitvoering breekt na het inzicht', 'text' => 'Aanbevelingen zijn pas waardevol wanneer ze briefs, drafts, pagina-updates, interne links, distributie en vervolgchecks worden.'],
+        ],
+        'ai_governance' => [
+            'eyebrow' => 'AI Governance',
+            'title' => 'Ready for the EU AI Act, zonder marketing in juridisch theater te veranderen.',
+            'text' => 'Argusly helpt marketingteams AI-assisted content te genereren met transparantie, menselijke review workflows, provenance tracking, source traceability en audit-ready records.',
+            'primary_cta' => 'Bekijk AI Governance',
+            'secondary_cta' => 'Lees AI Transparency Statement',
+            'cards' => [
+                ['icon' => 'badge-check', 'title' => 'AI disclosure', 'text' => 'Leg per asset vast waar AI is gebruikt en welke disclosure-status geldt.'],
+                ['icon' => 'history', 'title' => 'Provenance timeline', 'text' => 'Volg generatie, review, fact-check, approval, publicatie en audit-events.'],
+                ['icon' => 'user-check', 'title' => 'Human review', 'text' => 'Houd redactionele verantwoordelijkheid zichtbaar in elke approval workflow.'],
+                ['icon' => 'file-check-2', 'title' => 'Auditrapporten', 'text' => 'Exporteer PDF-rapporten en machine-readable metadata voor compliance review.'],
+            ],
         ],
         'how_title' => 'Zie. Diagnoseer. Beslis. Voer uit. Leer.',
         'how_text' => 'Argusly geeft marketingteams een praktische operating loop om zichtbaarheid en vraag te verbeteren zonder elk inzicht om te zetten in handmatig projectmanagement.',
@@ -813,6 +903,8 @@ return [
             'terms_description' => 'Contractuele voorwaarden voor het gebruik van Argusly, inclusief abonnementen, credits en toegang.',
             'security_title' => 'Beveiliging | Argusly',
             'security_description' => 'Beveiligingsoverzicht van Argusly, inclusief praktische waarborgen, toegangscontrole en monitoring.',
+            'ai_transparency_title' => 'AI Transparency Statement | Argusly',
+            'ai_transparency_description' => 'Hoe Argusly omgaat met AI-assisted content, menselijke review, disclosure, provenance, promptverwerking en auditmetadata.',
             'cookies_title' => 'Cookies | Argusly',
             'cookies_description' => 'Actuele informatie over cookies en vergelijkbare technologieën op publieke Argusly pagina\'s en app-toegang.',
             'subprocessors_title' => 'Subverwerkers | Argusly',
@@ -826,6 +918,7 @@ return [
             'privacy' => '10 juni 2026',
             'terms' => '10 juni 2026',
             'security' => '10 juni 2026',
+            'ai-transparency' => '1 juli 2026',
             'cookies' => '11 maart 2026',
             'subprocessors' => '11 maart 2026',
         ],
@@ -853,6 +946,12 @@ return [
                     'description' => 'Onze aanpak voor platformbeveiliging, toegangscontrole, infrastructuur en verantwoord AI-gebruik.',
                     'link_label' => 'Lees beveiligingsoverzicht',
                     'route' => 'public.legal.security',
+                ],
+                [
+                    'title' => 'AI Transparantie',
+                    'description' => 'Hoe AI-assisted workflows, menselijke review, provenance, promptverwerking en disclosure binnen Argusly worden behandeld.',
+                    'link_label' => 'Lees AI Transparency Statement',
+                    'route' => 'public.legal.ai-transparency',
                 ],
                 [
                     'title' => 'Cookies',
@@ -992,7 +1091,7 @@ return [
                     'transition' => 'Zodra teams in één operationele flow werken, heb je heldere controls nodig om kwaliteit, merkcontext en verantwoordelijkheden consistent te houden.',
                     'cards' => [
                         ['title' => 'Rollen en rechten', 'bullets' => ['Bepaal wie mag creëren, reviewen, goedkeuren en publiceren', 'Houd verantwoordelijkheden helder over teams en sites', 'Ondersteun governance zonder dagelijks werk te blokkeren']],
-                        ['title' => 'Workspaces en merkcontext', 'bullets' => ['Scheid merken, teams of klanten in eigen workspaces', 'Pas bedrijfsprofiel, persona en brand voice context per workspace toe', 'Behoud gedeelde standaarden zonder lokale controle te verliezen']],
+                        ['title' => 'AI transparantie', 'bullets' => ['Leg AI disclosure-status per asset vast', 'Volg model- en promptgeschiedenis wanneer AI wordt gebruikt', 'Bereid machine-readable metadata voor downstream systemen voor']],
                         ['title' => 'Versiebeheer en publicatiecontrole', 'bullets' => ['Volg revisies en contentwijzigingen over tijd', 'Gebruik reviewstaten voordat content live gaat', 'Houd publicatieacties traceerbaar en auditbaar']],
                     ],
                     'callout' => [
@@ -1053,15 +1152,11 @@ return [
             ],
         ],
         'product.governance' => [
-            'metaTitle' => 'Governance | Argusly',
-            'metaDescription' => 'Gestructureerde contentcontrole met brand rules, approval flows en auditbaarheid.',
-            'heading' => 'Governance',
-            'intro' => 'Governance in Argusly houdt contentproductie helder, controleerbaar en schaalbaar over teams en sites.',
-            'sections' => [
-                ['title' => 'Rollen en rechten', 'bullets' => ['Bepaal wie mag creëren, reviewen, goedkeuren en publiceren', 'Houd verantwoordelijkheden helder over teams en sites', 'Ondersteun governance zonder dagelijks werk te blokkeren']],
-                ['title' => 'Workspaces en merkcontext', 'bullets' => ['Scheid merken, teams of klanten in eigen workspaces', 'Pas bedrijfsprofiel, persona en brand voice context per workspace toe', 'Behoud gedeelde standaarden zonder lokale controle te verliezen']],
-                ['title' => 'Versiebeheer en publicatiecontrole', 'bullets' => ['Volg revisies en contentwijzigingen over tijd', 'Gebruik reviewstaten voordat content live gaat', 'Houd publicatieacties traceerbaar en auditbaar']],
-            ],
+            'metaTitle' => 'AI Governance & Transparantie | Argusly',
+            'metaDescription' => 'AI governance voor contentteams: disclosure, provenance, menselijke review, source traceability, promptgeschiedenis en audit-ready workflows.',
+            'heading' => 'Built for AI Governance. Ready for the EU AI Act.',
+            'intro' => 'Argusly maakt van AI-assisted contentproductie een transparante, reviewbare en audit-ready workflow voor teams die controle, bewijs en enterprise trust nodig hebben.',
+            'sections' => [],
         ],
         'product.intelligence' => [
             'metaTitle' => 'Intelligence | Argusly',
@@ -1110,7 +1205,7 @@ return [
             'heading' => 'Juridisch Overzicht',
             'intro' => 'Centraal overzicht van alle juridische en compliance-documentatie.',
             'sections' => [
-                ['title' => 'Beschikbaar', 'bullets' => ['Privacy', 'Voorwaarden', 'Beveiliging', 'Cookies', 'Subverwerkers']],
+                ['title' => 'Beschikbaar', 'bullets' => ['Privacy', 'Voorwaarden', 'Beveiliging', 'AI Transparantie', 'Cookies', 'Subverwerkers']],
             ],
         ],
         'legal.privacy' => [
@@ -1204,6 +1299,66 @@ return [
             'sections' => [
                 ['title' => 'Beveiligingsmaatregelen', 'bullets' => ['Versleutelde verbindingen en beveiligde sessie-instellingen', 'Authenticatieflows met gehashte wachtwoorden en beschermde sessies', 'Rolgebaseerde rechten en afgeschermde admin-toegang', 'Workspace-gebonden toegangscontroles voor klantdata en integraties', 'Server-side validatie en frameworkbescherming zoals CSRF-verdediging', 'Rate limiting op publieke formulieren, analytics en API-endpoints', 'Applicatiemonitoring, logging en error tracking', 'Framework- en dependency-updates terwijl het platform evolueert']],
                 ['title' => 'Beveiligingsaanpak', 'bullets' => ['Argusly past praktische waarborgen toe die passen bij de huidige product- en infrastructuurfase.', 'Beveiligingsmaatregelen worden herzien en uitgebreid naarmate gebruik en infrastructuur verder groeien.', 'Deze pagina wordt bijgewerkt wanneer materiele beveiligingspraktijken of ondersteunende providers veranderen.']],
+            ],
+        ],
+        'legal.ai-transparency' => [
+            'metaTitle' => 'AI Transparency Statement | Argusly',
+            'metaDescription' => 'Hoe Argusly AI-assisted workflows, menselijke review, provenance, promptverwerking, source tracking en auditmetadata gebruikt.',
+            'heading' => 'AI Transparency Statement',
+            'intro' => 'Argusly is ontworpen voor professionele teams die AI willen gebruiken in contentoperaties zonder redactionele verantwoordelijkheid, reviewcontrole of provenance te verliezen. Dit statement legt uit hoe wij AI-assisted workflows en transparantie benaderen.',
+            'articles' => [
+                [
+                    'title' => 'AI-assisted workflows',
+                    'points' => [
+                        'Argusly kan AI-systemen gebruiken ter ondersteuning van research, briefing, drafting, rewriting, vertaling, contentverbetering, answer blocks, beeldgeneratie en gerelateerde workflow-assistentie.',
+                        'AI-functionaliteit is bedoeld om klantteams te ondersteunen. Het vervangt geen menselijke review, fact-checking, juridische review waar nodig of redactionele verantwoordelijkheid vóór publicatie.',
+                        'Klanten bepalen hoe workflows, approvals, gekoppelde bronnen, publicatiebestemmingen en het automatiseringsniveau in hun workspace worden geconfigureerd.',
+                    ],
+                ],
+                [
+                    'title' => 'Menselijke review en redactionele verantwoordelijkheid',
+                    'points' => [
+                        'Argusly ondersteunt human-in-the-loop workflows via reviewstatussen, approval flows, contentrevisies, publishing controls en teamrollen.',
+                        'Klantgebruikers blijven verantwoordelijk voor het beoordelen van AI-assisted output voordat zij erop vertrouwen of deze publiceren.',
+                        'Enterprise-workflows kunnen review-, approval- en auditsignalen gebruiken om te tonen hoe content van draft naar publicatie is gegaan.',
+                    ],
+                ],
+                [
+                    'title' => 'AI disclosure en provenance',
+                    'points' => [
+                        'Argusly wordt gebouwd om AI disclosure-status per governed contentasset vast te leggen, inclusief of content human-created, AI-assisted, AI-generated of AI-edited is.',
+                        'Provenance records kunnen generatie-events, review-events, fact-check status, publicatieacties, modelgeschiedenis, promptgeschiedenis, source trace, versiehistorie en output-hashes bevatten.',
+                        'Machine-readable metadata en disclosure API’s zijn ontworpen om downstream systemen te helpen AI-assisted content te herkennen en provenance-informatie te inspecteren.',
+                    ],
+                ],
+                [
+                    'title' => 'Prompt- en modelverwerking',
+                    'points' => [
+                        'Prompts kunnen klantinstructies, merkcontext, bronmateriaal, draftcontent en workflowconfiguratie bevatten die nodig zijn om de gevraagde taak uit te voeren.',
+                        'Waar beschikbaar legt Argusly modelprovider, modelnaam, run identifiers, prompt-hashes, output-hashes en generatie-instellingen vast voor audit en troubleshooting.',
+                        'Promptgeschiedenis kan worden samengevat of geredigeerd wanneer gevoelige informatie niet breed zichtbaar moet zijn voor alle gebruikers of externe systemen.',
+                    ],
+                ],
+                [
+                    'title' => 'Bronnen en fact-checking',
+                    'points' => [
+                        'Argusly kan bronreferenties, retrieval status, brontitels, URL’s, timestamps en gerelateerde metadata bewaren wanneer bronnen in research- of generatie-workflows worden gebruikt.',
+                        'Source traceability helpt klantteams inspecteren waarop output is gebaseerd, maar garandeert op zichzelf geen feitelijke juistheid.',
+                        'Fact-check status en reviewer notes kunnen worden gebruikt om vast te leggen of claims unchecked, supported, partially supported, conflicting zijn of menselijke review vereisen.',
+                    ],
+                ],
+                [
+                    'title' => 'Grenzen van AI-output',
+                    'points' => [
+                        'AI-output kan onvolledig, onjuist, verouderd, biased of ongeschikt zijn voor een specifieke juridische, medische, financiële, regulatoire of merkgevoelige use case.',
+                        'Argusly garandeert niet dat AI-assisted output feitelijk correct, juridisch correct, vrij van rechten van derden of geschikt voor publicatie zonder review is.',
+                        'Klanten moeten hun eigen review-, approval-, bronverificatie- en complianceproces toepassen vóór publicatie of extern gebruik.',
+                    ],
+                ],
+            ],
+            'sections' => [
+                ['title' => 'Klantcontrols', 'bullets' => ['Configureer workflows en approval gates', 'Review en bewerk gegenereerde content vóór publicatie', 'Gebruik source trace, model history en auditrapporten waar beschikbaar']],
+                ['title' => 'Transparantierecords', 'bullets' => ['AI-badges en disclosure status', 'Provenance timelines en workflow events', 'Downloadbare auditrapporten en machine-readable metadata']],
             ],
         ],
         'legal.cookies' => [

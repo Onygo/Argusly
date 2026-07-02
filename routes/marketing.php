@@ -190,6 +190,10 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
                 ->defaults('marketing_route', 'public.legal.security')
                 ->defaults('legacy_locale', 'en')
                 ->name('legacy.security');
+            Route::get('/ai-transparency', [LegacyLocalizedMarketingRedirectController::class, 'route'])
+                ->defaults('marketing_route', 'public.legal.ai-transparency')
+                ->defaults('legacy_locale', 'en')
+                ->name('legacy.ai-transparency');
             Route::get('/cookies', [LegacyLocalizedMarketingRedirectController::class, 'route'])
                 ->defaults('marketing_route', 'public.legal.cookies')
                 ->defaults('legacy_locale', 'en')
@@ -304,8 +308,8 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
                         ->defaults('marketing_route', 'public.product.capabilities')
                         ->middleware('early-access.guard:product.capabilities')
                         ->name('capabilities');
-                    Route::get('/' . $marketingSegments->segment('governance', $locale), [PublicPageController::class, 'redirectLegacyProduct'])
-                        ->defaults('anchor', 'governance')
+                    Route::get('/' . $marketingSegments->segment('governance', $locale), [PublicPageController::class, 'show'])
+                        ->defaults('key', 'product.governance')
                         ->defaults('marketing_route', 'public.product.governance')
                         ->middleware('early-access.guard:product.governance')
                         ->name('governance');
@@ -351,6 +355,10 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
                         ->defaults('page', 'security')
                         ->defaults('marketing_route', 'public.legal.security')
                         ->name('security');
+                    Route::get('/' . $marketingSegments->segment('ai_transparency', $locale), [PublicLegalController::class, 'show'])
+                        ->defaults('page', 'ai-transparency')
+                        ->defaults('marketing_route', 'public.legal.ai-transparency')
+                        ->name('ai-transparency');
                     Route::get('/' . $marketingSegments->segment('cookies', $locale), [PublicLegalController::class, 'show'])
                         ->defaults('page', 'cookies')
                         ->defaults('marketing_route', 'public.legal.cookies')
@@ -387,7 +395,8 @@ Route::get('/login', [LoginController::class, 'show'])
     ->middleware('guest')
     ->name('marketing.login');
 Route::post('/login', [LoginController::class, 'store'])
-    ->middleware(['guest', 'throttle:login']);
+    ->middleware(['guest', 'throttle:login'])
+    ->name('marketing.login.store');
 Route::post('/logout', [LoginController::class, 'destroy'])
     ->middleware('auth');
 Route::post('/impersonation/stop', StopImpersonationController::class)

@@ -1,24 +1,26 @@
 @extends('layouts.admin', ['title' => 'FAQ Intelligence analysis'])
 
-@section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">FAQ analysis</h1>
-            <p class="mt-1 text-textSecondary">{{ data_get($result, 'page.title') ?: data_get($result, 'page.page_slug') }}</p>
-        </div>
-        <a href="{{ route('admin.faq-intelligence.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back</a>
-    </div>
+@section('pageHeader')
+    <x-page-header title="FAQ analysis">
+        <x-slot:description>{{ data_get($result, 'page.title') ?: data_get($result, 'page.page_slug') }}</x-slot:description>
+    </x-page-header>
+@endsection
 
-    <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+@section('primaryActions')
+    <a href="{{ route('admin.faq-intelligence.index') }}" class="pl-btn-secondary">Back</a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
         @foreach (data_get($result, 'scores', []) as $key => $score)
-            <div class="rounded-lg border border-border bg-surface p-4">
-                <p class="text-xs text-textSecondary">{{ str($key)->replace('_', ' ')->title() }}</p>
-                <p class="mt-1 text-3xl font-semibold text-textPrimary">{{ number_format((float) ($score['score'] ?? 0), 1) }}</p>
-                <p class="mt-2 text-xs leading-5 text-textSecondary">{{ $score['rationale'] ?? '' }}</p>
-            </div>
+            <x-metric-card :label="str($key)->replace('_', ' ')->title()" :value="number_format((float) ($score['score'] ?? 0), 1)">
+                {{ $score['rationale'] ?? '' }}
+            </x-metric-card>
         @endforeach
-    </div>
+    </x-metric-section>
+@endsection
 
+@section('content')
     <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <div class="rounded-lg border border-border bg-surface p-5">
             <h2 class="text-sm font-semibold text-textPrimary">Missing questions</h2>

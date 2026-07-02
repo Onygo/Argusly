@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Publication Readiness'])
 
+@section('pageHeader')
+    <x-page-header :title="$readiness->content?->title" eyebrow="Publication Readiness">
+        <x-slot:description>{{ str($readiness->status)->headline() }} · score {{ number_format((float) $readiness->readiness_score, 1) }}</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php($type = $readiness->growth_asset_type instanceof \App\Enums\GrowthAssetType ? $readiness->growth_asset_type : \App\Enums\GrowthAssetType::tryFrom((string) $readiness->growth_asset_type))
 
@@ -9,12 +15,23 @@
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <a href="{{ route('app.programmatic-publication-readiness.index', ['workspace_id' => $workspace->id]) }}" class="text-sm font-medium text-textSecondary hover:text-textPrimary">Publication Readiness</a>
-                <h1 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $readiness->content?->title }}</h1>
+                <h2 class="mt-2 text-2xl font-semibold tracking-tight text-textPrimary">{{ $readiness->content?->title }}</h2>
                 <p class="mt-1 text-sm text-textSecondary">{{ str($readiness->status)->headline() }} · {{ $type?->label() ?? 'Programmatic asset' }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 @can('approve', $readiness)
-                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.approve', $readiness) }}">@csrf<button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">Approve</button></form>
+                    <form method="POST" action="{{ route('app.programmatic-publication-readiness.approve', $readiness) }}" class="flex flex-wrap items-center gap-2">
+                        @csrf
+                        @if ($readiness->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_BLOCKED)
+                            <label class="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-900">
+                                <input type="checkbox" name="override" value="1" class="rounded border-amber-300 text-primary" required>
+                                Override blocked checks
+                            </label>
+                        @endif
+                        <button class="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white">
+                            {{ $readiness->status === \App\Models\ProgrammaticPublicationReadiness::STATUS_BLOCKED ? 'Approve with Override' : 'Approve' }}
+                        </button>
+                    </form>
                     <form method="POST" action="{{ route('app.programmatic-publication-readiness.needs-work', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Needs Work</button></form>
                     <form method="POST" action="{{ route('app.programmatic-publication-readiness.block', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Block</button></form>
                     <form method="POST" action="{{ route('app.programmatic-publication-readiness.reject', $readiness) }}">@csrf<button class="rounded-md border border-border bg-surface px-3 py-2 text-sm text-textPrimary">Reject</button></form>

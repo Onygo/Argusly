@@ -16,11 +16,13 @@
                 'Privacy' => 'shield',
                 'Terms' => 'file-text',
                 'Security' => 'lock',
+                'AI Transparency' => 'badge-check',
                 'Cookies' => 'cookie',
                 'Subprocessors' => 'server',
                 'Privacybeleid' => 'shield',
                 'Voorwaarden' => 'file-text',
                 'Beveiliging' => 'lock',
+                'AI Transparantie' => 'badge-check',
                 'Subverwerkers' => 'server',
             ];
         @endphp

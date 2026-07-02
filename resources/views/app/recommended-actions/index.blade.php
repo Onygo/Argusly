@@ -1,10 +1,20 @@
 @extends('layouts.app', ['title' => 'Recommended Actions'])
 
+@section('pageHeader')
+    <x-page-header title="What Argusly recommends next" eyebrow="Recommended Actions Inbox">
+        <x-slot:description>Unified actions from opportunities, learning, AI visibility, agentic marketing, campaign planning, content intelligence, and distribution.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.dashboard') }}" class="pl-btn-secondary">Command Center</a>
+@endsection
+
 @section('content')
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wide text-textFaint">Recommended Actions Inbox</p>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">What Argusly recommends next</h1>
+            <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">What Argusly recommends next</h2>
             <p class="mt-1 max-w-3xl text-textSecondary">Unified actions from opportunities, learning, AI visibility, agentic marketing, campaign planning, content intelligence, and distribution.</p>
         </div>
         <a href="{{ route('app.dashboard') }}" class="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border px-3 text-sm font-medium text-textPrimary hover:bg-surfaceMuted">

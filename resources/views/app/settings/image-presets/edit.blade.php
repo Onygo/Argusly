@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Edit Image Preset', 'pageWidth' => 'constrained'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Edit Image Preset</x-slot:title>
+        <x-slot:description>Update the visual style instructions for "{{ $preset->name }}".</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="space-y-3">
@@ -11,10 +18,6 @@
                 <span class="text-textPrimary">Edit</span>
             </nav>
             <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Edit Image Preset</h1>
-                    <p class="text-textSecondary mt-1">Update the visual style instructions for "{{ $preset->name }}".</p>
-                </div>
                 @if ($preset->is_default)
                     <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700">
                         <i data-lucide="check" class="h-3 w-3"></i>

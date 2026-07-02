@@ -1,12 +1,18 @@
 @extends('layouts.app', ['title' => 'Growth Programs'])
 
+@section('pageHeader')
+    <x-page-header title="Growth Programs">
+        <x-slot:description>Plan and manage growth programs generated from opportunities and strategy signals.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @include('app.programmatic-growth._beta-banner', ['class' => 'mb-6'])
 
     <div class="space-y-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Growth Programs</h1>
+                <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">Growth Programs</h2>
                 <p class="mt-1 max-w-3xl text-textSecondary">Track growth initiatives across opportunity intelligence, execution planning, briefing, drafting, publishing, and measurement.</p>
             </div>
         </div>

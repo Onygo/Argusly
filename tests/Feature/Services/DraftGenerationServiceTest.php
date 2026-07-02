@@ -378,7 +378,7 @@ describe('generate', function () {
         expect($result['content_html'])->toContain('<h2>How testing examples guide implementation</h2>');
     });
 
-    it('rejects generic headings through the draft generation quality gate', function () {
+    it('keeps a generated draft for editorial review when heading repair cannot resolve weak headings', function () {
         config(['llm.providers.openai.api_key' => 'test-api-key']);
 
         Http::fake([
@@ -402,9 +402,57 @@ describe('generate', function () {
         ]);
 
         $draft = createMockedDraft();
+        $result = $this->service->generate($draft);
 
-        $this->service->generate($draft);
-    })->throws(RuntimeException::class, 'Heading Quality Score failed');
+        expect($result['meta']['heading_quality']['passed'])->toBeFalse()
+            ->and($result['meta']['heading_quality']['blocks_generation'])->toBeFalse()
+            ->and($result['meta']['heading_quality']['needs_editorial_review'])->toBeTrue()
+            ->and($result['meta']['heading_quality_repair']['status'])->toBe('needs_editorial_review');
+    });
+
+    it('repairs weak section headings before persisting the generated draft', function () {
+        config(['llm.providers.openai.api_key' => 'test-api-key']);
+
+        Http::fake([
+            '*/v1/responses' => Http::sequence()
+                ->push([
+                    'output_text' => json_encode([
+                        'title' => 'Heading Repair Test',
+                        'meta' => ['description' => 'Description', 'keywords' => []],
+                        'sections' => [
+                            [
+                                'heading' => 'Main Section',
+                                'html' => '<p>' . str_repeat('This paragraph has enough content to pass length validation. ', 30) . '</p>',
+                            ],
+                            [
+                                'heading' => 'How testing improves implementation performance',
+                                'html' => '<p>' . str_repeat('This second paragraph has enough context for validation. ', 30) . '</p>',
+                            ],
+                        ],
+                        'links' => [],
+                    ]),
+                ])
+                ->push([
+                    'output_text' => json_encode([
+                        'headings' => [
+                            [
+                                'index' => 0,
+                                'heading' => 'How testing strategy improves implementation performance',
+                            ],
+                        ],
+                    ]),
+                ]),
+        ]);
+
+        $draft = createMockedDraft();
+        $result = $this->service->generate($draft);
+
+        expect($result['content_html'])->toContain('<h2>How testing strategy improves implementation performance</h2>')
+            ->and($result['content_html'])->not->toContain('<h2>Main Section</h2>')
+            ->and($result['meta']['heading_quality']['passed'])->toBeTrue()
+            ->and($result['meta']['heading_quality_repair']['status'])->toBe('repaired')
+            ->and($result['meta']['heading_quality_repair']['repaired_headings'])->toBe(1);
+    });
 
     it('uses default values when draft meta is incomplete', function () {
         config(['llm.providers.openai.api_key' => 'test-api-key']);

@@ -17,6 +17,7 @@ use App\Models\ContentPublication;
 use App\Models\Draft;
 use App\Services\Content\ContentLifecycleService;
 use App\Services\HumanContent\HumanContentGate;
+use App\Services\AiTransparency\AiTransparencyService;
 use App\Support\Connectors\ConnectorRegistry;
 use App\Support\Connectors\Results\HealthCheckResult;
 use App\Support\Connectors\Results\PublicationResult;
@@ -135,7 +136,13 @@ class ContentPublicationService
         ?ContentPublication $publication = null,
     ): PublicationResult {
         $draft ??= $this->resolveDraft($content);
-        $gate = $this->humanContentGate->evaluate($draft, $content);
+        $gate = $this->humanContentGate->applyManualPublicationOverride(
+            $draft,
+            $content,
+            $this->humanContentGate->evaluate($draft, $content),
+            $options
+        );
+
         if (! $gate['passed']) {
             $this->humanContentGate->markDraft($draft, $content);
 
@@ -144,6 +151,17 @@ class ContentPublicationService
                 meta: [
                     'skip_reason' => 'human_content_gate_blocked',
                     'human_content_gate' => $gate,
+                ],
+            );
+        }
+
+        $aiTransparencyGate = $this->aiTransparencyPublicationGate($content);
+        if (! (bool) $aiTransparencyGate['passed']) {
+            return PublicationResult::skipped(
+                reason: (string) $aiTransparencyGate['message'],
+                meta: [
+                    'skip_reason' => 'ai_transparency_review_blocked',
+                    'ai_transparency_gate' => $aiTransparencyGate,
                 ],
             );
         }
@@ -226,7 +244,13 @@ class ContentPublicationService
     public function dispatchWordPressPublication(Content $content, ?Draft $draft = null, array $context = []): array
     {
         $draft ??= $this->resolveDraft($content);
-        $gate = $this->humanContentGate->evaluate($draft, $content);
+        $gate = $this->humanContentGate->applyManualPublicationOverride(
+            $draft,
+            $content,
+            $this->humanContentGate->evaluate($draft, $content),
+            $context
+        );
+
         if (! $gate['passed']) {
             $this->humanContentGate->markDraft($draft, $content);
 
@@ -241,6 +265,22 @@ class ContentPublicationService
                 'publication' => null,
                 'queued' => false,
                 'skip_reason' => 'human_content_gate_blocked',
+            ];
+        }
+
+        $aiTransparencyGate = $this->aiTransparencyPublicationGate($content);
+        if (! (bool) $aiTransparencyGate['passed']) {
+            Log::warning('publication.wordpress.dispatch_skipped', array_merge($context, [
+                'reason' => 'ai_transparency_review_blocked',
+                'content_id' => (string) $content->id,
+                'draft_id' => (string) ($draft?->id ?? ''),
+                'ai_review_status' => $aiTransparencyGate['status'],
+            ]));
+
+            return [
+                'publication' => null,
+                'queued' => false,
+                'skip_reason' => 'ai_transparency_review_blocked',
             ];
         }
 
@@ -342,7 +382,13 @@ class ContentPublicationService
     public function dispatchLaravelPublication(Content $content, ?Draft $draft = null, array $context = []): array
     {
         $draft ??= $this->resolveDraft($content);
-        $gate = $this->humanContentGate->evaluate($draft, $content);
+        $gate = $this->humanContentGate->applyManualPublicationOverride(
+            $draft,
+            $content,
+            $this->humanContentGate->evaluate($draft, $content),
+            $context
+        );
+
         if (! $gate['passed']) {
             $this->humanContentGate->markDraft($draft, $content);
 
@@ -357,6 +403,22 @@ class ContentPublicationService
                 'publication' => null,
                 'queued' => false,
                 'skip_reason' => 'human_content_gate_blocked',
+            ];
+        }
+
+        $aiTransparencyGate = $this->aiTransparencyPublicationGate($content);
+        if (! (bool) $aiTransparencyGate['passed']) {
+            Log::warning('publication.laravel.dispatch_skipped', array_merge($context, [
+                'reason' => 'ai_transparency_review_blocked',
+                'content_id' => (string) $content->id,
+                'draft_id' => (string) ($draft?->id ?? ''),
+                'ai_review_status' => $aiTransparencyGate['status'],
+            ]));
+
+            return [
+                'publication' => null,
+                'queued' => false,
+                'skip_reason' => 'ai_transparency_review_blocked',
             ];
         }
 
@@ -1308,6 +1370,17 @@ class ContentPublicationService
         // Sync to legacy storage locations (temporary, remove in Phase 6)
         $this->legacyCompatibility->sync($publication);
 
+        try {
+            app(AiTransparencyService::class)->recordPublication($content->fresh(['workspace', 'clientSite.workspace', 'drafts']) ?? $content, $publication, $draft);
+        } catch (\Throwable $exception) {
+            Log::warning('publication.ai_transparency_sync_failed', [
+                'content_id' => (string) $content->id,
+                'publication_id' => (string) $publication->id,
+                'provider' => (string) $publication->provider,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
         // Dispatch webhook for successful publication
         $this->webhookDispatcher->publicationSucceeded($content, $publication, $draft);
 
@@ -1318,6 +1391,42 @@ class ContentPublicationService
         );
 
         return $result;
+    }
+
+    /**
+     * @return array{passed:bool,message:string,status:?string}
+     */
+    private function aiTransparencyPublicationGate(Content $content): array
+    {
+        try {
+            $record = app(AiTransparencyService::class)->ensureForContent($content->fresh(['workspace', 'clientSite.workspace', 'drafts']) ?? $content);
+            $status = (string) $record->human_review_status;
+
+            if (in_array($status, ['needs_changes', 'rejected'], true)) {
+                return [
+                    'passed' => false,
+                    'message' => 'AI Trust Center review blocks publication until changes are resolved.',
+                    'status' => $status,
+                ];
+            }
+
+            return [
+                'passed' => true,
+                'message' => 'AI Trust Center review allows publication.',
+                'status' => $status !== '' ? $status : null,
+            ];
+        } catch (\Throwable $exception) {
+            Log::warning('publication.ai_transparency_gate_failed_open', [
+                'content_id' => (string) $content->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return [
+                'passed' => true,
+                'message' => 'AI Trust Center gate unavailable; publication allowed.',
+                'status' => null,
+            ];
+        }
     }
 
     /**

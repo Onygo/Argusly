@@ -15,6 +15,11 @@ use App\Services\Entitlements\WorkspaceEntitlementsService;
 use App\Services\PlanQuotaService;
 use App\Services\SeoAudit\SeoAuditAiFixService;
 use App\Services\SeoAudit\SeoAuditRunDashboardPresenter;
+use App\Support\Interaction\Action;
+use App\Support\Interaction\AppInteractionRegistry;
+use App\Support\Interaction\Providers\AppSiteInteractionProvider;
+use App\Support\Interaction\ResourceContext;
+use App\Support\Interaction\ResourceType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -30,6 +35,8 @@ class AppSiteSeoAuditController extends Controller
             ->where('client_site_id', $site->id)
             ->latest('started_at')
             ->with([
+                'site:id,workspace_id,name,site_url,base_url,status,is_active',
+                'site.workspace:id,organization_id',
                 'pages:id,seo_audit_id,page_type',
                 'issues:id,seo_audit_id,seo_audit_page_id,severity',
             ])
@@ -59,14 +66,78 @@ class AppSiteSeoAuditController extends Controller
             });
 
         $lastAudit = $audits->first();
+        [$interactionResourcesByKey, $interactionActionsByKey] = $this->resolveSeoAuditIndexInteractionMetadata($audits, $site);
 
         return view('app.sites.seo-audits.index', [
             'site' => $site,
             'audits' => $audits,
             'lastAudit' => $lastAudit,
+            'audit' => new SeoAudit(),
             'auditPageLimit' => $quotaService->limitForMetric($site->workspace, PlanQuotaService::METRIC_AUDIT_PAGES_CRAWLED, -1),
             'auditPagesUsed' => $quotaService->periodUsage($site->workspace, PlanQuotaService::METRIC_AUDIT_PAGES_CRAWLED, now()->format('Ym')),
+            'interactionResourcesByKey' => $interactionResourcesByKey,
+            'interactionActionsByKey' => $interactionActionsByKey,
         ]);
+    }
+
+    /**
+     * @param iterable<int, SeoAudit> $audits
+     * @return array{0: array<string, array>, 1: array<string, array<string, array>>}
+     */
+    private function resolveSeoAuditIndexInteractionMetadata(iterable $audits, ClientSite $site): array
+    {
+        $user = request()->user();
+        $audits = collect($audits)->values();
+        $resourceRegistry = AppInteractionRegistry::resourceRegistryFor($audits);
+        $actionRegistry = AppInteractionRegistry::actionRegistry();
+
+        $resourcesByKey = [];
+        $actionsByKey = [];
+
+        foreach ($audits as $audit) {
+            $resourceKey = ResourceType::SEO_AUDIT.':'.$audit->getKey();
+            $context = ResourceContext::make([
+                'user' => $user,
+                'surface' => Action::SURFACE_ROW,
+                'page_key' => 'app.sites.seo-audits.index',
+                'route_name' => 'app.sites.seo-audits.index',
+                'organization_id' => $user?->organization_id,
+                'workspace_id' => $site->workspace_id,
+                'site_id' => $site->getKey(),
+                'resource_type' => ResourceType::SEO_AUDIT,
+                'resource_id' => $audit->getKey(),
+                'subject' => $audit,
+                'metadata' => [
+                    'subject' => $audit,
+                    'site' => $site,
+                    'site_id' => $site->getKey(),
+                ],
+            ]);
+
+            $resource = $resourceRegistry->resolve($resourceKey, $context);
+
+            if ($resource === null) {
+                continue;
+            }
+
+            $resourcesByKey[$resourceKey] = $resource;
+            $actionsByKey[$resourceKey] = [];
+
+            foreach ($resource['available_actions'] as $actionKey) {
+                if ($actionKey !== AppSiteInteractionProvider::ACTION_SEO_AUDIT_OPEN
+                    || ! $actionRegistry->has($actionKey)) {
+                    continue;
+                }
+
+                $action = $actionRegistry->resolve($actionKey, $context->toActionContext());
+
+                if ($action['visible']) {
+                    $actionsByKey[$resourceKey][$actionKey] = $action;
+                }
+            }
+        }
+
+        return [$resourcesByKey, $actionsByKey];
     }
 
     public function run(Request $request, ClientSite $site): RedirectResponse

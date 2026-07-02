@@ -40,6 +40,7 @@ return [
         'privacy' => 'Privacy',
         'terms' => 'Terms',
         'security' => 'Security',
+        'ai_transparency' => 'AI Transparency',
         'cookies' => 'Cookies',
         'subprocessors' => 'Subprocessors',
     ],
@@ -119,8 +120,8 @@ return [
         'autonomous_marketing_description' => 'Autonomous marketing execution with governance, approvals, and control.',
         'integrations' => 'Integrations',
         'integrations_description' => 'Connect signals, content, and publishing channels in one workflow.',
-        'governance_security' => 'Governance & Security',
-        'governance_security_description' => 'Keep control over approvals, roles, auditability, and risk.',
+        'governance_security' => 'AI Governance & Transparency',
+        'governance_security_description' => 'Control approvals, AI disclosure, provenance, auditability, and risk.',
     ],
     'solutions' => [
         'discover_opportunities' => 'Discover Opportunities',
@@ -283,6 +284,82 @@ return [
                 ['label' => 'Intelligence', 'href' => '#intelligence'],
             ],
         ],
+        'governance' => [
+            'primary_cta' => 'Plan AI governance walkthrough',
+            'secondary_cta' => 'Read transparency statement',
+            'platform_cta' => 'View platform',
+            'panel_label' => 'Trust layer',
+            'panel_title' => 'AI-assisted content record',
+            'panel_state' => 'Audit-ready',
+            'hero_stats' => [
+                ['label' => 'AI disclosure', 'value' => 'Recorded per asset'],
+                ['label' => 'Human review', 'value' => 'Approval workflow'],
+                ['label' => 'Provenance', 'value' => 'Timeline and history'],
+                ['label' => 'Audit export', 'value' => 'PDF and API'],
+            ],
+            'trust_eyebrow' => 'Transparency by design',
+            'trust_title' => 'Governance signals teams can actually use',
+            'trust_text' => 'Argusly is designed to make AI involvement visible, reviewable, and explainable without pushing teams into fragmented compliance spreadsheets.',
+            'trust_cards' => [
+                ['icon' => 'badge-check', 'title' => 'AI disclosure', 'text' => 'Assign a clear AI badge and disclosure status to every governed content asset.'],
+                ['icon' => 'history', 'title' => 'Provenance timeline', 'text' => 'Track the meaningful events behind an asset: generation, review, fact-check, approval, publishing, and export.'],
+                ['icon' => 'bot', 'title' => 'Model and prompt history', 'text' => 'Keep a record of model usage, prompt versions, output hashes, and generation context when AI is used.'],
+                ['icon' => 'link-2', 'title' => 'Source traceability', 'text' => 'Connect sources and evidence to the content workflow so teams can inspect what informed an output.'],
+                ['icon' => 'user-check', 'title' => 'Human-in-the-loop control', 'text' => 'Review states, approvals, and editorial responsibility remain part of the publishing path.'],
+                ['icon' => 'file-check-2', 'title' => 'Audit reports', 'text' => 'Export audit-ready PDF reports and machine-readable disclosure data for enterprise review.'],
+            ],
+            'workflow' => [
+                'eyebrow' => 'Governed workflow',
+                'title' => 'From AI output to accountable content',
+                'text' => 'The goal is not to stop AI usage. The goal is to make the process around AI-assisted work traceable, reviewable, and fit for professional publishing.',
+                'steps' => [
+                    ['title' => 'Generate or assist', 'text' => 'AI helps create drafts, answers, improvements, translations, or campaign assets inside a controlled workspace.'],
+                    ['title' => 'Record provenance', 'text' => 'Argusly stores model, prompt, source, status, and workflow events as part of the asset history.'],
+                    ['title' => 'Review and approve', 'text' => 'Humans check claims, brand fit, source quality, and publication readiness before content moves forward.'],
+                    ['title' => 'Publish and audit', 'text' => 'Publishing remains connected to disclosure metadata, version history, and downloadable audit evidence.'],
+                ],
+            ],
+            'readiness' => [
+                'eyebrow' => 'EU AI Act readiness',
+                'title' => 'A practical foundation for transparency obligations',
+                'text' => 'Argusly does not replace legal advice. It gives organizations the operational controls needed to support transparent AI-assisted content workflows.',
+                'points' => [
+                    'Human-readable AI disclosure for governed content assets',
+                    'Machine-readable metadata designed for downstream recognition',
+                    'Human review and editorial responsibility workflows',
+                    'Traceability for prompts, models, sources, versions, and approvals',
+                ],
+            ],
+            'enterprise' => [
+                'title' => 'Enterprise governance for marketing teams',
+                'text' => 'Enterprise buyers do not only ask whether content can be generated. They ask who approved it, what model contributed to it, which sources informed it, and whether the organization can prove that process later.',
+                'points' => [
+                    'Designed for legal, compliance, marketing operations, and brand stakeholders',
+                    'Useful for procurement, security review, and responsible AI discussions',
+                    'Aligned with privacy-first workflows and GDPR-aware data handling',
+                    'A stronger enterprise story than another standalone AI writing tool',
+                ],
+            ],
+            'capabilities' => [
+                'title' => 'AI Governance capabilities',
+                'items' => [
+                    'Human Review',
+                    'AI Provenance',
+                    'AI Disclosure',
+                    'Trust Score',
+                    'Workflow Audit',
+                    'Content Lineage',
+                    'Source Verification',
+                    'Approval Flows',
+                    'Prompt History',
+                    'Model History',
+                    'Audit PDF',
+                    'Disclosure API',
+                ],
+            ],
+            'cta_title' => 'Build AI-assisted content operations people can trust.',
+            'cta_text' => 'Show enterprise stakeholders how Argusly connects AI generation, review, publishing, and audit evidence in one governed workflow.',
+        ],
         'overview' => [
             'badge' => 'Content Operations Platform',
             'hero_title' => 'Content operations, governed by design.',
@@ -378,6 +455,19 @@ return [
             ['icon' => 'eye', 'title' => 'Visibility gaps need a cause', 'text' => 'A missing mention is not enough. Teams need to know whether the issue is proof, structure, authority, content quality, or competition.'],
             ['icon' => 'crosshair', 'title' => 'Priorities are hard to defend', 'text' => 'Without a shared view of impact and effort, teams debate which page, topic, or channel deserves attention first.'],
             ['icon' => 'zap', 'title' => 'Execution breaks after insight', 'text' => 'Recommendations only matter when they become briefs, drafts, page updates, internal links, distribution, and follow-up reviews.'],
+        ],
+        'ai_governance' => [
+            'eyebrow' => 'AI Governance',
+            'title' => 'Ready for the EU AI Act, without turning marketing into legal theater.',
+            'text' => 'Argusly helps marketing teams generate AI-assisted content with transparency, human review workflows, provenance tracking, source traceability, and audit-ready records.',
+            'primary_cta' => 'Explore AI governance',
+            'secondary_cta' => 'Read AI transparency',
+            'cards' => [
+                ['icon' => 'badge-check', 'title' => 'AI disclosure', 'text' => 'Make AI-assisted content recognizable with clear labels and machine-readable metadata.'],
+                ['icon' => 'history', 'title' => 'Provenance timeline', 'text' => 'Track generation, review, approval, publishing, and export events per asset.'],
+                ['icon' => 'user-check', 'title' => 'Human review', 'text' => 'Keep editorial responsibility with teams through approvals, status, and review notes.'],
+                ['icon' => 'file-check-2', 'title' => 'Audit reports', 'text' => 'Package model history, prompt history, source trace, and fact-check status for enterprise review.'],
+            ],
         ],
         'how_title' => 'See. Diagnose. Decide. Execute. Learn.',
         'how_text' => 'Argusly gives marketing teams a practical operating loop for improving visibility and demand without turning every insight into manual project management.',
@@ -813,6 +903,8 @@ return [
             'terms_description' => 'Contractual terms for using Argusly, including subscriptions, credits, and access.',
             'security_title' => 'Security | Argusly',
             'security_description' => 'Argusly security overview, including practical safeguards, access controls, and monitoring.',
+            'ai_transparency_title' => 'AI Transparency Statement | Argusly',
+            'ai_transparency_description' => 'How Argusly approaches AI-assisted content, human review, disclosure, provenance, prompt handling, and audit metadata.',
             'cookies_title' => 'Cookies | Argusly',
             'cookies_description' => 'Current cookie and similar technology information for Argusly public pages and app access.',
             'subprocessors_title' => 'Subprocessors | Argusly',
@@ -826,6 +918,7 @@ return [
             'privacy' => 'June 10, 2026',
             'terms' => 'June 10, 2026',
             'security' => 'June 10, 2026',
+            'ai-transparency' => 'July 1, 2026',
             'cookies' => 'March 11, 2026',
             'subprocessors' => 'March 11, 2026',
         ],
@@ -853,6 +946,12 @@ return [
                     'description' => 'Our approach to platform security, access control, infrastructure, and responsible AI usage.',
                     'link_label' => 'Read Security overview',
                     'route' => 'public.legal.security',
+                ],
+                [
+                    'title' => 'AI Transparency',
+                    'description' => 'How AI-assisted workflows, human review, provenance, prompt handling, and disclosure are handled in Argusly.',
+                    'link_label' => 'Read AI Transparency statement',
+                    'route' => 'public.legal.ai-transparency',
                 ],
                 [
                     'title' => 'Cookies',
@@ -992,7 +1091,7 @@ return [
                     'transition' => 'Once teams work inside one operating flow, they need explicit controls to keep quality, brand context, and accountability consistent.',
                     'cards' => [
                         ['title' => 'Roles and permissions', 'bullets' => ['Control who can create, review, approve, and publish', 'Keep responsibilities clear across teams and sites', 'Support governance without blocking everyday work']],
-                        ['title' => 'Workspaces and brand context', 'bullets' => ['Separate brands, teams, or clients into dedicated workspaces', 'Apply company profile, persona, and brand voice context per workspace', 'Keep shared standards without losing local control']],
+                        ['title' => 'AI transparency', 'bullets' => ['Record AI disclosure status per asset', 'Track model and prompt history where AI is used', 'Prepare machine-readable metadata for downstream systems']],
                         ['title' => 'Versioning and publishing control', 'bullets' => ['Track revisions and content changes over time', 'Use review states before content goes live', 'Keep publishing actions traceable and auditable']],
                     ],
                     'callout' => [
@@ -1053,15 +1152,11 @@ return [
             ],
         ],
         'product.governance' => [
-            'metaTitle' => 'Governance | Argusly',
-            'metaDescription' => 'Structured content control with brand rules, approval flows and auditability.',
-            'heading' => 'Governance',
-            'intro' => 'Governance in Argusly keeps content production clear, reviewable, and scalable across teams and sites.',
-            'sections' => [
-                ['title' => 'Roles and permissions', 'bullets' => ['Control who can create, review, approve, and publish', 'Keep responsibilities clear across teams and sites', 'Support governance without blocking everyday work']],
-                ['title' => 'Workspaces and brand context', 'bullets' => ['Separate brands, teams, or clients into dedicated workspaces', 'Apply company profile, persona, and brand voice context per workspace', 'Keep shared standards without losing local control']],
-                ['title' => 'Versioning and publishing control', 'bullets' => ['Track revisions and content changes over time', 'Use review states before content goes live', 'Keep publishing actions traceable and auditable']],
-            ],
+            'metaTitle' => 'AI Governance & Transparency | Argusly',
+            'metaDescription' => 'AI governance for content teams: disclosure, provenance, human review, source traceability, prompt history, and audit-ready workflows.',
+            'heading' => 'Built for AI Governance. Ready for the EU AI Act.',
+            'intro' => 'Argusly turns AI-assisted content production into a transparent, reviewable, and audit-ready workflow for teams that need control, evidence, and enterprise trust.',
+            'sections' => [],
         ],
         'product.intelligence' => [
             'metaTitle' => 'Intelligence | Argusly',
@@ -1204,6 +1299,66 @@ return [
             'sections' => [
                 ['title' => 'Security controls', 'bullets' => ['Encrypted connections and secure session settings', 'Authentication flows with hashed passwords and protected sessions', 'Role based permissions and restricted admin access', 'Workspace scoped access checks across customer data and integrations', 'Server side validation and framework protections such as CSRF defenses', 'Rate limiting on public submissions, analytics, and API endpoints', 'Application monitoring, logging, and error tracking', 'Framework and dependency updates as the platform evolves']],
                 ['title' => 'Security approach', 'bullets' => ['Argusly applies practical safeguards appropriate to the current product and infrastructure footprint.', 'Security controls are reviewed and expanded as platform usage and infrastructure maturity grow.', 'This page is updated when material security practices or supporting providers change.']],
+            ],
+        ],
+        'legal.ai-transparency' => [
+            'metaTitle' => 'AI Transparency Statement | Argusly',
+            'metaDescription' => 'How Argusly uses AI-assisted workflows, human review, provenance, prompt handling, source tracking, and audit metadata.',
+            'heading' => 'AI Transparency Statement',
+            'intro' => 'Argusly is designed for professional teams that want to use AI in content operations without losing editorial responsibility, review control, or provenance. This statement explains how we approach AI-assisted workflows and transparency.',
+            'articles' => [
+                [
+                    'title' => 'AI-assisted workflows',
+                    'points' => [
+                        'Argusly may use AI systems to support research, briefing, drafting, rewriting, translation, content improvement, answer blocks, image generation, and related workflow assistance.',
+                        'AI functionality is intended to assist customer teams. It does not remove the need for human review, fact-checking, legal review where appropriate, or editorial responsibility before publication.',
+                        'Customers choose how to configure workflows, approvals, connected sources, publishing destinations, and the degree of automation used in their workspace.',
+                    ],
+                ],
+                [
+                    'title' => 'Human review and editorial responsibility',
+                    'points' => [
+                        'Argusly supports human-in-the-loop workflows through review states, approval flows, content revisions, publishing controls, and team roles.',
+                        'Customer users remain responsible for reviewing AI-assisted output before relying on it or publishing it.',
+                        'Enterprise workflows can use review, approval, and audit signals to show how content moved from draft to publication.',
+                    ],
+                ],
+                [
+                    'title' => 'AI disclosure and provenance',
+                    'points' => [
+                        'Argusly is being built to record AI disclosure status per governed content asset, including whether content is human-created, AI-assisted, AI-generated, or AI-edited.',
+                        'Provenance records may include generation events, review events, fact-check status, publishing actions, model history, prompt history, source trace, version history, and output hashes.',
+                        'Machine-readable metadata and disclosure APIs are designed to help downstream systems recognize AI-assisted content and inspect provenance information.',
+                    ],
+                ],
+                [
+                    'title' => 'Prompt and model handling',
+                    'points' => [
+                        'Prompts may include customer instructions, brand context, source material, draft content, and workflow configuration needed to perform the requested task.',
+                        'Where available, Argusly records model provider, model name, run identifiers, prompt hashes, output hashes, and generation settings for audit and troubleshooting purposes.',
+                        'Prompt history may be summarized or redacted where sensitive information should not be exposed broadly to all users or external systems.',
+                    ],
+                ],
+                [
+                    'title' => 'Sources and fact-checking',
+                    'points' => [
+                        'Argusly may store source references, retrieval status, source titles, URLs, timestamps, and related metadata when sources are used in research or generation workflows.',
+                        'Source traceability helps customer teams inspect what informed an output, but it does not guarantee factual correctness by itself.',
+                        'Fact-check status and reviewer notes can be used to document whether claims are unchecked, supported, partially supported, conflicting, or require human review.',
+                    ],
+                ],
+                [
+                    'title' => 'Limits of AI output',
+                    'points' => [
+                        'AI output may be incomplete, inaccurate, outdated, biased, or unsuitable for a particular legal, medical, financial, regulatory, or brand-sensitive use case.',
+                        'Argusly does not guarantee that AI-assisted output is factually correct, legally correct, free from third-party rights, or appropriate for publication without review.',
+                        'Customers should apply their own review, approval, source verification, and compliance process before publication or external use.',
+                    ],
+                ],
+            ],
+            'sections' => [
+                ['title' => 'Customer controls', 'bullets' => ['Configure workflows and approval gates', 'Review and edit generated content before publication', 'Use source trace, model history, and audit reports where available']],
+                ['title' => 'Transparency records', 'bullets' => ['AI badges and disclosure status', 'Provenance timelines and workflow events', 'Downloadable audit reports and machine-readable metadata']],
             ],
         ],
         'legal.cookies' => [

@@ -4,6 +4,13 @@
     $listValue = static fn ($profile, string $field): string => implode("\n", (array) old($field, $profile?->{$field} ?? []));
 @endphp
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Company Intelligence</x-slot:title>
+        <x-slot:description>Multi-brand company context for Agentic Marketing planning, content opportunities, AI visibility and localization.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mb-6 flex items-start justify-between gap-4">
         <div>
@@ -12,8 +19,6 @@
                 <span class="mx-1">/</span>
                 <span class="text-textPrimary">Company Intelligence</span>
             </nav>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Company Intelligence</h1>
-            <p class="mt-1 text-textSecondary">Multi-brand company context for Agentic Marketing planning, content opportunities, AI visibility and localization.</p>
         </div>
     </div>
 

@@ -237,7 +237,7 @@ class GenerateLinkedInPostFromContent
         $text = Str::lower($content->title.' '.$content->type.' '.$content->primary_keyword);
 
         if (Str::contains($text, ['technical', 'api', 'architecture', 'developer', 'engineering'])) {
-            $types[] = 'technical_deep_dive';
+            $types[4] = 'technical_deep_dive';
         }
 
         return $types;

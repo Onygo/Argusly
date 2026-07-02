@@ -15,39 +15,48 @@
     ];
 @endphp
 
+@section('pageHeader')
+    <x-page-header title="Agentic Marketing Command Center" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Monitor objectives, opportunity intelligence, proposed actions, cost exposure, and supervised execution from one operating view.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.agentic-marketing.approvals.index') }}" class="pl-btn-ghost">
+        <i data-lucide="inbox" class="h-4 w-4"></i>
+        <span>Approval inbox</span>
+    </a>
+    <a href="{{ route('app.agentic-marketing.orchestration.index') }}" class="pl-btn-ghost">
+        <i data-lucide="bot" class="h-4 w-4"></i>
+        <span>Agent orchestration</span>
+    </a>
+    <a href="{{ route('app.agentic-marketing.campaign-clusters.index') }}" class="pl-btn-ghost">
+        <i data-lucide="network" class="h-4 w-4"></i>
+        <span>Campaign clusters</span>
+    </a>
+    <a href="{{ route('app.agentic-marketing.content-opportunities.index') }}" class="pl-btn-ghost">
+        <i data-lucide="lightbulb" class="h-4 w-4"></i>
+        <span>Content opportunities</span>
+    </a>
+    <a href="{{ route('app.agentic-marketing.objectives.create') }}" class="pl-btn-primary">
+        <i data-lucide="plus" class="h-4 w-4"></i>
+        <span>New objective</span>
+    </a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Objectives" :value="$overview['objectives'] ?? 0" :helper="($overview['open_opportunities'] ?? 0).' open opportunities'" />
+        <x-metric-card label="Action Readiness" :value="$overview['approved_actions'] ?? 0" :helper="($overview['proposed_actions'] ?? 0).' proposed, '.($overview['running_actions'] ?? 0).' running'" />
+        <x-metric-card label="Cost Forecast" :value="number_format((int) ($overview['forecast_credits'] ?? 0))" helper="credits in proposed and approved work" />
+        <x-metric-card label="Impact Tracked" :value="$overview['completed_actions'] ?? 0" :helper="($overview['high_risk_actions'] ?? 0).' high-risk proposals'" />
+    </x-metric-section>
+@endsection
+
 @section('content')
     <div class="space-y-6">
-        <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-                <h1 class="text-xl font-semibold text-textPrimary">Agentic Marketing Command Center</h1>
-                <p class="mt-1 max-w-3xl text-sm text-textSecondary">
-                    Monitor objectives, opportunity intelligence, proposed actions, cost exposure, and supervised execution from one operating view.
-                </p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('app.agentic-marketing.approvals.index') }}" class="pl-btn-ghost">
-                    <i data-lucide="inbox" class="h-4 w-4"></i>
-                    <span>Approval inbox</span>
-                </a>
-                <a href="{{ route('app.agentic-marketing.orchestration.index') }}" class="pl-btn-ghost">
-                    <i data-lucide="bot" class="h-4 w-4"></i>
-                    <span>Agent orchestration</span>
-                </a>
-                <a href="{{ route('app.agentic-marketing.campaign-clusters.index') }}" class="pl-btn-ghost">
-                    <i data-lucide="network" class="h-4 w-4"></i>
-                    <span>Campaign clusters</span>
-                </a>
-                <a href="{{ route('app.agentic-marketing.content-opportunities.index') }}" class="pl-btn-ghost">
-                    <i data-lucide="lightbulb" class="h-4 w-4"></i>
-                    <span>Content opportunities</span>
-                </a>
-                <a href="{{ route('app.agentic-marketing.objectives.create') }}" class="pl-btn-primary">
-                    <i data-lucide="plus" class="h-4 w-4"></i>
-                    <span>New objective</span>
-                </a>
-            </div>
-        </header>
-
         @if (session('status'))
             <x-alert class="mb-4">{{ session('status') }}</x-alert>
         @endif
@@ -57,29 +66,6 @@
                 One or more Agentic Marketing objectives are close to their monthly objective cap, or their proposed work exceeds it. Wallet credits may still be available; execution is checked per action before generation.
             </div>
         @endif
-
-        <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Objectives</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $overview['objectives'] ?? 0 }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ $overview['open_opportunities'] ?? 0 }} open opportunities</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Action Readiness</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $overview['approved_actions'] ?? 0 }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ $overview['proposed_actions'] ?? 0 }} proposed, {{ $overview['running_actions'] ?? 0 }} running</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Cost Forecast</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ number_format((int) ($overview['forecast_credits'] ?? 0)) }}</div>
-                <p class="mt-1 text-xs text-textSecondary">credits in proposed and approved work</p>
-            </div>
-            <div class="rounded-lg border border-border bg-surface px-4 py-3">
-                <div class="text-xs text-textSecondary">Impact Tracked</div>
-                <div class="mt-2 text-2xl font-semibold text-textPrimary">{{ $overview['completed_actions'] ?? 0 }}</div>
-                <p class="mt-1 text-xs text-textSecondary">{{ $overview['high_risk_actions'] ?? 0 }} high-risk proposals</p>
-            </div>
-        </section>
 
         @if ($executionWorkspace && $executionSettings)
             @php

@@ -1,20 +1,34 @@
 @extends('layouts.app', ['title' => 'Learning Optimization', 'pageWidth' => 'wide'])
 
+@section('pageHeader')
+    <x-page-header title="Learning Optimization" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Performance learning across content, campaigns, LinkedIn, AI visibility, CTA, hooks, tone, topics, and conversions.</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <form method="POST" action="{{ route('app.agentic-marketing.learning.run', request()->query()) }}" class="flex gap-2">
+        @csrf
+        <button class="pl-btn-primary" type="submit">
+            <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+            <span>Refresh learning</span>
+        </button>
+        <button class="pl-btn-ghost" name="run_inline" value="1" type="submit">Run inline</button>
+    </form>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card label="Avg Content Score" :value="number_format((float) $summary['avg_content_score'], 1)" />
+        <x-metric-card label="Avg Campaign Score" :value="number_format((float) $summary['avg_campaign_score'], 1)" />
+        <x-metric-card label="Recommendations" :value="number_format((int) $summary['recommendations'])" />
+        <x-metric-card label="AI Visibility Avg" :value="number_format((float) $summary['ai_visibility_avg'], 1)" />
+    </x-metric-section>
+@endsection
+
 @section('content')
-    <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Learning Optimization</h1>
-            <p class="mt-1 text-sm text-textSecondary">Performance learning across content, campaigns, LinkedIn, AI visibility, CTA, hooks, tone, topics, and conversions.</p>
-        </div>
-        <form method="POST" action="{{ route('app.agentic-marketing.learning.run', request()->query()) }}" class="flex gap-2">
-            @csrf
-            <button class="pl-btn-primary" type="submit">
-                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
-                <span>Refresh learning</span>
-            </button>
-            <button class="pl-btn-ghost" name="run_inline" value="1" type="submit">Run inline</button>
-        </form>
-    </div>
 
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
@@ -70,25 +84,6 @@
 
         $nextRecommendations = $recommendations->take(4);
     @endphp
-
-    <div class="mb-6 grid gap-4 md:grid-cols-4">
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Avg Content Score</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ number_format((float) $summary['avg_content_score'], 1) }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Avg Campaign Score</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ number_format((float) $summary['avg_campaign_score'], 1) }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">Recommendations</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ number_format((int) $summary['recommendations']) }}</p>
-        </div>
-        <div class="rounded-lg border border-border bg-surface p-4">
-            <p class="text-xs uppercase tracking-wide text-textFaint">AI Visibility Avg</p>
-            <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ number_format((float) $summary['ai_visibility_avg'], 1) }}</p>
-        </div>
-    </div>
 
     <section class="mb-6 rounded-lg border border-border bg-surface">
         <div class="border-b border-border px-5 py-4">

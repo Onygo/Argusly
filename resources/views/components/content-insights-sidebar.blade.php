@@ -481,7 +481,7 @@
 
                         @if ($selectedInsight === 'links')
                             <div class="mt-3 space-y-2 border-t border-border pt-3">
-                                @foreach ($internalLinkSuggestions->take(2) as $index => $suggestion)
+                                @foreach ($internalLinkSuggestions as $index => $suggestion)
                                     @php($isApplied = filled(data_get($suggestion, 'applied_at')))
                                     <div class="rounded-lg border border-border bg-background p-3">
                                         <div class="text-sm font-medium text-textPrimary">

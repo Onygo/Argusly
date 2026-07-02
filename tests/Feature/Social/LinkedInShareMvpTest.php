@@ -1,12 +1,18 @@
 <?php
 
 use App\Actions\Social\GenerateLinkedInPostFromContent;
+use App\Enums\SocialPlatform;
+use App\Enums\SocialPostType;
+use App\Enums\SocialPostVariantStatus;
+use App\Enums\SocialPublicationStatus;
 use App\Models\Campaign;
 use App\Models\Content;
+use App\Models\ContentImage;
 use App\Models\Organization;
 use App\Models\SocialAccount;
 use App\Models\SocialPost;
 use App\Models\SocialPostVariant;
+use App\Models\SocialPublication;
 use App\Models\SocialPublishAttempt;
 use App\Models\User;
 use App\Models\Workspace;
@@ -175,7 +181,7 @@ it('can target a linkedin account when creating variants from content', function
 
     expect((string) $post->social_account_id)->toBe((string) $account->id)
         ->and(data_get($post->metadata, 'target_social_account.display_name'))->toBe('Ada LinkedIn')
-        ->and($post->variants)->toHaveCount(4);
+        ->and($post->variants)->toHaveCount(5);
 
     $post->variants->each(function ($variant) use ($account): void {
         expect((string) $variant->social_account_id)->toBe((string) $account->id)
@@ -482,6 +488,268 @@ it('prevents duplicate publishes when provider id already exists', function (): 
     Http::assertNothingSent();
 });
 
+it('publishes scheduled linkedin posts with explicit media refs images', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    linkedinFakeSuccessfulImagePublish('urn:li:digitalmediaAsset:explicit');
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, publication: [
+        'payload_snapshot' => [
+            'source_url' => 'https://example.test/article',
+            'media_refs' => [[
+                'platform' => 'linkedin',
+                'type' => 'image',
+                'url' => 'https://cdn.example.test/linkedin.png',
+            ]],
+        ],
+    ]);
+
+    $result = app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+
+    $attempt = SocialPublishAttempt::query()->firstOrFail();
+    $post = SocialPost::query()->firstOrFail();
+
+    expect($result->success)->toBeTrue()
+        ->and(data_get($post->refresh()->metadata, 'linkedin.resolved_image_url'))->toBe('https://cdn.example.test/linkedin.png')
+        ->and(data_get($post->metadata, 'linkedin.image_urn'))->toBe('urn:li:digitalmediaAsset:explicit')
+        ->and(data_get($attempt->request_payload, 'linkedin_image.asset'))->toBe('urn:li:digitalmediaAsset:explicit');
+
+    $content = linkedinAttemptShareContent($attempt);
+
+    expect($content['shareMediaCategory'] ?? null)->toBe('IMAGE')
+        ->and(data_get($content, 'media.0.media'))->toBe('urn:li:digitalmediaAsset:explicit')
+        ->and(data_get($content, 'media.0.originalUrl'))->toBe('https://example.test/article');
+});
+
+it('publishes scheduled linkedin posts with og image fallback', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+    $content = linkedinMvpContent($workspace, [
+        'seo_og_image' => 'https://cdn.example.test/og.png',
+    ]);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    linkedinFakeSuccessfulImagePublish('urn:li:digitalmediaAsset:og');
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, variant: [
+        'content_id' => $content->id,
+    ], publication: [
+        'payload_snapshot' => ['source_url' => 'https://example.test/og-article'],
+    ]);
+
+    app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+
+    $post = SocialPost::query()->firstOrFail();
+
+    expect(data_get($post->refresh()->metadata, 'linkedin.resolved_image_url'))->toBe('https://cdn.example.test/og.png')
+        ->and(data_get($post->metadata, 'linkedin.resolved_image_source'))->toBe('og_image');
+});
+
+it('publishes scheduled linkedin posts with the selected content social image asset', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+    $content = linkedinMvpContent($workspace, [
+        'seo_og_image' => 'https://cdn.example.test/og-should-not-win.png',
+    ]);
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'content_id' => (string) $content->id,
+        'type' => 'social',
+        'source' => ContentImage::SOURCE_UPLOAD,
+        'provider' => 'upload',
+        'image_url' => 'https://cdn.example.test/selected-linkedin.png',
+        'status' => 'ready',
+        'is_active' => true,
+        'use_as_social_image' => true,
+        'use_for_linkedin' => true,
+        'credit_cost' => 0,
+    ]);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    linkedinFakeSuccessfulImagePublish('urn:li:digitalmediaAsset:selected');
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, variant: [
+        'content_id' => $content->id,
+    ], publication: [
+        'payload_snapshot' => ['source_url' => 'https://example.test/selected-linkedin'],
+    ]);
+
+    app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+
+    $post = SocialPost::query()->firstOrFail();
+
+    expect(data_get($post->refresh()->metadata, 'linkedin.resolved_image_url'))->toBe('https://cdn.example.test/selected-linkedin.png')
+        ->and(data_get($post->metadata, 'linkedin.resolved_image_source'))->toBe('content_linkedin_asset')
+        ->and(data_get($post->metadata, 'linkedin.image_urn'))->toBe('urn:li:digitalmediaAsset:selected');
+});
+
+it('publishes scheduled linkedin posts with allowed featured image fallback', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+    $content = linkedinMvpContent($workspace);
+
+    ContentImage::query()->create([
+        'content_id' => $content->id,
+        'type' => 'featured',
+        'image_url' => 'https://cdn.example.test/featured.png',
+        'status' => 'completed',
+        'is_active' => true,
+    ]);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    linkedinFakeSuccessfulImagePublish('urn:li:digitalmediaAsset:featured');
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, variant: [
+        'content_id' => $content->id,
+    ], publication: [
+        'payload_snapshot' => ['source_url' => 'https://example.test/featured-article'],
+    ]);
+
+    app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+
+    $post = SocialPost::query()->firstOrFail();
+
+    expect(data_get($post->refresh()->metadata, 'linkedin.resolved_image_url'))->toBe('https://cdn.example.test/featured.png')
+        ->and(data_get($post->metadata, 'linkedin.resolved_image_source'))->toBe('featured_image')
+        ->and(data_get($post->metadata, 'linkedin.image_urn'))->toBe('urn:li:digitalmediaAsset:featured');
+});
+
+it('publishes scheduled linkedin posts with the global fallback image', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+
+    config([
+        'app.url' => 'http://localhost',
+        'argusly_social.default_image' => '/images/social/global.png',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    linkedinFakeSuccessfulImagePublish('urn:li:digitalmediaAsset:global');
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, publication: [
+        'payload_snapshot' => ['source_url' => 'https://example.test/global-article'],
+    ]);
+
+    app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+
+    $post = SocialPost::query()->firstOrFail();
+
+    expect(data_get($post->refresh()->metadata, 'linkedin.resolved_image_url'))->toBe(asset('images/social/global.png'))
+        ->and(data_get($post->metadata, 'linkedin.resolved_image_source'))->toBe('global_fallback')
+        ->and(data_get($post->metadata, 'linkedin.image_urn'))->toBe('urn:li:digitalmediaAsset:global');
+});
+
+it('keeps scheduled linkedin text posts publishable without a resolved image', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    Http::fake([
+        'api.linkedin.com/v2/ugcPosts' => Http::response([], 201, ['X-RestLi-Id' => 'urn:li:share:text-only']),
+    ]);
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account);
+    $result = app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+    $attempt = SocialPublishAttempt::query()->firstOrFail();
+
+    expect($result->success)->toBeTrue()
+        ->and(SocialPost::query()->firstOrFail()->refresh()->provider_post_id)->toBe('urn:li:share:text-only')
+        ->and(linkedinAttemptShareContent($attempt)['shareMediaCategory'] ?? null)->toBe('NONE');
+});
+
+it('falls back to article publishing when linkedin image upload fails', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    Http::fake([
+        'api.linkedin.com/v2/assets*' => Http::response(['message' => 'upload unavailable'], 503),
+        'api.linkedin.com/v2/ugcPosts' => Http::response([], 201, ['X-RestLi-Id' => 'urn:li:share:fallback']),
+    ]);
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, publication: [
+        'payload_snapshot' => [
+            'source_url' => 'https://example.test/fallback-article',
+            'media_refs' => ['https://cdn.example.test/missing.png'],
+        ],
+    ]);
+
+    $result = app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+    $attempt = SocialPublishAttempt::query()->firstOrFail();
+
+    expect($result->success)->toBeTrue()
+        ->and(data_get($attempt->request_payload, 'linkedin_image.uploaded'))->toBeFalse()
+        ->and(data_get($attempt->request_payload, 'linkedin_image.skipped_reason'))->toBe('image_upload_failed');
+
+    $content = linkedinAttemptShareContent($attempt);
+
+    expect($content['shareMediaCategory'] ?? null)->toBe('ARTICLE')
+        ->and(data_get($content, 'media.0.originalUrl'))->toBe('https://example.test/fallback-article');
+});
+
+it('keeps existing linkedin article payload behavior when no image is available', function (): void {
+    [, $workspace] = linkedinMvpUser();
+    $account = linkedinMvpAccount($workspace);
+
+    config([
+        'argusly_social.default_image' => '',
+        'services.linkedin.enabled' => true,
+        'services.linkedin.publishing_enabled' => true,
+    ]);
+    Http::fake([
+        'api.linkedin.com/v2/ugcPosts' => Http::response([], 201, ['X-RestLi-Id' => 'urn:li:share:article']),
+    ]);
+
+    $publication = linkedinMvpScheduledPublication($workspace, $account, publication: [
+        'payload_snapshot' => ['source_url' => 'https://example.test/article-only'],
+    ]);
+
+    app(\App\Services\SocialDistribution\Publishers\LinkedInPublisher::class)
+        ->publish($publication->fresh(['socialAccount', 'variant']));
+    $attempt = SocialPublishAttempt::query()->firstOrFail();
+
+    $content = linkedinAttemptShareContent($attempt);
+
+    expect($content['shareMediaCategory'] ?? null)->toBe('ARTICLE')
+        ->and(data_get($content, 'media.0.originalUrl'))->toBe('https://example.test/article-only')
+        ->and(data_get($content, 'media.0.media'))->toBeNull();
+});
+
 /**
  * @return array{0:User,1:Workspace,2:Organization}
  */
@@ -551,4 +819,60 @@ function linkedinMvpPost(Workspace $workspace, SocialAccount $account, array $ov
         'visibility' => 'public',
         'status' => 'approved',
     ], $overrides));
+}
+
+function linkedinMvpScheduledPublication(Workspace $workspace, SocialAccount $account, array $variant = [], array $publication = []): SocialPublication
+{
+    $variant = SocialPostVariant::query()->create(array_merge([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'post_type' => SocialPostType::ARTICLE,
+        'status' => SocialPostVariantStatus::APPROVED,
+        'variant_number' => 1,
+        'body' => 'A reviewed scheduled LinkedIn share.',
+        'hashtags' => [],
+        'media_refs' => [],
+        'approved_at' => now(),
+    ], $variant));
+
+    return SocialPublication::query()->create(array_merge([
+        'organization_id' => $workspace->organization_id,
+        'workspace_id' => $workspace->id,
+        'social_account_id' => $account->id,
+        'social_post_variant_id' => $variant->id,
+        'platform' => SocialPlatform::LINKEDIN,
+        'status' => SocialPublicationStatus::QUEUED,
+        'scheduled_for' => now()->subMinute(),
+        'payload_snapshot' => [],
+    ], $publication));
+}
+
+function linkedinFakeSuccessfulImagePublish(string $asset): void
+{
+    Http::fake([
+        'api.linkedin.com/v2/assets*' => Http::response([
+            'value' => [
+                'asset' => $asset,
+                'uploadMechanism' => [
+                    'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest' => [
+                        'uploadUrl' => 'https://upload.linkedin.test/image',
+                    ],
+                ],
+            ],
+        ]),
+        'https://cdn.example.test/*' => Http::response('image-bytes', 200, ['Content-Type' => 'image/png']),
+        '*images/social/*' => Http::response('image-bytes', 200, ['Content-Type' => 'image/png']),
+        'https://upload.linkedin.test/*' => Http::response('', 201),
+        'api.linkedin.com/v2/ugcPosts' => Http::response([], 201, ['X-RestLi-Id' => 'urn:li:share:scheduled']),
+    ]);
+}
+
+/**
+ * @return array<string,mixed>
+ */
+function linkedinAttemptShareContent(SocialPublishAttempt $attempt): array
+{
+    return (array) ($attempt->request_payload['payload']['specificContent']['com.linkedin.ugc.ShareContent'] ?? []);
 }

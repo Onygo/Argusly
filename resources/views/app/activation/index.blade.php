@@ -1,5 +1,11 @@
 @extends('layouts.app', ['title' => 'Activation'])
 
+@section('pageHeader')
+    <x-page-header title="First Value Activation">
+        <x-slot:description>Breng deze workspace naar de eerste AI Visibility run, het eerste Signal Event, de eerste Detection en de eerste Opportunity candidate.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     @php
         $rt = function (string $key, array $replace = []): string {
@@ -16,7 +22,7 @@
     <div class="space-y-6">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-                <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">First Value Activation</h1>
+                <h2 class="text-2xl font-semibold tracking-tight text-textPrimary">First Value Activation</h2>
                 <p class="mt-1 max-w-3xl text-sm leading-6 text-textSecondary">
                     Breng deze workspace naar de eerste AI Visibility run, het eerste Signal Event, de eerste Detection en de eerste Opportunity candidate.
                 </p>

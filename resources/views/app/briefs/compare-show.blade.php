@@ -1,32 +1,31 @@
 @extends('layouts.app', ['title' => 'Compare AI Drafts'])
 
-@section('content')
-    @php
-        $comparisonTitle = (string) ($comparison->title ?: 'Compare AI Drafts');
-        $selectedModelCount = (int) ($comparison->requested_model_count ?: $comparison->items_total);
-        $createdBy = $comparison->creator?->name ?: 'System';
-        $createdAt = optional($comparison->created_at)->format('M j, Y \a\t g:i A') ?: 'n/a';
-        $status = (string) $comparison->status;
-        $statusBadgeClass = match ($status) {
-            'completed' => 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
-            'partially_failed' => 'border-amber-500/30 bg-amber-500/10 text-amber-700',
-            'failed', 'cancelled' => 'border-rose-500/30 bg-rose-500/10 text-rose-700',
-            'processing' => 'border-sky-500/30 bg-sky-500/10 text-sky-700',
-            'queued', 'pending' => 'border-amber-500/30 bg-amber-500/10 text-amber-700',
-            default => 'border-border bg-background text-textSecondary',
-        };
-        $statusLabel = match ($status) {
-            'completed' => 'Completed',
-            'partially_failed' => 'Partially completed',
-            'failed' => 'Failed',
-            'cancelled' => 'Cancelled',
-            'processing' => 'Generating...',
-            'queued' => 'Queued',
-            'pending' => 'Pending',
-            default => ucfirst($status),
-        };
+@php
+    $comparisonTitle = (string) ($comparison->title ?: 'Compare AI Drafts');
+    $selectedModelCount = (int) ($comparison->requested_model_count ?: $comparison->items_total);
+    $createdBy = $comparison->creator?->name ?: 'System';
+    $createdAt = optional($comparison->created_at)->format('M j, Y \a\t g:i A') ?: 'n/a';
+    $status = (string) $comparison->status;
+    $statusBadgeClass = match ($status) {
+        'completed' => 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700',
+        'partially_failed' => 'border-amber-500/30 bg-amber-500/10 text-amber-700',
+        'failed', 'cancelled' => 'border-rose-500/30 bg-rose-500/10 text-rose-700',
+        'processing' => 'border-sky-500/30 bg-sky-500/10 text-sky-700',
+        'queued', 'pending' => 'border-amber-500/30 bg-amber-500/10 text-amber-700',
+        default => 'border-border bg-background text-textSecondary',
+    };
+    $statusLabel = match ($status) {
+        'completed' => 'Completed',
+        'partially_failed' => 'Partially completed',
+        'failed' => 'Failed',
+        'cancelled' => 'Cancelled',
+        'processing' => 'Generating...',
+        'queued' => 'Queued',
+        'pending' => 'Pending',
+        default => ucfirst($status),
+    };
 
-        $suggestedWinner = data_get($comparisonRecommendation, 'suggested_winner') ?? data_get($comparisonInsights, 'best_overall');
+    $suggestedWinner = data_get($comparisonRecommendation, 'suggested_winner') ?? data_get($comparisonInsights, 'best_overall');
         $bestForSeo = data_get($comparisonRecommendation, 'best_for_seo') ?? data_get($comparisonInsights, 'best_for_seo');
         $bestForBrand = data_get($comparisonRecommendation, 'best_for_brand_voice') ?? data_get($comparisonInsights, 'best_brand_voice_fit');
         $bestForConversion = data_get($comparisonRecommendation, 'best_conversion_focused_option') ?? data_get($comparisonInsights, 'best_for_conversion');
@@ -65,7 +64,20 @@
             $score = data_get($item, 'total_weighted_score', data_get($item, 'score'));
             return is_numeric($score) ? number_format((float) $score, 1) : null;
         };
-    @endphp
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$comparisonTitle" icon="bar-chart-3">
+        <x-slot:description>{{ $selectedModelCount }} model{{ $selectedModelCount === 1 ? '' : 's' }} · {{ $createdAt }} · {{ $createdBy }}</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <span class="rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusBadgeClass }}" data-compare-status-badge>{{ $statusLabel }}</span>
+    <a href="{{ route('app.content.workspace.show', $brief) }}" class="pl-btn-secondary">Back to content workspace</a>
+@endsection
+
+@section('content')
 
     <div
         class="space-y-6"
@@ -85,7 +97,7 @@
                     </div>
                     <div>
                         <div class="flex flex-wrap items-center gap-2 mb-1">
-                            <h1 class="text-xl font-semibold tracking-tight text-textPrimary">{{ $comparisonTitle }}</h1>
+                            <h2 class="text-xl font-semibold tracking-tight text-textPrimary">{{ $comparisonTitle }}</h2>
                             <span class="rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusBadgeClass }}" data-compare-status-badge>{{ $statusLabel }}</span>
                         </div>
                         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-textSecondary">

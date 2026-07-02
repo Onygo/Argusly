@@ -8,14 +8,17 @@ use App\Events\Notifications\DraftDeliveryFailed;
 use App\Models\ClientSite;
 use App\Models\Content;
 use App\Models\ContentDeliveryEvent;
+use App\Models\ContentImage;
 use App\Models\ContentPublication;
 use App\Models\ContentPublishTarget;
 use App\Models\Draft;
 use App\Models\Event;
 use App\Models\SiteToken;
 use App\Models\WebhookEndpoint;
+use App\Services\AiTransparency\AiTransparencyService;
 use App\Services\Content\AnswerBlockInjectorService;
 use App\Services\Content\AnswerBlockSchemaService;
+use App\Services\ContentVisuals\VisualRenderer;
 use App\Services\Entitlements\WorkspaceEntitlementsService;
 use App\Services\Seo\SeoProviderRegistry;
 use App\Services\WordPress\Data\WordPressPost;
@@ -207,8 +210,10 @@ class DeliverDraftToWordPress
         );
         if ($content instanceof Content) {
             $payloadHtml = $this->normalizeOutgoingHtml(
-                $this->answerBlockInjector()->inject($payloadHtml, $content)
+                $this->answerBlockInjector()->inject(app(VisualRenderer::class)->renderContentHtml($content, $payloadHtml), $content)
             );
+        } else {
+            $payloadHtml = $this->normalizeOutgoingHtml(app(VisualRenderer::class)->renderDraftHtml($draft, $payloadHtml));
         }
         $featuredImageAttribution = $content instanceof Content
             ? ImageAttribution::fromContentImage($content->featuredImage)
@@ -292,6 +297,7 @@ class DeliverDraftToWordPress
             'featured_image_attribution' => (string) ($featuredImageAttribution['text'] ?? ''),
             'image_attribution' => $featuredImageAttribution,
             'og_image_url' => $this->resolveOgImageUrl($draft),
+            'visual_assets' => $content instanceof Content ? $this->resolveVisualAssetPayload($content) : [],
             'policy' => $this->resolveConnectorPolicyPayload($draft),
         ];
         if ($exportedAnswerBlocks !== [] || $faqSchema !== null) {
@@ -1971,6 +1977,11 @@ class DeliverDraftToWordPress
         $nested['is_translation'] = $draft->isTranslation();
         $nested['source_draft_id'] = $draft->source_draft_id ? (string) $draft->source_draft_id : null;
         $nested = array_merge($nested, $this->publishLayerNestedContentMeta($draft));
+        $aiTransparency = $this->aiTransparencyMetadataForDraft($draft);
+        if ($aiTransparency !== []) {
+            $nested['ai_transparency'] = $aiTransparency;
+            $meta['argusly_ai_metadata'] = json_encode($aiTransparency, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
         $nested['seo'] = array_filter([
             'primary_keyword' => $seo['primary_keyword'] ?? null,
             'robots_index' => $seo['robots_index'] ?? null,
@@ -2013,6 +2024,14 @@ class DeliverDraftToWordPress
             '_argusly_destination_id' => $this->publicationDestinationIdForDraft($draft),
         ], $this->publishLayerContentMeta($draft));
 
+        $aiTransparency = $this->aiTransparencyMetadataForDraft($draft);
+        if ($aiTransparency !== []) {
+            $publishLayerMeta['argusly_ai_metadata'] = json_encode($aiTransparency, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $publishLayerMeta['argusly_ai_badge'] = (string) ($aiTransparency['ai_badge'] ?? '');
+            $publishLayerMeta['argusly_ai_origin'] = (string) ($aiTransparency['ai_origin'] ?? '');
+            $publishLayerMeta['argusly_ai_trust_score'] = (string) ($aiTransparency['trust_score'] ?? '');
+        }
+
         $payload['meta_input'] = array_replace(
             is_array($payload['meta_input'] ?? null) ? $payload['meta_input'] : [],
             $publishLayerMeta
@@ -2023,6 +2042,32 @@ class DeliverDraftToWordPress
         );
 
         return $payload;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function aiTransparencyMetadataForDraft(Draft $draft): array
+    {
+        try {
+            $content = $draft->content ?: ($draft->content_id ? Content::query()
+                ->with(['workspace', 'clientSite.workspace', 'drafts'])
+                ->find($draft->content_id) : null);
+
+            if (! $content) {
+                return [];
+            }
+
+            return app(AiTransparencyService::class)->exportMachineMetadataForContent($content);
+        } catch (\Throwable $exception) {
+            Log::warning('WordPress delivery AI transparency metadata export failed.', [
+                'draft_id' => (string) $draft->id,
+                'content_id' => (string) ($draft->content_id ?? ''),
+                'error' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     /**
@@ -2305,6 +2350,47 @@ class DeliverDraftToWordPress
         $normalized = str_replace(["\r\n", "\r"], "\n", trim($html));
 
         return preg_replace("/\n{3,}/", "\n\n", $normalized) ?? $normalized;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function resolveVisualAssetPayload(Content $content): array
+    {
+        $content->loadMissing(['currentRevision', 'images']);
+        $plan = app(\App\Services\ContentVisuals\VisualPlanService::class)
+            ->fromMeta(is_array($content->currentRevision?->meta) ? $content->currentRevision->meta : []);
+
+        if ($plan['assets'] === []) {
+            return [];
+        }
+
+        $imagesByAssetKey = $content->images
+            ->filter(fn (ContentImage $image) => (string) $image->status === 'ready')
+            ->filter(fn (ContentImage $image) => trim((string) data_get($image->metadata, 'asset_key')) !== '')
+            ->sortByDesc('created_at')
+            ->unique(fn (ContentImage $image) => (string) data_get($image->metadata, 'asset_key'))
+            ->keyBy(fn (ContentImage $image) => (string) data_get($image->metadata, 'asset_key'));
+
+        return collect($plan['assets'])
+            ->map(function (array $asset) use ($imagesByAssetKey): array {
+                /** @var ContentImage|null $image */
+                $image = $imagesByAssetKey->get((string) ($asset['asset_key'] ?? ''));
+
+                return array_filter([
+                    'asset_key' => (string) ($asset['asset_key'] ?? ''),
+                    'type' => (string) ($asset['type'] ?? ''),
+                    'caption' => (string) ($asset['caption'] ?? ''),
+                    'alt_text' => (string) ($asset['alt_text'] ?? ''),
+                    'required' => (bool) ($asset['required'] ?? false),
+                    'status' => $image?->status ?: (string) ($asset['status'] ?? 'pending'),
+                    'image_url' => $image?->original_ui_url,
+                    'thumbnail_url' => $image?->thumbnail_ui_url,
+                    'structured_data' => $asset['structured_data'] ?? null,
+                ], fn (mixed $value) => $value !== null && $value !== '');
+            })
+            ->values()
+            ->all();
     }
 
     /**

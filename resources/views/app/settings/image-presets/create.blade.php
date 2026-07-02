@@ -1,5 +1,12 @@
 @extends('layouts.app', ['title' => 'Create Image Preset', 'pageWidth' => 'constrained'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Create Image Preset</x-slot:title>
+        <x-slot:description>Define a new visual style for AI-generated images.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="space-y-6">
         <header class="space-y-3">
@@ -10,8 +17,6 @@
                 <span class="mx-1">/</span>
                 <span class="text-textPrimary">Create</span>
             </nav>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Create Image Preset</h1>
-            <p class="text-textSecondary">Define a new visual style for AI-generated images.</p>
         </header>
 
         @if ($errors->any())

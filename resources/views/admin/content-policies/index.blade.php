@@ -1,10 +1,13 @@
 @extends('layouts.admin', ['title' => 'Content Policies'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Content Policies</x-slot:title>
+        <x-slot:description>Reusable policy rules for product-level governance.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Content Policies</h1>
-        <p class="mt-1 text-textSecondary">Reusable policy rules for product-level governance.</p>
-    </div>
 
     <div class="mb-6 rounded-lg border border-border bg-surface p-4">
         <h2 class="text-sm font-semibold text-textPrimary">Create policy</h2>

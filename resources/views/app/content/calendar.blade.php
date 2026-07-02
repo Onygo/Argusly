@@ -1,5 +1,13 @@
 @extends('layouts.app', ['title' => 'Content planning'])
 
+@section('pageHeader')
+    <x-page-header title="Content planning" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>Plan, beheer en publiceer je content. Alles overzichtelijk op één plek.</x-page-description>
+@endsection
+
 @section('content')
     @php
         $showWeekNumbers = (bool) ($showWeekNumbers ?? false);
@@ -49,12 +57,6 @@
                 ? $rangeStart->format('j M') . ' – ' . $rangeEnd->format('j M Y')
                 : $anchor->translatedFormat('F Y'));
     @endphp
-
-    {{-- Page Header --}}
-    <div class="mb-6">
-        <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Content planning</h1>
-        <p class="mt-1 text-textSecondary">Plan, beheer en publiceer je content. Alles overzichtelijk op één plek.</p>
-    </div>
 
     {{-- Content Load Stats --}}
     @include('app.content.calendar.partials.stats')

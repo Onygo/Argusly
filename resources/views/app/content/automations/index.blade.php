@@ -1,42 +1,50 @@
 @extends('layouts.app', ['title' => 'Automations'])
 
+@section('pageHeader')
+    <x-page-header title="Automations">
+        <x-slot:description>Schedule draft generation, chained planning, and auto publishing.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
+    <a href="{{ route('app.content.automations.create', array_filter(['workspace' => $selectedWorkspaceId, 'site' => $selectedSiteId])) }}" class="pl-btn-primary">New automation</a>
+@endsection
+
+@section('filterBar')
+    <form method="GET" action="{{ route('app.content.automations.index') }}" class="grid gap-3 md:grid-cols-4">
+        <div>
+            <label class="mb-1 block text-xs text-textSecondary">Workspace</label>
+            <select name="workspace" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                <option value="">All workspaces</option>
+                @foreach ($workspaces as $workspace)
+                    <option value="{{ $workspace->id }}" @selected($selectedWorkspaceId === (string) $workspace->id)>{{ $workspace->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="mb-1 block text-xs text-textSecondary">Client site</label>
+            <select name="site" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
+                <option value="">All sites</option>
+                @foreach ($sites as $site)
+                    <option value="{{ $site->id }}" @selected($selectedSiteId === (string) $site->id)>{{ $site->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="flex items-end gap-2 md:col-span-2">
+            <button class="rounded border border-border px-4 py-2 text-sm">Filter</button>
+            <a href="{{ route('app.content.automations.index') }}" class="rounded border border-border px-4 py-2 text-sm">Reset</a>
+        </div>
+    </form>
+@endsection
+
 @section('content')
-    <x-app.content-area-header mode="automations">
-        <a href="{{ route('app.content.automations.create', array_filter(['workspace' => $selectedWorkspaceId, 'site' => $selectedSiteId])) }}" class="rounded border border-border bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90">New automation</a>
-    </x-app.content-area-header>
+    <x-app.content-area-header mode="automations" :show-heading="false" />
 
     @if (session('status'))
         <x-alert class="my-4">{{ session('status') }}</x-alert>
     @endif
 
-    <div class="mt-6 mb-4 rounded-lg border border-border bg-surface p-4">
-        <form method="GET" action="{{ route('app.content.automations.index') }}" class="grid gap-3 md:grid-cols-4">
-            <div>
-                <label class="mb-1 block text-xs text-textSecondary">Workspace</label>
-                <select name="workspace" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
-                    <option value="">All workspaces</option>
-                    @foreach ($workspaces as $workspace)
-                        <option value="{{ $workspace->id }}" @selected($selectedWorkspaceId === (string) $workspace->id)>{{ $workspace->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="mb-1 block text-xs text-textSecondary">Client site</label>
-                <select name="site" class="w-full rounded border border-border bg-background px-3 py-2 text-sm">
-                    <option value="">All sites</option>
-                    @foreach ($sites as $site)
-                        <option value="{{ $site->id }}" @selected($selectedSiteId === (string) $site->id)>{{ $site->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex items-end gap-2 md:col-span-2">
-                <button class="rounded border border-border px-4 py-2 text-sm">Filter</button>
-                <a href="{{ route('app.content.automations.index') }}" class="rounded border border-border px-4 py-2 text-sm">Reset</a>
-            </div>
-        </form>
-    </div>
-
-    <div class="space-y-4">
+    <div class="mt-6 space-y-4">
         @forelse ($automations as $automation)
             @php
                 $statusLabel = ucfirst($automation->lifecycleStatus());

@@ -1,13 +1,17 @@
 @extends('layouts.admin', ['title' => 'Create Product Update', 'pageWidth' => 'constrained'])
 
-@section('content')
-    <div class="mb-6 flex items-center justify-between gap-3">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight text-textPrimary">Create product update</h1>
-            <p class="mt-1 text-textSecondary">Create a new public changelog entry.</p>
-        </div>
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Create product update</x-slot:title>
+        <x-slot:description>Create a new public changelog entry.</x-slot:description>
+    </x-page-header>
+@endsection
+
+@section('primaryActions')
         <a href="{{ route('admin.product-updates.index') }}" class="rounded border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Back to updates</a>
-    </div>
+@endsection
+
+@section('content')
 
     @if ($errors->any())
         <div class="mb-4 rounded border border-danger/30 bg-danger/5 px-3 py-2 text-sm text-danger">

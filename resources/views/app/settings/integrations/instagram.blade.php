@@ -1,10 +1,16 @@
 @extends('layouts.app', ['title' => 'Instagram Integration'])
 
+@section('pageHeader')
+    <x-page-header>
+        <x-slot:title>Instagram</x-slot:title>
+        <x-slot:description>{{ $accounts->filter(fn ($item) => $item->isConnected())->count() }} connected Instagram Professional account(s) in this workspace.</x-slot:description>
+    </x-page-header>
+@endsection
+
 @section('content')
     <div class="mx-auto max-w-4xl space-y-6">
         <div>
             <p class="text-sm text-textSecondary">Settings / Integrations</p>
-            <h1 class="text-xl font-semibold text-textPrimary">Instagram</h1>
         </div>
 
         @if (session('status'))

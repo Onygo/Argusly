@@ -45,6 +45,8 @@ class ImageGenerationService
 
     public const OG_TYPE = 'og';
 
+    public const INLINE_TYPE = 'inline';
+
     public function buildPrompt(Content $content, ?string $presetId = null): string
     {
         $content->loadMissing(['workspace.companyProfile', 'brandVoice', 'drafts']);
@@ -98,13 +100,18 @@ class ImageGenerationService
 
         $image = ContentImage::query()->create([
             'id' => (string) Str::uuid(),
+            'workspace_id' => (string) $content->workspace_id,
             'content_id' => (string) $content->id,
             'type' => self::FEATURED_TYPE,
+            'source' => ContentImage::SOURCE_GENERATED,
             'prompt' => $prompt,
             'provider' => $this->resolveImageRoute($content)['provider'],
             'credit_cost' => $this->resolveCreditCost(),
             'status' => 'queued',
             'is_active' => false,
+            'display_on_website' => true,
+            'display_as_featured_image' => true,
+            'use_as_social_image' => true,
             'created_by' => $content->updated_by,
         ]);
 
@@ -121,19 +128,75 @@ class ImageGenerationService
 
         $image = ContentImage::query()->create([
             'id' => (string) Str::uuid(),
+            'workspace_id' => (string) $content->workspace_id,
             'content_id' => (string) $content->id,
             'type' => self::OG_TYPE,
+            'source' => ContentImage::SOURCE_GENERATED,
             'prompt' => $this->buildOgPrompt($content),
             'provider' => 'pl-renderer',
             'credit_cost' => 0,
             'status' => 'queued',
             'is_active' => false,
+            'use_as_meta_image' => true,
+            'use_as_social_image' => true,
+            'use_for_linkedin' => true,
             'created_by' => $content->updated_by,
         ]);
 
         Artisan::call('optimize:clear');
 
         GenerateContentOgImageJob::dispatch((string) $image->id)->onQueue('generation');
+
+        return $image;
+    }
+
+    /**
+     * @param array<string,mixed> $asset
+     */
+    public function generateInlineVisualImage(Content $content, array $asset): ContentImage
+    {
+        $this->assertImagesEnabled();
+
+        $assetKey = trim((string) ($asset['asset_key'] ?? ''));
+        if ($assetKey === '') {
+            throw new RuntimeException('Inline visual asset_key is required.');
+        }
+
+        $prompt = trim((string) ($asset['prompt'] ?? ''));
+        if ($prompt === '') {
+            $prompt = trim(implode(' ', array_filter([
+                'Create a professional inline editorial visual for this article.',
+                trim((string) $content->title) !== '' ? 'Article: ' . trim((string) $content->title) . '.' : null,
+                trim((string) ($asset['caption'] ?? '')) !== '' ? 'Caption intent: ' . trim((string) $asset['caption']) . '.' : null,
+                'No text overlay, no logos, no watermarks.',
+            ])));
+        }
+
+        $image = ContentImage::query()->create([
+            'id' => (string) Str::uuid(),
+            'workspace_id' => (string) $content->workspace_id,
+            'content_id' => (string) $content->id,
+            'type' => self::INLINE_TYPE,
+            'source' => ContentImage::SOURCE_GENERATED,
+            'prompt' => $prompt,
+            'provider' => $this->resolveImageRoute($content)['provider'],
+            'credit_cost' => $this->resolveCreditCost(),
+            'status' => 'queued',
+            'is_active' => false,
+            'display_on_website' => true,
+            'alt_text' => trim((string) ($asset['alt_text'] ?? '')),
+            'created_by' => $content->updated_by,
+            'metadata' => [
+                'asset_key' => $assetKey,
+                'visual_type' => (string) ($asset['type'] ?? self::INLINE_TYPE),
+                'caption' => trim((string) ($asset['caption'] ?? '')),
+                'required' => (bool) ($asset['required'] ?? false),
+            ],
+        ]);
+
+        Artisan::call('optimize:clear');
+
+        GenerateContentFeaturedImageJob::dispatch((string) $image->id)->onQueue('generation');
 
         return $image;
     }
@@ -538,8 +601,8 @@ class ImageGenerationService
             $disk = $this->resolveImageStorageDisk();
             $ext = $payload['mime'] === 'image/jpeg' ? 'jpg' : 'png';
             $basePath = sprintf(
-                'content-images/%s/%s-featured-%s.%s',
-                (string) $content->id,
+                '%s/%s-featured-%s.%s',
+                ContentImage::storagePath((string) $content->id),
                 now()->format('YmdHis'),
                 Str::random(8),
                 $ext
@@ -556,7 +619,7 @@ class ImageGenerationService
             );
 
             $originalPath = (string) ($variants['original_path'] ?? $basePath);
-            $imageUrl = Storage::disk($disk)->url($originalPath);
+            $imageUrl = ContentImage::publicUrlForStorageValue((string) Storage::disk($disk)->url($originalPath));
 
             $cost = max(1, (int) ($image->credit_cost ?: $this->resolveCreditCost()));
             $entry = $wallets->commitUsageForContentImage($image);
@@ -567,8 +630,11 @@ class ImageGenerationService
                 ->where('id', '!=', $image->id)
                 ->update(['is_active' => false]);
 
+            $existingMetadata = is_array($image->metadata) ? $image->metadata : [];
+
             $image->update([
                 'status' => 'ready',
+                'source' => ContentImage::SOURCE_GENERATED,
                 'provider' => (string) $payload['provider'],
                 'model' => (string) ($this->resolveImageRoute($content)['model'] ?: ''),
                 'prompt' => $prompt,
@@ -588,8 +654,11 @@ class ImageGenerationService
                 'height' => $variants['height'] ?? null,
                 'file_size' => $variants['file_size'] ?? null,
                 'is_active' => true,
+                'display_on_website' => (string) $image->type === self::FEATURED_TYPE || (bool) $image->display_on_website,
+                'display_as_featured_image' => (string) $image->type === self::FEATURED_TYPE || (bool) $image->display_as_featured_image,
+                'use_as_social_image' => (string) $image->type === self::FEATURED_TYPE || (bool) $image->use_as_social_image,
                 'error_message' => null,
-                'metadata' => [
+                'metadata' => array_replace_recursive($existingMetadata, [
                     'mime' => (string) ($payload['mime'] ?? ''),
                     'generated_at' => now()->toIso8601String(),
                     'variants' => [
@@ -598,7 +667,7 @@ class ImageGenerationService
                         'medium_webp_path' => $variants['medium_webp_path'] ?? null,
                         'thumbnail_webp_path' => $variants['thumbnail_webp_path'] ?? null,
                     ],
-                ],
+                ]),
             ]);
 
             return $image;
@@ -663,13 +732,18 @@ class ImageGenerationService
     {
         $image = ContentImage::query()->create([
             'id' => (string) Str::uuid(),
+            'workspace_id' => (string) $content->workspace_id,
             'content_id' => (string) $content->id,
             'type' => self::FEATURED_TYPE,
+            'source' => ContentImage::SOURCE_GENERATED,
             'prompt' => $this->buildPrompt($content),
             'provider' => $this->resolveImageRoute($content)['provider'],
             'credit_cost' => $this->resolveCreditCost(),
             'status' => 'generating',
             'is_active' => false,
+            'display_on_website' => true,
+            'display_as_featured_image' => true,
+            'use_as_social_image' => true,
             'created_by' => $content->updated_by,
         ]);
 
@@ -842,7 +916,7 @@ class ImageGenerationService
 
     private function resolveImageStorageDisk(): string
     {
-        return (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'public'));
+        return (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images'));
     }
 
     private function canEncodeWebp(): bool

@@ -1,62 +1,75 @@
 @extends('layouts.app', ['title' => 'Distribution', 'pageWidth' => 'wide'])
 
-@section('content')
-    @php
-        $linkedinRenderer = app(\App\Services\SocialDistribution\LinkedInPostTextRenderer::class);
-        $capabilities = app(\App\Services\SocialDistribution\SocialPlatformCapabilities::class);
-        $linkedinDisclaimerEnabled = $linkedinRenderer->disclaimerEnabled();
-        $linkedinDisclaimerText = $linkedinRenderer->disclaimerText();
-        $connectedAccounts = $accounts->filter(fn ($account) => $account->isConnected());
-        $pendingAccounts = $accounts->filter(fn ($account) => ($account->status?->value ?? $account->status) === 'oauth_pending');
-        $attentionVariants = $variants->filter(fn ($variant) => in_array(($variant->status?->value ?? $variant->status), ['failed', 'changes_requested'], true));
-        $pendingVariants = $variants->filter(fn ($variant) => in_array(($variant->status?->value ?? $variant->status), ['generation_requested', 'generating', 'draft', 'pending_approval'], true));
-        $approvedVariants = $variants->filter(fn ($variant) => ($variant->status?->value ?? $variant->status) === 'approved');
-        $scheduledPublications = $publications->filter(fn ($publication) => ($publication->status?->value ?? $publication->status) === 'scheduled');
-        $copyVariants = $variants->filter(fn ($variant) => trim($variant->bodyWithoutRepeatedHook()) !== '');
-        $setupVariants = $variants->reject(fn ($variant) => trim($variant->bodyWithoutRepeatedHook()) !== '');
-        $rt = function (string $value, array $replace = []): string {
-            $key = 'app.runtime.'.$value;
-            $translated = __($key, $replace);
+@php
+    $linkedinRenderer = app(\App\Services\SocialDistribution\LinkedInPostTextRenderer::class);
+    $capabilities = app(\App\Services\SocialDistribution\SocialPlatformCapabilities::class);
+    $linkedinDisclaimerEnabled = $linkedinRenderer->disclaimerEnabled();
+    $linkedinDisclaimerText = $linkedinRenderer->disclaimerText();
+    $connectedAccounts = $accounts->filter(fn ($account) => $account->isConnected());
+    $pendingAccounts = $accounts->filter(fn ($account) => ($account->status?->value ?? $account->status) === 'oauth_pending');
+    $attentionVariants = $variants->filter(fn ($variant) => in_array(($variant->status?->value ?? $variant->status), ['failed', 'changes_requested'], true));
+    $pendingVariants = $variants->filter(fn ($variant) => in_array(($variant->status?->value ?? $variant->status), ['generation_requested', 'generating', 'draft', 'pending_approval'], true));
+    $approvedVariants = $variants->filter(fn ($variant) => ($variant->status?->value ?? $variant->status) === 'approved');
+    $scheduledPublications = $publications->filter(fn ($publication) => ($publication->status?->value ?? $publication->status) === 'scheduled');
+    $copyVariants = $variants->filter(fn ($variant) => trim($variant->bodyWithoutRepeatedHook()) !== '');
+    $setupVariants = $variants->reject(fn ($variant) => trim($variant->bodyWithoutRepeatedHook()) !== '');
+    $rt = function (string $value, array $replace = []): string {
+        $key = 'app.runtime.'.$value;
+        $translated = __($key, $replace);
 
-            return $translated === $key ? strtr($value, collect($replace)->mapWithKeys(fn ($replacement, $placeholder) => [':'.$placeholder => $replacement])->all()) : $translated;
-        };
-        $formatStatus = fn ($status) => $rt((string) str($status?->value ?? $status)->replace('_', ' ')->title());
-        $platformValue = fn ($model) => (string) ($model->platform?->value ?? $model->platform);
-        $platformLabel = fn ($platform) => $capabilities->label($platform);
-        $postLabel = fn ($platform) => $capabilities->postLabel($platform);
-        $publishingEnabled = fn ($platform) => match ((string) $platform) {
-            'instagram' => (bool) config('services.meta.enabled'),
-            default => (bool) config('services.linkedin.publishing_enabled'),
-        };
-        $contentContextFor = fn ($contentItem): string => json_encode($contentDistributionContexts[(string) $contentItem->id] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
-    @endphp
+        return $translated === $key ? strtr($value, collect($replace)->mapWithKeys(fn ($replacement, $placeholder) => [':'.$placeholder => $replacement])->all()) : $translated;
+    };
+    $formatStatus = fn ($status) => $rt((string) str($status?->value ?? $status)->replace('_', ' ')->title());
+    $platformValue = fn ($model) => (string) ($model->platform?->value ?? $model->platform);
+    $platformLabel = fn ($platform) => $capabilities->label($platform);
+    $postLabel = fn ($platform) => $capabilities->postLabel($platform);
+    $publishingEnabled = fn ($platform) => match ((string) $platform) {
+        'instagram' => (bool) config('services.meta.enabled'),
+        default => (bool) config('services.linkedin.publishing_enabled'),
+    };
+    $contentContextFor = fn ($contentItem): string => json_encode($contentDistributionContexts[(string) $contentItem->id] ?? [], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '{}';
+@endphp
+
+@section('pageHeader')
+    <x-page-header :title="$rt('Distribution')" :eyebrow="$rt('Agentic Marketing')" />
+@endsection
+
+@section('pageDescription')
+    <x-page-description>{{ $rt('Plan LinkedIn and Instagram variants, approvals, scheduling, account targeting, and campaign distribution without bypassing human review.') }}</x-page-description>
+@endsection
+
+@section('primaryActions')
+    <form method="POST" action="{{ route('app.agentic-marketing.distribution.linkedin.connect') }}" class="grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_9rem_9rem_auto]">
+        @csrf
+        <input name="display_name" class="pl-input" placeholder="{{ $rt('LinkedIn account name') }}">
+        <select name="account_type" class="pl-input" aria-label="{{ $rt('Account type') }}">
+            <option value="person">{{ $rt('Personal') }}</option>
+            <option value="organization">{{ $rt('Company') }}</option>
+        </select>
+        <input name="labels" class="pl-input" placeholder="{{ $rt('Founder, Brand') }}">
+        <button class="pl-btn-primary min-w-40 justify-center whitespace-nowrap">
+            <i data-lucide="plus" class="h-4 w-4"></i>
+            <span>{{ $rt('Add LinkedIn') }}</span>
+        </button>
+    </form>
+    <a href="{{ route('app.settings.integrations.instagram', ['workspace_id' => $workspace->id]) }}" class="pl-btn-primary min-w-40 justify-center whitespace-nowrap">
+        <i data-lucide="instagram" class="h-4 w-4"></i>
+        <span>{{ $rt('Connect Instagram') }}</span>
+    </a>
+@endsection
+
+@section('metricSection')
+    <x-metric-section>
+        <x-metric-card :label="$rt('Accounts')" :value="$accounts->count()" icon="users" :helper="$rt(':connected connected, :pending pending OAuth', ['connected' => $connectedAccounts->count(), 'pending' => $pendingAccounts->count()])" />
+        <x-metric-card :label="$rt('Campaigns')" :value="$campaigns->count()" icon="network" />
+        <x-metric-card :label="$rt('Needs attention')" :value="$attentionVariants->count()" icon="alert-triangle" />
+        <x-metric-card :label="$rt('Scheduled')" :value="$scheduledPublications->count()" icon="calendar-clock" />
+    </x-metric-section>
+@endsection
+
+@section('content')
 
     <div class="space-y-6">
-        <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-                <p class="text-sm text-textSecondary">{{ $rt('Agentic Marketing') }}</p>
-                <h1 class="text-xl font-semibold text-textPrimary">{{ $rt('Distribution') }}</h1>
-                <p class="mt-1 max-w-3xl text-sm text-textSecondary">{{ $rt('Plan LinkedIn and Instagram variants, approvals, scheduling, account targeting, and campaign distribution without bypassing human review.') }}</p>
-            </div>
-            <form method="POST" action="{{ route('app.agentic-marketing.distribution.linkedin.connect') }}" class="grid gap-2 sm:grid-cols-[minmax(12rem,1fr)_9rem_9rem_auto]">
-                @csrf
-                <input name="display_name" class="pl-input" placeholder="{{ $rt('LinkedIn account name') }}">
-                <select name="account_type" class="pl-input" aria-label="{{ $rt('Account type') }}">
-                    <option value="person">{{ $rt('Personal') }}</option>
-                    <option value="organization">{{ $rt('Company') }}</option>
-                </select>
-                <input name="labels" class="pl-input" placeholder="{{ $rt('Founder, Brand') }}">
-                <button class="pl-btn-primary min-w-40 justify-center whitespace-nowrap">
-                    <i data-lucide="plus" class="h-4 w-4"></i>
-                    <span>{{ $rt('Add LinkedIn') }}</span>
-                </button>
-            </form>
-            <a href="{{ route('app.settings.integrations.instagram', ['workspace_id' => $workspace->id]) }}" class="pl-btn-primary min-w-40 justify-center whitespace-nowrap">
-                <i data-lucide="instagram" class="h-4 w-4"></i>
-                <span>{{ $rt('Connect Instagram') }}</span>
-            </a>
-        </div>
-
         @if (session('status'))
             <x-alert>{{ session('status') }}</x-alert>
         @endif
@@ -72,41 +85,6 @@
                 {{ $linkedinDisclaimerText }}
             </x-alert>
         @endif
-
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <section class="rounded-lg border border-border bg-surface p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">{{ $rt('Accounts') }}</p>
-                    <i data-lucide="users" class="h-4 w-4 text-textFaint"></i>
-                </div>
-                <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ $accounts->count() }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ $rt(':connected connected, :pending pending OAuth', ['connected' => $connectedAccounts->count(), 'pending' => $pendingAccounts->count()]) }}</p>
-            </section>
-            <section class="rounded-lg border border-border bg-surface p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">{{ $rt('Campaigns') }}</p>
-                    <i data-lucide="network" class="h-4 w-4 text-textFaint"></i>
-                </div>
-                <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ $campaigns->count() }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ $rt('Recent campaign distribution scope') }}</p>
-            </section>
-            <section class="rounded-lg border border-border bg-surface p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">{{ $rt('Variants') }}</p>
-                    <i data-lucide="copy-plus" class="h-4 w-4 text-textFaint"></i>
-                </div>
-                <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ $variants->count() }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ $rt(':approved approved, :pending in progress', ['approved' => $approvedVariants->count(), 'pending' => $pendingVariants->count()]) }}</p>
-            </section>
-            <section class="rounded-lg border border-border bg-surface p-4">
-                <div class="flex items-center justify-between gap-3">
-                    <p class="text-xs font-medium uppercase tracking-wide text-textFaint">{{ $rt('Needs attention') }}</p>
-                    <i data-lucide="circle-alert" class="h-4 w-4 text-textFaint"></i>
-                </div>
-                <p class="mt-2 text-2xl font-semibold text-textPrimary">{{ $attentionVariants->count() + $publications->where('status.value', 'failed')->count() }}</p>
-                <p class="mt-1 text-xs text-textSecondary">{{ $rt(':count scheduled item(s)', ['count' => $scheduledPublications->count()]) }}</p>
-            </section>
-        </div>
 
         <section class="rounded-lg border border-border bg-surface">
             <div class="flex flex-col gap-2 border-b border-border p-4 md:flex-row md:items-center md:justify-between">
@@ -593,25 +571,24 @@
                 <h2 class="text-base font-semibold text-textPrimary">{{ $rt('Distribution Overview') }}</h2>
                 <i data-lucide="chevron-down" class="h-4 w-4 text-textFaint"></i>
             </summary>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-border text-left text-sm">
-                    <thead class="bg-background text-xs font-medium uppercase tracking-wide text-textSecondary">
-                        <tr>
-                            <th class="px-4 py-3">{{ $rt('Campaign') }}</th>
-                            <th class="px-4 py-3">{{ $rt('Assets') }}</th>
-                            <th class="px-4 py-3">{{ $rt('Variants') }}</th>
-                            <th class="px-4 py-3">{{ $rt('Publications') }}</th>
-                            <th class="px-4 py-3">{{ $rt('State') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-border">
+            <x-data-table :label="$rt('Distribution Overview')" :description="$rt('Campaign distribution counts for assets, variants, publications, and current state.')" density="compact" class="border-0 rounded-none">
+                    <x-data-table.header>
+                        <x-data-table.row>
+                            <x-data-table.cell heading>{{ $rt('Campaign') }}</x-data-table.cell>
+                            <x-data-table.cell heading>{{ $rt('Assets') }}</x-data-table.cell>
+                            <x-data-table.cell heading>{{ $rt('Variants') }}</x-data-table.cell>
+                            <x-data-table.cell heading>{{ $rt('Publications') }}</x-data-table.cell>
+                            <x-data-table.cell heading>{{ $rt('State') }}</x-data-table.cell>
+                        </x-data-table.row>
+                    </x-data-table.header>
+                    <tbody>
                         @forelse ($campaigns as $campaign)
-                            <tr>
-                                <td class="px-4 py-3 font-medium text-textPrimary">{{ $campaign->name }}</td>
-                                <td class="px-4 py-3 text-textSecondary">{{ $campaign->contents_count }}</td>
-                                <td class="px-4 py-3 text-textSecondary">{{ $campaign->social_post_variants_count }}</td>
-                                <td class="px-4 py-3 text-textSecondary">{{ $campaign->social_publications_count }}</td>
-                                <td class="px-4 py-3 text-textSecondary">
+                            <x-data-table.row>
+                                <x-data-table.cell :label="$rt('Campaign')" class="font-medium text-textPrimary">{{ $campaign->name }}</x-data-table.cell>
+                                <x-data-table.cell :label="$rt('Assets')" class="text-textSecondary">{{ $campaign->contents_count }}</x-data-table.cell>
+                                <x-data-table.cell :label="$rt('Variants')" class="text-textSecondary">{{ $campaign->social_post_variants_count }}</x-data-table.cell>
+                                <x-data-table.cell :label="$rt('Publications')" class="text-textSecondary">{{ $campaign->social_publications_count }}</x-data-table.cell>
+                                <x-data-table.cell :label="$rt('State')" class="text-textSecondary">
                                     @if (($campaign->active_social_publications_count ?? 0) > 0)
                                         {{ $rt('Scheduled activity') }}
                                     @elseif (($campaign->published_social_publications_count ?? 0) > 0)
@@ -621,16 +598,13 @@
                                     @else
                                         {{ $rt('Planning') }}
                                     @endif
-                                </td>
-                            </tr>
+                                </x-data-table.cell>
+                            </x-data-table.row>
                         @empty
-                            <tr>
-                                <td colspan="5" class="px-4 py-6 text-center text-textSecondary">{{ $rt('No campaigns available.') }}</td>
-                            </tr>
+                            <x-data-table.empty colspan="5" :title="$rt('No campaigns available.')" />
                         @endforelse
                     </tbody>
-                </table>
-            </div>
+            </x-data-table>
         </details>
 
         <section class="rounded-lg border border-border bg-surface">

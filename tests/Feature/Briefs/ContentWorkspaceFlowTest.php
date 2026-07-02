@@ -96,7 +96,8 @@ it('renders content index and create content page', function () {
         ->get(route('app.content.create'))
         ->assertOk()
         ->assertSee('Create content')
-        ->assertSee('Brief settings');
+        ->assertSee('Brief settings')
+        ->assertSee('Complete briefing');
 });
 
 it('stores content brief from create content and redirects to content workspace', function () {
@@ -115,6 +116,57 @@ it('stores content brief from create content and redirects to content workspace'
     $brief = Brief::query()->where('title', 'Content workspace article')->first();
 
     expect($brief)->not->toBeNull();
+    $response->assertRedirect(route('app.content.workspace.show', $brief));
+});
+
+it('stores content from a complete pasted briefing', function () {
+    [, , $site, $user] = makeContentWorkspaceContext('content-workspace-complete-briefing');
+
+    $briefing = <<<'BRIEF'
+Content Briefing
+Working title
+
+The Biggest AI Bottleneck Isn't Talent. It's Your Marketing Operating System.
+Primary keyword
+
+AI marketing operating system
+Secondary keywords
+agentic marketing
+AI content operations
+AI governance marketing
+Target audience
+CMOs
+Marketing Directors
+Core message
+
+The biggest bottleneck is the absence of an operational system that enables marketers and AI to work together.
+Angle
+
+React to the growing narrative that companies need to hire AI specialists.
+Key discussion points
+1. AI is becoming a commodity
+2. Hiring more AI talent does not scale
+BRIEF;
+
+    $response = $this->actingAs($user)->post(route('app.content.create.store'), [
+        'site_id' => (string) $site->id,
+        'content_type' => 'blog',
+        'language' => 'en',
+        'complete_briefing' => $briefing,
+        'desired_length_min' => 900,
+        'desired_length_max' => 1200,
+    ]);
+
+    $brief = Brief::query()
+        ->where('title', "The Biggest AI Bottleneck Isn't Talent. It's Your Marketing Operating System.")
+        ->first();
+
+    expect($brief)->not->toBeNull()
+        ->and((string) $brief->primary_keyword)->toBe('AI marketing operating system')
+        ->and($brief->secondary_keywords)->toContain('agentic marketing')
+        ->and((string) $brief->target_audience)->toContain('CMOs')
+        ->and((string) data_get($brief->client_refs, 'complete_briefing.raw'))->toContain('Content Briefing');
+
     $response->assertRedirect(route('app.content.workspace.show', $brief));
 });
 

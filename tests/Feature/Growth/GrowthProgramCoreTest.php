@@ -1812,6 +1812,37 @@ it('supports publication readiness approval lifecycle and blocks normal approval
     $blockedReadiness->approve($user);
 })->throws(InvalidArgumentException::class, 'Blocked publication readiness requires an explicit override before approval.');
 
+it('requires an explicit form override to approve blocked publication readiness', function (): void {
+    [$program, , , $user] = approvedDraftReviewFixture(ProgrammaticPatternType::FAQ_LIBRARY);
+    $this->withoutMiddleware([EnsureBillingOnboardingCompleted::class]);
+
+    $blocked = Content::query()->create([
+        'workspace_id' => $program->workspace_id,
+        'title' => 'Blocked approval route content',
+        'status' => 'draft',
+        'publish_status' => 'draft',
+    ]);
+    $readiness = app(ProgrammaticPublicationReadinessService::class)->checkContent($blocked);
+
+    $this->actingAs($user)
+        ->get(route('app.programmatic-publication-readiness.show', $readiness))
+        ->assertOk()
+        ->assertSee('Override blocked checks');
+
+    $this->actingAs($user)
+        ->post(route('app.programmatic-publication-readiness.approve', $readiness))
+        ->assertSessionHasErrors('publication_readiness');
+
+    $this->actingAs($user)
+        ->post(route('app.programmatic-publication-readiness.approve', $readiness), [
+            'override' => '1',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Publication readiness approved.');
+
+    expect($readiness->fresh()->status)->toBe(ProgrammaticPublicationReadiness::STATUS_APPROVED);
+});
+
 it('runs publication readiness for clusters and growth programs without publications', function (): void {
     [$program, $cluster] = approvedDraftReviewFixture(ProgrammaticPatternType::FAQ_LIBRARY, reviewAll: true);
     app(GrowthProgramOrchestrator::class)->convertApprovedReviewsForProgram($program);

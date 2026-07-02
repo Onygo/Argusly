@@ -22,6 +22,7 @@ use App\Services\OpportunityIntelligence\OpportunityIntelligenceEngine;
 use App\Services\OpportunityIntelligence\OpportunityExecutionPlanBuilder;
 use App\Services\OpportunityIntelligence\OpportunitySignalIngestor;
 use App\Services\OpportunityIntelligence\OpportunitySignalPayload;
+use App\Services\Journey\WorkspaceJourneyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Queue;
@@ -367,6 +368,28 @@ it('runs opportunity intelligence manually from the app route', function (): voi
     expect(Opportunity::query()->where('workspace_id', $context['workspace']->id)->count())->toBe(1);
 });
 
+it('limits long promoted signal topics before creating opportunities', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('long-topic');
+    promotedOpportunitySignal($context['workspace'], [
+        'category' => OpportunityCategory::AI_VISIBILITY_OPPORTUNITY->value,
+        'topic' => 'best AI content tools for SEO what tools improve AI search visibility how to optimize content for ChatGPT or AI search generative engine optimization tools AI content workflow platform semantic content for LLMs and many more long tail prompts',
+    ]);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.opportunity-intelligence.run'))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+
+    expect(Str::length($opportunity->title))->toBeLessThanOrEqual(220)
+        ->and(Str::length((string) $opportunity->topic))->toBeLessThanOrEqual(220)
+        ->and($opportunity->title)->toStartWith('Ai visibility opportunity:');
+});
+
 it('keeps opportunity intelligence routes behind the feature flag', function (): void {
     $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
     $context = promotedOpportunityContext('flag-off');
@@ -411,6 +434,32 @@ it('creates an execution plan for an approved opportunity without creating execu
         ->and(Content::query()->count())->toBe($counts['content']);
 });
 
+it('creates an execution plan when the opportunity title is already at the column limit', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-long-title');
+    promotedOpportunitySignal($context['workspace'], [
+        'topic' => 'best AI content tools for SEO what tools improve AI search visibility how to optimize content for ChatGPT or AI search generative engine optimization tools AI content workflow platform semantic content for LLMs',
+        'category' => OpportunityCategory::BRAND_VISIBILITY->value,
+    ]);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill([
+        'status' => 'approved',
+        'title' => str_repeat('A', 220),
+    ])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.opportunity-intelligence.opportunities.execution-plans.store', $opportunity))
+        ->assertRedirect();
+
+    $plan = OpportunityExecutionPlan::query()->where('opportunity_id', $opportunity->id)->firstOrFail();
+
+    expect(mb_strlen($plan->title))->toBeLessThanOrEqual(OpportunityExecutionPlan::TITLE_MAX_LENGTH)
+        ->and($plan->title)->toStartWith('Execution plan');
+});
+
 it('does not create a duplicate active execution plan', function (): void {
     Config::set('features.agentic_marketing', true);
     $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
@@ -430,6 +479,112 @@ it('does not create a duplicate active execution plan', function (): void {
         ->assertSessionHasErrors('execution_plan');
 
     expect(OpportunityExecutionPlan::query()->where('opportunity_id', $opportunity->id)->count())->toBe(1);
+});
+
+it('approved opportunity can open execution-plans page without existing plan', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-index-empty');
+    promotedOpportunitySignal($context['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill(['status' => 'approved'])->save();
+
+    $this->actingAs($context['user'])
+        ->get(route('app.opportunity-intelligence.opportunities.execution-plans.index', $opportunity))
+        ->assertOk()
+        ->assertSee('No execution plan yet');
+});
+
+it('execution-plans page shows empty state and create action', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-index-action');
+    promotedOpportunitySignal($context['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill(['status' => 'approved'])->save();
+
+    $this->actingAs($context['user'])
+        ->get(route('app.opportunity-intelligence.opportunities.execution-plans.index', $opportunity))
+        ->assertOk()
+        ->assertSee('No execution plan yet')
+        ->assertSee('Create Execution Plan')
+        ->assertSee(route('app.opportunity-intelligence.opportunities.execution-plans.store', $opportunity), false);
+});
+
+it('unauthorized user cannot access another workspace opportunity execution-plans page', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-index-own');
+    $other = promotedOpportunityContext('plan-index-other');
+    promotedOpportunitySignal($other['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($other['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $other['workspace']->id)->firstOrFail();
+    $opportunity->forceFill(['status' => 'approved'])->save();
+
+    $this->actingAs($context['user'])
+        ->get(route('app.opportunity-intelligence.opportunities.execution-plans.index', $opportunity))
+        ->assertNotFound();
+});
+
+it('opportunity execution-plans page renders an existing execution plan', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-index-existing');
+    promotedOpportunitySignal($context['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill(['status' => 'approved'])->save();
+    $plan = app(OpportunityExecutionPlanBuilder::class)->build($opportunity, $context['user']);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.opportunity-intelligence.opportunities.execution-plans.index', $opportunity))
+        ->assertOk()
+        ->assertSee($plan->title)
+        ->assertSee('Planned Steps')
+        ->assertSee('Source Evidence');
+});
+
+it('journey state marks execution planning active and completed correctly', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-journey-state');
+    promotedOpportunitySignal($context['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill(['status' => 'approved'])->save();
+
+    $service = app(WorkspaceJourneyService::class);
+    $withoutPlan = $service->forWorkspace($context['workspace'])['steps']->keyBy('key');
+
+    expect($withoutPlan['execution_planning']->status)->toBe('active')
+        ->and($withoutPlan['execution_planning']->blockingMessage)->toBeNull();
+
+    app(OpportunityExecutionPlanBuilder::class)->build($opportunity, $context['user']);
+    $withPlan = app(WorkspaceJourneyService::class)->forWorkspace($context['workspace'])['steps']->keyBy('key');
+
+    expect($withPlan['execution_planning']->status)->toBe('completed');
+});
+
+it('execution-plans route does not return 500 for the current opportunity intelligence flow', function (): void {
+    Config::set('features.agentic_marketing', true);
+    $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
+
+    $context = promotedOpportunityContext('plan-route-current-flow');
+    promotedOpportunitySignal($context['workspace']);
+    app(OpportunityIntelligenceEngine::class)->run($context['workspace']);
+    $opportunity = Opportunity::query()->where('workspace_id', $context['workspace']->id)->firstOrFail();
+    $opportunity->forceFill(['status' => 'approved'])->save();
+
+    $this->actingAs($context['user'])
+        ->get(route('app.opportunity-intelligence.opportunities.execution-plans.index', $opportunity))
+        ->assertOk();
 });
 
 it('shows create plan button only when allowed', function (): void {

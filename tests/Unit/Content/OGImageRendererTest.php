@@ -16,8 +16,8 @@ it('renders og image file with expected 1200x630 resolution', function () {
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
-    config(['argusly.ai.images.storage_disk' => 'public']);
+    Storage::fake('content_images');
+    config(['argusly.images.disk' => 'content_images']);
 
     $organization = Organization::query()->create([
         'name' => 'OG Org',
@@ -48,7 +48,7 @@ it('renders og image file with expected 1200x630 resolution', function () {
     ]);
 
     $bgPath = 'content-images/test-bg.png';
-    Storage::disk('public')->put($bgPath, makeSolidPng(1600, 1000, [34, 56, 78]));
+    Storage::disk('content_images')->put($bgPath, makeSolidPng(1600, 1000, [34, 56, 78]));
 
     $bgImage = ContentImage::query()->create([
         'id' => (string) Str::uuid(),
@@ -56,15 +56,15 @@ it('renders og image file with expected 1200x630 resolution', function () {
         'type' => 'featured',
         'status' => 'ready',
         'image_path' => $bgPath,
-        'image_url' => Storage::disk('public')->url($bgPath),
+        'image_url' => Storage::disk('content_images')->url($bgPath),
         'credit_cost' => 5,
         'provider' => 'openai',
     ]);
 
     $result = app(OGImageRenderer::class)->render($content, $bgImage);
 
-    Storage::disk('public')->assertExists($result->path);
-    $dimensions = getimagesizefromstring(Storage::disk('public')->get($result->path));
+    Storage::disk('content_images')->assertExists($result->path);
+    $dimensions = getimagesizefromstring(Storage::disk('content_images')->get($result->path));
 
     expect($dimensions)->not->toBeFalse()
         ->and((int) $dimensions[0])->toBe(1200)
@@ -76,8 +76,8 @@ it('renders long titles without breaking og canvas dimensions', function () {
         $this->markTestSkipped('GD extension is not available.');
     }
 
-    Storage::fake('public');
-    config(['argusly.ai.images.storage_disk' => 'public']);
+    Storage::fake('content_images');
+    config(['argusly.images.disk' => 'content_images']);
 
     $organization = Organization::query()->create([
         'name' => 'OG Org Long',
@@ -102,7 +102,7 @@ it('renders long titles without breaking og canvas dimensions', function () {
     ]);
 
     $bgPath = 'content-images/test-bg-long.png';
-    Storage::disk('public')->put($bgPath, makeSolidPng(1800, 1200, [140, 180, 215]));
+    Storage::disk('content_images')->put($bgPath, makeSolidPng(1800, 1200, [140, 180, 215]));
 
     $bgImage = ContentImage::query()->create([
         'id' => (string) Str::uuid(),
@@ -110,13 +110,13 @@ it('renders long titles without breaking og canvas dimensions', function () {
         'type' => 'featured',
         'status' => 'ready',
         'image_path' => $bgPath,
-        'image_url' => Storage::disk('public')->url($bgPath),
+        'image_url' => Storage::disk('content_images')->url($bgPath),
         'credit_cost' => 5,
         'provider' => 'openai',
     ]);
 
     $result = app(OGImageRenderer::class)->render($content, $bgImage);
-    $dimensions = getimagesizefromstring(Storage::disk('public')->get($result->path));
+    $dimensions = getimagesizefromstring(Storage::disk('content_images')->get($result->path));
 
     expect($dimensions)->not->toBeFalse()
         ->and((int) $dimensions[0])->toBe(1200)
