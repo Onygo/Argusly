@@ -170,6 +170,38 @@ BRIEF;
     $response->assertRedirect(route('app.content.workspace.show', $brief));
 });
 
+it('derives the title from an inline title in a pasted complete briefing', function () {
+    [, , $site, $user] = makeContentWorkspaceContext('content-workspace-inline-briefing-title');
+
+    $briefing = <<<'BRIEF'
+Title: Stop Chasing More Traffic. Start Fixing What Happens After the Click.
+
+Alternatieve SEO-title:
+
+Why More Traffic Isn't Your Biggest Growth Problem Anymore
+
+Doel
+
+Laten zien dat bedrijven zich vaak blindstaren op meer verkeer, terwijl de grootste groeikans juist ligt in het verbeteren van conversie.
+BRIEF;
+
+    $response = $this->actingAs($user)->post(route('app.content.create.store'), [
+        'site_id' => (string) $site->id,
+        'content_type' => 'blog',
+        'language' => 'en',
+        'complete_briefing' => $briefing,
+    ]);
+
+    $brief = Brief::query()
+        ->where('title', 'Stop Chasing More Traffic. Start Fixing What Happens After the Click.')
+        ->first();
+
+    expect($brief)->not->toBeNull()
+        ->and((string) data_get($brief->client_refs, 'complete_briefing.derived.title'))->toBe('Stop Chasing More Traffic. Start Fixing What Happens After the Click.');
+
+    $response->assertRedirect(route('app.content.workspace.show', $brief));
+});
+
 it('renders content workspace primary actions and recent compare runs', function () {
     [, , $site, $user] = makeContentWorkspaceContext('content-workspace-actions');
 

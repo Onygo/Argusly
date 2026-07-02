@@ -11,13 +11,19 @@ class CompleteContentBriefingParser
      */
     private const HEADINGS = [
         'content briefing' => 'overview',
+        'title' => 'working_title',
         'working title' => 'working_title',
         'alternative seo titles' => 'alternative_seo_titles',
+        'alternative seo title' => 'alternative_seo_titles',
+        'alternatieve seo titel' => 'alternative_seo_titles',
+        'alternatieve seo title' => 'alternative_seo_titles',
         'primary keyword' => 'primary_keyword',
         'secondary keywords' => 'secondary_keywords',
         'search intent' => 'search_intent',
         'target audience' => 'target_audience',
         'core message' => 'core_message',
+        'goal' => 'core_message',
+        'doel' => 'core_message',
         'angle' => 'angle',
         'problem statement' => 'problem_statement',
         'key discussion points' => 'key_discussion_points',
@@ -90,6 +96,14 @@ class CompleteContentBriefingParser
 
         foreach (preg_split('/\R/', $raw) ?: [] as $line) {
             $trimmed = trim($line);
+            $inlineHeading = self::inlineHeading($trimmed);
+            if ($inlineHeading !== null) {
+                [$current, $value] = $inlineHeading;
+                $sections[$current] = trim(($sections[$current] ?? '') . "\n" . $value);
+
+                continue;
+            }
+
             $heading = self::headingKey($trimmed);
 
             if ($heading !== null) {
@@ -107,6 +121,26 @@ class CompleteContentBriefingParser
         }
 
         return array_filter($sections, fn (string $value): bool => trim($value) !== '');
+    }
+
+    /**
+     * @return array{0:string,1:string}|null
+     */
+    private static function inlineHeading(string $line): ?array
+    {
+        if (! str_contains($line, ':')) {
+            return null;
+        }
+
+        [$label, $value] = array_pad(explode(':', $line, 2), 2, '');
+        $heading = self::headingKey(trim($label));
+        $value = trim($value);
+
+        if ($heading === null || $value === '') {
+            return null;
+        }
+
+        return [$heading, $value];
     }
 
     private static function headingKey(string $line): ?string
