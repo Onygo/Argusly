@@ -102,6 +102,10 @@ return [
             'route' => 'public.legal.security',
         ],
         [
+            'label' => 'AI transparency',
+            'route' => 'public.legal.ai-transparency',
+        ],
+        [
             'label' => 'Cookies policy',
             'route' => 'public.legal.cookies',
         ],

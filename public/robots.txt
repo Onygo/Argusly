@@ -34,5 +34,5 @@ User-agent: ClaudeBot
 Allow: /
 
 # Sitemap(s)
-Sitemap: https://publishlayer.com/sitemap.xml
-Sitemap: https://publishlayer.com/llms.txt
+Sitemap: https://argusly.com/sitemap.xml
+Sitemap: https://argusly.com/llms.txt

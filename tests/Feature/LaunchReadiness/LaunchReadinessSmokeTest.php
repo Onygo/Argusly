@@ -2,6 +2,7 @@
 
 use App\Models\Plan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
@@ -47,6 +48,12 @@ it('renders public launch and compliance entry points', function (): void {
         route('public.legal.ai-transparency'),
         route('public.legal.cookies'),
         route('public.legal.subprocessors'),
+        route('localized.nl.public.legal.privacy'),
+        route('localized.nl.public.legal.terms'),
+        route('localized.nl.public.legal.security'),
+        route('localized.nl.public.legal.ai-transparency'),
+        route('localized.nl.public.legal.cookies'),
+        route('localized.nl.public.legal.subprocessors'),
         route('login'),
         route('register'),
     ];
@@ -54,6 +61,18 @@ it('renders public launch and compliance entry points', function (): void {
     foreach ($paths as $path) {
         $this->get($path)->assertOk();
     }
+});
+
+it('keeps public discovery files Argusly branded and temporary launch pages absent', function (): void {
+    expect(File::exists(public_path('temp.php')))->toBeFalse();
+
+    $robots = File::get(public_path('robots.txt'));
+
+    expect($robots)->toContain('Sitemap: https://argusly.com/sitemap.xml')
+        ->and($robots)->toContain('Sitemap: https://argusly.com/llms.txt')
+        ->and($robots)->not->toContain('publishlayer.com')
+        ->and(config('sitemap.static_routes'))->toContain('public.legal.ai-transparency')
+        ->and(collect(config('llms.pages'))->pluck('route'))->toContain('public.legal.ai-transparency');
 });
 
 it('keeps launch hardening defaults in the raw Argusly config contract', function (): void {

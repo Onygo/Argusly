@@ -65,6 +65,7 @@ return [
         'public.legal.privacy',
         'public.legal.terms',
         'public.legal.security',
+        'public.legal.ai-transparency',
         'public.legal.cookies',
         'public.legal.subprocessors',
     ],
