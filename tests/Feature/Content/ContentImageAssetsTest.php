@@ -289,6 +289,120 @@ it('renders content image asset src values from public content images instead of
         ->assertDontSee('/storage/content-images/rendered-original.jpg', false);
 });
 
+it('shows reusable image assets from linked locale variants', function (): void {
+    [$user, $source] = createContentImageAssetContext();
+    $target = createLinkedLocaleContentVariant($source, 'nl');
+
+    $sourceImage = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $source->workspace_id,
+        'content_id' => (string) $source->id,
+        'type' => 'og',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'pl-renderer',
+        'image_url' => 'https://cdn.example.test/en-og.jpg',
+        'status' => 'ready',
+        'is_active' => true,
+        'use_as_meta_image' => true,
+        'width' => 1200,
+        'height' => 630,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', ['content' => $target, 'tab' => 'images']))
+        ->assertOk()
+        ->assertSee('Linked locale images')
+        ->assertSee('EN · og')
+        ->assertSee(route('app.content.images.reuse', ['content' => $target, 'imageVersion' => $sourceImage]), false)
+        ->assertSee('Use for this content');
+});
+
+it('copies a linked locale image asset onto the current content item', function (): void {
+    [$user, $source] = createContentImageAssetContext();
+    $target = createLinkedLocaleContentVariant($source, 'nl');
+
+    $sourceImage = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $source->workspace_id,
+        'content_id' => (string) $source->id,
+        'type' => 'og',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'pl-renderer',
+        'image_path' => 'content-images/en-og.png',
+        'image_url' => 'https://cdn.example.test/en-og.png',
+        'original_path' => 'content-images/en-og.png',
+        'medium_path' => 'content-images/en-og-medium.png',
+        'status' => 'ready',
+        'is_active' => true,
+        'use_as_meta_image' => true,
+        'width' => 1200,
+        'height' => 630,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('app.content.images.reuse', ['content' => $target, 'imageVersion' => $sourceImage]), [
+            'use_as_meta_image' => '1',
+            'use_for_linkedin' => '1',
+        ])
+        ->assertRedirect(route('app.content.show', ['content' => $target, 'tab' => 'images']))
+        ->assertSessionHasNoErrors();
+
+    $copy = ContentImage::query()
+        ->where('content_id', (string) $target->id)
+        ->where('image_url', 'https://cdn.example.test/en-og.png')
+        ->firstOrFail();
+
+    expect((string) $copy->id)->not->toBe((string) $sourceImage->id)
+        ->and((string) $sourceImage->fresh()->content_id)->toBe((string) $source->id)
+        ->and($copy->use_as_meta_image)->toBeTrue()
+        ->and($copy->use_as_social_image)->toBeTrue()
+        ->and($copy->use_for_linkedin)->toBeTrue()
+        ->and($copy->type)->toBe('og')
+        ->and(data_get($copy->metadata, 'reused_from.image_id'))->toBe((string) $sourceImage->id)
+        ->and(data_get($copy->metadata, 'reused_from.locale'))->toBe('en');
+});
+
+it('rejects image asset reuse from unrelated content', function (): void {
+    [$user, $target, $workspace] = createContentImageAssetContext();
+
+    $unrelated = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'title' => 'Unrelated Content',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'source' => 'manual',
+        'publish_status' => 'published',
+    ]);
+
+    $image = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'content_id' => (string) $unrelated->id,
+        'type' => 'og',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'pl-renderer',
+        'image_url' => 'https://cdn.example.test/unrelated.png',
+        'status' => 'ready',
+        'is_active' => true,
+        'use_as_meta_image' => true,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('app.content.show', ['content' => $target, 'tab' => 'images']))
+        ->post(route('app.content.images.reuse', ['content' => $target, 'imageVersion' => $image]), [
+            'use_as_meta_image' => '1',
+        ])
+        ->assertRedirect(route('app.content.show', ['content' => $target, 'tab' => 'images']))
+        ->assertSessionHasErrors(['image_reuse']);
+
+    expect(ContentImage::query()->where('content_id', (string) $target->id)->count())->toBe(0);
+});
+
 it('does not use uploaded website-only assets for LinkedIn social publishing', function (): void {
     [$user, $content, $workspace] = createContentImageAssetContext();
     $publication = createLinkedInPublicationForContent($workspace, $content);
@@ -396,6 +510,7 @@ function createContentImageAssetContext(): array
         'id' => (string) Str::uuid(),
         'workspace_id' => (string) $workspace->id,
         'title' => 'Uploadable Image Assets',
+        'language' => 'en',
         'type' => 'article',
         'status' => 'published',
         'source' => 'manual',
@@ -403,6 +518,7 @@ function createContentImageAssetContext(): array
         'first_published_at' => now()->subDay(),
         'publish_url_key' => 'uploadable-image-assets',
     ]);
+    $content->forceFill(['family_id' => (string) $content->id])->save();
 
     $user = User::query()->create([
         'name' => 'Asset Owner',
@@ -415,6 +531,25 @@ function createContentImageAssetContext(): array
     ]);
 
     return [$user, $content, $workspace];
+}
+
+function createLinkedLocaleContentVariant(Content $source, string $locale): Content
+{
+    return Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $source->workspace_id,
+        'family_id' => (string) ($source->family_id ?: $source->id),
+        'translation_source_content_id' => (string) $source->id,
+        'translation_source_locale' => $source->localeCode(),
+        'title' => strtoupper($locale).' linked image variant',
+        'language' => $locale,
+        'type' => 'article',
+        'status' => 'published',
+        'source' => 'manual',
+        'publish_status' => 'published',
+        'first_published_at' => now()->subDay(),
+        'publish_url_key' => $locale.'-linked-image-variant',
+    ]);
 }
 
 function createLinkedInPublicationForContent(Workspace $workspace, Content $content): SocialPublication

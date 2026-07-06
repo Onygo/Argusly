@@ -22,14 +22,14 @@ class InternalLinkInjector
      * @param array<int,array<string,mixed>> $supplementalLinks
      * @return array{applied_count:int,updated_html:string,applied_suggestions:array<int,array<string,string>>,inline_links:array<int,array<string,string>>,fallback_links:array<int,array<string,string>>}
      */
-    public function injectIntoHtml(string $html, Collection|array $suggestions, array $supplementalLinks = []): array
+    public function injectIntoHtml(string $html, Collection|array $suggestions, array $supplementalLinks = [], array $excludeUrls = []): array
     {
         $entries = collect($suggestions)
             ->filter(fn ($suggestion) => $suggestion instanceof InternalLinkSuggestion)
             ->values()
             ->all();
 
-        $result = $this->placement->placeIntoHtml($html, array_merge($entries, $supplementalLinks));
+        $result = $this->placement->placeIntoHtml($html, array_merge($entries, $supplementalLinks), $excludeUrls);
         $applied = array_values(array_merge($result['inline_links'], $result['fallback_links']));
 
         return [
@@ -49,7 +49,7 @@ class InternalLinkInjector
     public function inject(Content $content, Draft $draft, Collection|array $suggestions, array $supplementalLinks = []): array
     {
         $originalHtml = trim((string) ($draft->content_html ?? ''));
-        $result = $this->injectIntoHtml($originalHtml, $suggestions, $supplementalLinks);
+        $result = $this->injectIntoHtml($originalHtml, $suggestions, $supplementalLinks, $this->selfUrlsFor($content, $draft));
 
         if ($result['updated_html'] !== '' && $result['updated_html'] !== $originalHtml) {
             $draft->update([
@@ -82,6 +82,25 @@ class InternalLinkInjector
         }
 
         return $result;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function selfUrlsFor(Content $content, Draft $draft): array
+    {
+        return collect([
+            $content->published_url,
+            $content->seo_canonical,
+            $draft->seo_canonical ?? null,
+            data_get($draft->meta, 'canonical_url'),
+            data_get($draft->meta, 'series_context.planned_url'),
+        ])
+            ->map(fn (mixed $url): string => trim((string) $url))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**

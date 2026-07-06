@@ -1,0 +1,117 @@
+<?php
+
+use App\Models\AlertRule;
+
+return [
+    'manifest' => 'database/market-packs/automotive.php',
+    'key' => 'automotive',
+    'name' => 'Automotive',
+    'description' => 'Operational defaults for mobility, OEM, dealer, EV, fleet and automotive technology monitoring.',
+    'market_category' => 'mobility',
+    'defaults' => ['locale' => 'en', 'recency_days' => 45],
+    'sources' => [
+        [
+            'key' => 'automotive-demo-watchlist',
+            'name' => 'Automotive demo watchlist',
+            'source_type' => 'manual',
+            'domain' => 'example.com',
+            'authority_score' => 45,
+            'discovery_config_json' => [
+                'adapter' => 'manual',
+                'fetch_priority_threshold' => 80,
+                'urls' => [
+                    ['url' => 'https://example.com/automotive/ev-launch', 'priority' => 90, 'page_type' => 'article', 'title' => 'EV launch coverage'],
+                ],
+            ],
+        ],
+        [
+            'key' => 'automotive-news-rss',
+            'name' => 'Automotive News feed',
+            'source_type' => 'rss',
+            'base_url' => 'https://www.autonews.com/rss.xml',
+            'domain' => 'autonews.com',
+            'trust_level' => 4,
+            'authority_score' => 76,
+            'discovery_config_json' => ['adapter' => 'rss', 'priority' => 75, 'max_urls' => 50],
+        ],
+        [
+            'key' => 'nhtsa-recalls',
+            'name' => 'NHTSA recalls',
+            'source_type' => 'known_source_crawl',
+            'base_url' => 'https://www.nhtsa.gov/recalls',
+            'domain' => 'nhtsa.gov',
+            'trust_level' => 5,
+            'authority_score' => 82,
+            'discovery_config_json' => ['adapter' => 'known_source_crawl', 'priority' => 80, 'max_urls' => 25],
+        ],
+    ],
+    'competitors' => [
+        ['key' => 'tesla', 'name' => 'Tesla', 'domain' => 'tesla.com', 'aliases' => ['Tesla Motors']],
+        ['key' => 'toyota', 'name' => 'Toyota', 'domain' => 'toyota.com', 'aliases' => ['Toyota Motor Corporation']],
+        ['key' => 'volkswagen', 'name' => 'Volkswagen', 'domain' => 'volkswagen.com', 'aliases' => ['VW']],
+    ],
+    'themes' => [
+        ['key' => 'electric_vehicles', 'name' => 'Electric vehicles', 'weight' => 1.25],
+        ['key' => 'dealer_network', 'name' => 'Dealer network', 'weight' => 0.9],
+        ['key' => 'recalls_safety', 'name' => 'Recalls and safety', 'weight' => 1.15],
+        ['key' => 'connected_mobility', 'name' => 'Connected mobility', 'weight' => 1.1],
+    ],
+    'keywords' => [
+        ['theme' => 'electric_vehicles', 'keyword' => 'electric vehicle', 'intent' => 'innovation', 'weight' => 1.2],
+        ['theme' => 'electric_vehicles', 'keyword' => 'EV launch', 'intent' => 'launch', 'weight' => 1.15],
+        ['theme' => 'dealer_network', 'keyword' => 'dealer network', 'intent' => 'distribution'],
+        ['theme' => 'recalls_safety', 'keyword' => 'vehicle recall', 'intent' => 'risk', 'weight' => 1.2],
+        ['theme' => 'connected_mobility', 'keyword' => 'connected car', 'intent' => 'technology'],
+        ['theme' => 'connected_mobility', 'keyword' => 'fleet software', 'intent' => 'technology'],
+    ],
+    'metrics' => [
+        ['key' => 'source_authority', 'name' => 'Source authority', 'unit' => 'score', 'direction' => 'higher_is_better', 'weight' => 1.2],
+        ['key' => 'brand_prominence', 'name' => 'Brand prominence', 'unit' => 'score', 'direction' => 'higher_is_better', 'weight' => 1.15],
+        ['key' => 'recency', 'name' => 'Recency', 'unit' => 'days', 'direction' => 'lower_is_better', 'weight' => 0.8],
+    ],
+    'alert_templates' => [
+        ['key' => 'brand-page', 'name' => 'Automotive brand mention', 'trigger' => AlertRule::TRIGGER_NEW_BRAND_PAGE, 'severity' => 'medium', 'conditions' => ['market_pack' => 'automotive']],
+        ['key' => 'negative-sentiment', 'name' => 'Automotive negative sentiment', 'trigger' => AlertRule::TRIGGER_NEGATIVE_SENTIMENT, 'severity' => 'high', 'conditions' => ['market_pack' => 'automotive']],
+        ['key' => 'competitor-campaign', 'name' => 'Automotive competitor campaign page', 'trigger' => AlertRule::TRIGGER_COMPETITOR_CAMPAIGN_PAGE, 'severity' => 'medium', 'conditions' => ['market_pack' => 'automotive']],
+        ['key' => 'high-pr-value', 'name' => 'Automotive high PR value page', 'trigger' => AlertRule::TRIGGER_HIGH_PR_VALUE_PAGE, 'severity' => 'medium', 'conditions' => ['market_pack' => 'automotive', 'min_score' => 80]],
+        ['key' => 'high-risk-negative', 'name' => 'Automotive high-risk negative page', 'trigger' => AlertRule::TRIGGER_HIGH_RISK_NEGATIVE_PAGE, 'severity' => 'high', 'conditions' => ['market_pack' => 'automotive', 'min_source_authority' => 70, 'max_compound_score' => -0.1]],
+        ['key' => 'competitor-pressure-spike', 'name' => 'Automotive competitor pressure spike', 'trigger' => AlertRule::TRIGGER_COMPETITOR_PRESSURE_SPIKE, 'severity' => 'medium', 'conditions' => ['market_pack' => 'automotive', 'min_competitor_pressure' => 75, 'min_delta' => 15]],
+        ['key' => 'high-opportunity', 'name' => 'Automotive high-opportunity page', 'trigger' => AlertRule::TRIGGER_HIGH_OPPORTUNITY_PAGE, 'severity' => 'medium', 'conditions' => ['market_pack' => 'automotive', 'min_score' => 82]],
+    ],
+    'scoring_models' => [
+        [
+            'key' => 'argusly-pr-value',
+            'name' => 'Automotive Argusly PR Value',
+            'weights' => [
+                'source_authority' => 0.16,
+                'estimated_reach' => 0.12,
+                'sentiment' => 0.12,
+                'brand_prominence' => 0.16,
+                'topic_relevance' => 0.14,
+                'content_depth' => 0.1,
+                'industry_relevance' => 0.12,
+                'recency' => 0.08,
+            ],
+        ],
+        [
+            'key' => 'argusly_intelligence_score',
+            'name' => 'Automotive Argusly Intelligence Score',
+            'model_type' => 'page_intelligence_score',
+            'model_version' => 'v1',
+            'weights' => [
+                'pr_value' => 0.14,
+                'source_authority' => 0.12,
+                'sentiment' => 0.09,
+                'brand_prominence' => 0.12,
+                'topic_relevance' => 0.11,
+                'competitor_pressure' => 0.12,
+                'market_pack_relevance' => 0.10,
+                'campaign_relevance' => 0.06,
+                'serp_visibility' => 0.05,
+                'geo_visibility' => 0.04,
+                'recency' => 0.03,
+                'content_depth' => 0.02,
+            ],
+        ],
+    ],
+];

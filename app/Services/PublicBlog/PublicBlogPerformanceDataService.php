@@ -130,6 +130,17 @@ class PublicBlogPerformanceDataService
      */
     private function normalizeExcerptCandidate($candidate): ?string
     {
+        if (is_array($candidate)) {
+            foreach ($candidate as $value) {
+                $resolved = $this->normalizeExcerptCandidate($value);
+                if ($resolved !== null) {
+                    return $resolved;
+                }
+            }
+
+            return null;
+        }
+
         $text = $this->plainText((string) $candidate);
 
         if ($text === '') {

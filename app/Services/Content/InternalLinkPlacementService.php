@@ -50,10 +50,10 @@ class InternalLinkPlacementService
      *   removed_placeholder_count:int
      * }
      */
-    public function placeIntoHtml(string $html, Collection|array $links): array
+    public function placeIntoHtml(string $html, Collection|array $links, array $excludeUrls = []): array
     {
         $html = trim($html);
-        $entries = $this->normalizeEntries($links);
+        $entries = $this->normalizeEntries($links, $excludeUrls);
 
         if ($html === '') {
             return [
@@ -138,8 +138,10 @@ class InternalLinkPlacementService
      * @param Collection<int,InternalLinkSuggestion|array<string,mixed>>|array<int,InternalLinkSuggestion|array<string,mixed>> $links
      * @return array<int,array<string,string>>
      */
-    private function normalizeEntries(Collection|array $links): array
+    private function normalizeEntries(Collection|array $links, array $excludeUrls = []): array
     {
+        $excludedUrlKeys = $this->urlComparisonKeyMap($excludeUrls);
+
         return collect($links)
             ->map(function (InternalLinkSuggestion|array $entry): ?array {
                 if ($entry instanceof InternalLinkSuggestion) {
@@ -172,6 +174,7 @@ class InternalLinkPlacementService
                 ];
             })
             ->filter()
+            ->reject(fn (array $entry): bool => $this->urlMatchesMap((string) $entry['target_url'], $excludedUrlKeys))
             ->unique(fn (array $entry): string => $this->normalizeUrl($entry['target_url']))
             ->values()
             ->all();
@@ -487,6 +490,58 @@ class InternalLinkPlacementService
         }
 
         return $scheme . $host . $path . $query . $fragment;
+    }
+
+    /**
+     * @param array<int,string> $urls
+     * @return array<string,bool>
+     */
+    private function urlComparisonKeyMap(array $urls): array
+    {
+        $map = [];
+
+        foreach ($urls as $url) {
+            foreach ($this->urlComparisonKeys((string) $url) as $key) {
+                $map[$key] = true;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function urlComparisonKeys(?string $url): array
+    {
+        $url = trim((string) $url);
+        $normalized = $this->normalizeUrl($url);
+        if ($normalized === '') {
+            return [];
+        }
+
+        $keys = [$normalized];
+        $parts = parse_url($url);
+        if ($parts !== false && isset($parts['path'])) {
+            $path = '/' . trim((string) $parts['path'], '/');
+            $keys[] = 'path:' . Str::lower(rtrim($path, '/') ?: '/');
+        }
+
+        return array_values(array_unique(array_filter($keys)));
+    }
+
+    /**
+     * @param array<string,bool> $map
+     */
+    private function urlMatchesMap(string $url, array $map): bool
+    {
+        foreach ($this->urlComparisonKeys($url) as $key) {
+            if (isset($map[$key])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function loadDocument(string $html): DOMDocument

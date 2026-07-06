@@ -83,7 +83,7 @@ it('uses impersonated workspace context on settings page', function () {
             'admin_impersonator_id' => 999,
             'impersonated_workspace_id' => (string) $workspaceInfodation->id,
         ])
-        ->get('/app/brand/company-profile')
+        ->get(route('app.brand.company-profile'))
         ->assertOk()
         ->assertSee('Workspace: ' . $workspaceInfodation->name)
         ->assertSee('Infodation')
@@ -114,7 +114,7 @@ it('redirects admin users out of app when impersonation session is invalid', fun
             'admin_impersonator_id' => $admin->id,
             'impersonated_workspace_id' => (string) Str::uuid(),
         ])
-        ->get('/app/settings')
+        ->get(route('app.settings'))
         ->assertRedirect(route('admin.dashboard'))
         ->assertSessionHasErrors('impersonation');
 });

@@ -16,7 +16,7 @@ it('renders the overview and platform product pages through dedicated product pa
 
     $platform = $this->get('/nl/product/platform');
     $platform->assertOk();
-    $platform->assertSee('Het Argusly platform', false);
+    $platform->assertSee('De operating layer voor governed contentteams', false);
     $platform->assertSee('id="capabilities"', false);
     $platform->assertSee('id="governance"', false);
     $platform->assertSee('id="intelligence"', false);

@@ -4,12 +4,14 @@ namespace App\Providers;
 
 use App\Billing\Providers\MolliePaymentProvider;
 use App\Billing\Providers\PaymentProviderRegistry;
+use App\Contracts\ConnectorPublicBlogSource;
 use App\Contracts\LinkIntelligence\AnchorTextService;
 use App\Contracts\LinkIntelligence\EmbeddingService;
 use App\Contracts\LinkIntelligence\EntityExtractionService;
 use App\Contracts\LinkIntelligence\LinkApplyService;
 use App\Contracts\LinkIntelligence\LinkRelevanceService;
 use App\Contracts\LinkIntelligence\LinkSuggestionService;
+use App\Contracts\PageIntelligence\ScheduledBriefingContract;
 use App\Contracts\PdfRenderer;
 use App\Contracts\PublicBlogSource;
 use App\Domain\AccessOverrides\AccessOverrideResolver;
@@ -69,8 +71,13 @@ use App\Models\GrowthAsset;
 use App\Models\GrowthProgram;
 use App\Models\GrowthRun;
 use App\Models\LinkSuggestion;
+use App\Models\AlertRule;
+use App\Models\MonitoredPage;
+use App\Models\MonitoredSource;
 use App\Models\Notification as WorkspaceNotification;
 use App\Models\Organization;
+use App\Models\PageAlert;
+use App\Models\PageIntelligenceReport;
 use App\Models\ProgrammaticBriefBlueprint;
 use App\Models\ProgrammaticCluster;
 use App\Models\ProgrammaticDraftRequest;
@@ -79,6 +86,7 @@ use App\Models\ProgrammaticOpportunity;
 use App\Models\ProgrammaticPublicationPlan;
 use App\Models\ProgrammaticPublicationReadiness;
 use App\Models\ResearchProject;
+use App\Models\ScheduledPageIntelligenceBriefing;
 use App\Models\SignalDetection;
 use App\Models\SignalDetectionLink;
 use App\Models\SignalEntity;
@@ -107,6 +115,7 @@ use App\Observers\UserObserver;
 use App\Policies\AdminNotificationPolicy;
 use App\Policies\AgenticActionRunPolicy;
 use App\Policies\AgenticMarketingPolicy;
+use App\Policies\AlertRulePolicy;
 use App\Policies\ApiKeyPolicy;
 use App\Policies\ApiWebhookPolicy;
 use App\Policies\BrandVoicePolicy;
@@ -124,8 +133,12 @@ use App\Policies\GrowthAssetPolicy;
 use App\Policies\GrowthProgramPolicy;
 use App\Policies\GrowthRunPolicy;
 use App\Policies\LinkSuggestionPolicy;
+use App\Policies\MonitoredPagePolicy;
+use App\Policies\MonitoredSourcePolicy;
 use App\Policies\NotificationPolicy;
 use App\Policies\OrganizationPolicy;
+use App\Policies\PageAlertPolicy;
+use App\Policies\PageIntelligenceReportPolicy;
 use App\Policies\ProgrammaticBriefBlueprintPolicy;
 use App\Policies\ProgrammaticClusterPolicy;
 use App\Policies\ProgrammaticDraftRequestPolicy;
@@ -134,6 +147,7 @@ use App\Policies\ProgrammaticOpportunityPolicy;
 use App\Policies\ProgrammaticPublicationPlanPolicy;
 use App\Policies\ProgrammaticPublicationReadinessPolicy;
 use App\Policies\ResearchProjectPolicy;
+use App\Policies\ScheduledPageIntelligenceBriefingPolicy;
 use App\Policies\SignalDetectionLinkPolicy;
 use App\Policies\SignalDetectionPolicy;
 use App\Policies\SignalEntityPolicy;
@@ -166,6 +180,12 @@ use App\Services\Mos\Providers\AgentWorkflowMosProvider;
 use App\Services\Mos\Providers\OpportunityIntelligenceMosProvider;
 use App\Services\Mos\Providers\SignalIntelligenceMosProvider;
 use App\Services\Notifications\NotificationService;
+use App\Services\PageIntelligence\Geo\AnswerEngineAdapter;
+use App\Services\PageIntelligence\Geo\AnswerEngineProviderRegistry;
+use App\Services\PageIntelligence\Reports\ReportBuilder;
+use App\Services\PageIntelligence\Serp\SerpProviderAdapter;
+use App\Services\PageIntelligence\Serp\SerpProviderRegistry;
+use App\Services\PublicBlog\ArguslyConnectorBlogSource;
 use App\Services\PublicBlog\ConnectorFirstBlogSource;
 use App\Services\Sitemap\SitemapManifestBuilder;
 use App\Services\Sitemap\Sources\MarketingPagesSitemapSource;
@@ -232,6 +252,38 @@ class AppServiceProvider extends ServiceProvider
             $app->tagged('mos.providers')
         ));
 
+        $this->app->singleton(SerpProviderRegistry::class, function ($app) {
+            $providers = [];
+
+            foreach ((array) config('page_intelligence.providers.serp', []) as $key => $provider) {
+                $adapter = is_string($provider) ? $app->make($provider) : $provider;
+
+                if (! $adapter instanceof SerpProviderAdapter) {
+                    throw new RuntimeException('Invalid SERP provider configured for key: '.$key);
+                }
+
+                $providers[(string) $key] = $adapter;
+            }
+
+            return new SerpProviderRegistry($providers);
+        });
+
+        $this->app->singleton(AnswerEngineProviderRegistry::class, function ($app) {
+            $providers = [];
+
+            foreach ((array) config('page_intelligence.providers.answer_engines', []) as $key => $provider) {
+                $adapter = is_string($provider) ? $app->make($provider) : $provider;
+
+                if (! $adapter instanceof AnswerEngineAdapter) {
+                    throw new RuntimeException('Invalid answer engine provider configured for key: '.$key);
+                }
+
+                $providers[(string) $key] = $adapter;
+            }
+
+            return new AnswerEngineProviderRegistry($providers);
+        });
+
         $this->app->bind(EmbeddingService::class, function ($app) {
             $service = (string) config('link_intelligence.embedding.service');
 
@@ -248,6 +300,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(AnchorTextService::class, DefaultAnchorTextService::class);
         $this->app->bind(LinkSuggestionService::class, DefaultLinkSuggestionService::class);
         $this->app->bind(LinkApplyService::class, DefaultLinkApplyService::class);
+        $this->app->bind(ScheduledBriefingContract::class, ReportBuilder::class);
+        $this->app->bind(ConnectorPublicBlogSource::class, ArguslyConnectorBlogSource::class);
         $this->app->bind(PublicBlogSource::class, ConnectorFirstBlogSource::class);
         $this->app->tag([
             PublishedArticleSitemapSource::class,
@@ -430,6 +484,12 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SignalDetectionLink::class, SignalDetectionLinkPolicy::class);
         Gate::policy(SignalScore::class, SignalScorePolicy::class);
         Gate::policy(SignalProcessingRun::class, SignalProcessingRunPolicy::class);
+        Gate::policy(MonitoredPage::class, MonitoredPagePolicy::class);
+        Gate::policy(MonitoredSource::class, MonitoredSourcePolicy::class);
+        Gate::policy(AlertRule::class, AlertRulePolicy::class);
+        Gate::policy(PageAlert::class, PageAlertPolicy::class);
+        Gate::policy(PageIntelligenceReport::class, PageIntelligenceReportPolicy::class);
+        Gate::policy(ScheduledPageIntelligenceBriefing::class, ScheduledPageIntelligenceBriefingPolicy::class);
 
         Draft::observe(DraftObserver::class);
         Content::observe(ContentObserver::class);

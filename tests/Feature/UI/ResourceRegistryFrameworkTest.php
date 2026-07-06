@@ -45,6 +45,7 @@ it('models the initial resource type catalog against existing Argusly references
         'opportunity',
         'research_project',
         'signal_detection',
+        'monitored_page',
         'competitor',
         'llm_tracking_query',
         'seo_audit',

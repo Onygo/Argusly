@@ -421,13 +421,11 @@ it('shows programmatic growth navigation links to read-enabled workspace users',
         ->assertOk()
         ->assertSee('Programmatic Growth')
         ->assertSee('Growth Programs')
-        ->assertSee('Programmatic Opportunities')
-        ->assertSee('Programmatic Clusters')
-        ->assertSee('Brief Blueprints')
-        ->assertSee('Draft Requests')
-        ->assertSee('Draft Reviews')
-        ->assertSee('Publication Readiness')
-        ->assertSee('Publication Plans');
+        ->assertSee('Open opportunities')
+        ->assertSee('Programs')
+        ->assertSee('Active')
+        ->assertSee('Published')
+        ->assertSee('Avg score');
 });
 
 it('shows the controlled beta banner on programmatic growth screens', function (): void {

@@ -208,7 +208,7 @@
                                 </span>
                                 <span class="text-rose-700">{{ $runErrorPresenter->publicErrorTitle() }}</span>
                             </div>
-                            <p class="mt-2 text-sm text-rose-800">{{ $run->error_message }}</p>
+                            <p class="mt-2 text-sm text-rose-800">{{ $runErrorPresenter->publicErrorMessage() }}</p>
                             @if ($canViewTechnicalDetails && data_get($run->metadata, 'real_error'))
                                 <details class="mt-2 rounded border border-border bg-surface p-2 text-xs text-textSecondary">
                                     <summary class="cursor-pointer font-medium text-textPrimary">View run details</summary>

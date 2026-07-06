@@ -163,7 +163,6 @@ it('uses sensible defaults when company profile brand voice and team member are 
 
     expect($context)->toContain('SYSTEM CONTEXT');
     expect($context)->toContain('Write from the company perspective.');
-    expect($context)->toContain('Tone: Professional, clear, structured, confident.');
+    expect($context)->toContain('Tone: Professional, clear, editorially specific, confident.');
     expect($context)->toContain('Write between 900 and 1200 words.');
 });
-

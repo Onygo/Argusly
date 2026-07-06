@@ -1148,6 +1148,7 @@ class AppContentController extends Controller
             ->latest('created_at')
             ->limit(24)
             ->get();
+        $linkedContentImageAssets = $this->linkedLocaleImageAssets($content);
 
         $contentInsight = $contentPerformanceInsightService->forContent($content);
         $contentNetworkEntitlement = $featureGate->value($content->workspace, 'content_network_analysis_enabled', false);
@@ -1340,6 +1341,7 @@ class AppContentController extends Controller
             'ogImage' => $content->ogImage,
             'ogImageHistory' => $ogImageHistory,
             'contentImageAssets' => $contentImageAssets,
+            'linkedContentImageAssets' => $linkedContentImageAssets,
             'hasWpImagePushConnection' => $this->hasWpImagePushConnection($content, $latestDraft),
             'wordpressSites' => $wordpressSites,
             'contentInsight' => $contentInsight,
@@ -1394,6 +1396,33 @@ class AppContentController extends Controller
             'localeMismatchAnalysis' => $localeMismatchAnalysis,
             'indexationDiagnostics' => $indexationDiagnostics,
         ]);
+    }
+
+    private function linkedLocaleImageAssets(Content $content)
+    {
+        $variantIds = $content->normalizedLocalizationFamily()
+            ->reject(fn (Content $variant): bool => (string) $variant->id === (string) $content->id)
+            ->pluck('id')
+            ->map(fn ($id): string => (string) $id)
+            ->values()
+            ->all();
+
+        if ($variantIds === []) {
+            return collect();
+        }
+
+        return ContentImage::query()
+            ->with(['content:id,title,language,publish_url_key,workspace_id,translation_source_content_id,family_id'])
+            ->whereIn('content_id', $variantIds)
+            ->whereIn('type', [
+                ImageGenerationService::FEATURED_TYPE,
+                ImageGenerationService::OG_TYPE,
+                'social',
+            ])
+            ->where('status', 'ready')
+            ->latest('created_at')
+            ->limit(24)
+            ->get();
     }
 
     public function runRefreshRecommendations(
@@ -3272,6 +3301,12 @@ class AppContentController extends Controller
                 );
             }
 
+            if (! (bool) ($dispatch['queued'] ?? false) && (string) ($dispatch['skip_reason'] ?? '') === 'content_preflight_blocked') {
+                return back()->withErrors([
+                    'publish' => (string) ($dispatch['skip_message'] ?? 'Publication blocked by content preflight checks.'),
+                ]);
+            }
+
             return back()->with('status', (bool) ($dispatch['queued'] ?? false)
                 ? sprintf('%s publish job queued.', strtoupper($publishContent->localeCode()))
                 : 'Publication was already queued or processed.');
@@ -3304,8 +3339,22 @@ class AppContentController extends Controller
                 $statusMessage = (bool) ($result['queued'] ?? false)
                     ? 'Laravel publication queued.'
                     : 'Laravel publication was already queued or processed.';
+                if (! (bool) ($result['queued'] ?? false) && (string) ($result['skip_reason'] ?? '') === 'content_preflight_blocked') {
+                    $statusMessage = (string) ($result['skip_message'] ?? 'Publication blocked by content preflight checks.');
+                }
 
                 if ($request->expectsJson() || $request->ajax()) {
+                    if (! (bool) ($result['queued'] ?? false) && (string) ($result['skip_reason'] ?? '') === 'content_preflight_blocked') {
+                        return response()->json([
+                            'status' => 'error',
+                            'message' => $statusMessage,
+                            'content_id' => (string) $variant->id,
+                            'locale' => (string) $result['locale'],
+                            'publish_status' => (string) ($variant->publish_status ?? ''),
+                            'queued' => false,
+                        ], 422);
+                    }
+
                     return response()->json([
                         'status' => 'ok',
                         'message' => $statusMessage,
@@ -3320,6 +3369,10 @@ class AppContentController extends Controller
 
                 if ((string) $variant->id === (string) $content->id) {
                     $localePublishingSyncService->syncSourceImmediatePublish($variant);
+                }
+
+                if (! (bool) ($result['queued'] ?? false) && (string) ($result['skip_reason'] ?? '') === 'content_preflight_blocked') {
+                    return back()->withErrors(['publish' => $statusMessage]);
                 }
 
                 return back()->with('status', $statusMessage);

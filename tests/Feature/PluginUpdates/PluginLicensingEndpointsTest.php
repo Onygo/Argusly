@@ -47,8 +47,8 @@ function signedPluginPost(string $uri, array $payload, string $clientSecret, ?in
         [],
         [],
         [
-            'HTTP_X_PL_TIMESTAMP' => (string) $timestamp,
-            'HTTP_X_PL_SIGNATURE' => $signature,
+            'HTTP_X_ARGUSLY_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_ARGUSLY_SIGNATURE' => $signature,
             'CONTENT_TYPE' => 'application/json',
             'HTTP_ACCEPT' => 'application/json',
         ],

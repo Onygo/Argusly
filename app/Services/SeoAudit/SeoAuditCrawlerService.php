@@ -4,11 +4,13 @@ namespace App\Services\SeoAudit;
 
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Services\PublicWeb\PublicWebSafetyService;
 use App\Support\Analytics\AnalyticsUrlKey;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use RuntimeException;
 
 class SeoAuditCrawlerService
@@ -34,6 +36,10 @@ class SeoAuditCrawlerService
 
     /** @var array<string,string> */
     private array $publishLayerContentByUrlKey = [];
+
+    public function __construct(private readonly PublicWebSafetyService $publicWebSafety)
+    {
+    }
 
     /**
      * @return array{pages:array<int,array<string,mixed>>,issues:array<int,array<string,mixed>>,crawl_source:string,diagnostics:array<string,mixed>}
@@ -766,8 +772,30 @@ class SeoAuditCrawlerService
      */
     private function sendRequest(string $url, int $timeout, string $accept, string $method = 'GET'): array
     {
+        try {
+            $url = $this->publicWebSafety->normalizeAndValidate($url);
+        } catch (InvalidArgumentException $exception) {
+            return [
+                'response' => null,
+                'requested_url' => $url,
+                'effective_url' => $url,
+                'status_code' => null,
+                'content_type' => '',
+                'redirect_count' => 0,
+                'redirect_history' => [],
+                'error_category' => 'blocked',
+                'error_message' => $exception->getMessage(),
+                'exception_class' => $exception::class,
+                'exception_message' => $exception->getMessage(),
+                'host' => strtolower((string) parse_url($url, PHP_URL_HOST)),
+                'resolved_host' => '',
+                'tls_verify_disabled' => false,
+                'method' => $method,
+            ];
+        }
+
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        $resolvedHost = $host !== '' ? gethostbyname($host) : '';
+        $resolvedHost = $host !== '' ? implode(',', $this->publicWebSafety->resolvePublicHost($host)) : '';
         $disableTlsVerify = $this->shouldDisableTlsVerifyFor($url);
 
         $request = Http::timeout($timeout)
@@ -777,8 +805,13 @@ class SeoAuditCrawlerService
                 'allow_redirects' => [
                     'max' => self::REDIRECT_LIMIT,
                     'track_redirects' => true,
+                    'on_redirect' => function ($request, $response, $uri): void {
+                        unset($request, $response);
+                        $this->publicWebSafety->validateRedirectTarget((string) $uri);
+                    },
                 ],
             ]);
+        $request = $this->publicWebSafety->applyGuardedHttpOptions($request, $url);
 
         if ($disableTlsVerify) {
             $request = $request->withoutVerifying();
@@ -798,6 +831,7 @@ class SeoAuditCrawlerService
             $effectiveUrl = $redirectHistory !== []
                 ? (string) end($redirectHistory)
                 : (string) ($response->effectiveUri() ?? $url);
+            $this->publicWebSafety->validateRedirectTarget($effectiveUrl);
             $redirectCount = count($redirectHistory);
             $contentType = strtolower((string) $response->header('Content-Type'));
 
@@ -957,7 +991,7 @@ class SeoAuditCrawlerService
             return true;
         }
 
-        return str_ends_with($host, '.local');
+        return str_ends_with($host, '.local') || str_ends_with($host, '.test');
     }
 
     private function isHtmlContentType(string $contentType): bool

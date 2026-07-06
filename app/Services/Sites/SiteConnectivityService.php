@@ -132,6 +132,20 @@ class SiteConnectivityService
                         is_array($activityResult['body']) ? $activityResult['body'] : []
                     );
 
+                    if (! (bool) ($payload['active'] ?? false)) {
+                        $site->status = 'error';
+                        $site->last_error = 'No recent Laravel connector activity detected for this site token.';
+                        $site->save();
+
+                        return [
+                            'ok' => false,
+                            'status_code' => null,
+                            'body' => array_merge($payload, [
+                                'error' => (string) $site->last_error,
+                            ]),
+                        ];
+                    }
+
                     $site->status = 'connected';
                     $site->last_error = null;
 
@@ -194,7 +208,7 @@ class SiteConnectivityService
 
             return [
                 'ok' => false,
-                'status_code' => 422,
+                'status_code' => null,
                 'body' => [
                     'error' => (string) $site->last_error,
                 ],

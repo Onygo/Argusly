@@ -37,7 +37,7 @@ it('keeps drawer adoption infrastructure decoupled from controllers jobs service
     }
 });
 
-it('adds drawer adoption blade helpers without migrating production pages', function () {
+it('adds drawer adoption blade helpers with a narrow production allowlist', function () {
     foreach ([
         resource_path('views/components/drawer-link.blade.php'),
         resource_path('views/components/drawer-button.blade.php'),
@@ -50,12 +50,21 @@ it('adds drawer adoption blade helpers without migrating production pages', func
         resource_path('views/app'),
         resource_path('views/admin'),
     ];
+    $allowedProductionFiles = [
+        resource_path('views/app/briefs/index.blade.php'),
+        resource_path('views/app/drafts/index.blade.php'),
+        resource_path('views/app/sites/seo-audits/index.blade.php'),
+    ];
 
     foreach ($productionRoots as $root) {
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root));
 
         foreach ($files as $file) {
             if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            if (in_array($file->getPathname(), $allowedProductionFiles, true)) {
                 continue;
             }
 
@@ -66,6 +75,10 @@ it('adds drawer adoption blade helpers without migrating production pages', func
                 ->not->toContain('<x-drawer-button')
                 ->not->toContain('<x-drawer-preview');
         }
+    }
+
+    foreach ($allowedProductionFiles as $file) {
+        expect(file_get_contents($file))->toContain('<x-drawer-button');
     }
 });
 

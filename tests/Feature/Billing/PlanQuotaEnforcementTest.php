@@ -176,5 +176,5 @@ it('keeps site plan limits enforced while article generation moved to credits', 
     app(\App\Services\Entitlements\EntitlementRefreshService::class)->refreshForWorkspace($workspace);
 
     expect(fn () => app(WorkspaceEntitlementsService::class)->assertCanAddSite($workspace))
-        ->toThrow(\RuntimeException::class, 'Site limit reached');
+        ->toThrow(\RuntimeException::class, 'included site limit');
 });

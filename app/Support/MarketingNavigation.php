@@ -535,14 +535,8 @@ final class MarketingNavigation
 
     private static function resourcePageExists(string $pageKey): bool
     {
-        static $cache = [];
-
-        if (! array_key_exists($pageKey, $cache)) {
-            $cache[$pageKey] = MarketingPage::query()
-                ->where('key', $pageKey)
-                ->exists();
-        }
-
-        return $cache[$pageKey];
+        return MarketingPage::query()
+            ->where('key', $pageKey)
+            ->exists();
     }
 }

@@ -5,9 +5,9 @@
 @if ($normalizedType === \App\Models\ClientSite::TYPE_LARAVEL)
     <ol class="mt-3 list-decimal space-y-1 pl-5 text-xs text-textSecondary">
         <li>Install connector package: <code>composer require onygo/argusly-laravel-connector</code>.</li>
-        <li>Configure <code>ARGUSLY_CONNECTOR_API_URL</code>, <code>ARGUSLY_CONNECTOR_TOKEN</code> (this token), and <code>ARGUSLY_CONNECTOR_SITE_ID</code>.</li>
-        <li>Use the connector client/facade to create briefs and drafts from your Laravel app.</li>
-        <li>Call "Check Laravel connector activity" here after first API calls.</li>
+        <li>Configure <code>ARGUSLY_CONNECTOR_API_URL</code>, <code>ARGUSLY_CONNECTOR_API_KEY</code>, <code>ARGUSLY_CONNECTOR_WORKSPACE_ID</code>, <code>ARGUSLY_CONNECTOR_SITE_NAME</code>, and <code>ARGUSLY_CONNECTOR_SITE_URL</code>.</li>
+        <li>Run your normal Laravel scheduler. The connector registers its heartbeat automatically.</li>
+        <li>Use Test connection here after the scheduler or first connector API call has completed.</li>
     </ol>
 @else
     <ol class="mt-3 list-decimal space-y-1 pl-5 text-xs text-textSecondary">

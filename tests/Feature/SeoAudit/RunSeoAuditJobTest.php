@@ -20,8 +20,27 @@ use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
+function allowSeoAuditFakeDns(array $hosts = ['seo-audit.example.com']): void
+{
+    $overrides = (array) config('page_intelligence.safety.dns_overrides', []);
+
+    foreach ($hosts as $host) {
+        $overrides[strtolower($host)] = ['93.184.216.34'];
+    }
+
+    config()->set('page_intelligence.safety.dns_overrides', $overrides);
+}
+
+function allowSeoAuditLocalFakeHosts(array $hosts): void
+{
+    config()->set('page_intelligence.safety.blocked_host_suffixes', ['.localhost', '.internal', '.intranet']);
+    allowSeoAuditFakeDns($hosts);
+}
+
 function makeSeoAuditContext(int $monthlyCap): array
 {
+    allowSeoAuditFakeDns();
+
     $organization = Organization::query()->create([
         'name' => 'SEO Audit Org',
         'slug' => 'seo-audit-org-' . Str::random(6),
@@ -159,17 +178,18 @@ XML;
 
 it('falls back to http when https fails for local domains', function () {
     [, $site] = makeSeoAuditContext(10);
+    allowSeoAuditLocalFakeHosts(['publishsource.test']);
 
     $site->update([
-        'site_url' => 'https://publishsource.local',
-        'base_url' => 'https://publishsource.local',
-        'allowed_domains' => ['publishsource.local'],
+        'site_url' => 'https://publishsource.test',
+        'base_url' => 'https://publishsource.test',
+        'allowed_domains' => ['publishsource.test'],
     ]);
 
     Http::fake([
-        'https://publishsource.local/*' => Http::failedConnection(),
-        'http://publishsource.local/sitemap.xml' => Http::response('not found', 404),
-        'http://publishsource.local/' => Http::response('<html><head><title>Local Home</title><meta name="description" content="Local description"><link rel="canonical" href="http://publishsource.local/"></head><body><h1>Home</h1></body></html>', 200, ['Content-Type' => 'text/html']),
+        'https://publishsource.test/*' => Http::failedConnection(),
+        'http://publishsource.test/sitemap.xml' => Http::response('not found', 404),
+        'http://publishsource.test/' => Http::response('<html><head><title>Local Home</title><meta name="description" content="Local description"><link rel="canonical" href="http://publishsource.test/"></head><body><h1>Home</h1></body></html>', 200, ['Content-Type' => 'text/html']),
         '*' => Http::response('', 404),
     ]);
 
@@ -194,20 +214,21 @@ it('falls back to http when https fails for local domains', function () {
 
 it('disables tls verification only for local development crawler fetches and crawls html pages', function () {
     [, $site] = makeSeoAuditContext(10);
+    allowSeoAuditLocalFakeHosts(['wordpress.argusly.test']);
 
     config()->set('argusly.http_insecure_local', true);
     config()->set('app.env', 'local');
 
     $site->update([
-        'site_url' => 'https://wordpress.argusly.local',
-        'base_url' => 'https://wordpress.argusly.local',
-        'allowed_domains' => ['wordpress.argusly.local'],
+        'site_url' => 'https://wordpress.argusly.test',
+        'base_url' => 'https://wordpress.argusly.test',
+        'allowed_domains' => ['wordpress.argusly.test'],
     ]);
 
     Http::fake([
-        'https://wordpress.argusly.local/sitemap.xml' => Http::response('not found', 404),
-        'https://wordpress.argusly.local/' => Http::response('<html><head><title>Home</title><meta name="description" content="Home description"><link rel="canonical" href="https://wordpress.argusly.local/"></head><body><h1>Home</h1><a href="/about">About</a></body></html>', 200, ['Content-Type' => 'text/html']),
-        'https://wordpress.argusly.local/about' => Http::response('<html><head><title>About</title><meta name="description" content="About description"><link rel="canonical" href="https://wordpress.argusly.local/about"></head><body><h1>About</h1></body></html>', 200, ['Content-Type' => 'text/html']),
+        'https://wordpress.argusly.test/sitemap.xml' => Http::response('not found', 404),
+        'https://wordpress.argusly.test/' => Http::response('<html><head><title>Home</title><meta name="description" content="Home description"><link rel="canonical" href="https://wordpress.argusly.test/"></head><body><h1>Home</h1><a href="/about">About</a></body></html>', 200, ['Content-Type' => 'text/html']),
+        'https://wordpress.argusly.test/about' => Http::response('<html><head><title>About</title><meta name="description" content="About description"><link rel="canonical" href="https://wordpress.argusly.test/about"></head><body><h1>About</h1></body></html>', 200, ['Content-Type' => 'text/html']),
         '*' => Http::response('', 404),
     ]);
 

@@ -37,7 +37,7 @@ it('creates a site within workspace max_sites limit', function () {
         'refreshed_at' => now(),
     ]);
 
-    $response = $this->actingAs($user)->post('/app/sites', [
+    $response = $this->actingAs($user)->post(route('app.sites.store'), [
         'workspace_id' => $workspace->id,
         'type' => 'wordpress',
         'name' => 'Primary WP',
@@ -130,14 +130,14 @@ it('blocks creating a site when max_sites limit is exceeded', function () {
         'status' => 'connected',
     ]);
 
-    $response = $this->from('/app/sites')->actingAs($user)->post('/app/sites', [
+    $response = $this->from(route('app.sites'))->actingAs($user)->post(route('app.sites.store'), [
         'workspace_id' => $workspace->id,
         'type' => 'wordpress',
         'name' => 'Second',
         'site_url' => 'https://second.example.com',
     ]);
 
-    $response->assertRedirect('/app/sites');
+    $response->assertRedirect(route('app.sites'));
     $response->assertSessionHasErrors(['sites']);
 });
 
@@ -173,14 +173,14 @@ it('blocks creating a site in a second workspace when organization max_sites is 
         'status' => 'connected',
     ]);
 
-    $response = $this->from('/app/sites')->actingAs($user)->post('/app/sites', [
+    $response = $this->from(route('app.sites'))->actingAs($user)->post(route('app.sites.store'), [
         'workspace_id' => $workspaceB->id,
         'type' => 'wordpress',
         'name' => 'Should be blocked',
         'site_url' => 'https://second-ws.example.com',
     ]);
 
-    $response->assertRedirect('/app/sites');
+    $response->assertRedirect(route('app.sites'));
     $response->assertSessionHasErrors(['sites']);
 
     expect(ClientSite::query()->where('workspace_id', $workspaceB->id)->count())->toBe(0);
@@ -477,6 +477,60 @@ it('shows connector validation errors when laravel activity payload is rejected'
     expect((string) $site->last_error)->toContain('The selected site_key is invalid.');
 });
 
+it('shows no recent laravel connector activity without a synthetic http 422', function () {
+    [$user, $workspace] = makeManagerWithWorkspace();
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'laravel',
+        'name' => 'Laravel Quiet Site',
+        'site_url' => 'https://quiet-laravel.argusly.local',
+        'base_url' => 'https://quiet-laravel.argusly.local',
+        'allowed_domains' => ['quiet-laravel.argusly.local'],
+        'is_active' => true,
+        'status' => 'pending',
+    ]);
+
+    $plain = 'arg_site_' . bin2hex(random_bytes(32));
+    SiteToken::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'token_hash' => hash('sha256', $plain),
+        'token_encrypted' => Crypt::encryptString($plain),
+        'scopes' => ['heartbeat:write'],
+        'abilities' => ['heartbeat:write'],
+        'revoked' => false,
+        'last_used_at' => now()->subHour(),
+    ]);
+
+    Http::fake([
+        'https://quiet-laravel.argusly.local/argusly/connector/activity' => Http::response([
+            'ok' => true,
+            'last_webhook_received_at' => null,
+            'last_processed_at' => null,
+            'last_heartbeat_at' => null,
+            'recent_events_count_24h' => 0,
+            'failed_events_count_24h' => 0,
+        ], 200),
+        'https://quiet-laravel.argusly.local/argusly/activity' => Http::response([], 404),
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('app.sites.show', $site))
+        ->post(route('app.sites.test-laravel', $site))
+        ->assertRedirect(route('app.sites.show', $site))
+        ->assertSessionHasErrors(['sites']);
+
+    $message = session('errors')?->first('sites') ?? '';
+    expect($message)->toContain('No recent Laravel connector activity detected for this site token.');
+    expect($message)->not->toContain('(HTTP 422)');
+
+    $site->refresh();
+    expect((string) $site->status)->toBe('error');
+    expect((string) $site->last_error)->toBe('No recent Laravel connector activity detected for this site token.');
+});
+
 it('shows wordpress-specific actions and hides laravel-specific actions on site detail', function () {
     [$user, $workspace] = makeManagerWithWorkspace();
 
@@ -614,6 +668,20 @@ it('shows laravel-specific actions and hides wordpress-specific actions on site 
         ->assertOk()
         ->assertSee('Connector setup')
         ->assertSee('Test connection')
+        ->assertSee('ARGUSLY_CONNECTOR_API_URL')
+        ->assertSee('ARGUSLY_CONNECTOR_API_KEY')
+        ->assertSee('ARGUSLY_CONNECTOR_WORKSPACE_ID')
+        ->assertSee('ARGUSLY_CONNECTOR_DESTINATION_KEY')
+        ->assertSee('ARGUSLY_CONNECTOR_SITE_NAME')
+        ->assertSee('ARGUSLY_CONNECTOR_SITE_URL')
+        ->assertSee('ARGUSLY_CONNECTOR_TIMEOUT')
+        ->assertSee('ARGUSLY_CONNECTOR_WEBHOOKS_ENABLED')
+        ->assertSee('ARGUSLY_CONNECTOR_WEBHOOK_SECRET')
+        ->assertSee('Your normal Laravel scheduler is enough')
+        ->assertDontSee('ARGUSLY_CONNECTOR_TOKEN')
+        ->assertDontSee('ARGUSLY_CONNECTOR_SITE_ID')
+        ->assertDontSee('extra connector')
+        ->assertDontSee('Plesk cron')
         ->assertDontSee('Push to WP')
         ->assertDontSee('Test WP connection');
 });

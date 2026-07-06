@@ -15,6 +15,10 @@ use App\Models\Workspace;
 use App\Services\ContentAutomation\ContentAutomationArticleService;
 use App\Services\ContentAutomation\ContentAutomationOrchestrator;
 use App\Services\ContentAutomation\ContentAutomationPlanner;
+use App\Services\Content\TranslationDebugService;
+use App\Services\Content\TranslationLockService;
+use App\Services\HumanContent\HumanContentScoreService;
+use App\Services\HumanContent\HumanizationService;
 use App\Services\Llm\LlmManager;
 use App\Services\Translation\SeoLocalizationService;
 use App\Services\Translation\TranslationPromptBuilder;
@@ -241,6 +245,10 @@ it('translated content generation persists a safe localized title', function () 
         Mockery::mock(LlmManager::class),
         Mockery::mock(TranslationPromptBuilder::class),
         $seo,
+        app(TranslationLockService::class),
+        app(TranslationDebugService::class),
+        app(HumanContentScoreService::class),
+        app(HumanizationService::class),
     );
 
     $translatedDraft = $service->createTranslatedDraft($sourceDraft, SupportedLanguage::EN, [

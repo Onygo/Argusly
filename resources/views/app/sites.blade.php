@@ -95,7 +95,7 @@
                     </div>
                 </div>
                 <div id="site-type-instructions-laravel" class="hidden">
-                    Laravel setup: install <code>onygo/argusly-laravel-connector</code>, configure connector token/API URL/site ID, then run the Laravel connector activity check.
+                    Laravel setup: install <code>onygo/argusly-laravel-connector</code>, configure the Argusly API URL, site key, workspace ID, site name, and site URL. Your normal Laravel scheduler runs connector heartbeats.
                 </div>
             </div>
             <div class="md:col-span-4">

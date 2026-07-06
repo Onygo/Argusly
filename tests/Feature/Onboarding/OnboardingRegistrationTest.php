@@ -15,17 +15,20 @@ it('creates onboarding state on registration', function () {
 
     Plan::query()->create([
         'id' => (string) Str::uuid(),
-        'key' => 'starter',
-        'slug' => 'starter',
-        'name' => 'Starter',
+        'key' => 'platform_250',
+        'slug' => 'platform_250',
+        'name' => 'Argusly Platform',
         'interval' => 'month',
-        'monthly_price_cents' => 4900,
-        'price_cents' => 4900,
+        'monthly_price_cents' => 9900,
+        'price_cents' => 9900,
         'currency' => 'EUR',
-        'included_credits' => 100,
-        'included_credits_per_interval' => 100,
-        'seat_limit' => 2,
+        'included_credits' => 250,
+        'included_credits_per_interval' => 250,
+        'seat_limit' => 5,
         'is_active' => true,
+        'is_public' => true,
+        'billing_type' => 'fixed',
+        'sort_order' => 1,
     ]);
 
     $this->post('/register', [

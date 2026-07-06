@@ -366,8 +366,8 @@ it('shows publish-first empty state for content performance column when content 
     $this->actingAs($user)
         ->get(route('app.content.index'))
         ->assertOk()
-        ->assertSee('Performance')
-        ->assertSee('Publish to start tracking.');
+        ->assertSee('Readiness')
+        ->assertSee('0/1 published');
 });
 
 function makeContentPerformanceWidgetContext(): array

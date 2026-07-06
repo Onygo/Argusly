@@ -168,7 +168,7 @@ it('workspace user can access content index', function () {
     ]);
 
     $this->actingAs($user)
-        ->get('/app/content')
+        ->get(route('app.content.index'))
         ->assertOk()
         ->assertSee('Demo content');
 });

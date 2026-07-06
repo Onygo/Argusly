@@ -14,6 +14,7 @@ final class ResourceType
     public const OPPORTUNITY = 'opportunity';
     public const RESEARCH_PROJECT = 'research_project';
     public const SIGNAL_DETECTION = 'signal_detection';
+    public const MONITORED_PAGE = 'monitored_page';
     public const COMPETITOR = 'competitor';
     public const LLM_TRACKING_QUERY = 'llm_tracking_query';
     public const SEO_AUDIT = 'seo_audit';
@@ -58,6 +59,7 @@ final class ResourceType
             self::make(self::OPPORTUNITY, 'Opportunity')->icon('sparkles')->model('App\\Models\\Opportunity')->primaryRoute('app.opportunities.show')->policy('view'),
             self::make(self::RESEARCH_PROJECT, 'Research project')->icon('search-check')->model('App\\Models\\ResearchProject')->primaryRoute('app.research.show')->policy('view'),
             self::make(self::SIGNAL_DETECTION, 'Signal detection')->icon('radar')->model('App\\Models\\SignalDetection')->primaryRoute('app.signal-intelligence.detections.show')->policy('view'),
+            self::make(self::MONITORED_PAGE, 'Monitored page')->icon('file-search')->model('App\\Models\\MonitoredPage')->primaryRoute('app.page-intelligence.monitored-pages.show'),
             self::make(self::COMPETITOR, 'Competitor')->icon('building-2')->model('App\\Models\\SiteCompetitor')->primaryRoute('app.sites.competitors.index'),
             self::make(self::LLM_TRACKING_QUERY, 'LLM tracking query')->icon('messages-square')->model('App\\Models\\LlmTrackingQuery')->primaryRoute('app.sites.llm-tracking.show'),
             self::make(self::SEO_AUDIT, 'SEO audit')->icon('scan-search')->model('App\\Models\\SeoAudit')->primaryRoute('app.sites.seo-audits.show'),

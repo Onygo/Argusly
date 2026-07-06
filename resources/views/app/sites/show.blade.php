@@ -320,12 +320,18 @@
         @if ($isLaravel)
             <div id="laravel-connector-setup" class="rounded-lg border border-border bg-surface p-4 md:col-span-2">
                 <h2 class="text-sm font-semibold text-textPrimary">Laravel connector setup</h2>
-                <p class="mt-2 text-xs text-textSecondary">Configure your Laravel app to send briefs/drafts through the official Argusly connector.</p>
+                <p class="mt-2 text-xs text-textSecondary">Configure your Laravel app with the official Argusly connector. Your normal Laravel scheduler is enough for connector heartbeats.</p>
                 <div class="mt-3 rounded border border-border bg-background p-3 text-xs text-textSecondary">
                     <div><code>composer require onygo/argusly-laravel-connector</code></div>
-                    <div class="mt-2"><code>ARGUSLY_CONNECTOR_API_URL={{ config('argusly_connector.api.base_url', config('argusly_connector.api.base_url', 'https://api.argusly.com')) }}</code></div>
+                    <div class="mt-2"><code>ARGUSLY_CONNECTOR_API_URL={{ rtrim((string) config('app.url'), '/') }}</code></div>
                     <div><code>ARGUSLY_CONNECTOR_API_KEY=&lt;generated_site_key&gt;</code></div>
                     <div><code>ARGUSLY_CONNECTOR_WORKSPACE_ID={{ $workspace?->id }}</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_DESTINATION_KEY=&lt;optional_destination_key&gt;</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_SITE_NAME={{ $site->name }}</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_SITE_URL={{ $site->base_url ?: $site->site_url }}</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_TIMEOUT=15</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_WEBHOOKS_ENABLED=true</code></div>
+                    <div><code>ARGUSLY_CONNECTOR_WEBHOOK_SECRET=&lt;generated_webhook_secret&gt;</code></div>
                 </div>
                 @include('app.sites.partials.setup-instructions', ['siteType' => $siteType])
             </div>

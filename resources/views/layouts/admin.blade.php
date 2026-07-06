@@ -249,10 +249,12 @@
                     </button>
                     <div id="adminUserMenu" class="hidden absolute right-4 top-16 z-50 w-56 rounded-md border border-border bg-surface md:right-6">
                         <div class="p-1">
-                            <a href="{{ route('admin.users.show', auth()->user()) }}" class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary">
-                                <i data-lucide="user" class="h-4 w-4"></i> Profile
-                            </a>
-                            <div class="my-1 h-px bg-divider"></div>
+                            @auth
+                                <a href="{{ route('admin.users.show', auth()->user()) }}" class="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary">
+                                    <i data-lucide="user" class="h-4 w-4"></i> Profile
+                                </a>
+                                <div class="my-1 h-px bg-divider"></div>
+                            @endauth
                             <form method="POST" action="{{ route('admin.logout') }}">
                                 @csrf
                                 <button type="submit" class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-danger hover:bg-surfaceMuted">

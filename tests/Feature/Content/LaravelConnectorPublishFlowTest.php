@@ -211,6 +211,47 @@ it('queues the generic publish job when publishing now for a laravel destination
     expect((string) $publication->delivery_status)->toBe('pending');
 });
 
+it('blocks publish now when another published article already has the same public title', function () {
+    [$user, $site, $content, $draft] = makeLaravelConnectorPublishContext();
+    $destination = createLaravelConnectorDestinationForSite($site);
+
+    $content->update([
+        'content_destination_id' => $destination->id,
+    ]);
+
+    $draft->update([
+        'content_destination_id' => $destination->id,
+    ]);
+
+    Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'client_site_id' => (string) $site->id,
+        'content_destination_id' => (string) $destination->id,
+        'title' => 'Immediate Publish Content',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+        'publish_url_key' => 'immediate-publish-content-existing',
+        'published_url' => 'https://publish-now.example.com/en/blog/immediate-publish-content-existing',
+        'first_published_at' => now()->subDay(),
+    ]);
+
+    Bus::fake();
+
+    $this->actingAs($user)
+        ->post(route('app.content.publish-now', $content))
+        ->assertRedirect()
+        ->assertSessionHasErrors('publish');
+
+    Bus::assertNotDispatched(PublishContentJob::class);
+
+    expect((string) $content->fresh()->publish_status)->toBe('failed')
+        ->and((string) $content->fresh()->publish_error)->toContain('same title');
+});
+
 it('queues publish for the selected laravel locale variant only', function () {
     [$user, $site, $source, $sourceDraft] = makeLaravelConnectorPublishContext();
     $destination = createLaravelConnectorDestinationForSite($site);
@@ -282,6 +323,7 @@ it('queues publish for the selected laravel locale variant only', function () {
         'output_type' => 'kb_article',
         'language' => SupportedLanguage::EN->value,
         'content_html' => '<h1>Hello EN</h1>',
+        'meta' => passingHumanContentGateMeta(),
     ]);
 
     Bus::fake();
@@ -369,6 +411,7 @@ it('allows updating a published laravel translation when it is outdated', functi
         'output_type' => 'kb_article',
         'language' => SupportedLanguage::EN->value,
         'content_html' => '<h1>Updated EN</h1>',
+        'meta' => passingHumanContentGateMeta(),
     ]);
 
     $publication = ContentPublication::query()->create([
@@ -544,6 +587,25 @@ it('republishes translated content through the local laravel sync path', functio
         'language' => SupportedLanguage::EN->value,
         'output_type' => 'kb_article',
         'content_html' => '<h1>Hello EN</h1>',
+        'meta' => [
+            'human_content_score_after' => 86,
+            'ai_fingerprint_score_after' => 12,
+            'human_content' => [
+                'after' => [
+                    'human_content_score' => 86,
+                    'editorial_quality_score' => 84,
+                    'originality_score' => 88,
+                    'ai_fingerprint_score' => 12,
+                ],
+            ],
+            'editorial_plan' => [
+                'central_thesis' => 'English localized content is ready for governed publication.',
+                'primary_pattern' => [
+                    'name' => 'Practical guide',
+                    'article_movement' => 'Problem to operational solution',
+                ],
+            ],
+        ],
     ]);
 
     Bus::fake();
@@ -1077,3 +1139,26 @@ it('verifies laravel routes through the generic verify action', function () {
         ->assertRedirect()
         ->assertSessionHas('status', 'Laravel route verified. The page exists and is reachable on the destination site.');
 });
+
+function passingHumanContentGateMeta(): array
+{
+    return [
+        'human_content_score_after' => 86,
+        'ai_fingerprint_score_after' => 12,
+        'human_content' => [
+            'after' => [
+                'human_content_score' => 86,
+                'editorial_quality_score' => 84,
+                'originality_score' => 88,
+                'ai_fingerprint_score' => 12,
+            ],
+        ],
+        'editorial_plan' => [
+            'central_thesis' => 'Localized content is ready for governed publication.',
+            'primary_pattern' => [
+                'name' => 'Practical guide',
+                'article_movement' => 'Problem to operational solution',
+            ],
+        ],
+    ];
+}

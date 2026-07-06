@@ -495,12 +495,13 @@ it('succeeds when scheduling translated content even if dispatch throws', functi
         ->post(route('app.content.schedule', $translatedContent), [
             'scheduled_publish_at' => $at,
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertSessionHasErrors('publish');
 
-    // Verify the schedule was saved correctly
+    // Source-synced translations inherit publish timing from their source.
     $translatedContent->refresh();
-    expect($translatedContent->publish_status)->toBe('scheduled')
-        ->and($translatedContent->scheduled_publish_at)->not->toBeNull()
+    expect($translatedContent->publish_status)->toBe('draft')
+        ->and($translatedContent->scheduled_publish_at)->toBeNull()
         ->and($translatedContent->isTranslationVariant())->toBeTrue();
 });
 
@@ -551,9 +552,10 @@ it('returns success response for translated content scheduling when dispatch fai
         ->post(route('app.content.schedule', $translatedContent), [
             'scheduled_publish_at' => $at,
         ])
-        ->assertRedirect();
+        ->assertRedirect()
+        ->assertSessionHasErrors('publish');
 
-    // Verify the schedule was saved correctly despite dispatch failure
+    // Source-synced translations do not accept direct manual schedules.
     $translatedContent->refresh();
-    expect($translatedContent->scheduled_publish_at)->not->toBeNull();
+    expect($translatedContent->scheduled_publish_at)->toBeNull();
 });

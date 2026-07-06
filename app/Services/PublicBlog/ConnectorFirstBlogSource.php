@@ -2,13 +2,14 @@
 
 namespace App\Services\PublicBlog;
 
+use App\Contracts\ConnectorPublicBlogSource;
 use App\Contracts\PublicBlogSource;
 use App\Exceptions\PublicBlogSourceUnavailableException;
 
 class ConnectorFirstBlogSource implements PublicBlogSource
 {
     public function __construct(
-        private readonly ArguslyConnectorBlogSource $connector,
+        private readonly ConnectorPublicBlogSource $connector,
         private readonly ConnectorSynchronizedBlogSource $local
     ) {
     }

@@ -48,7 +48,7 @@ it('uses credits and sites as pricing units instead of article quotas', function
         ->assertSee('250 credits / month', false)
         ->assertSee('Extra Site', false)
         ->assertSee('€29', false)
-        ->assertSee('What are credits?', false)
+        ->assertSee('How do credits work?', false)
         ->assertDontSee('Scale usage when needed', false)
         ->assertDontSee('5 articles / month', false)
         ->assertDontSee('20 articles / month', false)

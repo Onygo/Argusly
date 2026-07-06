@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Models\Content;
 use App\Models\ContentSeries;
 use App\Models\User;
 
@@ -61,7 +62,8 @@ class ContentSeriesPolicy
             return false;
         }
 
-        return ! $series->isArchived();
+        return ! $series->isArchived()
+            && (! $series->isLocked() || $this->lockedSeriesHasUnpublishedTranslations($series));
     }
 
     public function duplicate(User $user, ContentSeries $series): bool
@@ -93,5 +95,37 @@ class ContentSeriesPolicy
         }
 
         return $series->normalizedStatus() === ContentSeries::STATUS_DRAFT && ! $series->isLocked();
+    }
+
+    private function lockedSeriesHasUnpublishedTranslations(ContentSeries $series): bool
+    {
+        if (! $series->isLocked() || ! $series->isPublished()) {
+            return false;
+        }
+
+        $sourceIds = $series->contents()
+            ->pluck('contents.id')
+            ->map(fn ($id): string => (string) $id)
+            ->filter()
+            ->values();
+
+        if ($sourceIds->isEmpty()) {
+            return false;
+        }
+
+        return Content::query()
+            ->where(function ($query) use ($sourceIds): void {
+                $query->whereIn('translation_source_content_id', $sourceIds)
+                    ->orWhereIn('family_id', $sourceIds);
+            })
+            ->where(function ($query): void {
+                $query->whereNull('is_source_locale')
+                    ->orWhere('is_source_locale', false);
+            })
+            ->where(function ($query): void {
+                $query->whereNull('publish_status')
+                    ->orWhere('publish_status', '!=', 'published');
+            })
+            ->exists();
     }
 }

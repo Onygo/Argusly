@@ -17,15 +17,22 @@ Set these environment variables in the consuming Laravel app:
 
 ```dotenv
 ARGUSLY_CONNECTOR_API_URL=https://api.argusly.com
-ARGUSLY_CONNECTOR_TOKEN=
-ARGUSLY_CONNECTOR_SITE_ID=
-ARGUSLY_CONNECTOR_DESTINATION_ID=
+ARGUSLY_CONNECTOR_API_KEY=
+ARGUSLY_CONNECTOR_WORKSPACE_ID=
+ARGUSLY_CONNECTOR_DESTINATION_KEY=
 ARGUSLY_CONNECTOR_SITE_NAME="${APP_NAME}"
 ARGUSLY_CONNECTOR_SITE_URL="${APP_URL}"
 ARGUSLY_CONNECTOR_TIMEOUT=15
+ARGUSLY_CONNECTOR_WEBHOOKS_ENABLED=true
+ARGUSLY_CONNECTOR_WEBHOOK_SECRET=
+ARGUSLY_CONNECTOR_SYNC_PATH=argusly/sync
+ARGUSLY_CONNECTOR_ALLOWED_OPERATIONS=create,update,draft
+ARGUSLY_CONNECTOR_AUTONOMOUS_ALLOWED=false
 ```
 
-The token is issued by Argusly and is sent as `Authorization: Bearer <token>`.
+The API key is the site key issued by Argusly and is sent as `Authorization: Bearer <key>`. `ARGUSLY_CONNECTOR_TOKEN`, `ARGUSLY_CONNECTOR_SITE_ID`, and `ARGUSLY_CONNECTOR_DESTINATION_ID` remain supported as legacy aliases.
+
+The package registers `argusly:connector:health` with Laravel's scheduler automatically. The consuming app only needs its normal `php artisan schedule:run` entry.
 
 ## Usage
 
@@ -43,6 +50,18 @@ Available client methods:
 - `contentIndex(array $filters = [])`
 - `content(string|int $content)`
 - `acknowledgeContentSync(string|int $content, array $payload, ?string $idempotencyKey = null)`
+
+The package also exposes lightweight status endpoints for Argusly connection tests:
+
+- `GET|POST /argusly/connector/activity`
+- `GET|POST /argusly/activity`
+
+Argusly can push knowledge article updates directly to the connector sync endpoint:
+
+- `POST /argusly/sync`
+- `POST /api/argusly/sync`
+
+Send the site key as `Authorization: Bearer <key>` or `X-Argusly-API-Key`. The endpoint stores incoming `knowledge_article` payloads in `argusly_articles`, enforces the policy blocklist, and rejects duplicate idempotency keys.
 
 ## Artisan Commands
 

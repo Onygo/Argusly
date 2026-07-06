@@ -14,7 +14,7 @@ it('allows superadmin to update enterprise as a custom plan without fixed prices
     $this->seed(PlansSeeder::class);
 
     $admin = makeBillingSuperadmin();
-    $enterprise = Plan::query()->where('slug', 'enterprise')->firstOrFail();
+    $enterprise = Plan::query()->where('slug', 'enterprise_custom')->firstOrFail();
 
     $this->actingAs($admin)
         ->get(route('admin.billing.index'))
@@ -25,7 +25,7 @@ it('allows superadmin to update enterprise as a custom plan without fixed prices
     $this->actingAs($admin)
         ->post(route('admin.billing.plans.update', $enterprise), [
             'name' => 'Enterprise Plus',
-            'slug' => 'enterprise',
+            'slug' => 'enterprise_custom',
             'description' => 'Custom onboarding and SLA.',
             'price_monthly_cents' => '',
             'price_yearly_cents' => '',
@@ -55,12 +55,12 @@ it('keeps only one featured public fixed plan when admin changes the featured pl
     $this->seed(PlansSeeder::class);
 
     $admin = makeBillingSuperadmin();
-    $scale = Plan::query()->where('slug', 'scale')->firstOrFail();
+    $scale = Plan::query()->where('slug', 'platform_1000')->firstOrFail();
 
     $this->actingAs($admin)
         ->post(route('admin.billing.plans.update', $scale), [
-            'name' => 'Scale',
-            'slug' => 'scale',
+            'name' => 'Argusly Platform',
+            'slug' => 'platform_1000',
             'description' => $scale->description_short,
             'price_monthly_cents' => 19900,
             'price_yearly_cents' => 199000,
@@ -79,16 +79,16 @@ it('keeps only one featured public fixed plan when admin changes the featured pl
         ->assertRedirect();
 
     expect(Plan::query()->where('billing_type', 'fixed')->where('is_featured', true)->pluck('slug')->all())
-        ->toBe(['scale']);
+        ->toBe(['platform_1000']);
 
-    expect(Plan::query()->where('slug', 'growth')->value('is_featured'))->toBeFalse();
+    expect(Plan::query()->where('slug', 'platform_500')->value('is_featured'))->toBeFalse();
 });
 
 it('allows superadmin to add plan features through the billing catalog', function () {
     $this->seed(PlansSeeder::class);
 
     $admin = makeBillingSuperadmin();
-    $plan = Plan::query()->where('slug', 'creator')->firstOrFail();
+    $plan = Plan::query()->where('slug', 'platform_250')->firstOrFail();
 
     $this->actingAs($admin)
         ->post(route('admin.billing.plans.features.store', $plan), [
@@ -117,12 +117,12 @@ it('stores onboarding settings through the admin plan catalog', function () {
     $this->seed(PlansSeeder::class);
 
     $admin = makeBillingSuperadmin();
-    $starter = Plan::query()->where('slug', 'creator')->firstOrFail();
+    $starter = Plan::query()->where('slug', 'platform_250')->firstOrFail();
 
     $this->actingAs($admin)
         ->post(route('admin.billing.plans.update', $starter), [
-            'name' => 'Creator',
-            'slug' => 'creator',
+            'name' => 'Argusly Platform',
+            'slug' => 'platform_250',
             'description' => $starter->description_short,
             'price_monthly_cents' => 2900,
             'price_yearly_cents' => 29000,

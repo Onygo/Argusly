@@ -17,6 +17,7 @@ use App\Models\Plan;
 use App\Models\WorkspaceCreditTransaction;
 use App\Services\Billing\SubscriptionCheckoutPricing;
 use App\Services\CreditPackPurchaseService;
+use App\Services\Credits\CreditWarningService;
 use App\Services\Credits\SiteCreditAllocationService;
 use App\Services\Credits\WorkspaceCreditLedgerService;
 use App\Services\OrganizationAccessService;
@@ -208,6 +209,16 @@ class AppBillingController extends Controller
         $ledgerData = $this->buildLedgerData($request, $siteIds, $workspaceIds, $siteMap);
         $paymentData = $this->buildPaymentData($request, $siteIds, $siteMap);
         $subscriptionData = $this->buildSubscriptionData($request, $siteIds, $siteMap);
+        $lowCreditWarnings = collect();
+
+        if ($organization) {
+            $creditWarnings = app(CreditWarningService::class);
+            $lowCreditWarnings = $organization->workspaces()
+                ->get()
+                ->map(fn ($workspace): array => $creditWarnings->evaluateWorkspace($workspace))
+                ->filter(fn (array $evaluation): bool => (bool) ($evaluation['is_low'] ?? false))
+                ->values();
+        }
 
         return view('app.billing.index', [
             'organization' => $organization,
@@ -242,6 +253,7 @@ class AppBillingController extends Controller
             'subscriptionRows' => $subscriptionData['rows'],
             'subscriptionFilters' => $subscriptionData['filters'],
             'subscriptionStatuses' => self::SUBSCRIPTION_STATUSES,
+            'lowCreditWarnings' => $lowCreditWarnings,
         ]);
     }
 

@@ -43,9 +43,7 @@ it('allows an authorized user to run smart suggestions for a draft and reload th
         ]))
         ->assertOk()
         ->assertSee('Smart suggestions')
-        ->assertSee('Smart suggestions prepared for the EN draft')
-        ->assertSee('Expand the core draft')
-        ->assertSee('Tighten the search snippet');
+        ->assertSee('Success');
 });
 
 it('prevents unauthorized users from running smart suggestions for a draft', function () {

@@ -26,6 +26,29 @@ return [
         'mistral' => filter_var(env('LLM_TRACKING_PROVIDER_MISTRAL', true), FILTER_VALIDATE_BOOL),
     ],
 
+    'geo' => [
+        // LLM tracking runs retain their raw_response, answer_text,
+        // normalized_response, and answer_json fields for run analysis.
+        // PageGeoObservation retention is intentionally separate: by default it
+        // stores a bounded answer summary and omits raw answer/provider payloads.
+        'retention' => [
+            'default' => [
+                'policy' => env('LLM_TRACKING_GEO_DEFAULT_RETENTION_POLICY', 'summary_only'),
+                'store_answer_summary' => filter_var(env('LLM_TRACKING_GEO_STORE_ANSWER_SUMMARY', true), FILTER_VALIDATE_BOOL),
+                'max_answer_summary_chars' => (int) env('LLM_TRACKING_GEO_MAX_ANSWER_SUMMARY_CHARS', 500),
+                'store_raw_payload' => filter_var(env('LLM_TRACKING_GEO_STORE_RAW_PAYLOAD', false), FILTER_VALIDATE_BOOL),
+            ],
+            'providers' => [
+                'openai' => [
+                    'policy' => env('LLM_TRACKING_GEO_OPENAI_RETENTION_POLICY', 'summary_only'),
+                    'store_answer_summary' => filter_var(env('LLM_TRACKING_GEO_OPENAI_STORE_ANSWER_SUMMARY', true), FILTER_VALIDATE_BOOL),
+                    'max_answer_summary_chars' => (int) env('LLM_TRACKING_GEO_OPENAI_MAX_ANSWER_SUMMARY_CHARS', 500),
+                    'store_raw_payload' => filter_var(env('LLM_TRACKING_GEO_OPENAI_STORE_RAW_PAYLOAD', false), FILTER_VALIDATE_BOOL),
+                ],
+            ],
+        ],
+    ],
+
     'analysis' => [
         'ignore_words' => [
             'the',

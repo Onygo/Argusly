@@ -3,6 +3,7 @@
 namespace App\Services\SourceExtraction;
 
 use App\Models\SourceExtraction;
+use App\Services\PublicWeb\PublicWebSafetyService;
 use App\Services\SourceBriefing\ArticleContentExtractor;
 use App\Services\SourceBriefing\Exceptions\SourceBriefingException;
 use Illuminate\Http\Client\Response;
@@ -10,12 +11,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Throwable;
 
 class SourceUrlExtractor
 {
     public function __construct(
         private readonly ArticleContentExtractor $articleExtractor,
+        private readonly PublicWebSafetyService $publicWebSafety,
     ) {}
 
     /**
@@ -32,7 +35,9 @@ class SourceUrlExtractor
             return $this->failure($url, 'SOURCE_URL_INVALID', 'Enter a valid public article URL.', $startedAt);
         }
 
-        if ($this->isBlockedUrl($normalized)) {
+        try {
+            $normalized = $this->publicWebSafety->normalizeAndValidate($normalized);
+        } catch (InvalidArgumentException) {
             return $this->failure($normalized, 'SOURCE_FETCH_BLOCKED', 'This URL cannot be analyzed. Use a public article URL.', $startedAt);
         }
 
@@ -148,10 +153,23 @@ class SourceUrlExtractor
             $response = null;
             $maxAttempts = $relaxed ? 3 : 1;
             foreach (range(1, $maxAttempts) as $attempt) {
-                $response = Http::timeout($timeout)
+                $request = Http::timeout($timeout)
                     ->connectTimeout($connectTimeout)
-                    ->withOptions(['allow_redirects' => true])
+                    ->withOptions([
+                        'allow_redirects' => [
+                            'max' => 5,
+                            'track_redirects' => true,
+                            'on_redirect' => function ($request, $response, $uri): void {
+                                unset($request, $response);
+                                $this->publicWebSafety->validateRedirectTarget((string) $uri);
+                            },
+                        ],
+                    ])
                     ->withHeaders($this->browserHeaders())
+                    ->accept('text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.1');
+
+                $response = $this->publicWebSafety
+                    ->applyGuardedHttpOptions($request, $url)
                     ->get($url);
 
                 if (! in_array($response->status(), [429, 503], true) || $attempt === $maxAttempts) {
@@ -177,6 +195,15 @@ class SourceUrlExtractor
         $bodyBytes = strlen($body);
         $status = $response->status();
         $finalUrl = (string) ($response->effectiveUri() ?: $url);
+
+        try {
+            $this->publicWebSafety->validateRedirectTarget($finalUrl);
+        } catch (InvalidArgumentException) {
+            return $this->failure($url, 'SOURCE_FETCH_BLOCKED', 'This URL cannot be analyzed. Use a public article URL.', $startedAt, $method, [
+                'status_code' => $status,
+                'final_url' => $finalUrl,
+            ]);
+        }
 
         Log::info('source_extraction.fetch_end', [
             'url' => $url,

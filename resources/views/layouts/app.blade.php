@@ -163,7 +163,7 @@
                         <details data-sidebar-label class="rounded-md" @if(request()->routeIs('app.signal-intelligence.*') || request()->routeIs('app.opportunity-review.*') || request()->routeIs('app.content.lifecycle*') || request()->routeIs('app.workspaces.content-quality.*') || request()->routeIs('app.research*')) open @endif>
                             <summary class="group relative flex h-9 cursor-pointer list-none items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.signal-intelligence.*') || request()->routeIs('app.opportunity-review.*') || request()->routeIs('app.content.lifecycle*') || request()->routeIs('app.workspaces.content-quality.*') || request()->routeIs('app.research*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="scan-search" class="h-4 w-4"></i></span><span class="truncate">Diagnostics</span></summary>
                             <div class="ml-8 mt-1 space-y-1 border-l border-border pl-2 text-xs">
-                                <a href="{{ route('app.content.lifecycle.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.content.lifecycle*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Content lifecycle</a>
+                                <a href="{{ route('app.content.lifecycle.index') }}" data-sidebar-title="Lifecycle" class="block rounded px-2 py-1 {{ request()->routeIs('app.content.lifecycle*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Content lifecycle</a>
                                 @if ($contentIntelligenceWorkspace)
                                     <a href="{{ route('app.workspaces.content-quality.index', $contentIntelligenceWorkspace) }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.workspaces.content-quality.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Content health</a>
                                 @endif
@@ -199,10 +199,10 @@
                                 <summary class="group relative flex h-9 cursor-pointer list-none items-center justify-start gap-3 rounded-md px-3 text-sm font-medium transition-all {{ request()->routeIs('app.billing.*') || request()->routeIs('app.developer.*') ? 'pl-work-sidebar-active' : 'text-textSecondary hover:bg-surfaceMuted hover:text-textPrimary' }}"><span class="flex h-5 w-5 shrink-0 items-center justify-center"><i data-lucide="settings-2" class="h-4 w-4"></i></span><span class="truncate">System</span></summary>
                                 <div class="ml-8 mt-1 space-y-1 border-l border-border pl-2 text-xs">
                                     @if ($advancedModeCanSeeOrganizationControls)
-                                        <a href="{{ route('app.billing.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.billing.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Billing</a>
+                                        <a href="{{ route('app.billing.index') }}" data-sidebar-title="Billing" class="block rounded px-2 py-1 {{ request()->routeIs('app.billing.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Billing</a>
                                     @endif
                                     @if ($advancedModeCanSeeDeveloperTools)
-                                        <a href="{{ route('app.developer.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.developer.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Developer</a>
+                                        <a href="{{ route('app.developer.index') }}" data-sidebar-title="Developer" class="block rounded px-2 py-1 {{ request()->routeIs('app.developer.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Developer</a>
                                     @endif
                                 </div>
                             </details>

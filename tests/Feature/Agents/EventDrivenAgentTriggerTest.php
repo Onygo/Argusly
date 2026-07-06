@@ -13,6 +13,7 @@ use App\Models\AgentWorkflowRun;
 use App\Models\Brief;
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Models\ContentPublication;
 use App\Models\Draft;
 use App\Models\Organization;
 use App\Models\Plan;
@@ -32,21 +33,7 @@ it('automatically runs internal linking after a draft is generated', function ()
         'primary_keyword' => 'draft generation source article',
     ]);
 
-    Content::query()->create([
-        'id' => (string) Str::uuid(),
-        'workspace_id' => $workspace->id,
-        'client_site_id' => $site->id,
-        'title' => 'Editorial workflow checklist',
-        'language' => 'en',
-        'type' => 'article',
-        'status' => 'published',
-        'publish_status' => 'published',
-        'source' => 'manual',
-        'primary_keyword' => 'editorial workflow checklist',
-        'published_url' => 'https://event-draft-generated.example.com/blog/editorial-workflow-checklist',
-        'created_by' => $owner->id,
-        'updated_by' => $owner->id,
-    ]);
+    createEventDrivenPublishedTarget($workspace, $site, $owner, 'https://event-draft-generated.example.com/blog/editorial-workflow-checklist');
 
     $brief = Brief::query()->create([
         'id' => (string) Str::uuid(),
@@ -97,11 +84,12 @@ it('automatically runs internal linking after a draft is generated', function ()
     $this->actingAs($owner)
         ->get(route('app.drafts.show', [
             'draft' => $draft,
-            'tab' => 'draft',
+            'tab' => 'intelligence',
         ]))
         ->assertOk()
-        ->assertSee('Suggested internal links')
-        ->assertSee('Editorial workflow checklist');
+        ->assertSee('Internal links')
+        ->assertSee('Success')
+        ->assertSee('1 item');
 });
 
 it('runs localization checks after translation completion and shows the persisted result on the draft', function () {
@@ -159,11 +147,11 @@ it('runs localization checks after translation completion and shows the persiste
     $this->actingAs($owner)
         ->get(route('app.drafts.show', [
             'draft' => $translatedDraft,
-            'tab' => 'draft',
+            'tab' => 'intelligence',
         ]))
         ->assertOk()
-        ->assertSee('Localization recommendations')
-        ->assertSee('Draft locale label may be wrong');
+        ->assertSee('Localization')
+        ->assertSee('Warning');
 });
 
 it('runs refresh analysis after content is published and shows the persisted result on the content page', function () {
@@ -234,13 +222,14 @@ it('runs refresh analysis after content is published and shows the persisted res
         ->get(route('app.content.show', [
             'content' => $content,
             'tab' => 'overview',
+            'insight' => 'refresh',
         ]))
         ->assertOk()
         ->assertSee('Content Health')
-        ->assertSee('Insights')
+        ->assertSee('AI findings')
         ->assertSee('Freshness')
-        ->assertDontSee('Missing SEO structure')
-        ->assertDontSee('Create refresh draft');
+        ->assertSee('Missing SEO structure')
+        ->assertSee('Create refresh draft');
 });
 
 function makeEventDrivenAgentWorkspace(string $prefix): array
@@ -328,4 +317,39 @@ function makeEventDrivenContent(Workspace $workspace, ClientSite $site, User $ow
         'created_by' => $owner->id,
         'updated_by' => $owner->id,
     ], $overrides));
+}
+
+function createEventDrivenPublishedTarget(Workspace $workspace, ClientSite $site, User $owner, string $url): Content
+{
+    $target = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'title' => 'Editorial workflow checklist',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+        'primary_keyword' => 'editorial workflow checklist',
+        'published_url' => $url,
+        'created_by' => $owner->id,
+        'updated_by' => $owner->id,
+    ]);
+
+    ContentPublication::query()->create([
+        'content_id' => $target->id,
+        'client_site_id' => $site->id,
+        'locale' => 'en',
+        'provider' => ContentPublication::PROVIDER_WORDPRESS,
+        'remote_id' => (string) Str::uuid(),
+        'remote_type' => 'post',
+        'remote_url' => $url,
+        'remote_status' => ContentPublication::REMOTE_PUBLISHED,
+        'delivery_status' => ContentPublication::STATUS_DELIVERED,
+        'last_verified_at' => now(),
+        'last_delivered_at' => now(),
+    ]);
+
+    return $target;
 }

@@ -4,15 +4,52 @@ use App\Enums\ContentLifecycleStatus;
 use App\Models\Content;
 use App\Models\ContentLifecycleEvent;
 use App\Models\Organization;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
-    $this->org = Organization::create(['name' => 'Test Org', 'slug' => 'test-org', 'status' => 'active']);
+    $this->org = Organization::create([
+        'name' => 'Test Org',
+        'slug' => 'test-org',
+        'status' => 'active',
+        'approved_at' => now(),
+        'billing_company_name' => 'Test Org BV',
+        'billing_address_line1' => 'Mainstraat 1',
+        'billing_country_code' => 'NL',
+    ]);
     $this->workspace = Workspace::create(['name' => 'Test Workspace', 'organization_id' => $this->org->id]);
+
+    $plan = Plan::query()->create([
+        'id' => (string) Str::uuid(),
+        'key' => 'content-lifecycle-test-plan',
+        'slug' => 'content-lifecycle-test-plan',
+        'name' => 'Content Lifecycle Test Plan',
+        'interval' => 'month',
+        'price_cents' => 0,
+        'currency' => 'EUR',
+        'included_credits_per_interval' => 100,
+        'is_active' => true,
+    ]);
+
+    Subscription::query()->create([
+        'id' => (string) Str::uuid(),
+        'organization_id' => $this->org->id,
+        'workspace_id' => $this->workspace->id,
+        'plan_id' => $plan->id,
+        'status' => 'active',
+        'interval' => 'month',
+        'price_cents' => 0,
+        'currency' => 'EUR',
+        'included_credits_per_interval' => 100,
+        'current_period_start' => now()->startOfMonth(),
+        'current_period_end' => now()->endOfMonth(),
+    ]);
 });
 
 function createLifecycleContent(array $attributes = []): Content
@@ -29,9 +66,21 @@ function createLifecycleContent(array $attributes = []): Content
     ], $attributes));
 }
 
+function createLifecycleUser(string $role): User
+{
+    return User::factory()->create([
+        'organization_id' => test()->org->id,
+        'role' => $role,
+        'active' => true,
+        'approved_at' => now(),
+        'email_code_verified_at' => now(),
+        'email_verified_at' => now(),
+    ]);
+}
+
 describe('Send to Review', function () {
     it('allows editor to send content to review', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($editor)
@@ -44,8 +93,8 @@ describe('Send to Review', function () {
     });
 
     it('allows setting reviewer when sending to review', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
-        $reviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
+        $editor = createLifecycleUser('editor');
+        $reviewer = createLifecycleUser('reviewer');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($editor)
@@ -58,7 +107,7 @@ describe('Send to Review', function () {
     });
 
     it('prevents viewer from sending to review', function () {
-        $viewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'viewer']);
+        $viewer = createLifecycleUser('viewer');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($viewer)
@@ -70,7 +119,7 @@ describe('Send to Review', function () {
 
 describe('Approve Content', function () {
     it('allows reviewer to approve content when assigned', function () {
-        $reviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
+        $reviewer = createLifecycleUser('reviewer');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
             'reviewer_user_id' => $reviewer->id,
@@ -91,7 +140,7 @@ describe('Approve Content', function () {
     });
 
     it('allows editor to approve content', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
         ]);
@@ -104,7 +153,7 @@ describe('Approve Content', function () {
     });
 
     it('allows admin to approve content', function () {
-        $admin = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'admin']);
+        $admin = createLifecycleUser('admin');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
         ]);
@@ -117,8 +166,8 @@ describe('Approve Content', function () {
     });
 
     it('prevents unassigned reviewer from approving', function () {
-        $reviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
-        $otherReviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
+        $reviewer = createLifecycleUser('reviewer');
+        $otherReviewer = createLifecycleUser('reviewer');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
             'reviewer_user_id' => $otherReviewer->id,
@@ -133,7 +182,7 @@ describe('Approve Content', function () {
 
 describe('Reject Content', function () {
     it('requires rejection reason', function () {
-        $reviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
+        $reviewer = createLifecycleUser('reviewer');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
             'reviewer_user_id' => $reviewer->id,
@@ -148,7 +197,7 @@ describe('Reject Content', function () {
     });
 
     it('allows reviewer to reject content with reason', function () {
-        $reviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
+        $reviewer = createLifecycleUser('reviewer');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
             'reviewer_user_id' => $reviewer->id,
@@ -169,7 +218,7 @@ describe('Reject Content', function () {
     });
 
     it('sends content back to draft on rejection', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
         ]);
@@ -186,8 +235,8 @@ describe('Reject Content', function () {
 
 describe('Assign Content', function () {
     it('allows editor to assign content to user', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
-        $assignee = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
+        $assignee = createLifecycleUser('editor');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($editor)
@@ -201,8 +250,8 @@ describe('Assign Content', function () {
     });
 
     it('prevents viewer from assigning content', function () {
-        $viewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'viewer']);
-        $assignee = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $viewer = createLifecycleUser('viewer');
+        $assignee = createLifecycleUser('editor');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($viewer)
@@ -216,8 +265,8 @@ describe('Assign Content', function () {
 
 describe('Set Reviewer', function () {
     it('allows editor to set reviewer', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
-        $reviewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'reviewer']);
+        $editor = createLifecycleUser('editor');
+        $reviewer = createLifecycleUser('reviewer');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($editor)
@@ -233,7 +282,7 @@ describe('Set Reviewer', function () {
 
 describe('Mark Refresh Needed', function () {
     it('allows marking published content for refresh', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::PUBLISHED->value,
         ]);
@@ -251,7 +300,7 @@ describe('Mark Refresh Needed', function () {
 
 describe('Generic Transition', function () {
     it('allows valid stage transitions', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::DRAFT->value,
         ]);
@@ -267,8 +316,8 @@ describe('Generic Transition', function () {
         expect($content->fresh()->lifecycle_stage)->toBe(ContentLifecycleStatus::REVIEW);
     });
 
-    it('rejects invalid stage transitions', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+    it('forbids invalid stage transitions before mutation', function () {
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::DRAFT->value,
         ]);
@@ -278,12 +327,12 @@ describe('Generic Transition', function () {
                 'target_stage' => 'published', // Invalid direct transition
             ]);
 
-        $response->assertRedirect();
-        $response->assertSessionHasErrors('transition');
+        $response->assertForbidden();
+        expect($content->fresh()->lifecycle_stage)->toBe(ContentLifecycleStatus::DRAFT);
     });
 
     it('validates target_stage is required', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($editor)
@@ -297,7 +346,7 @@ describe('Generic Transition', function () {
 
 describe('Lifecycle History', function () {
     it('displays lifecycle history for content', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent();
 
         // Create some events
@@ -316,7 +365,7 @@ describe('Lifecycle History', function () {
     });
 
     it('allows viewer to see lifecycle history', function () {
-        $viewer = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'viewer']);
+        $viewer = createLifecycleUser('viewer');
         $content = createLifecycleContent();
 
         $response = $this->actingAs($viewer)
@@ -328,7 +377,7 @@ describe('Lifecycle History', function () {
 
 describe('Legacy Status Sync', function () {
     it('syncs legacy status when lifecycle stage changes', function () {
-        $editor = User::factory()->create(['organization_id' => $this->org->id, 'role' => 'editor']);
+        $editor = createLifecycleUser('editor');
         $content = createLifecycleContent([
             'lifecycle_stage' => ContentLifecycleStatus::REVIEW->value,
         ]);

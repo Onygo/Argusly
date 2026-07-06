@@ -38,7 +38,9 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "tests/",
+            "Onygo\\ArguslyConnector\\": "packages/laravel-connector/src/",
+            "Argusly\\LaravelConnector\\": "packages/laravel-connector/src/"
         }
     },
     "scripts": {

@@ -756,7 +756,7 @@ class TranslateDraftJobTest extends TestCase
         $this->assertFalse($nlTarget['is_disabled']);
     }
 
-    public function test_active_processing_job_blocks_duplicate_translation(): void
+    public function test_active_processing_job_disables_duplicate_translation_and_reuses_request(): void
     {
         $translationRequest = ContentTranslation::query()->create([
             'content_id' => (string) $this->sourceDraft->content_id,
@@ -764,6 +764,10 @@ class TranslateDraftJobTest extends TestCase
             'status' => ContentTranslation::STATUS_PROCESSING,
             'requested_by_user_id' => $this->user->id,
             'job_id' => 'active-job-456',
+            'processing_job_uuid' => (string) Str::uuid(),
+            'processing_started_at' => now(),
+            'processing_locked_at' => now(),
+            'processing_last_heartbeat_at' => now(),
         ]);
 
         // Verify isActiveLock returns true for active processing
@@ -779,11 +783,10 @@ class TranslateDraftJobTest extends TestCase
         $this->assertSame('processing', $nlTarget['state']);
         $this->assertTrue($nlTarget['is_disabled']);
 
-        // Attempting to queue should throw
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("A translation to 'Dutch' is already processing.");
+        $queued = $coordinator->queue($this->sourceDraft->content, SupportedLanguage::NL->value, (string) $this->user->id);
 
-        $coordinator->queue($this->sourceDraft->content, SupportedLanguage::NL->value, (string) $this->user->id);
+        $this->assertSame((string) $translationRequest->id, (string) $queued['translation_request']->id);
+        $this->assertSame(ContentTranslation::STATUS_PROCESSING, (string) $queued['translation_request']->status);
     }
 
     public function test_stale_processing_lock_allows_retry(): void

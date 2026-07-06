@@ -112,6 +112,27 @@ it('adds a compact fallback block when no links can be placed inline', function 
         ->and($result['updated_html'])->toContain('https://example.com/content-refresh-automation');
 });
 
+it('does not insert links that point to the current article url', function () {
+    $service = new InternalLinkPlacementService();
+
+    $html = '<p>Agentic AI execution needs a practical framework before teams scale workflows.</p>';
+
+    $result = $service->placeIntoHtml($html, [
+        [
+            'target_url' => '/en/blog/a-practical-framework-for-agentic-ai-execution',
+            'anchor_text' => 'practical framework',
+            'title' => 'A Practical Framework for Agentic AI Execution',
+        ],
+    ], [
+        'https://argusly.com/en/blog/a-practical-framework-for-agentic-ai-execution',
+    ]);
+
+    expect($result['updated_html'])->not->toContain('href="/en/blog/a-practical-framework-for-agentic-ai-execution"')
+        ->and($result['updated_html'])->not->toContain('Related reading:')
+        ->and($result['inline_links'])->toBe([])
+        ->and($result['fallback_links'])->toBe([]);
+});
+
 it('preserves existing manual links while inserting new internal links', function () {
     $service = new InternalLinkPlacementService();
 

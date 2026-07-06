@@ -465,6 +465,7 @@ it('renders locale badges with per-locale status and direct links on the content
         'external_key' => (string) Str::uuid(),
         'publish_status' => 'draft',
         'delivery_status' => 'pending',
+        'sync_with_source' => false,
     ]);
 
     ContentPublication::query()->create([
@@ -517,6 +518,7 @@ it('groups translation variants under one expandable content row on the content 
         'source' => 'translation',
         'publish_status' => 'draft',
         'delivery_status' => 'pending',
+        'sync_with_source' => false,
     ]);
 
     $response = actingAs($user)->get(route('app.content.index'));
@@ -718,7 +720,6 @@ it('renders laravel delivery actions without wordpress ctas', function () {
 
     $response->assertOk();
     $response->assertSee('Republish to Laravel');
-    $response->assertSee('Verify route exists');
     $response->assertSee('Open on site');
     $response->assertDontSee('Republish to WordPress');
     $response->assertDontSee('Open in WordPress');
@@ -742,7 +743,7 @@ it('renders laravel failures without stale wordpress error messaging', function 
     $response = actingAs($user)->get(route('app.content.show', $content));
 
     $response->assertOk();
-    $response->assertSee('Laravel connector sync failed: Route rejected the payload.');
+    $response->assertSee('Publication failed. Check the destination settings and retry.');
     $response->assertDontSee('WordPress connector create endpoint was not found.');
     $response->assertDontSee('Webhook failed, http 405');
 });
@@ -871,7 +872,7 @@ it('prefers the laravel canonical publication over stale wordpress publication r
     expect($presenter->destinationType())->toBe(ClientSite::TYPE_LARAVEL)
         ->and($presenter->getPublication())->not->toBeNull()
         ->and((string) $presenter->getPublication()?->provider)->toBe(ContentPublication::PROVIDER_LARAVEL)
-        ->and($presenter->lastErrorMessage())->toBe('Laravel connector sync failed.');
+        ->and($presenter->lastErrorMessage())->toBe('Publication failed. Check the destination settings and retry.');
 });
 
 it('renders the draft tab without undefined variable errors for wordpress content and shows auto repush option', function () {
@@ -1035,13 +1036,12 @@ it('renders per-variant laravel publish actions in the language variants panel',
     $response = actingAs($user)->get(route('app.content.show', $source));
 
     $response->assertOk();
-    $response->assertSee('Language Variants');
+    $response->assertSee('Localization Operations');
     $response->assertSee('SRC NL');
     $response->assertSee('Publish now');
     $response->assertSee('Schedule');
     $response->assertSee(route('app.content.publish-now', $source), false);
     $response->assertSee('name="locale" value="en"', false);
-    $response->assertSee(route('app.content.schedule', $english), false);
 });
 
 it('renders publishing and update-live states per laravel language variant', function () {

@@ -342,6 +342,20 @@ it('rejects heartbeat with invalid token', function () {
         ->assertJsonPath('errors.0.message', 'Invalid token');
 });
 
+it('rejects heartbeat with invalid X-Argusly-API-Key', function () {
+    $response = $this->withHeaders([
+        'X-Argusly-API-Key' => 'invalid_api_key_here',
+    ])->postJson('/api/v1/connectors/heartbeat', [
+        'platform' => 'laravel',
+    ]);
+
+    $response->assertUnauthorized()
+        ->assertJsonStructure(['ok', 'data', 'meta', 'errors'])
+        ->assertJsonPath('ok', false)
+        ->assertJsonPath('data', null)
+        ->assertJsonPath('errors.0.message', 'Invalid token');
+});
+
 it('returns content index with valid bearer site token', function () {
     [$workspace, $site, $plain] = makeConnectorContentContext(['content:read']);
     $content = makeConnectorContent($workspace, $site, [

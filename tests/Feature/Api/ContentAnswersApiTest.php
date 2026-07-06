@@ -2,6 +2,7 @@
 
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Models\ContentRenderArtifact;
 use App\Models\ContentRevision;
 use App\Models\ContentVersion;
 use App\Models\Organization;
@@ -32,7 +33,7 @@ it('returns site scoped answer payloads through markdown delivery routes', funct
     $expectedScore = $content->fresh()->aeo_score;
 
     $this->withHeaders($siteHeaders)
-        ->getJson('/api/sites/' . $site->id . '/content/' . $content->id . '/answers')
+        ->getJson('https://api.argusly.local/sites/' . $site->id . '/content/' . $content->id . '/answers')
         ->assertOk()
         ->assertJsonPath('aeo_score', $expectedScore)
         ->assertJsonPath('answers.0.question', 'What is AEO?');
@@ -125,6 +126,22 @@ function makeContentAnswersApiContext(): array
         'entities' => ['Argusly', 'ChatGPT'],
         'order' => 0,
     ]);
+
+    ContentRenderArtifact::query()->updateOrCreate(
+        [
+            'content_id' => $content->id,
+            'markdown_locale' => 'en',
+        ],
+        [
+            'content_version_id' => $version->id,
+            'rendered_html' => '<p>AEO body.</p>',
+            'rendered_markdown' => 'AEO body.',
+            'markdown_status' => ContentRenderArtifact::STATUS_READY,
+            'markdown_source' => ContentRenderArtifact::SOURCE_MANUAL,
+            'markdown_generated_at' => now(),
+            'markdown_version' => 1,
+        ]
+    );
 
     $created = app(ApiKeyService::class)->create(
         workspace: $workspace,

@@ -580,7 +580,7 @@ class SeriesArticleGenerationService
                     'language' => (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en'),
                     'content_html' => '',
                     'meta' => $draftMeta,
-                    'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber),
+                    'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber, [$plannedUrl]),
                     'credit_action_id' => $creditActionId !== '' ? $creditActionId : null,
                     'credit_cost' => $creditCost,
                     'credit_wallet_id' => (string) ($run->creditLedgerEntry?->credit_wallet_id ?? null) ?: null,
@@ -613,7 +613,7 @@ class SeriesArticleGenerationService
                     'title' => $title,
                     'last_error' => null,
                     'meta' => $existingMeta,
-                    'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber),
+                    'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber, [$plannedUrl]),
                     'credit_action_id' => $draft->credit_action_id ?: ($creditActionId !== '' ? $creditActionId : null),
                     'credit_cost' => (int) ($draft->credit_cost ?: $creditCost),
                     'credit_wallet_id' => $draft->credit_wallet_id ?: ((string) ($run->creditLedgerEntry?->credit_wallet_id ?? '') ?: null),
@@ -684,7 +684,8 @@ class SeriesArticleGenerationService
 
             $placementResult = $this->internalLinkPlacement->placeIntoHtml(
                 (string) ($result['content_html'] ?? ''),
-                $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber)
+                $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber, [$plannedUrl]),
+                [$plannedUrl],
             );
             $resolvedHtml = (string) ($placementResult['updated_html'] ?? '');
 
@@ -1553,18 +1554,29 @@ class SeriesArticleGenerationService
      * @param array<int,int> $internalLinksTo
      * @param array<int,string> $plannedUrlMap
      * @param Collection<int,array<string,mixed>> $strategyByNumber
+     * @param array<int,string> $excludeUrls
      * @return array<int,array<string,string|null>>
      */
-    private function seriesLinkHints(array $internalLinksTo, array $plannedUrlMap, Collection $strategyByNumber): array
+    private function seriesLinkHints(array $internalLinksTo, array $plannedUrlMap, Collection $strategyByNumber, array $excludeUrls = []): array
     {
+        $excludedUrls = collect($excludeUrls)
+            ->map(fn (string $url): string => Str::lower(rtrim(trim($url), '/')))
+            ->filter()
+            ->values()
+            ->all();
+
         return collect($internalLinksTo)
-            ->map(function (int $target) use ($plannedUrlMap, $strategyByNumber): ?array {
+            ->map(function (int $target) use ($plannedUrlMap, $strategyByNumber, $excludedUrls): ?array {
                 $url = trim((string) ($plannedUrlMap[$target] ?? ''));
                 $targetArticle = (array) ($strategyByNumber->get($target) ?? []);
                 $anchor = trim((string) (data_get($targetArticle, 'primary_keyword') ?: data_get($targetArticle, 'title', '')));
                 $title = trim((string) data_get($targetArticle, 'title', $anchor));
 
                 if ($url === '' || $title === '') {
+                    return null;
+                }
+
+                if (in_array(Str::lower(rtrim($url, '/')), $excludedUrls, true)) {
                     return null;
                 }
 

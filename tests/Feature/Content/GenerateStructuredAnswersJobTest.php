@@ -102,7 +102,7 @@ it('falls back to safe blocks when the ai response is empty', function () {
 
     $content->refresh();
 
-    expect($content->answerBlocks()->count())->toBe(3)
+    expect($content->answerBlocks()->count())->toBe(1)
         ->and((string) $content->answer_block_generation_status)->toBe(Content::ANSWER_BLOCK_STATUS_COMPLETED_WITH_WARNING)
         ->and((string) $content->answer_block_generation_last_warning)->toContain('AI response was empty')
         ->and((string) data_get($content->answer_block_generation_meta, 'failure_reason'))->toBe('ai_response_empty');

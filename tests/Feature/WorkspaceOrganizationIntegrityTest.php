@@ -116,7 +116,7 @@ it('does not show client sites from other organizations in app sites', function 
         'active' => true,
     ]);
 
-    $response = $this->actingAs($user)->get('/app/sites');
+    $response = $this->actingAs($user)->get(route('app.sites'));
 
     $response->assertOk();
     $response->assertSee($siteA->name);

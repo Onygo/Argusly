@@ -2,7 +2,7 @@
 
 namespace App\Services\PublicBlog;
 
-use App\Contracts\PublicBlogSource;
+use App\Contracts\ConnectorPublicBlogSource;
 use App\Exceptions\PublicBlogSourceUnavailableException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\PendingRequest;
@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
 
-class PublishLayerConnectorBlogSource implements PublicBlogSource
+class PublishLayerConnectorBlogSource implements ConnectorPublicBlogSource
 {
     public function __construct(
         private readonly HttpFactory $http,

@@ -50,8 +50,8 @@
                     </a>
 
                     <div>
-                        <h2 class="text-3xl font-semibold tracking-tight text-textPrimary">Welcome back</h2>
-                        <p class="mt-2 text-base text-textMuted">Sign in to continue to your workspace.</p>
+                        <h2 class="text-3xl font-semibold tracking-tight text-textPrimary">{{ __('public.auth.login_title') }}</h2>
+                        <p class="mt-2 text-base text-textMuted">{{ __('public.auth.login_subtitle') }}</p>
                     </div>
 
                     @if ($errors->any())
@@ -68,7 +68,7 @@
                         @csrf
 
                         <label class="block">
-                            <span class="text-sm font-semibold text-textPrimary">Email address</span>
+                            <span class="text-sm font-semibold text-textPrimary">{{ __('public.auth.email') }}</span>
                             <input
                                 id="email"
                                 type="email"

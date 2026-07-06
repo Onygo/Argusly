@@ -158,9 +158,7 @@ describe('MarketingNavigation in full marketing mode', function () {
         $items = MarketingNavigation::headerItems();
 
         $routes = array_column($items, 'route');
-        expect($routes)->toContain('public.product.overview');
-        expect($routes)->toContain('public.product.platform');
-        expect($routes)->toContain('public.blog.index');
+        expect($routes)->toBe(['pricing']);
     });
 
     it('returns contact CTA for header', function () {
@@ -175,9 +173,11 @@ describe('MarketingNavigation in full marketing mode', function () {
         $items = MarketingNavigation::footerProductItems();
 
         $routes = array_column($items, 'route');
-        expect($routes)->toContain('public.product.overview');
         expect($routes)->toContain('public.product.platform');
-        expect($routes)->toContain('public.blog.index');
+        expect($routes)->toContain('public.product.governance');
+        expect($routes)->toContain('public.solutions.opportunity-intelligence');
+        expect($routes)->toContain('public.markets.it-services-saas');
+        expect($routes)->toContain('pricing');
     });
 
     it('returns null for footer early access note', function () {
@@ -214,9 +214,9 @@ describe('header navigation visibility', function () {
         $response->assertSee(__('public.footer.about'));
         $response->assertSee(__('public.footer.contact'));
 
-        // These should not appear in the header navigation
-        $response->assertDontSee('href="' . route('public.product.platform') . '"', false);
-        $response->assertDontSee('href="' . route('public.blog.index') . '"', false);
+        $routes = array_column(MarketingNavigation::headerItems(), 'route');
+        expect($routes)->not->toContain('public.product.platform');
+        expect($routes)->not->toContain('public.blog.index');
     });
 
     it('shows sign in link in both modes', function () {

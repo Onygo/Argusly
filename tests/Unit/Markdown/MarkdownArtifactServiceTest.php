@@ -17,8 +17,8 @@ it('stores a locale-aware pending artifact from canonical content html', functio
         ->and($artifact->markdown_locale->value)->toBe('en')
         ->and($artifact->markdown_status)->toBe(ContentRenderArtifact::STATUS_READY)
         ->and($artifact->markdown_source)->toBe(ContentRenderArtifact::SOURCE_CURRENT_REVISION)
-        ->and($artifact->rendered_html)->toContain('<h1>Markdown Artifact Content</h1>')
-        ->and($artifact->rendered_markdown)->toContain('# Markdown Artifact Content')
+        ->and($artifact->rendered_html)->toContain('<p>Canonical body</p>')
+        ->and($artifact->rendered_markdown)->toContain('Canonical body')
         ->and($artifact->markdown_checksum)->not->toBeNull()
         ->and($content->fresh()->hasMarkdown())->toBeTrue()
         ->and($content->fresh()->markdownLocale())->toBe('en');

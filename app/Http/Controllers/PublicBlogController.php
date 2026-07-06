@@ -13,6 +13,7 @@ use App\Support\LocaleHelper;
 use App\Support\LocalizedMarketingUrl;
 use DOMDocument;
 use DOMElement;
+use DOMText;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Http\Request;
@@ -298,6 +299,8 @@ class PublicBlogController extends Controller
         }
 
         $changed = false;
+        $currentSlug = $this->normalizeBlogSlug((string) ($post['slug'] ?? ''));
+        $selfAnchors = [];
         $anchors = [];
         foreach ($body->getElementsByTagName('a') as $anchor) {
             if ($anchor instanceof DOMElement) {
@@ -322,6 +325,15 @@ class PublicBlogController extends Controller
                 $anchor->setAttribute('href', $replacement);
                 $changed = true;
             }
+
+            $resolvedSlug = $this->blogSlugFromHref($replacement);
+            if ($currentSlug !== '' && $resolvedSlug !== null && $this->sameBlogSlug($resolvedSlug, $currentSlug)) {
+                $selfAnchors[] = $anchor;
+            }
+        }
+
+        if ($selfAnchors !== []) {
+            $changed = $this->removeSelfLinkedAnchors($selfAnchors, $currentSlug) || $changed;
         }
 
         if ($changed) {
@@ -329,6 +341,92 @@ class PublicBlogController extends Controller
         }
 
         return $post;
+    }
+
+    /**
+     * @param array<int,DOMElement> $anchors
+     */
+    private function removeSelfLinkedAnchors(array $anchors, string $currentSlug): bool
+    {
+        $changed = false;
+        $removedContainers = [];
+
+        foreach ($anchors as $anchor) {
+            if (! $anchor->parentNode) {
+                continue;
+            }
+
+            $container = $this->generatedSelfLinkContainer($anchor, $currentSlug);
+            if ($container instanceof DOMElement && $container->parentNode) {
+                $containerId = spl_object_id($container);
+                if (! isset($removedContainers[$containerId])) {
+                    $container->parentNode->removeChild($container);
+                    $removedContainers[$containerId] = true;
+                    $changed = true;
+                }
+
+                continue;
+            }
+
+            $replacement = new DOMText((string) $anchor->textContent);
+            $anchor->parentNode->replaceChild($replacement, $anchor);
+            $changed = true;
+        }
+
+        return $changed;
+    }
+
+    private function generatedSelfLinkContainer(DOMElement $anchor, string $currentSlug): ?DOMElement
+    {
+        for ($node = $anchor->parentNode; $node instanceof DOMElement; $node = $node->parentNode) {
+            $tagName = strtolower($node->tagName);
+            if ($tagName === 'body') {
+                return null;
+            }
+
+            if (! in_array($tagName, ['p', 'li', 'div', 'section', 'aside'], true)) {
+                continue;
+            }
+
+            if (! $this->looksLikeGeneratedRelatedContainer($node)) {
+                continue;
+            }
+
+            foreach ($node->getElementsByTagName('a') as $candidate) {
+                if (! $candidate instanceof DOMElement) {
+                    continue;
+                }
+
+                $slug = $this->blogSlugFromHref((string) $candidate->getAttribute('href'));
+                if ($slug === null || ! $this->sameBlogSlug($slug, $currentSlug)) {
+                    return null;
+                }
+            }
+
+            return $node;
+        }
+
+        return null;
+    }
+
+    private function looksLikeGeneratedRelatedContainer(DOMElement $element): bool
+    {
+        $text = strtolower(trim((string) preg_replace('/\s+/u', ' ', html_entity_decode($element->textContent, ENT_QUOTES | ENT_HTML5, 'UTF-8'))));
+
+        return str_contains($text, 'related reading')
+            || str_contains($text, 'related article')
+            || str_contains($text, 'gerelateerde lectuur')
+            || str_contains($text, 'aanvullende resources');
+    }
+
+    private function sameBlogSlug(string $left, string $right): bool
+    {
+        return $this->normalizeBlogSlug($left) === $this->normalizeBlogSlug($right);
+    }
+
+    private function normalizeBlogSlug(string $slug): string
+    {
+        return strtolower(trim(rawurldecode($slug), " \t\n\r\0\x0B/"));
     }
 
     private function blogSlugFromHref(string $href): ?string

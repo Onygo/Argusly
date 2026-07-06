@@ -85,6 +85,7 @@ class ContentPublicationService
         private readonly WordPressPublicationDestinationResolver $wordPressDestinationResolver,
         private readonly LaravelPublicationDestinationResolver $laravelDestinationResolver,
         private readonly HumanContentGate $humanContentGate,
+        private readonly PublicationContentPreflightService $contentPreflight,
     ) {}
 
     /**
@@ -176,6 +177,11 @@ class ContentPublicationService
             provider: $connector->type(),
             locale: $this->publicationLocaleForContent($content),
         );
+
+        $preflightResult = $this->publicationPreflightFailure($content, $draft);
+        if ($preflightResult instanceof PublicationResult) {
+            return $this->handleFailure($publication, $preflightResult, $content, $draft);
+        }
 
         // Dispatch webhook for publication started
         $this->webhookDispatcher->publicationStarted($content, $draft, $connector->type());
@@ -282,6 +288,11 @@ class ContentPublicationService
                 'queued' => false,
                 'skip_reason' => 'ai_transparency_review_blocked',
             ];
+        }
+
+        $preflight = $this->contentPreflight->evaluate($content, $draft);
+        if (! (bool) $preflight['passed']) {
+            return $this->dispatchPreflightBlocked($content, $draft, $context, 'wordpress', $preflight);
         }
 
         $publication = $this->prepareWordPressPublication($content, $draft, $context);
@@ -422,6 +433,11 @@ class ContentPublicationService
             ];
         }
 
+        $preflight = $this->contentPreflight->evaluate($content, $draft);
+        if (! (bool) $preflight['passed']) {
+            return $this->dispatchPreflightBlocked($content, $draft, $context, 'laravel', $preflight);
+        }
+
         $destination = $this->laravelDestinationResolver->resolveForContent($content);
 
         if (! $destination) {
@@ -489,7 +505,37 @@ class ContentPublicationService
             'publication' => $dispatch['publication'] ?? null,
             'queued' => (bool) ($dispatch['queued'] ?? false),
             'skip_reason' => $dispatch['skip_reason'] ?? null,
+            'skip_message' => $dispatch['skip_message'] ?? null,
             'locale' => SupportedLanguage::fromStringOrDefault($variant->localeCode())->value,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     * @param array<string,mixed> $preflight
+     * @return array{publication:null,queued:false,skip_reason:string,skip_message:string}
+     */
+    private function dispatchPreflightBlocked(Content $content, ?Draft $draft, array $context, string $provider, array $preflight): array
+    {
+        $message = (string) ($preflight['message'] ?? 'Publication blocked by content preflight checks.');
+
+        $content->forceFill([
+            'publish_status' => 'failed',
+            'publish_error' => $message,
+        ])->save();
+
+        Log::warning(sprintf('publication.%s.dispatch_skipped', $provider), array_merge($context, [
+            'reason' => 'content_preflight_blocked',
+            'content_id' => (string) $content->id,
+            'draft_id' => (string) ($draft?->id ?? ''),
+            'preflight' => $preflight,
+        ]));
+
+        return [
+            'publication' => null,
+            'queued' => false,
+            'skip_reason' => 'content_preflight_blocked',
+            'skip_message' => $message,
         ];
     }
 
@@ -1303,6 +1349,24 @@ class ContentPublicationService
         }
 
         return $this->handleFailure($publication, $result, $content, $draft);
+    }
+
+    private function publicationPreflightFailure(Content $content, ?Draft $draft): ?PublicationResult
+    {
+        $preflight = $this->contentPreflight->evaluate($content, $draft);
+        if ((bool) $preflight['passed']) {
+            return null;
+        }
+
+        return PublicationResult::failure(
+            errorCode: 'CONTENT_PREFLIGHT_BLOCKED',
+            errorMessage: (string) ($preflight['message'] ?? 'Publication blocked by content preflight checks.'),
+            retryable: false,
+            meta: [
+                'skip_reason' => 'content_preflight_blocked',
+                'preflight' => $preflight,
+            ],
+        );
     }
 
     /**

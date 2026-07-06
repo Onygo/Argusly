@@ -2,14 +2,20 @@
 
 namespace App\Services\SourceBriefing;
 
+use App\Services\PublicWeb\PublicWebSafetyService;
 use App\Services\SourceBriefing\Exceptions\SourceBriefingException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 use Throwable;
 
 class UrlSourceFetcher
 {
     private const MAX_RESPONSE_BYTES = 4_000_000;
+
+    public function __construct(private readonly PublicWebSafetyService $publicWebSafety)
+    {
+    }
 
     /**
      * @return array<string, mixed>
@@ -24,12 +30,13 @@ class UrlSourceFetcher
             );
         }
 
-        $host = (string) parse_url($normalized, PHP_URL_HOST);
-        if ($this->isBlockedHost($host)) {
+        try {
+            $normalized = $this->publicWebSafety->normalizeAndValidate($normalized);
+        } catch (InvalidArgumentException $exception) {
             throw new SourceBriefingException(
                 'SOURCE_FETCH_BLOCKED',
                 'This URL cannot be analyzed. Use a public article URL.',
-                'Blocked host: ' . $host,
+                'Blocked URL: ' . $exception->getMessage(),
             );
         }
 
@@ -42,13 +49,26 @@ class UrlSourceFetcher
         try {
             $response = null;
             foreach ([1, 2, 3] as $attempt) {
-                $response = Http::timeout(20)
+                $request = Http::timeout(20)
                     ->connectTimeout(4)
                     ->retry(1, 250)
                     ->accept('text/html, application/xhtml+xml, text/plain;q=0.9, */*;q=0.1')
                     ->withHeaders([
                         'User-Agent' => 'Argusly/SourceBriefing',
                     ])
+                    ->withOptions([
+                        'allow_redirects' => [
+                            'max' => 5,
+                            'track_redirects' => true,
+                            'on_redirect' => function ($request, $response, $uri): void {
+                                unset($request, $response);
+                                $this->publicWebSafety->validateRedirectTarget((string) $uri);
+                            },
+                        ],
+                    ]);
+
+                $response = $this->publicWebSafety
+                    ->applyGuardedHttpOptions($request, $normalized)
                     ->get($normalized);
 
                 if (! in_array($response->status(), [429, 503], true) || $attempt === 3) {
@@ -73,9 +93,21 @@ class UrlSourceFetcher
         }
 
         $contentLength = (int) ($response->header('Content-Length') ?: 0);
+        $finalUrl = (string) ($response->effectiveUri() ?: $normalized);
+
+        try {
+            $this->publicWebSafety->validateRedirectTarget($finalUrl);
+        } catch (InvalidArgumentException $exception) {
+            throw new SourceBriefingException(
+                'SOURCE_FETCH_BLOCKED',
+                'This URL cannot be analyzed. Use a public article URL.',
+                'Blocked final URL: ' . $exception->getMessage(),
+            );
+        }
+
         Log::info('source_briefing.url_fetch_end', array_merge($context, [
             'url' => $normalized,
-            'final_url' => (string) ($response->effectiveUri() ?: $normalized),
+            'final_url' => $finalUrl,
             'http_status' => $response->status(),
             'content_type' => strtolower(trim((string) $response->header('Content-Type', ''))),
             'content_length' => $contentLength,
@@ -122,7 +154,7 @@ class UrlSourceFetcher
 
         return [
             'normalized_url' => $normalized,
-            'final_url' => (string) ($response->effectiveUri() ?: $normalized),
+            'final_url' => $finalUrl,
             'status_code' => $response->status(),
             'content_type' => $contentType,
             'content_length' => $bodyLength,

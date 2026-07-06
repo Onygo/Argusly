@@ -6,7 +6,7 @@ namespace Onygo\ArguslyConnector;
 
 final class InstalledVersions
 {
-    public const VERSION = '1.0.0';
+    public const VERSION = '0.1.5';
 
     public static function version(): string
     {

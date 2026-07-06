@@ -171,7 +171,7 @@ it('translates the workspace intelligence overview when Dutch is selected', func
     $this->actingAs($owner)
         ->get(route('app.workspace-intelligence.index', ['lang' => 'nl']))
         ->assertOk()
-        ->assertSee('Zet enrichment-output om naar herbruikbare operationele context')
+        ->assertSee('Zet verrijkingsoutput om naar herbruikbare operationele context')
         ->assertSee('Enrichment uitvoeren')
         ->assertSee('Wijzigingen goedkeuren')
         ->assertSee('Merkprofiel')

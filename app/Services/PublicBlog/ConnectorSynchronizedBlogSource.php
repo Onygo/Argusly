@@ -65,6 +65,21 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
                         'content_images.width',
                         'content_images.height',
                     ]),
+                    'ogImage' => fn ($imageQuery) => $imageQuery->select([
+                        'content_images.id',
+                        'content_images.content_id',
+                        'content_images.type',
+                        'content_images.image_path',
+                        'content_images.image_url',
+                        'content_images.original_path',
+                        'content_images.medium_path',
+                        'content_images.original_webp_path',
+                        'content_images.medium_webp_path',
+                        'content_images.status',
+                        'content_images.is_active',
+                        'content_images.use_as_meta_image',
+                        'content_images.created_at',
+                    ]),
                     'publications',
                     'seo',
                     'answerBlocks',
@@ -256,6 +271,13 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
             'seo_meta_description' => trim((string) ($seo['seo_meta_description'] ?? '')),
             'seo_og_title' => trim((string) ($seo['seo_og_title'] ?? '')),
             'seo_og_description' => trim((string) ($seo['seo_og_description'] ?? '')),
+            'seo_og_image' => $this->firstNonEmpty([
+                $this->resolveGeneratedOgImageUrl($content),
+                (string) ($seo['seo_og_image'] ?? ''),
+                (string) data_get($meta, 'seo_og_image', ''),
+                (string) data_get($meta, 'og_image', ''),
+                (string) data_get($meta, 'og.image', ''),
+            ]),
             'seo_twitter_title' => trim((string) ($seo['seo_twitter_title'] ?? '')),
             'seo_twitter_description' => trim((string) ($seo['seo_twitter_description'] ?? '')),
             'robots_index' => $seo['robots_index'],
@@ -538,6 +560,16 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
         $disk = (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images'));
 
         return ContentImage::publicUrlForStorageValue((string) Storage::disk($disk)->url($path));
+    }
+
+    private function resolveGeneratedOgImageUrl(Content $content): string
+    {
+        $image = $content->ogImage;
+        if (! $image instanceof ContentImage || (string) $image->status !== 'ready') {
+            return '';
+        }
+
+        return $image->bestUrlForUsage(ContentImage::USAGE_META);
     }
 
     private function resolveLocale(Content $content, array $meta): ?string

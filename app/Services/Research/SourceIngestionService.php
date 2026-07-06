@@ -6,13 +6,19 @@ use App\Enums\ResearchSourceFetchStatus;
 use App\Enums\ResearchSourceType;
 use App\Models\ResearchProject;
 use App\Models\ResearchSource;
+use App\Services\PublicWeb\PublicWebSafetyService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
+use InvalidArgumentException;
 use Illuminate\Support\Str;
 use Throwable;
 
 class SourceIngestionService
 {
+    public function __construct(private readonly PublicWebSafetyService $publicWebSafety)
+    {
+    }
+
     /**
      * @param array<int,string> $urls
      * @return Collection<int,ResearchSource>
@@ -168,16 +174,30 @@ class SourceIngestionService
             return $this->markFetchFailed($source, 'Source URL is missing.');
         }
 
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        if ($this->isBlockedHost($host)) {
-            return $this->markFetchFailed($source, 'URL host is blocked for safety.', ['blocked_host' => $host]);
+        try {
+            $url = $this->publicWebSafety->normalizeAndValidate($url);
+        } catch (InvalidArgumentException $exception) {
+            return $this->markFetchFailed($source, 'URL host is blocked for safety.', ['blocked_reason' => $exception->getMessage()]);
         }
 
         $timeout = max(5, (int) config('research.source_fetch.timeout_seconds', 20));
 
-        $response = Http::timeout($timeout)
+        $request = Http::timeout($timeout)
             ->retry(2, 300)
             ->accept('text/html, text/plain, application/xhtml+xml;q=0.9, application/xml;q=0.8, */*;q=0.5')
+            ->withOptions([
+                'allow_redirects' => [
+                    'max' => 5,
+                    'track_redirects' => true,
+                    'on_redirect' => function ($request, $response, $uri): void {
+                        unset($request, $response);
+                        $this->publicWebSafety->validateRedirectTarget((string) $uri);
+                    },
+                ],
+            ]);
+
+        $response = $this->publicWebSafety
+            ->applyGuardedHttpOptions($request, $url)
             ->get($url);
 
         if ($response->failed()) {
@@ -187,6 +207,14 @@ class SourceIngestionService
         }
 
         $contentType = strtolower(trim((string) $response->header('Content-Type', '')));
+        try {
+            $this->publicWebSafety->validateRedirectTarget((string) ($response->effectiveUri() ?: $url));
+        } catch (InvalidArgumentException $exception) {
+            return $this->markFetchFailed($source, 'URL redirected to a blocked host.', [
+                'blocked_reason' => $exception->getMessage(),
+            ]);
+        }
+
         if ($contentType !== '' && ! $this->isTextLikeContentType($contentType)) {
             return $this->markFetchFailed($source, 'Unsupported content type.', [
                 'content_type' => $contentType,

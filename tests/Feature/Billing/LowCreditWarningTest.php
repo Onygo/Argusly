@@ -213,7 +213,9 @@ it('supports localized low-credit email copy', function () {
     });
 
     expect($mail->subject)->toBe('Credits raken bijna op')
-        ->and($mail->introLines[0] ?? null)->toContain('Credits raken bijna op');
+        ->and($mail->viewData['intro'] ?? null)->toBe('Credits raken bijna op')
+        ->and($mail->viewData['body'] ?? null)->toContain('actieve automations ingesteld')
+        ->and($mail->viewData['automationHint'] ?? null)->toContain('Volgende geplande run: in 2 hours');
 });
 
 function makeLowCreditWarningContext(): array

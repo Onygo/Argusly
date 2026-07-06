@@ -6,6 +6,7 @@ use App\Models\AgentRun;
 use App\Models\Brief;
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Models\ContentPublication;
 use App\Models\ContentRevision;
 use App\Models\ContentVersion;
 use App\Models\Organization;
@@ -22,19 +23,7 @@ uses(RefreshDatabase::class);
 it('allows an authorized user to run internal linking for a draft and renders the persisted result', function () {
     [$owner, $viewer, $site, $sourceContent, $draft] = makeInternalLinkingFeatureContext('feature-draft-links');
 
-    $target = Content::query()->create([
-        'id' => (string) Str::uuid(),
-        'workspace_id' => $sourceContent->workspace_id,
-        'client_site_id' => $site->id,
-        'title' => 'Editorial workflow checklist',
-        'language' => 'en',
-        'type' => 'article',
-        'status' => 'published',
-        'publish_status' => 'published',
-        'source' => 'manual',
-        'primary_keyword' => 'editorial workflow checklist',
-        'published_url' => 'https://feature-draft-links.example.com/blog/editorial-workflow-checklist',
-    ]);
+    $target = createInternalLinkingPublishedTarget($sourceContent, $site, 'https://feature-draft-links.example.com/blog/editorial-workflow-checklist');
 
     $draft->update([
         'content_html' => '<p>This draft references editorial workflow checklist when planning the next revision.</p>',
@@ -55,13 +44,13 @@ it('allows an authorized user to run internal linking for a draft and renders th
     $this->actingAs($owner)
         ->get(route('app.drafts.show', [
             'draft' => $draft,
-            'tab' => 'draft',
+            'tab' => 'intelligence',
             'internal_linking_run' => $run->id,
         ]))
         ->assertOk()
-        ->assertSee('Suggested internal links')
-        ->assertSee('Editorial workflow checklist')
-        ->assertSee('Apply suggestion');
+        ->assertSee('Internal links')
+        ->assertSee('Success')
+        ->assertSee('1 item');
 });
 
 it('prevents unauthorized users from running internal linking for a draft', function () {
@@ -95,19 +84,7 @@ it('prevents unauthorized users from running internal linking for a draft', func
 it('applies an internal link suggestion to the draft body safely', function () {
     [$owner, $viewer, $site, $sourceContent, $draft] = makeInternalLinkingFeatureContext('feature-draft-apply');
 
-    $target = Content::query()->create([
-        'id' => (string) Str::uuid(),
-        'workspace_id' => $sourceContent->workspace_id,
-        'client_site_id' => $site->id,
-        'title' => 'Editorial workflow checklist',
-        'language' => 'en',
-        'type' => 'article',
-        'status' => 'published',
-        'publish_status' => 'published',
-        'source' => 'manual',
-        'primary_keyword' => 'editorial workflow checklist',
-        'published_url' => 'https://feature-draft-apply.example.com/blog/editorial-workflow-checklist',
-    ]);
+    $target = createInternalLinkingPublishedTarget($sourceContent, $site, 'https://feature-draft-apply.example.com/blog/editorial-workflow-checklist');
 
     $draft->update([
         'content_html' => '<p>This draft references editorial workflow checklist when planning the next revision.</p>',
@@ -168,19 +145,7 @@ it('skips candidates without a verified same-site live url', function () {
 it('applies an internal link suggestion to content by creating a new refresh revision', function () {
     [$owner, $viewer, $site, $sourceContent, $draft] = makeInternalLinkingFeatureContext('feature-content-apply');
 
-    $target = Content::query()->create([
-        'id' => (string) Str::uuid(),
-        'workspace_id' => $sourceContent->workspace_id,
-        'client_site_id' => $site->id,
-        'title' => 'Editorial workflow checklist',
-        'language' => 'en',
-        'type' => 'article',
-        'status' => 'published',
-        'publish_status' => 'published',
-        'source' => 'manual',
-        'primary_keyword' => 'editorial workflow checklist',
-        'published_url' => 'https://feature-content-apply.example.com/blog/editorial-workflow-checklist',
-    ]);
+    $target = createInternalLinkingPublishedTarget($sourceContent, $site, 'https://feature-content-apply.example.com/blog/editorial-workflow-checklist');
 
     $sourceContent->update([
         'status' => 'published',
@@ -248,19 +213,7 @@ it('applies an internal link suggestion to content by creating a new refresh rev
 it('applies an event-triggered internal link suggestion from the content detail sidebar', function () {
     [$owner, $viewer, $site, $sourceContent, $draft] = makeInternalLinkingFeatureContext('feature-content-event-apply');
 
-    $target = Content::query()->create([
-        'id' => (string) Str::uuid(),
-        'workspace_id' => $sourceContent->workspace_id,
-        'client_site_id' => $site->id,
-        'title' => 'Editorial workflow checklist',
-        'language' => 'en',
-        'type' => 'article',
-        'status' => 'published',
-        'publish_status' => 'published',
-        'source' => 'manual',
-        'primary_keyword' => 'editorial workflow checklist',
-        'published_url' => 'https://feature-content-event-apply.example.com/blog/editorial-workflow-checklist',
-    ]);
+    $target = createInternalLinkingPublishedTarget($sourceContent, $site, 'https://feature-content-event-apply.example.com/blog/editorial-workflow-checklist');
 
     $revision = ContentRevision::query()->create([
         'id' => (string) Str::uuid(),
@@ -509,4 +462,37 @@ function makeInternalLinkingFeatureContext(string $prefix = 'feature-internal-li
     ]);
 
     return [$owner, $viewer, $site, $content, $draft];
+}
+
+function createInternalLinkingPublishedTarget(Content $sourceContent, ClientSite $site, string $url): Content
+{
+    $target = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $sourceContent->workspace_id,
+        'client_site_id' => $site->id,
+        'title' => 'Editorial workflow checklist',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+        'primary_keyword' => 'editorial workflow checklist',
+        'published_url' => $url,
+    ]);
+
+    ContentPublication::query()->create([
+        'content_id' => $target->id,
+        'client_site_id' => $site->id,
+        'locale' => 'en',
+        'provider' => ContentPublication::PROVIDER_WORDPRESS,
+        'remote_id' => (string) Str::uuid(),
+        'remote_type' => 'post',
+        'remote_url' => $url,
+        'remote_status' => ContentPublication::REMOTE_PUBLISHED,
+        'delivery_status' => ContentPublication::STATUS_DELIVERED,
+        'last_verified_at' => now(),
+        'last_delivered_at' => now(),
+    ]);
+
+    return $target;
 }

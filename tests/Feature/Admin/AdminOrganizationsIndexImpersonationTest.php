@@ -16,7 +16,8 @@ it('shows impersonate actions on the organizations index for platform admins', f
         ->get(route('admin.organizations'))
         ->assertOk()
         ->assertSee('Impersonate')
-        ->assertSee('Open this organization as workspace user');
+        ->assertSee('Choose workspace')
+        ->assertSee($organization->name);
 });
 
 it('blocks normal organization users from the organizations index and impersonation route', function () {

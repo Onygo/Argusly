@@ -11,17 +11,20 @@ uses(RefreshDatabase::class);
 it('creates organization and user on registration request', function () {
     Plan::query()->create([
         'id' => (string) Str::uuid(),
-        'key' => 'creator',
-        'slug' => 'creator',
-        'name' => 'Creator',
+        'key' => 'platform_250',
+        'slug' => 'platform_250',
+        'name' => 'Argusly Platform',
         'interval' => 'month',
-        'monthly_price_cents' => 4900,
-        'price_cents' => 4900,
+        'monthly_price_cents' => 9900,
+        'price_cents' => 9900,
         'currency' => 'EUR',
-        'included_credits' => 100,
-        'included_credits_per_interval' => 100,
-        'seat_limit' => 2,
+        'included_credits' => 250,
+        'included_credits_per_interval' => 250,
+        'seat_limit' => 5,
         'is_active' => true,
+        'is_public' => true,
+        'billing_type' => 'fixed',
+        'sort_order' => 1,
     ]);
 
     $response = $this->post('/register', [
@@ -52,17 +55,20 @@ it('creates organization and user on registration request', function () {
 it('silently discards registration when honeypot is filled', function () {
     Plan::query()->create([
         'id' => (string) Str::uuid(),
-        'key' => 'creator',
-        'slug' => 'creator',
-        'name' => 'Creator',
+        'key' => 'platform_250',
+        'slug' => 'platform_250',
+        'name' => 'Argusly Platform',
         'interval' => 'month',
-        'monthly_price_cents' => 4900,
-        'price_cents' => 4900,
+        'monthly_price_cents' => 9900,
+        'price_cents' => 9900,
         'currency' => 'EUR',
-        'included_credits' => 100,
-        'included_credits_per_interval' => 100,
-        'seat_limit' => 2,
+        'included_credits' => 250,
+        'included_credits_per_interval' => 250,
+        'seat_limit' => 5,
         'is_active' => true,
+        'is_public' => true,
+        'billing_type' => 'fixed',
+        'sort_order' => 1,
     ]);
 
     $this->post('/register', [
@@ -82,17 +88,20 @@ it('silently discards registration when honeypot is filled', function () {
 it('rejects disposable email domains on registration', function () {
     Plan::query()->create([
         'id' => (string) Str::uuid(),
-        'key' => 'creator',
-        'slug' => 'creator',
-        'name' => 'Creator',
+        'key' => 'platform_250',
+        'slug' => 'platform_250',
+        'name' => 'Argusly Platform',
         'interval' => 'month',
-        'monthly_price_cents' => 4900,
-        'price_cents' => 4900,
+        'monthly_price_cents' => 9900,
+        'price_cents' => 9900,
         'currency' => 'EUR',
-        'included_credits' => 100,
-        'included_credits_per_interval' => 100,
-        'seat_limit' => 2,
+        'included_credits' => 250,
+        'included_credits_per_interval' => 250,
+        'seat_limit' => 5,
         'is_active' => true,
+        'is_public' => true,
+        'billing_type' => 'fixed',
+        'sort_order' => 1,
     ]);
 
     $this->post('/register', [

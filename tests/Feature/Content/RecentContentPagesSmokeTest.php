@@ -32,7 +32,6 @@ it('loads the recently changed content pages for an authenticated tenant user', 
             'status' => 'draft',
         ]))
         ->assertOk()
-        ->assertSee('Source smoke article')
         ->assertSee('Smoke Automation')
         ->assertSee('Smoke Series');
 

@@ -10,9 +10,9 @@ uses(RefreshDatabase::class);
 it('seeds draft compare feature gates per plan', function () {
     $this->seed(PlansSeeder::class);
 
-    $starter = Plan::query()->where('slug', 'creator')->firstOrFail();
-    $growth = Plan::query()->where('slug', 'growth')->firstOrFail();
-    $scale = Plan::query()->where('slug', 'scale')->firstOrFail();
+    $starter = Plan::query()->where('slug', 'platform_250')->firstOrFail();
+    $growth = Plan::query()->where('slug', 'platform_500')->firstOrFail();
+    $enterprise = Plan::query()->where('slug', 'enterprise_custom')->firstOrFail();
 
     $starterEnabled = PlanFeature::query()
         ->where('plan_id', $starter->id)
@@ -25,12 +25,12 @@ it('seeds draft compare feature gates per plan', function () {
         ->firstOrFail();
 
     $scaleHybrid = PlanFeature::query()
-        ->where('plan_id', $scale->id)
+        ->where('plan_id', $enterprise->id)
         ->where('feature_key', 'draft_compare_hybrid_enabled')
         ->firstOrFail();
 
     expect((string) $starterEnabled->value_type)->toBe('bool')
-        ->and((bool) $starterEnabled->value_bool)->toBeFalse()
+        ->and((bool) $starterEnabled->value_bool)->toBeTrue()
         ->and((string) $growthMax->value_type)->toBe('int')
         ->and((int) $growthMax->value_int)->toBe(3)
         ->and((bool) $scaleHybrid->value_bool)->toBeTrue();

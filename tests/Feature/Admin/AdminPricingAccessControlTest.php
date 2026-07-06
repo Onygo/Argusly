@@ -121,12 +121,12 @@ describe('Admin pricing and plans access control', function () {
     it('allows admin to update existing plans', function () {
         $this->seed(PlansSeeder::class);
         $admin = createPricingTestBillingAdmin();
-        $plan = Plan::query()->where('slug', 'creator')->firstOrFail();
+        $plan = Plan::query()->where('slug', 'platform_250')->firstOrFail();
 
         $this->actingAs($admin)
             ->post(route('admin.billing.plans.update', $plan), [
-                'name' => 'Updated Creator',
-                'slug' => 'creator',
+                'name' => 'Updated Platform 250',
+                'slug' => 'platform_250',
                 'billing_type' => 'fixed',
                 'sort_order' => 1,
                 'price_monthly_cents' => $plan->price_monthly_cents,
@@ -137,19 +137,19 @@ describe('Admin pricing and plans access control', function () {
             ->assertRedirect();
 
         $plan->refresh();
-        expect($plan->name)->toBe('Updated Creator');
+        expect($plan->name)->toBe('Updated Platform 250');
     });
 
     it('validates onboarding fields when onboarding is required', function () {
         $this->seed(PlansSeeder::class);
         $admin = createPricingTestBillingAdmin();
-        $plan = Plan::query()->where('slug', 'creator')->firstOrFail();
+        $plan = Plan::query()->where('slug', 'platform_250')->firstOrFail();
 
         $this->actingAs($admin)
             ->from(route('admin.billing.index'))
             ->post(route('admin.billing.plans.update', $plan), [
-                'name' => 'Creator',
-                'slug' => 'creator',
+                'name' => 'Argusly Platform',
+                'slug' => 'platform_250',
                 'billing_type' => 'fixed',
                 'sort_order' => 1,
                 'price_monthly_cents' => $plan->price_monthly_cents,

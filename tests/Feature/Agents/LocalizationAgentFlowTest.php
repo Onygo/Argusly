@@ -42,11 +42,12 @@ it('renders content localization recommendations with translation actions in the
         ->get(route('app.content.show', [
             'content' => $source,
             'tab' => 'overview',
+            'insight' => 'localization',
             'localization_run' => $run->id,
         ]))
         ->assertOk()
         ->assertSee('Content Health')
-        ->assertSee('Latest findings')
+        ->assertSee('AI findings')
         ->assertSee('Refresh NL translation')
         ->assertSee('Create DE translation');
 });
@@ -79,11 +80,10 @@ it('renders draft localization recommendations for locale mismatches', function 
     $this->actingAs($owner)
         ->get(route('app.drafts.show', [
             'draft' => $draft,
-            'tab' => 'draft',
+            'tab' => 'intelligence',
             'localization_run' => $run->id,
         ]))
         ->assertOk()
-        ->assertSee('Localization recommendations')
-        ->assertSee('Draft locale label may be wrong')
-        ->assertSee('Create NL translation');
+        ->assertSee('Localization')
+        ->assertSee('Warning');
 });

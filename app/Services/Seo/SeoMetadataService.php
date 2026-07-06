@@ -31,7 +31,11 @@ class SeoMetadataService
             (string) ($post['excerpt'] ?? ''),
             (string) ($post['content_html'] ?? ''),
         ]);
-        $image = $this->absoluteUrl((string) ($post['seo_og_image'] ?? $post['featured_image'] ?? ''));
+        $image = $this->absoluteUrl($this->firstNonEmpty([
+            $post['seo_og_image'] ?? null,
+            $post['og_image'] ?? null,
+            $post['featured_image'] ?? null,
+        ]));
         $ogTitle = trim((string) ($post['seo_og_title'] ?? '')) ?: $title;
         $ogDescription = trim((string) ($post['seo_og_description'] ?? '')) ?: $description;
 
@@ -171,6 +175,21 @@ class SeoMetadataService
         }
 
         return 'Argusly helps teams plan, create and publish useful content with stronger SEO and AI search workflows.';
+    }
+
+    /**
+     * @param  array<int,mixed>  $candidates
+     */
+    private function firstNonEmpty(array $candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 
     private function absoluteUrl(string $url): string

@@ -95,13 +95,13 @@ it('splits product overview and pricing pages with credits-based pricing row', f
 
     $pricing = $this->get('/nl/prijzen');
     $pricing->assertOk();
-    $pricing->assertSee(__('public.landing.pricing_title', [], 'nl'), false);
-    $pricing->assertSee(__('public.landing.pricing_subline', [], 'nl'), false);
-    $pricing->assertSee('credits / month', false);
+    $pricing->assertSee('Eenvoudige pricing voor autonome marketing', false);
+    $pricing->assertSee('Start met het Argusly Platform. Schaal met credits. Voeg sites toe wanneer je organisatie groeit.', false);
+    $pricing->assertSee('250 credits / month', false);
     $pricing->assertDontSee('AI artikelen per maand', false);
-    $pricing->assertSee('10', false);
-    $pricing->assertSee('20', false);
-    $pricing->assertSee('100', false);
+    $pricing->assertSee('100 credits', false);
+    $pricing->assertSee('500 credits', false);
+    $pricing->assertSee('1,000 credits', false);
 
-    $this->get('/nl/prijzen')->assertOk()->assertSee('credits / month', false);
+    $this->get('/nl/prijzen')->assertOk()->assertSee('250 credits / month', false);
 });

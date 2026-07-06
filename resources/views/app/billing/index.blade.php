@@ -17,6 +17,13 @@
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('billing') }}</div>
     @endif
 
+    @foreach (($lowCreditWarnings ?? collect()) as $warning)
+        <x-alert class="mb-4" :variant="($warning['is_blocking'] ?? false) ? 'error' : 'brand'" iconName="coins">
+            <x-slot:title>{{ $warning['title'] ?? __('app.credits.low_warning.title') }}</x-slot:title>
+            {{ $warning['body'] ?? __('app.credits.low_warning.body') }}
+        </x-alert>
+    @endforeach
+
     @include('app.billing.partials.overview')
     @include('app.billing.partials.actions')
     @include('app.billing.partials.wallets')

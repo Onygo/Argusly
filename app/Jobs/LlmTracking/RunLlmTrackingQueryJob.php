@@ -3,6 +3,7 @@
 namespace App\Jobs\LlmTracking;
 
 use App\Jobs\Stats\UpdateContentAiVisibilityJob;
+use App\Jobs\PageIntelligence\LinkLlmTrackingSourcesToPagesJob;
 use App\Models\CreditReservation;
 use App\Models\LlmTrackingQuery;
 use App\Models\LlmTrackingQueryRun;
@@ -70,8 +71,10 @@ class RunLlmTrackingQueryJob implements ShouldQueue, ShouldBeUnique
             ->first();
 
         if ($cachedRun) {
-            $this->createCachedRun($query, $cachedRun, $cachedKey, $runMoment);
+            $newCachedRun = $this->createCachedRun($query, $cachedRun, $cachedKey, $runMoment);
             $query->forceFill(['last_run_at' => $runMoment])->save();
+            LinkLlmTrackingSourcesToPagesJob::dispatch($newCachedRun->id)
+                ->onQueue($this->queue ?? 'default');
 
             return;
         }
@@ -191,6 +194,9 @@ class RunLlmTrackingQueryJob implements ShouldQueue, ShouldBeUnique
             );
 
             BuildLlmTrackingAggregatesJob::dispatch($runDateKey)
+                ->onQueue($this->queue ?? 'default');
+
+            LinkLlmTrackingSourcesToPagesJob::dispatch($run->id)
                 ->onQueue($this->queue ?? 'default');
 
             $analyticsSiteId = (string) ($query->site->analyticsSite?->id ?? '');

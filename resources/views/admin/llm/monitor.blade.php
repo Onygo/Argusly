@@ -62,17 +62,26 @@
 @endsection
 
 @section('metricSection')
+    @php
+        $inputCostValue = '€'.number_format((float) $stats['input_cost_eur'], 4);
+        $outputCostValue = '€'.number_format((float) $stats['output_cost_eur'], 4);
+        $totalCostValue = '€'.number_format((float) $stats['total_cost_eur'], 4);
+        $creditsConsumedValue = number_format((float) $stats['credits_consumed'], 2);
+        $errorRateValue = number_format((float) $stats['error_rate_pct'], 2).'%';
+        $avgLatencyValue = number_format((float) $stats['avg_latency_ms']).' ms';
+    @endphp
+
     <x-metric-section>
         <x-metric-card label="Requests" :value="number_format($stats['total_requests'])" />
         <x-metric-card label="Input tokens" :value="number_format($stats['input_tokens'])" />
         <x-metric-card label="Output tokens" :value="number_format($stats['output_tokens'])" />
         <x-metric-card label="Total tokens" :value="number_format($stats['total_tokens'])" />
-        <x-metric-card label="Input cost" :value="'€'.number_format($stats['input_cost_eur'], 4)" />
-        <x-metric-card label="Output cost" :value="'€'.number_format($stats['output_cost_eur'], 4)" />
-        <x-metric-card label="Total cost" :value="'€'.number_format($stats['total_cost_eur'], 4)" />
-        <x-metric-card label="Credits consumed" :value="number_format($stats['credits_consumed'], 2)" />
-        <x-metric-card label="Error rate" :value="number_format($stats['error_rate_pct'], 2).'%" />
-        <x-metric-card label="Avg latency" :value="number_format($stats['avg_latency_ms']).' ms'" />
+        <x-metric-card label="Input cost" :value="$inputCostValue" />
+        <x-metric-card label="Output cost" :value="$outputCostValue" />
+        <x-metric-card label="Total cost" :value="$totalCostValue" />
+        <x-metric-card label="Credits consumed" :value="$creditsConsumedValue" />
+        <x-metric-card label="Error rate" :value="$errorRateValue" />
+        <x-metric-card label="Avg latency" :value="$avgLatencyValue" />
         <x-metric-card label="Top errors">
             <div class="space-y-1 text-xs">
                 @forelse($topErrors as $error)
@@ -91,7 +100,7 @@
     @endif
 
     <x-data-table label="LLM request log" description="Filtered provider requests, costs, credits, latency, statuses, request IDs, and detail links." density="compact">
-            <x-data-table.header>
+        <x-data-table.header>
             <x-data-table.row>
                 <x-data-table.cell heading>Created</x-data-table.cell>
                 <x-data-table.cell heading>Workspace</x-data-table.cell>
@@ -109,8 +118,8 @@
                 <x-data-table.cell heading>Error code</x-data-table.cell>
                 <x-data-table.cell heading><span class="sr-only">Actions</span></x-data-table.cell>
             </x-data-table.row>
-            </x-data-table.header>
-            <tbody>
+        </x-data-table.header>
+        <tbody>
             @forelse($rows as $row)
                 <x-data-table.row>
                     <x-data-table.cell label="Created">{{ $row->created_at?->format('Y-m-d H:i:s') }}</x-data-table.cell>
@@ -129,12 +138,16 @@
                     </x-data-table.cell>
                     <x-data-table.cell label="Request ID">{{ $row->request_id ?: '-' }}</x-data-table.cell>
                     <x-data-table.cell label="Error code">{{ $row->error_code ?: '-' }}</x-data-table.cell>
-                    <x-data-table.cell label="Actions"><x-data-table.actions><a href="{{ route('admin.llm.monitor.show', $row) }}" class="underline">Details</a></x-data-table.actions></x-data-table.cell>
+                    <x-data-table.cell label="Actions">
+                        <x-data-table.actions>
+                            <a href="{{ route('admin.llm.monitor.show', $row) }}" class="underline">Details</a>
+                        </x-data-table.actions>
+                    </x-data-table.cell>
                 </x-data-table.row>
             @empty
                 <x-data-table.empty colspan="15" title="No LLM requests found" description="No LLM requests match the current filters." />
             @endforelse
-            </tbody>
+        </tbody>
         <x-slot:pagination>{{ $rows->links() }}</x-slot:pagination>
     </x-data-table>
 

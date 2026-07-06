@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Onygo\ArguslyConnector;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Route;
 use Onygo\ArguslyConnector\Console\Commands\ContentPullCommand;
 use Onygo\ArguslyConnector\Console\Commands\ContentSyncCommand;
 use Onygo\ArguslyConnector\Console\Commands\HealthCheckCommand;
@@ -32,7 +34,31 @@ final class ArguslyConnectorServiceProvider extends ServiceProvider
                 ContentPullCommand::class,
                 ContentSyncCommand::class,
             ]);
+
+            $this->app->booted(function (): void {
+                $schedule = $this->app->make(Schedule::class);
+
+                $schedule->command('argusly:connector:health')
+                    ->everyFiveMinutes()
+                    ->withoutOverlapping();
+            });
         }
+
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
+
+        $this->registerSyncRouteAlias();
     }
 
+    private function registerSyncRouteAlias(): void
+    {
+        $path = trim((string) config('argusly-connector.webhooks.sync_path', 'argusly/sync'), '/');
+
+        if ($path === '' || str_starts_with($path, 'api/')) {
+            return;
+        }
+
+        Route::post('api/' . $path, \Onygo\ArguslyConnector\Http\Controllers\ConnectorSyncController::class)
+            ->name('argusly.connector.sync.api');
+    }
 }

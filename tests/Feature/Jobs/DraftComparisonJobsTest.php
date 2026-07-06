@@ -238,7 +238,7 @@ it('variant job completes with an already generated draft and enqueues finalize'
         ->and((int) $item->charged_credits)->toBe(12)
         ->and((string) $draft->draft_comparison_id)->toBe((string) $comparison->id)
         ->and((string) $draft->draft_comparison_variant_id)->toBe((string) $variant->id)
-        ->and($scoreRows)->toHaveCount(12)
+        ->and($scoreRows)->toHaveCount(14)
         ->and($scoreRows->has('seo_score'))->toBeTrue()
         ->and($scoreRows->has('ai_seo_score'))->toBeTrue()
         ->and($scoreRows->has('conversion_focus'))->toBeTrue();

@@ -3,6 +3,7 @@
 namespace App\Services\Seo;
 
 use App\Models\Content;
+use App\Services\PublicWeb\PublicWebSafetyService;
 use App\Services\PublicBlog\PublicBlogService;
 use App\Services\Sitemap\SitemapGenerator;
 use App\Support\LocalizedMarketingUrl;
@@ -15,6 +16,7 @@ class SeoSiteAuditService
     public function __construct(
         private readonly CanonicalUrlService $canonicals,
         private readonly MarketingRouteSegments $segments,
+        private readonly PublicWebSafetyService $publicWebSafety,
     ) {}
 
     /**
@@ -200,7 +202,11 @@ class SeoSiteAuditService
             ->take(100)
             ->map(function (string $url) use ($includeSkipped): ?array {
                 try {
-                    $response = Http::timeout(8)->withoutRedirecting()->get($url);
+                    $url = $this->publicWebSafety->normalizeAndValidate($url);
+                    $request = Http::timeout(8)->withoutRedirecting();
+                    $response = $this->publicWebSafety
+                        ->applyGuardedHttpOptions($request, $url)
+                        ->get($url);
                     $status = $response->status();
 
                     return $status === 200 ? null : ['url' => $url, 'status' => $status];

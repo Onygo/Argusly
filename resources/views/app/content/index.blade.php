@@ -9,14 +9,16 @@
 @endsection
 
 @section('primaryActions')
-    <a href="{{ route('app.content.create') }}#source-briefing" class="pl-btn-secondary">
-        <i data-lucide="link" class="h-4 w-4"></i>
-        Generate from URL
-    </a>
-    <a href="{{ route('app.content.batches.create') }}" class="pl-btn-secondary">
-        <i data-lucide="layers-3" class="h-4 w-4"></i>
-        Generate multiple articles
-    </a>
+    @can('create', \App\Models\Content::class)
+        <a href="{{ route('app.content.create') }}#source-briefing" class="pl-btn-secondary">
+            <i data-lucide="link" class="h-4 w-4"></i>
+            Generate from URL
+        </a>
+        <a href="{{ route('app.content.batches.create') }}" class="pl-btn-secondary">
+            <i data-lucide="layers-3" class="h-4 w-4"></i>
+            Generate multiple articles
+        </a>
+    @endcan
     <a href="{{ route('app.content.calendar') }}" class="pl-btn-ghost h-10 border border-border">
         <i data-lucide="calendar-days" class="h-4 w-4"></i>
         Calendar

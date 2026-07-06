@@ -6,6 +6,7 @@ use App\Enums\SupportedLanguage;
 use App\Contracts\PublicBlogSource;
 use App\Exceptions\PublicBlogSourceUnavailableException;
 use App\Models\Content;
+use App\Models\ContentImage;
 use App\Models\MarketingBlogRedirect;
 use App\Services\Content\ContentCacheInvalidationService;
 use App\Services\Publication\ContentPublicationStateService;
@@ -225,14 +226,16 @@ class PublicBlogService
 
         $localQuery = $this->baseLocalPublishedQuery($locale);
         if ($localQuery instanceof Builder && (clone $localQuery)->limit(1)->exists()) {
-            return $localQuery
-                ->limit($limit)
+            return $this->deduplicatePublicCards($localQuery
                 ->get()
                 ->map(fn (Content $content): array => $this->mapLocalCard($content))
+                ->values())
+                ->take($limit)
+                ->values()
                 ->all();
         }
 
-        return $this->postsCollection($locale)
+        return $this->deduplicatePublicCards($this->postsCollection($locale))
             ->take($limit)
             ->values()
             ->all();
@@ -349,15 +352,14 @@ class PublicBlogService
                     $working->whereJsonContains('public_blog_tags', $tag);
                 }
 
-                $total = (clone $working)->count();
-                $items = $working
-                    ->forPage($page, $perPage)
+                $items = $this->deduplicatePublicCards($working
                     ->get()
                     ->map(fn (Content $content): array => $this->mapLocalCard($content))
-                    ->all();
+                    ->values());
+                $total = $items->count();
 
                 return [
-                    'items' => $items,
+                    'items' => $items->forPage($page, $perPage)->values()->all(),
                     'total' => $total,
                 ];
             }
@@ -453,6 +455,20 @@ class PublicBlogService
                 'content_images.alt_text',
                 'content_images.width',
                 'content_images.height',
+            ]), 'ogImage' => fn ($imageQuery) => $imageQuery->select([
+                'content_images.id',
+                'content_images.content_id',
+                'content_images.type',
+                'content_images.image_path',
+                'content_images.image_url',
+                'content_images.original_path',
+                'content_images.medium_path',
+                'content_images.original_webp_path',
+                'content_images.medium_webp_path',
+                'content_images.status',
+                'content_images.is_active',
+                'content_images.use_as_meta_image',
+                'content_images.created_at',
             ])])
             ->select([
                 'id',
@@ -519,7 +535,10 @@ class PublicBlogService
             'featured_image_alt' => trim((string) ($content->featuredImage?->alt_text ?? '')) ?: (string) $content->title,
             'featured_image_width' => $content->public_blog_featured_image_width ?: $content->featuredImage?->width,
             'featured_image_height' => $content->public_blog_featured_image_height ?: $content->featuredImage?->height,
-            'seo_og_image' => trim((string) ($content->seo_og_image ?? '')),
+            'seo_og_image' => $this->firstNonEmpty([
+                $content->ogImage?->bestUrlForUsage(ContentImage::USAGE_META),
+                $content->seo_og_image,
+            ]),
             'author' => trim((string) ($content->public_blog_author ?? '')),
             'published_at' => $publishedAt?->toIso8601String(),
             'published_at_ts' => $publishedAt?->timestamp ?? 0,
@@ -555,6 +574,7 @@ class PublicBlogService
                     ->map(fn ($post) => $this->normalizePost((array) $post))
                     ->filter(fn ($post) => is_array($post) && $this->isEligiblePublicPost($post))
                     ->pipe(fn (Collection $posts): Collection => $this->deduplicateLocalizedPosts($posts))
+                    ->pipe(fn (Collection $posts): Collection => $this->deduplicatePublicCards($posts))
                     ->pipe(fn (Collection $posts): Collection => $this->attachLocalizedVariants($posts))
                     ->sortByDesc(function (array $post): int {
                         return (int) ($post['published_at_ts'] ?? 0);
@@ -570,6 +590,40 @@ class PublicBlogService
                 return $postLocale === $locale;
             })
             ->values();
+    }
+
+    /**
+     * @param Collection<int,array<string,mixed>> $posts
+     * @return Collection<int,array<string,mixed>>
+     */
+    private function deduplicatePublicCards(Collection $posts): Collection
+    {
+        return $posts
+            ->unique(fn (array $post): string => $this->publicTitleKey((string) ($post['title'] ?? '')) ?: 'id:' . (string) ($post['id'] ?? ''))
+            ->values();
+    }
+
+    private function publicTitleKey(string $title): string
+    {
+        $title = html_entity_decode(strip_tags($title), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $title = preg_replace('/\s+/u', ' ', $title) ?? $title;
+
+        return Str::lower(trim($title));
+    }
+
+    /**
+     * @param array<int,mixed> $candidates
+     */
+    private function firstNonEmpty(array $candidates): string
+    {
+        foreach ($candidates as $candidate) {
+            $value = trim((string) ($candidate ?? ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 
     /**

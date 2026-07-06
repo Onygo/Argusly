@@ -210,6 +210,72 @@ it('loads local blog surfaces with featured images without ambiguous content ima
         ->assertSee('English featured blog');
 });
 
+it('uses the active og image for public article share metadata', function () {
+    $content = makePublishedBlog($this->workspace, [
+        'title' => 'Article with configured OG image',
+        'language' => 'en',
+        'publish_url_key' => 'article-with-configured-og-image',
+        'is_source_locale' => true,
+        'seo_meta_description' => 'Share previews should use the configured OG image.',
+    ]);
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'og',
+        'provider' => 'test',
+        'image_url' => 'https://images.example.test/generated-og.png',
+        'width' => 1200,
+        'height' => 630,
+        'status' => 'ready',
+        'is_active' => true,
+        'use_as_meta_image' => true,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->get('/en/blog/article-with-configured-og-image')
+        ->assertOk()
+        ->assertSee('property="og:image" content="https://images.example.test/generated-og.png"', false)
+        ->assertSee('name="twitter:image" content="https://images.example.test/generated-og.png"', false);
+});
+
+it('shows only one local blog card when stale published rows share the same title', function () {
+    makePublishedBlog($this->workspace, [
+        'title' => 'Duplicate public title',
+        'language' => 'en',
+        'publish_url_key' => 'duplicate-public-title-newer',
+        'is_source_locale' => true,
+        'updated_at' => now(),
+        'published_at' => now()->subHour(),
+    ])->forceFill([
+        'first_published_at' => now()->subHour(),
+        'public_blog_excerpt' => 'Newer duplicate excerpt',
+        'public_blog_reading_time_minutes' => 3,
+    ])->save();
+
+    makePublishedBlog($this->workspace, [
+        'title' => 'Duplicate public title',
+        'language' => 'en',
+        'publish_url_key' => 'duplicate-public-title-older',
+        'is_source_locale' => true,
+        'updated_at' => now()->subDay(),
+        'published_at' => now()->subDay(),
+    ])->forceFill([
+        'first_published_at' => now()->subDay(),
+        'public_blog_excerpt' => 'Older duplicate excerpt',
+        'public_blog_reading_time_minutes' => 4,
+    ])->save();
+
+    $html = $this->get('/en/blog')
+        ->assertOk()
+        ->assertSee('Newer duplicate excerpt')
+        ->assertDontSee('Older duplicate excerpt')
+        ->content();
+
+    expect(substr_count($html, 'Duplicate public title'))->toBe(1);
+});
+
 it('resolves localized detail pages by locale and slug', function () {
     $source = makePublishedBlog($this->workspace, [
         'title' => 'Nederlandse bron',
@@ -478,6 +544,22 @@ it('keeps generated related resources when no inline links are present', functio
         ->assertOk()
         ->assertSee('Wil je dieper ingaan')
         ->assertSee('href="/nl/blog/extra"', false);
+});
+
+it('removes generated related reading blocks that only link to the current article', function () {
+    makePublishedBlog($this->workspace, [
+        'title' => 'Self linked article',
+        'language' => 'en',
+        'publish_url_key' => 'self-linked-article',
+        'body' => '<p>Intro paragraph with useful article content.</p>'
+            . '<p><strong>Related reading:</strong> <a href="/en/blog/self-linked-article">Self linked article</a>.</p>',
+    ]);
+
+    $this->get(LocalizedMarketingUrl::route('public.blog.show', ['slug' => 'self-linked-article'], 'en', false))
+        ->assertOk()
+        ->assertSee('Intro paragraph with useful article content.')
+        ->assertDontSee('Related reading:')
+        ->assertDontSee('href="/en/blog/self-linked-article"', false);
 });
 
 it('persists inline links through republish snapshots and repeated renders without fallback duplication', function () {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LlmTrackingQueryRun extends Model
 {
@@ -104,5 +105,10 @@ class LlmTrackingQueryRun extends Model
     public function trackingQuery()
     {
         return $this->belongsTo(LlmTrackingQuery::class, 'llm_tracking_query_id');
+    }
+
+    public function geoObservations(): HasMany
+    {
+        return $this->hasMany(PageGeoObservation::class, 'llm_tracking_query_run_id');
     }
 }

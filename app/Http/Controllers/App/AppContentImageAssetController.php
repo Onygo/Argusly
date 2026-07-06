@@ -12,6 +12,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class AppContentImageAssetController extends Controller
@@ -59,6 +61,84 @@ class AppContentImageAssetController extends Controller
         }
 
         return back()->with('status', 'Image asset usage updated.');
+    }
+
+    public function reuseFromLinkedContent(
+        Request $request,
+        Content $content,
+        ContentImage $imageVersion,
+        UploadedContentImageAssetService $uploads
+    ): RedirectResponse {
+        $this->assertWorkspaceInUserOrganization($request, (string) $content->workspace_id);
+        $this->authorize('update', $content);
+
+        $data = $this->validatedUsagePayload($request);
+        $usage = $this->usageFlags($data);
+
+        if (! in_array(true, $usage, true)) {
+            return back()->withErrors(['image_reuse' => 'Select at least one image usage.'])->withInput();
+        }
+
+        try {
+            $this->assertReusableLinkedContentImage($content, $imageVersion);
+
+            $copy = DB::transaction(function () use ($request, $content, $imageVersion): ContentImage {
+                $sourceContent = $imageVersion->content;
+                $metadata = is_array($imageVersion->metadata) ? $imageVersion->metadata : [];
+                $metadata['reused_from'] = [
+                    'content_id' => (string) $sourceContent?->id,
+                    'content_title' => (string) ($sourceContent?->title ?? ''),
+                    'locale' => $sourceContent?->localeCode(),
+                    'image_id' => (string) $imageVersion->id,
+                    'copied_at' => now()->toIso8601String(),
+                ];
+
+                return ContentImage::query()->create([
+                    'id' => (string) Str::uuid(),
+                    'workspace_id' => (string) $content->workspace_id,
+                    'content_id' => (string) $content->id,
+                    'type' => (string) ($imageVersion->type ?: 'featured'),
+                    'source' => $imageVersion->source,
+                    'prompt' => $imageVersion->prompt,
+                    'provider' => $imageVersion->provider,
+                    'model' => $imageVersion->model,
+                    'image_path' => $imageVersion->image_path,
+                    'image_url' => $imageVersion->image_url,
+                    'original_filename' => $imageVersion->original_filename,
+                    'mime_type' => $imageVersion->mime_type,
+                    'alt_text' => $imageVersion->alt_text,
+                    'original_path' => $imageVersion->original_path,
+                    'medium_path' => $imageVersion->medium_path,
+                    'thumbnail_path' => $imageVersion->thumbnail_path,
+                    'original_webp_path' => $imageVersion->original_webp_path,
+                    'medium_webp_path' => $imageVersion->medium_webp_path,
+                    'thumbnail_webp_path' => $imageVersion->thumbnail_webp_path,
+                    'credit_cost' => 0,
+                    'width' => $imageVersion->width,
+                    'height' => $imageVersion->height,
+                    'file_size' => $imageVersion->file_size,
+                    'status' => 'ready',
+                    'is_active' => false,
+                    'display_on_website' => false,
+                    'display_as_featured_image' => false,
+                    'use_as_meta_image' => false,
+                    'use_as_social_image' => false,
+                    'use_for_linkedin' => false,
+                    'metadata' => $metadata,
+                    'created_by' => (string) $request->user()->id,
+                    'uploaded_by' => $request->user()->id,
+                ]);
+            });
+
+            $uploads->assignUsageForContent($content, $copy, $usage);
+            $content->forceFill(['updated_by' => $request->user()->id])->save();
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['image_reuse' => $exception->getMessage()])->withInput();
+        }
+
+        return redirect()
+            ->route('app.content.show', ['content' => $content, 'tab' => 'images'])
+            ->with('status', 'Linked locale image copied to this content item.');
     }
 
     public function storeForCampaign(
@@ -191,6 +271,37 @@ class AppContentImageAssetController extends Controller
         }
 
         return $file;
+    }
+
+    private function assertReusableLinkedContentImage(Content $content, ContentImage $image): void
+    {
+        $image->loadMissing('content');
+        $sourceContent = $image->content;
+
+        if (! $sourceContent instanceof Content) {
+            throw new RuntimeException('Image asset is not linked to a content item.');
+        }
+
+        if ((string) $sourceContent->workspace_id !== (string) $content->workspace_id) {
+            throw new RuntimeException('Image asset belongs to another workspace.');
+        }
+
+        if ((string) $sourceContent->id === (string) $content->id) {
+            throw new RuntimeException('Use the existing image asset controls for this content item.');
+        }
+
+        $linkedIds = $content->normalizedLocalizationFamily()
+            ->pluck('id')
+            ->map(fn ($id): string => (string) $id)
+            ->all();
+
+        if (! in_array((string) $sourceContent->id, $linkedIds, true)) {
+            throw new RuntimeException('Image asset does not belong to a linked locale variant.');
+        }
+
+        if ((string) $image->status !== 'ready' || ! $image->hasOutput()) {
+            throw new RuntimeException('Only ready image assets can be reused.');
+        }
     }
 
     private function assertWorkspaceInUserOrganization(Request $request, string $workspaceId): void

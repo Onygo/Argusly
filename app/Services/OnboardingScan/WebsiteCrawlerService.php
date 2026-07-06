@@ -2,11 +2,13 @@
 
 namespace App\Services\OnboardingScan;
 
+use App\Services\PublicWeb\PublicWebSafetyService;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class WebsiteCrawlerService
 {
@@ -59,6 +61,13 @@ class WebsiteCrawlerService
 
     /** @var array<string, mixed> */
     private array $diagnostics = [];
+
+    private PublicWebSafetyService $publicWebSafety;
+
+    public function __construct(?PublicWebSafetyService $publicWebSafety = null)
+    {
+        $this->publicWebSafety = $publicWebSafety ?? app(PublicWebSafetyService::class);
+    }
 
     /**
      * Crawl a website and return the homepage plus up to maxPages internal pages.
@@ -140,7 +149,8 @@ class WebsiteCrawlerService
     public function fetchPage(string $url): array
     {
         try {
-            $response = Http::connectTimeout(self::CONNECT_TIMEOUT_SECONDS)
+            $url = $this->publicWebSafety->normalizeAndValidate($url);
+            $request = Http::connectTimeout(self::CONNECT_TIMEOUT_SECONDS)
                 ->timeout(self::REQUEST_TIMEOUT_SECONDS)
                 ->withHeaders([
                     'User-Agent' => self::USER_AGENT,
@@ -153,13 +163,21 @@ class WebsiteCrawlerService
                         'strict' => false,
                         'referer' => true,
                         'track_redirects' => true,
+                        'on_redirect' => function ($request, $response, $uri): void {
+                            unset($request, $response);
+                            $this->publicWebSafety->validateRedirectTarget((string) $uri);
+                        },
                     ],
                     'verify' => true,
-                ])
+                ]);
+
+            $response = $this->publicWebSafety
+                ->applyGuardedHttpOptions($request, $url)
                 ->get($url);
 
             $statusCode = $response->status();
             $contentType = strtolower((string) $response->header('Content-Type'));
+            $this->publicWebSafety->validateRedirectTarget((string) ($response->effectiveUri() ?: $url));
 
             if ($statusCode >= 400) {
                 return [
@@ -192,6 +210,15 @@ class WebsiteCrawlerService
                 'status_code' => $statusCode,
                 'error' => null,
                 'content_type' => $contentType,
+            ];
+        } catch (InvalidArgumentException $e) {
+            return [
+                'url' => $url,
+                'success' => false,
+                'html' => null,
+                'status_code' => null,
+                'error' => 'Blocked URL: ' . $e->getMessage(),
+                'content_type' => null,
             ];
         } catch (ConnectionException $e) {
             Log::warning('WebsiteCrawlerService: Connection error', [

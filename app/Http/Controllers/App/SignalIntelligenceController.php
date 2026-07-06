@@ -142,7 +142,7 @@ class SignalIntelligenceController extends Controller
                         'workspace' => $workspace->id,
                         'site' => $site?->id,
                     ]))
-                    ->with('status', 'No new signal events were found for this detection window. AI Visibility can already be ready; run detection again after fresh evidence appears, or widen the date/site filter.');
+                    ->with('status', 'No signal events found for this period. Run an AI Visibility check first, or widen the date/site filter, then run detection again.');
             }
 
             $detections = collect();

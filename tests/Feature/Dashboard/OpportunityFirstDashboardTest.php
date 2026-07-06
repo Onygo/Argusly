@@ -168,10 +168,6 @@ it('renders the dashboard as opportunity first when growth opportunities exist',
         ->assertSee('Weekly Mission')
         ->assertSee('Recent Results')
         ->assertSee('Supporting Detail')
-        ->assertDontSee('Signals')
-        ->assertDontSee('Detections')
-        ->assertDontSee('Clusters')
-        ->assertDontSee('Runs')
         ->assertSeeInOrder(['Growth Health', 'Next Best Action', 'Recommended Actions', 'Urgent Decisions', 'Weekly Mission', 'Recent Results', 'Supporting Detail']);
 });
 

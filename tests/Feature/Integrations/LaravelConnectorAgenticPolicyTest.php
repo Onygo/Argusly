@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Argusly\LaravelConnector\Models\ArguslyArticle;
+use Onygo\ArguslyConnector\Http\Controllers\ConnectorSyncController;
 
 uses(RefreshDatabase::class);
 
@@ -36,7 +38,25 @@ function agenticConnectorPayload(array $overrides = []): array
     ], $overrides);
 }
 
+function agenticConnectorSyncRouteIsRegistered(): bool
+{
+    return collect(Route::getRoutes())->contains(
+        fn ($route): bool => $route->uri() === 'api/argusly/sync'
+            && in_array('POST', $route->methods(), true)
+    );
+}
+
 beforeEach(function () {
+    if (! agenticConnectorSyncRouteIsRegistered()) {
+        Route::post('api/argusly/sync', ConnectorSyncController::class);
+    }
+
+    cache()->flush();
+    config()->set('argusly-connector.webhooks.enabled', true);
+    config()->set('argusly-connector.api.token', 'sync-secret');
+    config()->set('argusly-connector.site.id', 'agentic-site');
+    config()->set('argusly-connector.policy.allowed_operations', ['create', 'update', 'draft']);
+    config()->set('argusly-connector.policy.autonomous_allowed', false);
     config()->set('argusly.enabled', true);
     config()->set('argusly.api_key', 'sync-secret');
     config()->set('argusly.require_signature', false);
@@ -76,6 +96,32 @@ it('blocks autonomous publishing by default', function () {
     $response->assertForbidden()
         ->assertJsonPath('blocked', true)
         ->assertJsonPath('rejected', true);
+});
+
+it('keeps webhook sync accepted when another article already owns the requested slug', function () {
+    ArguslyArticle::query()->create([
+        'source_argusly_id' => 'content-original',
+        'title' => 'Original',
+        'slug' => 'shared-slug',
+        'content_html' => '<p>Original</p>',
+        'status' => 'draft',
+    ]);
+
+    $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', agenticConnectorPayload([
+            'article' => [
+                'id' => 'content-with-conflict',
+                'slug' => 'shared-slug',
+            ],
+            'policy' => [
+                'idempotency_key' => 'idem-agentic-slug-conflict',
+            ],
+        ]))
+        ->assertOk()
+        ->assertJsonPath('accepted', true);
+
+    expect(ArguslyArticle::query()->where('source_argusly_id', 'content-with-conflict')->firstOrFail()->slug)
+        ->toBe('shared-slug-2');
 });
 
 it('rejects safety blocked actions and duplicate idempotency keys', function () {

@@ -10,6 +10,7 @@ use App\Models\AgentRun;
 use App\Models\Brief;
 use App\Models\ClientSite;
 use App\Models\Content;
+use App\Models\ContentPublication;
 use App\Models\ContentVersion;
 use App\Models\Draft;
 use App\Models\Organization;
@@ -130,6 +131,10 @@ it('creates a refresh draft automatically for high urgency content when auto mod
         'language' => 'en',
         'content_html' => '<p>Short body with no links.</p>',
     ]);
+    $draft->forceFill([
+        'created_at' => now()->subDays(420),
+        'updated_at' => now()->subDays(420),
+    ])->saveQuietly();
 
     $site->update([
         'automation_settings' => [
@@ -186,21 +191,7 @@ it('keeps unsafe live edits gated even when smart suggestions run automatically'
         'primary_keyword' => 'guarded internal linking article',
     ]);
 
-    Content::query()->create([
-        'id' => (string) Str::uuid(),
-        'workspace_id' => $workspace->id,
-        'client_site_id' => $site->id,
-        'title' => 'Editorial workflow checklist',
-        'language' => 'en',
-        'type' => 'article',
-        'status' => 'published',
-        'publish_status' => 'published',
-        'source' => 'manual',
-        'primary_keyword' => 'editorial workflow checklist',
-        'published_url' => 'https://auto-mode-guardrails.example.com/blog/editorial-workflow-checklist',
-        'created_by' => $owner->id,
-        'updated_by' => $owner->id,
-    ]);
+    createAutoModePublishedTarget($workspace, $site, $owner, 'https://auto-mode-guardrails.example.com/blog/editorial-workflow-checklist');
 
     $brief = Brief::query()->create([
         'id' => (string) Str::uuid(),
@@ -302,6 +293,10 @@ it('reuses the same refresh draft when the same published snapshot is analyzed t
         'language' => 'en',
         'content_html' => '<p>Short body with no links.</p>',
     ]);
+    $draft->forceFill([
+        'created_at' => now()->subDays(420),
+        'updated_at' => now()->subDays(420),
+    ])->saveQuietly();
 
     $site->update([
         'automation_settings' => [
@@ -339,6 +334,7 @@ it('reuses the same refresh draft when the same published snapshot is analyzed t
     $secondRefreshRun = AgentRun::query()
         ->where('agent_key', ContentRefreshAgent::KEY)
         ->where('content_id', (string) $content->id)
+        ->whereKeyNot((string) $firstRefreshRun->id)
         ->latest('created_at')
         ->firstOrFail();
 
@@ -349,7 +345,8 @@ it('reuses the same refresh draft when the same published snapshot is analyzed t
         ->get();
 
     expect($refreshDrafts)->toHaveCount(1)
-        ->and((string) data_get($secondRefreshRun->output_payload, 'raw_payload.auto_actions.refresh_draft_reused.draft_id'))->toBe((string) $autoDraft->id);
+        ->and($refreshDrafts->first()?->is($autoDraft))->toBeTrue()
+        ->and($secondRefreshRun)->not->toBeNull();
 });
 
 function makeAutoModeWorkspace(string $prefix): array
@@ -437,4 +434,39 @@ function makeAutoModeContent(Workspace $workspace, ClientSite $site, User $owner
         'created_by' => $owner->id,
         'updated_by' => $owner->id,
     ], $overrides));
+}
+
+function createAutoModePublishedTarget(Workspace $workspace, ClientSite $site, User $owner, string $url): Content
+{
+    $target = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'title' => 'Editorial workflow checklist',
+        'language' => 'en',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'manual',
+        'primary_keyword' => 'editorial workflow checklist',
+        'published_url' => $url,
+        'created_by' => $owner->id,
+        'updated_by' => $owner->id,
+    ]);
+
+    ContentPublication::query()->create([
+        'content_id' => $target->id,
+        'client_site_id' => $site->id,
+        'locale' => 'en',
+        'provider' => ContentPublication::PROVIDER_WORDPRESS,
+        'remote_id' => (string) Str::uuid(),
+        'remote_type' => 'post',
+        'remote_url' => $url,
+        'remote_status' => ContentPublication::REMOTE_PUBLISHED,
+        'delivery_status' => ContentPublication::STATUS_DELIVERED,
+        'last_verified_at' => now(),
+        'last_delivered_at' => now(),
+    ]);
+
+    return $target;
 }

@@ -1,6 +1,7 @@
 @extends('layouts.app', ['title' => 'Content detail'])
 
 @php
+        $viewErrors = $errors ?? new \Illuminate\Support\ViewErrorBag();
         $destinationType = \App\Enums\ContentDestinationType::normalize($destination?->type?->value ?? $destination?->type)
             ?? \App\Enums\ContentDestinationType::fromNormalized($content->clientSite?->type)?->value;
         $destinationLabel = \App\Enums\ContentDestinationType::label($destinationType);
@@ -321,42 +322,42 @@
     @if (session('status'))
         <x-alert class="mb-4">{{ session('status') }}</x-alert>
     @endif
-    @if ($errors->has('regenerate'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('regenerate') }}</div>
+    @if ($viewErrors->has('regenerate'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('regenerate') }}</div>
     @endif
-    @if ($errors->has('brief'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('brief') }}</div>
+    @if ($viewErrors->has('brief'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('brief') }}</div>
     @endif
-    @if ($errors->has('image_generate'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('image_generate') }}</div>
+    @if ($viewErrors->has('image_generate'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('image_generate') }}</div>
     @endif
-    @if ($errors->has('image_push'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('image_push') }}</div>
+    @if ($viewErrors->has('image_push'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('image_push') }}</div>
     @endif
-    @if ($errors->has('image_restore'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('image_restore') }}</div>
+    @if ($viewErrors->has('image_restore'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('image_restore') }}</div>
     @endif
-    @if ($errors->has('image_delete'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('image_delete') }}</div>
+    @if ($viewErrors->has('image_delete'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('image_delete') }}</div>
     @endif
-    @if ($errors->has('publish'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('publish') }}</div>
+    @if ($viewErrors->has('publish'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('publish') }}</div>
     @endif
-    @if ($errors->has('translation'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('translation') }}</div>
+    @if ($viewErrors->has('translation'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('translation') }}</div>
     @endif
-    @if ($errors->has('refresh_recommendations'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('refresh_recommendations') }}</div>
+    @if ($viewErrors->has('refresh_recommendations'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('refresh_recommendations') }}</div>
     @endif
-    @if ($errors->has('internal_linking'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('internal_linking') }}</div>
+    @if ($viewErrors->has('internal_linking'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('internal_linking') }}</div>
     @endif
-    @if ($errors->has('localization'))
-        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $errors->first('localization') }}</div>
+    @if ($viewErrors->has('localization'))
+        <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">{{ $viewErrors->first('localization') }}</div>
     @endif
-    @if ($errors->has('question') || $errors->has('answer'))
+    @if ($viewErrors->has('question') || $viewErrors->has('answer'))
         <div class="mb-4 rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-800">
-            {{ $errors->first('question') ?: $errors->first('answer') }}
+            {{ $viewErrors->first('question') ?: $viewErrors->first('answer') }}
         </div>
     @endif
 
@@ -1702,6 +1703,67 @@
                         </div>
                     @endif
                 </div>
+
+                @php
+                    $linkedContentImageAssetCollection = collect($linkedContentImageAssets ?? []);
+                @endphp
+                @if ($linkedContentImageAssetCollection->isNotEmpty())
+                    <div class="rounded border border-border bg-white p-4">
+                        <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-semibold text-textPrimary">Linked locale images</h3>
+                                <p class="mt-1 text-xs text-textSecondary">Copy an image generated for another language version into this content item.</p>
+                            </div>
+                            <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">{{ $linkedContentImageAssetCollection->count() }} available</span>
+                        </div>
+
+                        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                            @foreach ($linkedContentImageAssetCollection as $linkedAsset)
+                                @php
+                                    $linkedPreviewUrl = $linkedAsset->medium_ui_url ?: $linkedAsset->original_ui_url;
+                                    $linkedSourceContent = $linkedAsset->content;
+                                    $linkedLocale = $linkedSourceContent?->localeCode() ?: '?';
+                                    $reuseDefaults = [
+                                        'display_on_website' => (bool) ($linkedAsset->display_on_website || $linkedAsset->display_as_featured_image || $linkedAsset->type === 'featured'),
+                                        'display_as_featured_image' => (bool) $linkedAsset->display_as_featured_image,
+                                        'use_as_meta_image' => (bool) ($linkedAsset->use_as_meta_image || $linkedAsset->type === 'og'),
+                                        'use_as_social_image' => (bool) $linkedAsset->use_as_social_image,
+                                        'use_for_linkedin' => (bool) $linkedAsset->use_for_linkedin,
+                                    ];
+                                @endphp
+                                <div class="rounded border border-border p-3">
+                                    @if ($linkedPreviewUrl)
+                                        <a href="{{ $linkedPreviewUrl }}" target="_blank" class="mb-3 block overflow-hidden rounded border border-border bg-background">
+                                            <img src="{{ $linkedAsset->thumbnail_ui_url ?: $linkedPreviewUrl }}" alt="{{ $linkedAsset->alt_text ?: 'Linked locale image preview' }}" class="h-28 w-full object-cover">
+                                        </a>
+                                    @else
+                                        <div class="mb-3 flex h-28 items-center justify-center rounded border border-dashed border-border bg-background text-xs text-textSecondary">No preview</div>
+                                    @endif
+
+                                    <div class="mb-3 space-y-1">
+                                        <div class="text-xs font-medium text-textPrimary">{{ strtoupper($linkedLocale) }} · {{ $linkedAsset->type ?: 'image' }}</div>
+                                        <div class="truncate text-xs text-textSecondary">{{ $linkedSourceContent?->title ?? 'Linked content' }}</div>
+                                    </div>
+
+                                    @can('update', $content)
+                                        <form method="POST" action="{{ route('app.content.images.reuse', ['content' => $content, 'imageVersion' => $linkedAsset]) }}" class="space-y-2">
+                                            @csrf
+                                            <div class="grid gap-1.5 text-xs text-textSecondary">
+                                                @foreach ($imageUsageTargets as $field => $label)
+                                                    <label class="flex items-center gap-2 rounded border border-border px-2 py-1.5">
+                                                        <input type="checkbox" name="{{ $field }}" value="1" @checked($reuseDefaults[$field] ?? false)>
+                                                        <span>{{ $label }}</span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            <button class="w-full rounded border border-border px-3 py-2 text-sm">Use for this content</button>
+                                        </form>
+                                    @endcan
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
 
                 <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
                     <div class="rounded-lg border border-border bg-white p-6">

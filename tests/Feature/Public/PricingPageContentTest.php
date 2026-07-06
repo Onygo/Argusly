@@ -18,10 +18,10 @@ describe('Public pricing page content', function () {
             ->assertSee('Start with the Argusly Platform. Scale with credits. Add sites when your operation grows.', false)
             ->assertSee('More than AI writing', false)
             ->assertSee('Argusly Platform', false)
-            ->assertSee('Extra Sites', false)
-            ->assertSee('What are credits?', false)
+            ->assertSee('Extra Site', false)
+            ->assertSee('How do credits work?', false)
             ->assertSee('Enterprise', false)
-            ->assertSee('Scale when needed', false)
+            ->assertSee('Scale your operation', false)
             ->assertSee('Start subscription', false)
             ->assertSee('Request a pilot', false)
             ->assertDontSee('Starter', false)
@@ -55,7 +55,7 @@ describe('Public pricing page content', function () {
             ->assertSee('100 credits', false)
             ->assertSee('500 credits', false)
             ->assertSee('1,000 credits', false)
-            ->assertSee('What are credits?', false)
+            ->assertSee('How do credits work?', false)
             ->assertSee('Credit packs for temporary peaks', false);
     });
 });

@@ -121,9 +121,11 @@ it('builds draft comparison metrics and persists score rows per variant', functi
         'entity_coverage',
         'factual_confidence',
         'conversion_focus',
+        'humanity_score',
+        'ai_slop_score',
     );
 
-    expect($scoreRows)->toHaveCount(12);
+    expect($scoreRows)->toHaveCount(14);
 
     $service->replaceVariantScores($variant, $scoreRows);
 
@@ -132,7 +134,7 @@ it('builds draft comparison metrics and persists score rows per variant', functi
         ->get()
         ->keyBy('metric_key');
 
-    expect($persisted)->toHaveCount(12)
+    expect($persisted)->toHaveCount(14)
         ->and($persisted->has('seo_score'))->toBeTrue()
         ->and($persisted->has('ai_seo_score'))->toBeTrue()
         ->and($persisted->has('conversion_focus'))->toBeTrue()

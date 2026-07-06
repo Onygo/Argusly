@@ -28,6 +28,6 @@ it('renders complete social image metadata on important marketing routes', funct
     'homepage' => ['/en', '/images/social/argusly-og-ai-visibility.jpg'],
     'blog index' => ['/en/blog', '/images/social/argusly-og-opportunity-intelligence.jpg'],
     'agentic marketing' => ['/en/agentic-marketing', '/images/social/argusly-og-agentic-marketing.jpg'],
-    'market page' => ['/en/markets/it-services-saas', '/images/social/argusly-og-growth-intelligence.jpg'],
+    'market page' => ['/en/industries/it-services-saas', '/images/social/argusly-og-growth-intelligence.jpg'],
     'solution page' => ['/en/solutions/ai-visibility', '/images/social/argusly-og-autonomous-marketing.jpg'],
 ]);

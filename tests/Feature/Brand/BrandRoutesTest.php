@@ -203,14 +203,14 @@ it('allows owner to delete brand voice when another exists', function () {
 
 it('redirects old settings company-profile URL to new brand location', function () {
     $this->actingAs($this->owner)
-        ->get('/app/settings/company-profile')
-        ->assertRedirect('/app/brand/company-profile');
+        ->get('https://app.argusly.local/settings/company-profile')
+        ->assertRedirect(route('app.brand.company-profile'));
 });
 
 it('redirects old settings brand-voices URL to new brand location', function () {
     $this->actingAs($this->owner)
-        ->get('/app/settings/brand-voices')
-        ->assertRedirect('/app/brand/voices');
+        ->get('https://app.argusly.local/settings/brand-voices')
+        ->assertRedirect(route('app.brand.voices'));
 });
 
 it('shows brand settings hint on settings page', function () {

@@ -24,7 +24,7 @@ final class ArguslyClient
      */
     public function health(array $metadata = []): Response
     {
-        return $this->request()->post('/api/v1/connectors/heartbeat', [
+        $response = $this->request()->post('/api/v1/connectors/heartbeat', [
             'platform' => 'laravel',
             'connector_version' => InstalledVersions::version(),
             'framework_version' => app()->version(),
@@ -33,6 +33,10 @@ final class ArguslyClient
             'app_url' => data_get($this->config, 'site.url'),
             ...$metadata,
         ]);
+
+        $this->recordSuccessfulActivity($response, 'heartbeat');
+
+        return $response;
     }
 
     /**
@@ -40,7 +44,11 @@ final class ArguslyClient
      */
     public function contentIndex(array $filters = []): Response
     {
-        return $this->request()->get('/api/v1/connectors/content', $filters);
+        $response = $this->request()->get('/api/v1/connectors/content', $filters);
+
+        $this->recordSuccessfulActivity($response, 'processed');
+
+        return $response;
     }
 
     /**
@@ -48,7 +56,11 @@ final class ArguslyClient
      */
     public function content(string|int $content): Response
     {
-        return $this->request()->get('/api/v1/connectors/content/' . rawurlencode((string) $content));
+        $response = $this->request()->get('/api/v1/connectors/content/' . rawurlencode((string) $content));
+
+        $this->recordSuccessfulActivity($response, 'processed');
+
+        return $response;
     }
 
     /**
@@ -58,9 +70,13 @@ final class ArguslyClient
     {
         $payload['idempotency_key'] ??= $idempotencyKey;
 
-        return $this->request([
+        $response = $this->request([
             'X-Argusly-Idempotency-Key' => $idempotencyKey ?: (string) Str::uuid(),
         ])->post('/api/v1/connectors/content/' . rawurlencode((string) $content) . '/sync-results', $payload);
+
+        $this->recordSuccessfulActivity($response, 'processed');
+
+        return $response;
     }
 
     /**
@@ -77,7 +93,7 @@ final class ArguslyClient
 
         $headers = array_filter([
             'Authorization' => 'Bearer ' . $token,
-            'X-Argusly-Site' => data_get($this->config, 'site.id'),
+            'X-Argusly-Site' => data_get($this->config, 'site.url') ?: data_get($this->config, 'site.id'),
             'X-Argusly-Destination-Id' => data_get($this->config, 'destination.id'),
         ], static fn ($value): bool => $value !== null && $value !== '');
 
@@ -86,6 +102,21 @@ final class ArguslyClient
             ->acceptJson()
             ->asJson()
             ->withHeaders(array_merge($headers, $extraHeaders));
+    }
+
+    private function recordSuccessfulActivity(Response $response, string $type): void
+    {
+        if (! $response->successful()) {
+            return;
+        }
+
+        try {
+            app(ActivityState::class)->record($type, [
+                'last_status_code' => $response->status(),
+            ]);
+        } catch (\Throwable) {
+            // Activity status must never break connector calls.
+        }
     }
 
 }

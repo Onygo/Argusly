@@ -3,7 +3,7 @@
  * Plugin Name: Argusly Connector
  * Plugin URI: https://argusly.com
  * Description: First-party connector for publishing Argusly content into WordPress.
- * Version: 1.0.0
+ * Version: 0.1.5
  * Author: Argusly
  * Author URI: https://argusly.com
  * Text Domain: argusly-connector
@@ -17,7 +17,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('ARGUSLY_CONNECTOR_VERSION', '1.0.0');
+define('ARGUSLY_CONNECTOR_VERSION', '0.1.5');
 define('ARGUSLY_CONNECTOR_OPTION_GROUP', 'argusly_connector');
 define('ARGUSLY_CONNECTOR_API_URL_OPTION', 'argusly_connector_api_url');
 define('ARGUSLY_CONNECTOR_TOKEN_OPTION', 'argusly_connector_token');
@@ -58,6 +58,51 @@ final class Argusly_Connector
         '_argusly_canonical_url',
         '_argusly_primary_keyword',
         '_argusly_og_image',
+        'argusly_ai_metadata',
+        'argusly_ai_badge',
+        'argusly_ai_origin',
+        'argusly_ai_trust_score',
+        'argusly_answer_blocks',
+        'argusly_faq_schema',
+        'argusly_structured_output',
+        'argusly_policy',
+        'argusly_seo_sync',
+        '_yoast_wpseo_title',
+        '_yoast_wpseo_metadesc',
+        '_yoast_wpseo_focuskw',
+        '_yoast_wpseo_canonical',
+        '_yoast_wpseo_opengraph-title',
+        '_yoast_wpseo_opengraph-description',
+        '_yoast_wpseo_opengraph-image',
+        '_yoast_wpseo_twitter-title',
+        '_yoast_wpseo_twitter-description',
+        'rank_math_title',
+        'rank_math_description',
+        'rank_math_focus_keyword',
+        'rank_math_canonical_url',
+        'rank_math_facebook_title',
+        'rank_math_facebook_description',
+        'rank_math_facebook_image',
+        'rank_math_twitter_title',
+        'rank_math_twitter_description',
+        '_aioseo_title',
+        '_aioseo_description',
+        '_aioseo_focus_keyphrase',
+        '_aioseo_canonical_url',
+        '_aioseo_og_title',
+        '_aioseo_og_description',
+        '_aioseo_og_image',
+        '_aioseo_twitter_title',
+        '_aioseo_twitter_description',
+        '_pl_seo_title',
+        '_pl_seo_meta_description',
+        '_pl_seo_focus_keyword',
+        '_pl_seo_canonical',
+        '_pl_seo_og_title',
+        '_pl_seo_og_description',
+        '_pl_seo_og_image',
+        '_pl_seo_twitter_title',
+        '_pl_seo_twitter_description',
     ];
 
     public static function boot(): void
@@ -245,6 +290,12 @@ final class Argusly_Connector
             'permission_callback' => [self::class, 'authorizeRequest'],
         ]);
 
+        register_rest_route(self::REST_NAMESPACE, '/webhook/draft', [
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => [self::class, 'createPost'],
+            'permission_callback' => [self::class, 'authorizeRequest'],
+        ]);
+
         register_rest_route(self::REST_NAMESPACE, '/posts/lookup', [
             'methods' => WP_REST_Server::READABLE,
             'callback' => [self::class, 'lookupPost'],
@@ -252,6 +303,12 @@ final class Argusly_Connector
         ]);
 
         register_rest_route(self::REST_NAMESPACE, '/posts/(?P<id>[\d]+)', [
+            'methods' => [WP_REST_Server::READABLE, WP_REST_Server::CREATABLE],
+            'callback' => [self::class, 'handlePostById'],
+            'permission_callback' => [self::class, 'authorizeRequest'],
+        ]);
+
+        register_rest_route(self::REST_NAMESPACE, '/webhook/draft/(?P<id>[\d]+)', [
             'methods' => [WP_REST_Server::READABLE, WP_REST_Server::CREATABLE],
             'callback' => [self::class, 'handlePostById'],
             'permission_callback' => [self::class, 'authorizeRequest'],
@@ -267,7 +324,7 @@ final class Argusly_Connector
     public static function authorizeRequest(WP_REST_Request $request): bool|WP_Error
     {
         $configuredToken = (string) get_option(ARGUSLY_CONNECTOR_TOKEN_OPTION, '');
-        $providedToken = self::bearerToken($request);
+        $providedToken = self::requestToken($request);
 
         if ($configuredToken !== '' && $providedToken !== '' && hash_equals($configuredToken, $providedToken)) {
             return true;
@@ -290,12 +347,14 @@ final class Argusly_Connector
             'site_url' => home_url(),
             'wordpress_version' => get_bloginfo('version'),
             'php_version' => PHP_VERSION,
+            'capabilities' => self::connectorCapabilities(),
         ], 200);
     }
 
     public static function createPost(WP_REST_Request $request): WP_REST_Response|WP_Error
     {
         $payload = self::jsonPayload($request);
+        $payload = self::normalizeContentPayload($payload);
         $postarr = self::postArrayFromPayload($payload);
 
         $postId = wp_insert_post($postarr, true);
@@ -326,6 +385,7 @@ final class Argusly_Connector
         }
 
         $payload = self::jsonPayload($request);
+        $payload = self::normalizeContentPayload($payload);
         $postarr = self::postArrayFromPayload($payload);
         $postarr['ID'] = $postId;
 
@@ -425,13 +485,7 @@ final class Argusly_Connector
             'site_url' => home_url(),
             'app_url' => home_url(),
             'capabilities' => [
-                'create_content' => true,
-                'update_content' => true,
-                'publish_content' => true,
-                'schedule_content' => true,
-                'read_publication_status' => true,
-                'preview_content' => true,
-                'featured_image' => true,
+                ...self::connectorCapabilities(),
             ],
             'plugins' => self::activePluginSlugs(),
             'active_plugins' => self::activePluginSlugs(),
@@ -463,9 +517,46 @@ final class Argusly_Connector
      * @param array<string, mixed> $payload
      * @return array<string, mixed>
      */
+    private static function normalizeContentPayload(array $payload): array
+    {
+        if (! is_array($payload['article'] ?? null)) {
+            return $payload;
+        }
+
+        $article = $payload['article'];
+
+        return array_replace($payload, array_filter([
+            'id' => $article['id'] ?? null,
+            'title' => $article['title'] ?? null,
+            'slug' => $article['slug'] ?? null,
+            'excerpt' => $article['summary'] ?? null,
+            'content_html' => $article['content_html'] ?? $article['html'] ?? null,
+            'status' => $article['status'] ?? null,
+            'language' => $article['language'] ?? $article['locale'] ?? null,
+            'post_type' => $article['post_type'] ?? (($payload['type'] ?? '') === 'knowledge_article' ? 'knowledge_base' : null),
+            'seo_title' => $article['seo_title'] ?? null,
+            'seo_meta_description' => $article['seo_description'] ?? null,
+            'canonical_url' => $article['canonical_url'] ?? null,
+            'featured_image_url' => $article['featured_image_url'] ?? null,
+            'answer_blocks' => $article['answer_blocks'] ?? null,
+            'faq_schema' => $article['faq_schema'] ?? null,
+            'structured_output' => $article['structured_output'] ?? null,
+        ], static fn ($value): bool => $value !== null && $value !== ''));
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
     private static function postArrayFromPayload(array $payload): array
     {
         $status = sanitize_key((string) ($payload['status'] ?? 'draft'));
+        if ($status === 'published') {
+            $status = 'publish';
+        }
+        if ($status === 'scheduled') {
+            $status = 'future';
+        }
         if (! in_array($status, ['draft', 'publish', 'pending', 'private', 'future'], true)) {
             $status = 'draft';
         }
@@ -509,6 +600,11 @@ final class Argusly_Connector
             '_argusly_canonical_url' => $payload['seo_canonical'] ?? $payload['canonical_url'] ?? null,
             '_argusly_primary_keyword' => $payload['primary_keyword'] ?? null,
             '_argusly_og_image' => $payload['seo_og_image'] ?? $payload['og_image'] ?? $payload['og_image_url'] ?? null,
+            'argusly_answer_blocks' => $payload['answer_blocks'] ?? null,
+            'argusly_faq_schema' => $payload['faq_schema'] ?? null,
+            'argusly_structured_output' => $payload['structured_output'] ?? null,
+            'argusly_policy' => $payload['policy'] ?? null,
+            'argusly_seo_sync' => $payload['seo_sync'] ?? null,
         ], static fn ($value): bool => $value !== null && $value !== ''));
 
         foreach (self::META_KEYS as $key) {
@@ -517,6 +613,10 @@ final class Argusly_Connector
             }
 
             $value = $meta[$key];
+            if (is_array($value)) {
+                $value = wp_json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            }
+
             if (is_bool($value)) {
                 $value = $value ? '1' : '0';
             }
@@ -645,7 +745,30 @@ final class Argusly_Connector
         ];
     }
 
-    private static function bearerToken(WP_REST_Request $request): string
+    /**
+     * @return array<string, bool>
+     */
+    private static function connectorCapabilities(): array
+    {
+        return [
+            'create_content' => true,
+            'update_content' => true,
+            'publish_content' => true,
+            'schedule_content' => true,
+            'read_publication_status' => true,
+            'preview_content' => true,
+            'featured_image' => true,
+            'post_lookup' => true,
+            'api_key_header_auth' => true,
+            'webhook_draft_alias' => true,
+            'article_payload_normalization' => true,
+            'seo_meta_passthrough' => true,
+            'answer_blocks_meta' => true,
+            'ai_transparency_meta' => true,
+        ];
+    }
+
+    private static function requestToken(WP_REST_Request $request): string
     {
         $authorization = (string) $request->get_header('authorization');
 
@@ -653,7 +776,13 @@ final class Argusly_Connector
             return trim($matches[1]);
         }
 
-        return '';
+        return trim((string) (
+            $request->get_header('x-argusly-api-key')
+            ?: $request->get_header('x-argusly-api_key')
+            ?: $request->get_header('x-argusly-site-token')
+            ?: $request->get_param('site_key')
+            ?: $request->get_param('site_token')
+        ));
     }
 }
 

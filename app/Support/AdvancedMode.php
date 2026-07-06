@@ -21,6 +21,10 @@ class AdvancedMode
 
     public static function enabled(Request $request): bool
     {
+        if (! $request->hasSession()) {
+            return false;
+        }
+
         return filter_var($request->session()->get(self::SESSION_KEY, false), FILTER_VALIDATE_BOOL)
             && self::canEnable($request->user());
     }

@@ -41,12 +41,18 @@ it('generates localized urls through the helper', function () {
 
 it('renders automotive industry pages in English and Dutch', function () {
     $this->get('/en/markets/automotive')
+        ->assertRedirect('/en/industries/automotive');
+
+    $this->get('/en/industries/automotive')
         ->assertOk()
         ->assertSee('Accelerate automotive growth with AI visibility and market intelligence.', false)
         ->assertSee('Increasing competition between dealers, importers and marketplaces', false)
         ->assertSee('Request AI Visibility Scan', false);
 
     $this->get('/nl/markten/automotive')
+        ->assertRedirect('/nl/sectoren/automotive');
+
+    $this->get('/nl/sectoren/automotive')
         ->assertOk()
         ->assertSee('Versnel groei in automotive met AI zichtbaarheid en marktintelligentie.', false)
         ->assertSee('Toenemende concurrentie tussen dealers, importeurs en platformen', false)

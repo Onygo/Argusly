@@ -159,26 +159,20 @@ it('renders localized resources navigation and hub links without using the blog 
 
     $english->assertOk()
         ->assertSee('Resources', false)
-        ->assertSee(url('/en/ai-search'), false)
-        ->assertSee(url('/en/seo'), false)
-        ->assertSee(url('/en/geo'), false)
-        ->assertSee(url('/en/llm-visibility'), false)
-        ->assertSee(url('/en/ai-visibility-score'), false)
-        ->assertSee(url('/en/seo-vs-geo'), false)
-        ->assertSee(url('/en/ai-search-optimization'), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::page('ai_visibility_agentic_marketing', 'en', false), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::route('public.agentic-marketing-operating-system', [], 'en', false), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::route('public.blog.index', [], 'en', false), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::page('ai_search', 'en', false), false)
         ->assertDontSee('/en/blog/seo', false);
 
     $dutch = $this->get('/nl/ai-zoekmachines');
 
     $dutch->assertOk()
         ->assertSee('Resources', false)
-        ->assertSee(url('/nl/ai-zoekmachines'), false)
-        ->assertSee(url('/nl/seo'), false)
-        ->assertSee(url('/nl/geo'), false)
-        ->assertSee(url('/nl/llm-zichtbaarheid'), false)
-        ->assertSee(url('/nl/ai-visibility-score'), false)
-        ->assertSee(url('/nl/seo-en-geo-verschil'), false)
-        ->assertSee(url('/nl/ai-zoekmachine-optimalisatie'), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::page('ai_visibility_agentic_marketing', 'nl', false), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::route('public.agentic-marketing-operating-system', [], 'nl', false), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::route('public.blog.index', [], 'nl', false), false)
+        ->assertSee(\App\Support\LocalizedMarketingUrl::page('ai_search', 'nl', false), false)
         ->assertDontSee('/nl/blog/seo', false);
 });
 
