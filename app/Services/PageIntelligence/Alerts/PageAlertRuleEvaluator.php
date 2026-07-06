@@ -208,12 +208,16 @@ class PageAlertRuleEvaluator
     private function serpMovementCandidates(AlertRule $rule, bool $gain): array
     {
         $candidates = [];
+        $cutoff = $this->cutoff($rule);
 
         $currents = PageSerpObservation::query()
             ->with('page.latestSnapshot')
             ->where('workspace_id', $rule->workspace_id)
             ->when($rule->client_site_id, fn (Builder $query) => $query->where('client_site_id', $rule->client_site_id))
-            ->where('observed_at', '>=', $this->cutoff($rule))
+            ->where(function (Builder $query) use ($cutoff): void {
+                $query->where('observed_at', '>=', $cutoff)
+                    ->orWhere('created_at', '>=', $cutoff);
+            })
             ->whereNotNull('absolute_position')
             ->get();
 
@@ -222,6 +226,10 @@ class PageAlertRuleEvaluator
         $currents->each(function (PageSerpObservation $current) use (&$candidates, $rule, $gain, $history): void {
                 $previous = $this->previousSerpObservationFromHistory($current, $history);
                 if (! $previous || $previous->absolute_position === null) {
+                    return;
+                }
+
+                if (! $this->serpMovementWithinWindow($rule, $current, $previous)) {
                     return;
                 }
 
@@ -816,6 +824,18 @@ class PageAlertRuleEvaluator
                 && $this->sameSerpHistoryScope($current, $previous))
             ->sortByDesc('observed_at')
             ->first();
+    }
+
+    private function serpMovementWithinWindow(AlertRule $rule, PageSerpObservation $current, PageSerpObservation $previous): bool
+    {
+        if ($current->observed_at === null || $previous->observed_at === null) {
+            return true;
+        }
+
+        $windowMinutes = max(1, (int) data_get($rule->conditions_json, 'window_minutes', 1440));
+        $movementMinutes = abs($current->observed_at->diffInMinutes($previous->observed_at));
+
+        return $movementMinutes <= $windowMinutes;
     }
 
     /**

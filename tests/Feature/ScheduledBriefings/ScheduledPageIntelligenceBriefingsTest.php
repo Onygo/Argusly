@@ -26,8 +26,18 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schedule;
 
 uses(RefreshDatabase::class);
+
+it('registers the scheduled briefing runner in the Laravel scheduler', function (): void {
+    $event = collect(Schedule::events())
+        ->first(fn ($event): bool => str_contains((string) $event->command, 'page-intelligence:run-scheduled-briefings --limit=50'));
+
+    expect($event)->not->toBeNull()
+        ->and($event->expression)->toBe('*/15 * * * *')
+        ->and($event->withoutOverlapping)->toBeTrue();
+});
 
 it('allows a schedule to be created and toggled from the UI', function (): void {
     [$workspace, $user] = scheduledBriefingWorkspace();

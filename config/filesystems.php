@@ -1,5 +1,8 @@
 <?php
 
+$contentImagesPath = trim((string) env('ARGUSLY_IMAGES_PATH', 'content-images'), '/');
+$contentImagesPath = $contentImagesPath !== '' ? $contentImagesPath : 'content-images';
+
 return [
 
     /*
@@ -84,6 +87,7 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        public_path($contentImagesPath) => storage_path('app/public/'.$contentImagesPath),
     ],
 
 ];

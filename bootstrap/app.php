@@ -28,6 +28,7 @@ use App\Http\Middleware\SiteTokenMiddleware;
 use App\Http\Middleware\VerifyClientDomainMiddleware;
 use App\Http\Middleware\VerifyPluginRequestSignature;
 use App\Http\Controllers\LegacyPublishLayerRedirectController;
+use App\Http\Controllers\PublicContentImageController;
 use App\Support\SecurityResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Application;
@@ -45,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
         using: function () {
             $baseDomain = config('domains.base', 'argusly.local');
+
+            Route::middleware(['web', 'throttle:web'])
+                ->get('/content-images/{path}', PublicContentImageController::class)
+                ->where('path', '.*');
 
             foreach ((array) config('legacy_publishlayer.source_hosts', []) as $legacyHost) {
                 $legacyHost = strtolower(trim((string) $legacyHost));

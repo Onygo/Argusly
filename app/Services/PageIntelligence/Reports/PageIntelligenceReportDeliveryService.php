@@ -9,6 +9,7 @@ use App\Models\ScheduledPageIntelligenceBriefing;
 use App\Models\User;
 use App\Services\Notifications\NotificationService;
 use Illuminate\Support\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Throwable;
@@ -153,35 +154,65 @@ class PageIntelligenceReportDeliveryService
      */
     private function firstOrCreateDelivery(PageIntelligenceReport $report, ScheduledPageIntelligenceBriefing $schedule, array $identity, array $defaults): PageIntelligenceReportDelivery
     {
-        return DB::transaction(function () use ($report, $schedule, $identity, $defaults): PageIntelligenceReportDelivery {
-            $query = PageIntelligenceReportDelivery::query()
-                ->where('report_id', $report->id)
-                ->where('channel', $identity['channel']);
+        try {
+            return DB::transaction(function () use ($report, $schedule, $identity, $defaults): PageIntelligenceReportDelivery {
+                $existing = $this->deliveryIdentityQuery($report, $identity)->lockForUpdate()->first();
+                if ($existing instanceof PageIntelligenceReportDelivery) {
+                    return $existing;
+                }
 
-            if ($identity['recipient_user_id'] === null) {
-                $query->whereNull('recipient_user_id');
-            } else {
-                $query->where('recipient_user_id', $identity['recipient_user_id']);
+                return PageIntelligenceReportDelivery::query()->create($identity + $defaults + [
+                    'report_id' => $report->id,
+                    'scheduled_briefing_id' => $schedule->id,
+                    'workspace_id' => $report->workspace_id,
+                    'status' => PageIntelligenceReportDelivery::STATUS_PENDING,
+                ]);
+            });
+        } catch (QueryException $exception) {
+            if (! $this->isUniqueConstraintViolation($exception)) {
+                throw $exception;
             }
 
-            if ($identity['recipient_email'] === null) {
-                $query->whereNull('recipient_email');
-            } else {
-                $query->where('recipient_email', $identity['recipient_email']);
-            }
-
-            $existing = $query->lockForUpdate()->first();
+            $existing = $this->deliveryIdentityQuery($report, $identity)->first();
             if ($existing instanceof PageIntelligenceReportDelivery) {
                 return $existing;
             }
 
-            return PageIntelligenceReportDelivery::query()->create($identity + $defaults + [
-                'report_id' => $report->id,
-                'scheduled_briefing_id' => $schedule->id,
-                'workspace_id' => $report->workspace_id,
-                'status' => PageIntelligenceReportDelivery::STATUS_PENDING,
-            ]);
-        });
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $identity
+     */
+    private function deliveryIdentityQuery(PageIntelligenceReport $report, array $identity): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = PageIntelligenceReportDelivery::query()
+            ->where('report_id', $report->id)
+            ->where('channel', $identity['channel']);
+
+        if ($identity['recipient_user_id'] === null) {
+            $query->whereNull('recipient_user_id');
+        } else {
+            $query->where('recipient_user_id', $identity['recipient_user_id']);
+        }
+
+        if ($identity['recipient_email'] === null) {
+            $query->whereNull('recipient_email');
+        } else {
+            $query->where('recipient_email', $identity['recipient_email']);
+        }
+
+        return $query;
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+        $driverCode = (string) ($exception->errorInfo[1] ?? '');
+
+        return in_array($sqlState, ['23000', '23505'], true)
+            || in_array($driverCode, ['19', '1062'], true);
     }
 
     /**

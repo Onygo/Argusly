@@ -289,6 +289,22 @@ it('renders content image asset src values from public content images instead of
         ->assertDontSee('/storage/content-images/rendered-original.jpg', false);
 });
 
+it('serves content image URLs from persistent public storage when the public symlink is missing', function (): void {
+    Storage::fake('public');
+    config()->set('domains.base', 'argusly.local');
+
+    Storage::disk('public')->put('content-images/fallback/featured.png', 'image-bytes');
+
+    $response = $this->get('https://argusly.local/content-images/fallback/featured.png')
+        ->assertOk()
+        ->assertContent('image-bytes');
+
+    expect($response->headers->get('Cache-Control'))
+        ->toContain('public')
+        ->toContain('max-age=31536000')
+        ->toContain('immutable');
+});
+
 it('shows reusable image assets from linked locale variants', function (): void {
     [$user, $source] = createContentImageAssetContext();
     $target = createLinkedLocaleContentVariant($source, 'nl');

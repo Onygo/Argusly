@@ -111,6 +111,11 @@ Schedule::command('support:cleanup-snapshots --days=7')
     ->dailyAt('03:10')
     ->withoutOverlapping();
 
+Schedule::command('page-intelligence:run-scheduled-briefings --limit=50')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping(10)
+    ->appendOutputTo($scheduleLogPath . '/page-intelligence-run-scheduled-briefings.log');
+
 Schedule::command('billing:diagnose-mollie-webhook-gaps --hours=6 --limit=300 --notify-email=dev@argusly.com --alert-cooldown-minutes=120 --fail-on-issues')
     ->everyFifteenMinutes()
     ->withoutOverlapping();

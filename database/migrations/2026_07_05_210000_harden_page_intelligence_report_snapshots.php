@@ -8,21 +8,28 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Recover from failed deploys that created this new table before its indexes/foreign keys completed.
+        Schema::dropIfExists('page_intelligence_report_snapshot_allocations');
+
         Schema::create('page_intelligence_report_snapshot_allocations', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->foreignId('organization_id')->nullable()->constrained()->nullOnDelete();
-            $table->uuid('workspace_id')->index();
-            $table->uuid('client_site_id')->nullable()->index();
-            $table->string('report_type', 80)->index();
-            $table->string('market_pack_key', 120)->nullable()->index();
+            $table->foreignId('organization_id')->nullable();
+            $table->uuid('workspace_id')->index('pi_snap_alloc_workspace_idx');
+            $table->uuid('client_site_id')->nullable()->index('pi_snap_alloc_client_site_idx');
+            $table->string('report_type', 80)->index('pi_snap_alloc_report_type_idx');
+            $table->string('market_pack_key', 120)->nullable()->index('pi_snap_alloc_market_pack_key_idx');
             $table->timestamp('period_start')->nullable();
             $table->timestamp('period_end')->nullable();
-            $table->char('identity_hash', 64)->unique();
+            $table->char('identity_hash', 64)->unique('pi_snap_alloc_identity_hash_unique');
             $table->unsignedInteger('current_version')->default(0);
             $table->timestamps();
 
-            $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreign('client_site_id')->references('id')->on('client_sites')->nullOnDelete();
+            $table->foreign('organization_id', 'pi_snap_alloc_org_fk')
+                ->references('id')->on('organizations')->nullOnDelete();
+            $table->foreign('workspace_id', 'pi_snap_alloc_workspace_fk')
+                ->references('id')->on('workspaces')->cascadeOnDelete();
+            $table->foreign('client_site_id', 'pi_snap_alloc_client_site_fk')
+                ->references('id')->on('client_sites')->nullOnDelete();
         });
 
         Schema::table('page_intelligence_reports', function (Blueprint $table): void {
