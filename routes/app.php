@@ -134,8 +134,10 @@ Route::post('/invite/{token}', [AppSettingsController::class, 'accept'])->name('
 Route::get('/billing/return', [PackReturnController::class, 'handle'])
     ->name('billing.pack.return');
 
-Route::get('/_test/pack-checkout/{purchaseId}', [PackCheckoutTestController::class, 'checkout'])
-    ->name('test.pack.checkout');
+if (app()->environment(['local', 'testing'])) {
+    Route::get('/_test/pack-checkout/{purchaseId}', [PackCheckoutTestController::class, 'checkout'])
+        ->name('test.pack.checkout');
+}
 
 // App routes (no /app prefix - we're on the app subdomain)
 Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonly', 'email.code.verified', 'user.approved', 'user.org', 'onboarding.billing'])

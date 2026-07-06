@@ -89,7 +89,7 @@ return [
     ],
 
     'wp_connector' => [
-        'require_timestamp_nonce' => (bool) env('ARGUSLY_WP_REQUIRE_TS_NONCE', false),
+        'require_timestamp_nonce' => (bool) env('ARGUSLY_WP_REQUIRE_TS_NONCE', true),
         'timestamp_ttl_seconds' => (int) env('ARGUSLY_WP_TS_NONCE_TTL', 300),
         'allow_insecure_local_tls' => (bool) env('ARGUSLY_WP_ALLOW_INSECURE_LOCAL_TLS', true),
         'recent_activity_window_minutes' => (int) env('ARGUSLY_WP_RECENT_ACTIVITY_WINDOW_MINUTES', 15),
@@ -126,6 +126,7 @@ return [
         'public_registration_enabled' => (bool) env('PUBLIC_REGISTRATION_ENABLED', true),
         'public_pricing_enabled' => (bool) env('PUBLIC_PRICING_ENABLED', true),
         'registration_block_mode' => (string) env('PUBLIC_REGISTRATION_BLOCK_MODE', 'redirect'),
+        'legacy_path_routes_enabled' => (bool) env('ARGUSLY_LEGACY_PATH_ROUTES_ENABLED', env('APP_ENV') !== 'production'),
     ],
 
     'auth' => [

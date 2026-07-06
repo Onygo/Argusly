@@ -301,7 +301,7 @@ it('creates delivery records and an in-app notification for scheduled snapshots'
     expect(PageIntelligenceReport::query()->count())->toBe(1);
     $report = PageIntelligenceReport::query()->firstOrFail();
 
-    expect(PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->count())->toBe(3)
+    expect(PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->count())->toBe(4)
         ->and(PageIntelligenceReportDelivery::query()
             ->where('report_id', $report->id)
             ->where('recipient_user_id', $user->id)
@@ -318,7 +318,7 @@ it('creates delivery records and an in-app notification for scheduled snapshots'
             ->where('meta->page_intelligence_report_id', $report->id)
             ->count())->toBe(1)
         ->and(data_get($briefing->refresh()->delivery_state_json, 'delivered'))->toBe(1)
-        ->and(data_get($briefing->delivery_state_json, 'skipped'))->toBe(2);
+        ->and(data_get($briefing->delivery_state_json, 'skipped'))->toBe(3);
 
     Mail::assertNothingSent();
     Notification::assertNothingSent();
@@ -370,9 +370,107 @@ it('keeps in-app delivery tenant safe', function (): void {
 
     $report = PageIntelligenceReport::query()->firstOrFail();
 
-    expect(PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->count())->toBe(1)
-        ->and(PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->value('recipient_user_id'))->toBe($user->id)
+    expect(PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->count())->toBe(2)
+        ->and(PageIntelligenceReportDelivery::query()
+            ->where('report_id', $report->id)
+            ->where('recipient_user_id', $user->id)
+            ->where('channel', PageIntelligenceReportDelivery::CHANNEL_IN_APP)
+            ->value('status'))->toBe(PageIntelligenceReportDelivery::STATUS_DELIVERED)
+        ->and(PageIntelligenceReportDelivery::query()
+            ->where('report_id', $report->id)
+            ->where('recipient_email', mb_strtolower((string) $otherUser->email))
+            ->where('channel', PageIntelligenceReportDelivery::CHANNEL_IN_APP)
+            ->value('failure_category'))->toBe('recipient_unauthorized')
         ->and(WorkspaceNotification::query()->where('user_id', $otherUser->id)->count())->toBe(0);
+
+    Carbon::setTestNow();
+});
+
+it('creates a skipped delivery row for unresolved in-app recipients', function (): void {
+    Carbon::setTestNow('2026-07-06 12:00:00');
+    Bus::fake([GeneratePageIntelligenceReportArtifactJob::class]);
+    [$workspace, $user] = scheduledBriefingWorkspace();
+    $briefing = scheduledBriefing($workspace, $user, [
+        'next_run_at' => now()->subMinute(),
+        'recipients_json' => ['missing-recipient@example.com'],
+        'delivery_channels_json' => ['in_app'],
+        'scheduler_claimed_at' => now(),
+        'scheduler_claim_expires_at' => now()->addMinutes(10),
+        'scheduler_claim_token' => 'unresolved-recipient-claim',
+    ]);
+
+    (new GenerateScheduledPageIntelligenceBriefingJob((string) $briefing->id, 'unresolved-recipient-claim'))->handle(app(ScheduledBriefingContract::class));
+
+    $report = PageIntelligenceReport::query()->firstOrFail();
+    $delivery = PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->firstOrFail();
+
+    expect($delivery->recipient_email)->toBe('missing-recipient@example.com')
+        ->and($delivery->channel)->toBe(PageIntelligenceReportDelivery::CHANNEL_IN_APP)
+        ->and($delivery->status)->toBe(PageIntelligenceReportDelivery::STATUS_SKIPPED)
+        ->and($delivery->failure_category)->toBe('recipient_unresolved')
+        ->and(data_get($delivery->metadata_json, 'skip_reason'))->toBe('recipient_unresolved')
+        ->and(WorkspaceNotification::query()->where('workspace_id', $workspace->id)->count())->toBe(0);
+
+    Carbon::setTestNow();
+});
+
+it('creates a skipped delivery row for unauthorized in-app recipients', function (): void {
+    Carbon::setTestNow('2026-07-06 12:00:00');
+    Bus::fake([GeneratePageIntelligenceReportArtifactJob::class]);
+    [$workspace, $user] = scheduledBriefingWorkspace();
+    [, $otherUser] = scheduledBriefingWorkspace('Unauthorized Recipient Workspace');
+    $briefing = scheduledBriefing($workspace, $user, [
+        'next_run_at' => now()->subMinute(),
+        'recipients_json' => [$otherUser->email],
+        'delivery_channels_json' => ['in_app'],
+        'scheduler_claimed_at' => now(),
+        'scheduler_claim_expires_at' => now()->addMinutes(10),
+        'scheduler_claim_token' => 'unauthorized-recipient-claim',
+    ]);
+
+    (new GenerateScheduledPageIntelligenceBriefingJob((string) $briefing->id, 'unauthorized-recipient-claim'))->handle(app(ScheduledBriefingContract::class));
+
+    $report = PageIntelligenceReport::query()->firstOrFail();
+    $delivery = PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->firstOrFail();
+
+    expect($delivery->recipient_user_id)->toBeNull()
+        ->and($delivery->recipient_email)->toBe(mb_strtolower((string) $otherUser->email))
+        ->and($delivery->status)->toBe(PageIntelligenceReportDelivery::STATUS_SKIPPED)
+        ->and($delivery->failure_category)->toBe('recipient_unauthorized')
+        ->and($delivery->error)->toContain('not authorized')
+        ->and(WorkspaceNotification::query()->where('user_id', $otherUser->id)->count())->toBe(0);
+
+    Carbon::setTestNow();
+});
+
+it('keeps email delivery disabled and records only skipped placeholders', function (): void {
+    Carbon::setTestNow('2026-07-06 12:00:00');
+    Bus::fake([GeneratePageIntelligenceReportArtifactJob::class]);
+    Mail::fake();
+    Notification::fake();
+    [$workspace, $user] = scheduledBriefingWorkspace();
+    $briefing = scheduledBriefing($workspace, $user, [
+        'next_run_at' => now()->subMinute(),
+        'recipients_json' => ['email-only@example.com'],
+        'delivery_channels_json' => ['email_placeholder'],
+        'scheduler_claimed_at' => now(),
+        'scheduler_claim_expires_at' => now()->addMinutes(10),
+        'scheduler_claim_token' => 'email-placeholder-claim',
+    ]);
+
+    (new GenerateScheduledPageIntelligenceBriefingJob((string) $briefing->id, 'email-placeholder-claim'))->handle(app(ScheduledBriefingContract::class));
+
+    $report = PageIntelligenceReport::query()->firstOrFail();
+    $delivery = PageIntelligenceReportDelivery::query()->where('report_id', $report->id)->firstOrFail();
+
+    expect($delivery->channel)->toBe(PageIntelligenceReportDelivery::CHANNEL_EMAIL_PLACEHOLDER)
+        ->and($delivery->status)->toBe(PageIntelligenceReportDelivery::STATUS_SKIPPED)
+        ->and($delivery->provider_status)->toBe('disabled')
+        ->and($delivery->failure_category)->toBe('email_delivery_disabled')
+        ->and(data_get($briefing->refresh()->delivery_state_json, 'email_sent'))->toBeFalse();
+
+    Mail::assertNothingSent();
+    Notification::assertNothingSent();
 
     Carbon::setTestNow();
 });

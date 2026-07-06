@@ -34,9 +34,21 @@ class PageIntelligenceReportDeliveryService
         $deliveries = collect();
 
         if ($this->shouldDeliverInApp($channels)) {
-            $internalUsers = $this->internalUsers($report, $recipients);
-            foreach ($internalUsers as $user) {
-                $deliveries->push($this->deliverInApp($report, $schedule, $user));
+            foreach ($recipients as $email) {
+                $recipient = $this->resolveInAppRecipient($report, $email);
+
+                if ($recipient instanceof User) {
+                    $deliveries->push($this->deliverInApp($report, $schedule, $recipient));
+
+                    continue;
+                }
+
+                $deliveries->push($this->recordSkippedInAppRecipient(
+                    $report,
+                    $schedule,
+                    $email,
+                    $recipient,
+                ));
             }
         }
 
@@ -78,6 +90,12 @@ class PageIntelligenceReportDeliveryService
         }
 
         try {
+            $delivery->forceFill([
+                'attempt_count' => (int) $delivery->attempt_count + 1,
+                'last_attempt_at' => now(),
+                'provider_status' => 'in_app_attempted',
+            ])->save();
+
             $notification = $this->notifications->notifyUser(
                 (int) $user->id,
                 (string) $report->workspace_id,
@@ -100,6 +118,8 @@ class PageIntelligenceReportDeliveryService
                 'status' => PageIntelligenceReportDelivery::STATUS_DELIVERED,
                 'delivered_at' => $delivery->delivered_at ?? now(),
                 'failed_at' => null,
+                'provider_status' => 'delivered',
+                'failure_category' => null,
                 'error' => null,
                 'metadata_json' => array_merge((array) ($delivery->metadata_json ?? []), [
                     'notification_id' => $notification->id,
@@ -110,9 +130,41 @@ class PageIntelligenceReportDeliveryService
             $delivery->forceFill([
                 'status' => PageIntelligenceReportDelivery::STATUS_FAILED,
                 'failed_at' => now(),
+                'provider_status' => 'failed',
+                'failure_category' => 'notification_create_failed',
                 'error' => mb_substr($exception->getMessage(), 0, 4000),
             ])->save();
         }
+
+        return $delivery->refresh();
+    }
+
+    private function recordSkippedInAppRecipient(PageIntelligenceReport $report, ScheduledPageIntelligenceBriefing $schedule, string $email, string $reason): PageIntelligenceReportDelivery
+    {
+        $delivery = $this->firstOrCreateDelivery($report, $schedule, [
+            'recipient_user_id' => null,
+            'recipient_email' => $email,
+            'channel' => PageIntelligenceReportDelivery::CHANNEL_IN_APP,
+        ], [
+            'metadata_json' => [
+                'source' => 'scheduled_page_intelligence_briefing',
+                'recipient_type' => 'unresolved_in_app_recipient',
+                'skip_reason' => $reason,
+            ],
+        ]);
+
+        $delivery->forceFill([
+            'status' => PageIntelligenceReportDelivery::STATUS_SKIPPED,
+            'delivered_at' => null,
+            'failed_at' => null,
+            'provider_status' => 'skipped',
+            'failure_category' => $reason,
+            'error' => $this->skippedInAppMessage($reason),
+            'metadata_json' => array_merge((array) ($delivery->metadata_json ?? []), [
+                'recipient_type' => 'unresolved_in_app_recipient',
+                'skip_reason' => $reason,
+            ]),
+        ])->save();
 
         return $delivery->refresh();
     }
@@ -132,18 +184,18 @@ class PageIntelligenceReportDeliveryService
             ],
         ]);
 
-        if ($delivery->status !== PageIntelligenceReportDelivery::STATUS_SKIPPED) {
-            $delivery->forceFill([
-                'status' => PageIntelligenceReportDelivery::STATUS_SKIPPED,
-                'delivered_at' => null,
-                'failed_at' => null,
-                'error' => 'Email delivery is not implemented.',
-                'metadata_json' => array_merge((array) ($delivery->metadata_json ?? []), [
-                    'requested_channel' => 'email',
-                    'disabled_reason' => 'email_delivery_not_implemented',
-                ]),
-            ])->save();
-        }
+        $delivery->forceFill([
+            'status' => PageIntelligenceReportDelivery::STATUS_SKIPPED,
+            'delivered_at' => null,
+            'failed_at' => null,
+            'provider_status' => 'disabled',
+            'failure_category' => 'email_delivery_disabled',
+            'error' => 'Email delivery is not implemented.',
+            'metadata_json' => array_merge((array) ($delivery->metadata_json ?? []), [
+                'requested_channel' => 'email',
+                'disabled_reason' => 'email_delivery_not_implemented',
+            ]),
+        ])->save();
 
         return $delivery->refresh();
     }
@@ -248,22 +300,30 @@ class PageIntelligenceReportDeliveryService
         return $channels === [] ? [PageIntelligenceReportDelivery::CHANNEL_IN_APP] : $channels;
     }
 
-    /**
-     * @param array<int,string> $recipientEmails
-     * @return Collection<int,User>
-     */
-    private function internalUsers(PageIntelligenceReport $report, array $recipientEmails): Collection
+    private function resolveInAppRecipient(PageIntelligenceReport $report, string $recipientEmail): User|string
     {
-        if ($recipientEmails === []) {
-            return collect();
+        $user = User::query()
+            ->where('email', $recipientEmail)
+            ->orderBy('id')
+            ->first();
+
+        if (! $user instanceof User) {
+            return 'recipient_unresolved';
         }
 
-        return User::query()
-            ->where('organization_id', $report->workspace?->organization_id)
-            ->where('active', true)
-            ->whereIn('email', $recipientEmails)
-            ->orderBy('id')
-            ->get();
+        if ((int) ($user->organization_id ?? 0) !== (int) ($report->workspace?->organization_id ?? 0) || ! (bool) $user->active) {
+            return 'recipient_unauthorized';
+        }
+
+        return $user;
+    }
+
+    private function skippedInAppMessage(string $reason): string
+    {
+        return match ($reason) {
+            'recipient_unauthorized' => 'In-app recipient is not authorized for this workspace.',
+            default => 'In-app recipient could not be resolved.',
+        };
     }
 
     /**

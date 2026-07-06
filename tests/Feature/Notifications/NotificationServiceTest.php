@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Notifications\NotificationService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -54,6 +55,66 @@ it('creates workspace-wide and user-specific notifications', function () {
     expect((int) $workspaceWide->priority)->toBe(WorkspaceNotification::PRIORITY_SYSTEM);
     expect((int) $userSpecific->user_id)->toBe((int) $user->id);
     expect((int) $userSpecific->priority)->toBe(WorkspaceNotification::PRIORITY_ACTION_REQUIRED);
+});
+
+it('uses a database-backed dedupe key so concurrent notification creates cannot duplicate rows', function () {
+    [$organization, $workspace] = makeNotificationWorkspaceContext();
+
+    $user = User::query()->create([
+        'name' => 'Notif Dedupe User',
+        'email' => 'notif-dedupe+' . Str::lower(Str::random(6)) . '@example.com',
+        'password' => bcrypt('secret'),
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'active' => true,
+        'approved_at' => now(),
+        'is_admin' => false,
+    ]);
+
+    $service = app(NotificationService::class);
+    $options = [
+        'dedupe_key' => 'notification-service-test:'.$workspace->id.':'.$user->id,
+        'meta' => ['source' => 'notification_service_test'],
+    ];
+
+    $first = $service->notifyUser(
+        userId: (int) $user->id,
+        workspaceId: (string) $workspace->id,
+        type: WorkspaceNotification::TYPE_SYSTEM,
+        title: 'Dedupe test',
+        body: 'Only one row should exist.',
+        options: $options,
+    );
+
+    expect($first->dedupe_key)->toBe($options['dedupe_key'])
+        ->and($first->dedupe_scope)->not->toBeEmpty()
+        ->and(data_get($first->meta, 'dedupe_key'))->toBe($options['dedupe_key']);
+
+    expect(fn () => WorkspaceNotification::query()->create([
+        'workspace_id' => (string) $workspace->id,
+        'target_scope' => WorkspaceNotification::TARGET_SCOPE_WORKSPACE,
+        'is_admin_only' => false,
+        'user_id' => (int) $user->id,
+        'type' => WorkspaceNotification::TYPE_SYSTEM,
+        'title' => 'Concurrent duplicate',
+        'body' => 'This simulates the losing insert in a race.',
+        'priority' => WorkspaceNotification::PRIORITY_SYSTEM,
+        'dedupe_key' => $first->dedupe_key,
+        'dedupe_scope' => $first->dedupe_scope,
+        'meta' => ['dedupe_key' => $first->dedupe_key],
+    ]))->toThrow(QueryException::class);
+
+    $second = $service->notifyUser(
+        userId: (int) $user->id,
+        workspaceId: (string) $workspace->id,
+        type: WorkspaceNotification::TYPE_SYSTEM,
+        title: 'Dedupe test retry',
+        body: 'The service should return the existing row.',
+        options: $options,
+    );
+
+    expect($second->id)->toBe($first->id)
+        ->and(WorkspaceNotification::query()->where('dedupe_key', $options['dedupe_key'])->count())->toBe(1);
 });
 
 it('keeps admin scoped and workspace scoped notifications strictly separated', function () {

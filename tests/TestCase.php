@@ -36,6 +36,7 @@ abstract class TestCase extends BaseTestCase
             'argusly.launch.public_registration_enabled' => true,
             'argusly.launch.public_pricing_enabled' => true,
             'argusly.launch.registration_block_mode' => 'redirect',
+            'argusly.wp_connector.require_timestamp_nonce' => false,
         ]);
     }
 

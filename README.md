@@ -1,6 +1,6 @@
-# PublishLayer (PL)
+# Argusly
 
-PublishLayer is a multi-tenant Laravel 12 platform for content operations with WordPress integration.
+Argusly is a multi-tenant Laravel 12 SaaS platform for agentic marketing, content intelligence, and connected publishing.
 
 ## Core Product Areas
 
@@ -46,9 +46,9 @@ Unified content model:
 Typical flow:
 
 1. WordPress plugin posts brief to `/api/v1/briefs`.
-2. PL creates/updates `content` and brief records.
+2. Argusly creates/updates `content` and brief records.
 3. Draft generation runs via jobs.
-4. Revisions are created in PL and can be restored.
+4. Revisions are created in Argusly and can be restored.
 5. Repush sends current content to WordPress webhook.
 
 ## Draft Compare (new)
@@ -134,7 +134,7 @@ Use `GET /app/sites` to connect and manage WordPress sites per workspace.
 Flow:
 
 1. Add site (`name`, `site_url`) in `/app/sites`.
-2. PublishLayer creates a pending `client_site` and generates a site key.
+2. Argusly creates a pending `client_site` and generates a site key.
 3. Copy the key once and paste it in the WordPress plugin.
 4. Plugin calls heartbeat and site status moves to `connected`.
 5. Use brief and draft flows with site context and entitlement checks.
@@ -157,12 +157,12 @@ Optional replay-protection headers:
 - `X-PL-Timestamp: <unix_seconds>`
 - `X-PL-Nonce: <unique_nonce>`
 
-Replay protection is configurable in `config/publishlayer.php`:
+Replay protection is enabled by default and configurable in `config/argusly.php`:
 
 - `wp_connector.require_timestamp_nonce`
 - `wp_connector.timestamp_ttl_seconds`
 
-When strict mode is disabled, older plugin versions without timestamp and nonce continue to work.
+When strict mode is explicitly disabled, older connector versions without timestamp and nonce continue to work.
 
 ## Heartbeat Endpoint
 
@@ -238,7 +238,7 @@ php artisan queue:work --queue=deliveries --timeout=120
 
 ## Product-Led Onboarding Flow
 
-PublishLayer tracks onboarding progression in `onboarding_states` and uses event driven updates:
+Argusly tracks onboarding progression in `onboarding_states` and uses event driven updates:
 
 - registration
 - first login
@@ -302,15 +302,22 @@ Public blog documentation and configuration:
 
 - `docs/public-blog.md`
 
+## Launch Readiness
+
+- Production operations runbook: `docs/launch-operations-runbook.md`
+- Compliance pack: `docs/compliance-pack.md`
+- Security hardening notes: `docs/security-hardening.md`
+
 ## Tests
 
 ```bash
 php artisan test
+php artisan test tests/Feature/LaunchReadiness/LaunchReadinessSmokeTest.php
 ```
 
 ## Config
 
-`config/publishlayer.php` includes:
+`config/argusly.php` includes:
 
 - `admin_key`
 - AI provider settings
@@ -352,4 +359,4 @@ Provider selection order:
 - Eloquent + migrations
 - Blade UI
 - Queue jobs for async processing
-- WordPress connector via signed webhooks and site tokens
+- WordPress and Laravel connectors via signed webhooks and site tokens

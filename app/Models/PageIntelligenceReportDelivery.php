@@ -28,13 +28,20 @@ class PageIntelligenceReportDelivery extends Model
         'recipient_email',
         'channel',
         'status',
+        'attempt_count',
+        'last_attempt_at',
         'delivered_at',
         'failed_at',
+        'provider_message_id',
+        'provider_status',
+        'failure_category',
         'error',
         'metadata_json',
     ];
 
     protected $casts = [
+        'attempt_count' => 'integer',
+        'last_attempt_at' => 'datetime',
         'delivered_at' => 'datetime',
         'failed_at' => 'datetime',
         'metadata_json' => 'array',

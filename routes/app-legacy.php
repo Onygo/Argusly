@@ -48,7 +48,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/billing/return', [PackReturnController::class, 'handle']);
 
-Route::get('/_test/pack-checkout/{purchaseId}', [PackCheckoutTestController::class, 'checkout']);
+if (app()->environment(['local', 'testing'])) {
+    Route::get('/_test/pack-checkout/{purchaseId}', [PackCheckoutTestController::class, 'checkout']);
+}
 
 // App routes with auth middleware
 Route::middleware(['auth', 'support.context:app', 'support.readonly', 'email.code.verified', 'user.approved', 'user.org', 'onboarding.billing'])

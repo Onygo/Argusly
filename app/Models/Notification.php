@@ -35,6 +35,8 @@ class Notification extends Model
         'priority',
         'read_at',
         'created_by_admin_id',
+        'dedupe_key',
+        'dedupe_scope',
         'meta',
     ];
 

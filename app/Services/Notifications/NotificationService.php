@@ -8,6 +8,7 @@ use App\Models\Workspace;
 use Illuminate\Support\Collection;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Gate;
 use InvalidArgumentException;
 
@@ -35,14 +36,16 @@ class NotificationService
             'cta_url' => $this->nullableTrim($options['cta_url'] ?? null),
             'priority' => isset($options['priority']) ? (int) $options['priority'] : Notification::defaultPriorityForType($type),
             'created_by_admin_id' => isset($options['created_by_admin_id']) ? (int) $options['created_by_admin_id'] : null,
+            'dedupe_key' => $this->resolveDedupeKey($options),
             'meta' => $this->resolveMeta($options),
         ];
+        $attributes['dedupe_scope'] = $this->resolveDedupeScope($attributes);
 
         if ($existing = $this->resolveDeduped($attributes, $options)) {
             return $existing;
         }
 
-        return Notification::query()->create($attributes);
+        return $this->createNotification($attributes, $options);
     }
 
     public function notifyUser(
@@ -73,14 +76,16 @@ class NotificationService
             'cta_url' => $this->nullableTrim($options['cta_url'] ?? null),
             'priority' => isset($options['priority']) ? (int) $options['priority'] : Notification::defaultPriorityForType($type),
             'created_by_admin_id' => isset($options['created_by_admin_id']) ? (int) $options['created_by_admin_id'] : null,
+            'dedupe_key' => $this->resolveDedupeKey($options),
             'meta' => $this->resolveMeta($options),
         ];
+        $attributes['dedupe_scope'] = $this->resolveDedupeScope($attributes);
 
         if ($existing = $this->resolveDeduped($attributes, $options)) {
             return $existing;
         }
 
-        return Notification::query()->create($attributes);
+        return $this->createNotification($attributes, $options);
     }
 
     public function notifyAdmin(
@@ -120,14 +125,16 @@ class NotificationService
             'cta_url' => $this->nullableTrim($options['cta_url'] ?? null),
             'priority' => isset($options['priority']) ? (int) $options['priority'] : Notification::defaultPriorityForType($type),
             'created_by_admin_id' => isset($options['created_by_admin_id']) ? (int) $options['created_by_admin_id'] : null,
+            'dedupe_key' => $this->resolveDedupeKey($options),
             'meta' => $this->resolveMeta($options),
         ];
+        $attributes['dedupe_scope'] = $this->resolveDedupeScope($attributes);
 
         if ($existing = $this->resolveDeduped($attributes, $options)) {
             return $existing;
         }
 
-        return Notification::query()->create($attributes);
+        return $this->createNotification($attributes, $options);
     }
 
     public function markRead(string $notificationId, User $actor): Notification
@@ -359,7 +366,7 @@ class NotificationService
     {
         $meta = is_array($options['meta'] ?? null) ? $options['meta'] : [];
 
-        $dedupeKey = trim((string) ($options['dedupe_key'] ?? ''));
+        $dedupeKey = (string) ($this->resolveDedupeKey($options) ?? '');
         if ($dedupeKey !== '') {
             $meta['dedupe_key'] = $dedupeKey;
         }
@@ -373,8 +380,8 @@ class NotificationService
      */
     private function resolveDeduped(array $attributes, array $options): ?Notification
     {
-        $dedupeKey = trim((string) ($options['dedupe_key'] ?? ''));
-        if ($dedupeKey === '') {
+        $dedupeKey = $this->resolveDedupeKey($options);
+        if ($dedupeKey === null) {
             return null;
         }
 
@@ -382,7 +389,10 @@ class NotificationService
             ->where('target_scope', $attributes['target_scope'] ?? Notification::TARGET_SCOPE_WORKSPACE)
             ->where('is_admin_only', (bool) ($attributes['is_admin_only'] ?? false))
             ->where('type', $attributes['type'])
-            ->where('meta->dedupe_key', $dedupeKey);
+            ->where(function (Builder $nested) use ($dedupeKey): void {
+                $nested->where('dedupe_key', $dedupeKey)
+                    ->orWhere('meta->dedupe_key', $dedupeKey);
+            });
 
         if (($attributes['workspace_id'] ?? null) === null) {
             $query->whereNull('workspace_id');
@@ -397,6 +407,65 @@ class NotificationService
         }
 
         return $query->first();
+    }
+
+    /**
+     * @param array<string,mixed> $attributes
+     * @param array<string,mixed> $options
+     */
+    private function createNotification(array $attributes, array $options): Notification
+    {
+        try {
+            return Notification::query()->create($attributes);
+        } catch (QueryException $exception) {
+            if (! $this->isUniqueConstraintViolation($exception)) {
+                throw $exception;
+            }
+
+            $existing = $this->resolveDeduped($attributes, $options);
+            if ($existing instanceof Notification) {
+                return $existing;
+            }
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $options
+     */
+    private function resolveDedupeKey(array $options): ?string
+    {
+        $dedupeKey = trim((string) ($options['dedupe_key'] ?? ''));
+
+        return $dedupeKey !== '' ? mb_substr($dedupeKey, 0, 255) : null;
+    }
+
+    /**
+     * @param array<string,mixed> $attributes
+     */
+    private function resolveDedupeScope(array $attributes): ?string
+    {
+        if (blank($attributes['dedupe_key'] ?? null)) {
+            return null;
+        }
+
+        return hash('sha256', implode('|', [
+            (string) ($attributes['target_scope'] ?? Notification::TARGET_SCOPE_WORKSPACE),
+            (bool) ($attributes['is_admin_only'] ?? false) ? 'admin_only' : 'visible',
+            (string) ($attributes['workspace_id'] ?? 'global'),
+            (string) ($attributes['user_id'] ?? 'workspace'),
+            (string) ($attributes['type'] ?? 'system'),
+        ]));
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+        $driverCode = (string) ($exception->errorInfo[1] ?? '');
+
+        return in_array($sqlState, ['23000', '23505'], true)
+            || in_array($driverCode, ['19', '1062'], true);
     }
 
     private function nullableTrim(mixed $value): ?string

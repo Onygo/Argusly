@@ -18,6 +18,7 @@ use App\Models\PageCompetitorMatch;
 use App\Models\PageContentExtraction;
 use App\Models\PageGeoObservation;
 use App\Models\PageIntelligenceReport;
+use App\Models\PageIntelligenceReportDelivery;
 use App\Models\PageMarketPackMatch;
 use App\Models\PagePrValue;
 use App\Models\PageScore;
@@ -318,6 +319,39 @@ it('does not enqueue duplicate manual artifact jobs while generation is pending'
 
     Bus::assertDispatchedTimes(GeneratePageIntelligenceReportArtifactJob::class, 1);
     expect($report->refresh()->artifact_status)->toBe(PageIntelligenceReport::ARTIFACT_STATUS_GENERATING);
+});
+
+it('persists provider-facing delivery state fields', function (): void {
+    [$workspace, $user] = pageIntelligenceReportScenario();
+    $report = app(ReportBuilder::class)->generate($workspace, ReportBuilder::TYPE_WEEKLY, [
+        'period_start' => Carbon::parse('2026-07-01'),
+        'period_end' => Carbon::parse('2026-07-08'),
+    ], $user);
+
+    $delivery = PageIntelligenceReportDelivery::query()->create([
+        'report_id' => $report->id,
+        'scheduled_briefing_id' => null,
+        'workspace_id' => $workspace->id,
+        'recipient_user_id' => $user->id,
+        'recipient_email' => mb_strtolower((string) $user->email),
+        'channel' => PageIntelligenceReportDelivery::CHANNEL_IN_APP,
+        'status' => PageIntelligenceReportDelivery::STATUS_FAILED,
+        'attempt_count' => 2,
+        'last_attempt_at' => Carbon::parse('2026-07-06 12:34:00'),
+        'provider_message_id' => 'provider-message-123',
+        'provider_status' => 'bounced',
+        'failure_category' => 'provider_rejected',
+        'error' => 'Provider rejected the message.',
+        'metadata_json' => ['source' => 'provider-state-test'],
+    ]);
+
+    $delivery->refresh();
+
+    expect($delivery->attempt_count)->toBe(2)
+        ->and($delivery->last_attempt_at?->toIso8601String())->toBe(Carbon::parse('2026-07-06 12:34:00')->toIso8601String())
+        ->and($delivery->provider_message_id)->toBe('provider-message-123')
+        ->and($delivery->provider_status)->toBe('bounced')
+        ->and($delivery->failure_category)->toBe('provider_rejected');
 });
 
 it('guards report artifact downloads with policy authorization', function (): void {

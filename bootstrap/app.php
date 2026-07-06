@@ -109,16 +109,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->name('compat.')
                 ->group(base_path('routes/api.php'));
 
-            // Legacy app routes with /app prefix (backwards compat for existing tests/bookmarks)
-            // These will eventually be removed once all tests are migrated to subdomain format
-            Route::middleware(['web', 'throttle:web'])
-                ->prefix('app')
-                ->group(base_path('routes/app-legacy.php'));
+            if ((bool) config('argusly.launch.legacy_path_routes_enabled', ! app()->isProduction())) {
+                // Compatibility path routes are opt-in for production launches.
+                Route::middleware(['web', 'throttle:web'])
+                    ->prefix('app')
+                    ->group(base_path('routes/app-legacy.php'));
 
-            // Legacy admin routes with /admin prefix (backwards compat)
-            Route::middleware(['web', 'throttle:web'])
-                ->prefix('admin')
-                ->group(base_path('routes/admin-legacy.php'));
+                Route::middleware(['web', 'throttle:web'])
+                    ->prefix('admin')
+                    ->group(base_path('routes/admin-legacy.php'));
+            }
 
             if (app()->environment(['local', 'testing'])) {
                 // Marketing routes also available without domain binding for local link audits and tests.

@@ -1,11 +1,12 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "onygo/argusly",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Argusly SaaS platform for agentic marketing, content intelligence, and connected publishing.",
     "keywords": [
-        "laravel",
-        "framework"
+        "argusly",
+        "agentic-marketing",
+        "content-intelligence"
     ],
     "license": "MIT",
     "require": {
