@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="min-h-screen bg-background antialiased text-textPrimary">
+<body class="pl-marketing-v2 min-h-screen bg-background antialiased text-textPrimary">
 @if (($fullBleed ?? false) === true)
     @yield('content')
 @else

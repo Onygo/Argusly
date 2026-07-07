@@ -43,7 +43,7 @@
         <script type="application/ld+json">{!! json_encode($faqSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
     @endif
 </head>
-<body class="bg-background text-textSecondary antialiased">
+<body class="pl-marketing-v2 bg-background text-textSecondary antialiased">
 @include('public.partials.analytics-body')
 @include('public.partials.nav')
 

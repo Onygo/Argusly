@@ -209,6 +209,8 @@ Route::middleware('public.context')->group(function () use ($marketingSegments, 
 
             Route::prefix($locale)->name($namePrefix)->group(function () use ($locale, $marketingSegments) {
                 Route::get('/', [LandingController::class, 'index'])->name('landing');
+                Route::get('/v2', [LandingController::class, 'previewV2'])->name('landing.v2');
+                Route::get('/homepage-v2', [LandingController::class, 'previewV2'])->name('landing.homepage-v2');
 
                 Route::get('/' . $marketingSegments->segment('pricing', $locale), [LandingController::class, 'pricing'])
                     ->middleware('early-access.guard:pricing')

@@ -23,7 +23,7 @@
     @vite(['resources/css/app.css', 'resources/js/public.js'])
     <script defer src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-background text-textSecondary antialiased">
+<body class="pl-marketing-v2 bg-background text-textSecondary antialiased">
 @include('public.partials.analytics-body')
 @include('public.partials.nav')
 @php

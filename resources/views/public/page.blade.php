@@ -19,7 +19,7 @@
         <x-forms.recaptcha-script />
     @endif
 </head>
-<body class="bg-background text-textSecondary antialiased">
+<body class="pl-marketing-v2 bg-background text-textSecondary antialiased">
 @include('public.partials.analytics-body')
 @include('public.partials.nav')
 @php

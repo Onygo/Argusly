@@ -8,6 +8,8 @@
         'metaDescription' => $metaDescription ?? __('public.landing.meta_description'),
         'canonicalUrl' => $canonicalUrl ?? null,
         'hreflangUrls' => $hreflangUrls ?? [],
+        'robotsIndex' => $robotsIndex ?? null,
+        'robotsFollow' => $robotsFollow ?? null,
         'ogType' => 'website',
     ])
     @include('partials.brand-meta')
@@ -16,7 +18,7 @@
     @vite(['resources/css/app.css', 'resources/js/public.js'])
     <script defer src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-background text-textSecondary antialiased">
+<body class="pl-marketing-v2 bg-background text-textSecondary antialiased">
 @include('public.partials.analytics-body')
 @php
     use App\Support\MarketingNavigation;
@@ -119,7 +121,7 @@
 
         <div class="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             @foreach(trans('public.landing.pains') as $pain)
-                <div class="pl-public-card-compact pl-public-canvas p-5">
+                <div class="pl-public-card-compact pl-public-canvas pl-v2-icon-yellow p-5">
                     <x-public.icon :name="$pain['icon']" size="sm" />
                     <h3 class="mt-4 text-sm font-semibold text-textPrimary">{{ $pain['title'] }}</h3>
                     <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $pain['text'] }}</p>

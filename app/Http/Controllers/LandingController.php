@@ -42,6 +42,21 @@ class LandingController extends Controller
         ]);
     }
 
+    public function previewV2(Request $request): View
+    {
+        $locale = (string) app()->getLocale();
+
+        return view('public.landing-v2', [
+            'initialSection' => (string) $request->query('section', ''),
+            'metaTitle' => 'Argusly homepage v2 preview',
+            'metaDescription' => 'A preview direction for the Argusly marketing homepage.',
+            'canonicalUrl' => LocalizedMarketingUrl::route('landing', [], $locale),
+            'hreflangUrls' => [],
+            'robotsIndex' => false,
+            'robotsFollow' => false,
+        ]);
+    }
+
     public function pricing(Request $request, MarketingPricingService $pricing): View|RedirectResponse
     {
         $locale = (string) app()->getLocale();

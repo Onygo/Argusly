@@ -16,7 +16,7 @@
     @vite(['resources/css/app.css', 'resources/js/public.js'])
     <script defer src="https://unpkg.com/lucide@latest"></script>
 </head>
-<body class="bg-background text-textSecondary antialiased">
+<body class="pl-marketing-v2 bg-background text-textSecondary antialiased">
 @include('public.partials.analytics-body')
 @include('public.partials.nav')
 
@@ -233,10 +233,10 @@
                     </div>
                 </article>
 
-                <article class="pl-public-card-compact p-7">
+                <article data-pricing-scale class="pl-public-card-compact p-7">
                     <p class="pl-public-eyebrow">{{ $pricingCopy['scale_title'] }}</p>
 
-                    <div class="mt-6 rounded-md border border-border/70 bg-white p-5">
+                    <div data-extra-site-card class="mt-6 rounded-md border border-border/70 bg-white p-5">
                         <h3 class="pl-public-heading pl-public-heading-h3">{{ $pricingCopy['extra_site_title'] }}</h3>
                         <p class="mt-3 pl-public-heading text-3xl text-textPrimary">
                             €29 <span class="text-sm font-medium text-textSecondary">{{ $locale === 'nl' ? '/maand per site' : '/month per site' }}</span>
@@ -244,25 +244,25 @@
                         <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $pricingCopy['extra_site_body'] }}</p>
                     </div>
 
-                    <div class="mt-5 rounded-md border border-border/70 bg-white p-5">
+                    <div data-credit-packs-card class="mt-5 rounded-md border border-border/70 bg-white p-5">
                         <h3 class="pl-public-heading pl-public-heading-h3">{{ $pricingCopy['credit_packs_title'] }}</h3>
                         <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $pricingCopy['credit_packs_body'] }}</p>
                         <div class="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                             @forelse($creditPacksCollection as $pack)
-                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                <div data-credit-pack class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
                                     <p class="text-sm font-semibold text-textPrimary">{{ number_format((int) ($pack['credits'] ?? 0)) }} credits</p>
                                     <p class="mt-1 text-sm text-textSecondary">{{ $formatCurrency($pack['price_cents'] ?? 0, (string) ($pack['currency'] ?? 'EUR')) }}</p>
                                 </div>
                             @empty
-                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                <div data-credit-pack class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
                                     <p class="text-sm font-semibold text-textPrimary">100 credits</p>
                                     <p class="mt-1 text-sm text-textSecondary">€39</p>
                                 </div>
-                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                <div data-credit-pack class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
                                     <p class="text-sm font-semibold text-textPrimary">500 credits</p>
                                     <p class="mt-1 text-sm text-textSecondary">€179</p>
                                 </div>
-                                <div class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
+                                <div data-credit-pack class="rounded-md border border-border/70 bg-[#f8fafc] p-4">
                                     <p class="text-sm font-semibold text-textPrimary">1,000 credits</p>
                                     <p class="mt-1 text-sm text-textSecondary">€329</p>
                                 </div>
@@ -326,7 +326,7 @@
                 </p>
             </div>
 
-            <div class="mt-10 hidden overflow-hidden rounded-md border border-border/80 bg-white md:block">
+            <div data-pricing-comparison class="mt-10 hidden overflow-hidden rounded-md border border-border/80 bg-white md:block">
                 <div class="grid grid-cols-[minmax(0,1.4fr)_180px_180px] border-b border-border/70 bg-[#f8fafc] px-6 py-4 text-sm font-semibold text-textPrimary">
                     <div>Capabilities</div>
                     <div class="text-center">{{ $comparison['left_label'] ?? 'Argusly' }}</div>
@@ -367,7 +367,7 @@
 
     <section class="bg-white">
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-2 md:py-20">
-            <div class="rounded-md border border-border/80 bg-[#f8fafc] p-7 sm:p-8">
+            <div data-team-workflow-card class="rounded-md border border-border/80 bg-[#f8fafc] p-7 sm:p-8">
                 <h2 class="pl-public-heading pl-public-heading-h2">{{ $teamWorkflow['title'] ?? $pricingCopy['team_title'] }}</h2>
                 <p class="mt-4 text-base leading-7 text-textSecondary">{{ $teamWorkflow['subtitle'] ?? $pricingCopy['team_body'] }}</p>
                 <ul class="mt-6 space-y-4 text-sm text-textSecondary">
@@ -380,7 +380,7 @@
                 </ul>
             </div>
 
-            <div class="rounded-md border border-border/80 bg-textPrimary p-7 text-white sm:p-8">
+            <div data-roi-card class="rounded-md border border-border/80 bg-textPrimary p-7 text-white sm:p-8">
                 <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ $roi['title'] ?? ($locale === 'nl' ? 'Van losse AI-output naar governed execution' : 'From isolated AI output to governed execution') }}</h2>
                 <ul class="mt-6 grid gap-4 sm:grid-cols-2">
                     @foreach((array) ($roi['items'] ?? []) as $item)
