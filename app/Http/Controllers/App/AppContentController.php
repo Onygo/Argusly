@@ -2317,7 +2317,7 @@ class AppContentController extends Controller
             abort(403, 'Image version does not belong to this content.');
         }
 
-        if ($imageVersion->is_active) {
+        if ($imageVersion->is_active && $this->imageVersionHasUsage($imageVersion)) {
             $replacement = ContentImage::query()
                 ->where('content_id', $content->id)
                 ->where('type', $imageVersion->type)
@@ -2348,6 +2348,15 @@ class AppContentController extends Controller
         $imageVersion->delete();
 
         return back()->with('status', ucfirst((string) $imageVersion->type).' image version deleted.');
+    }
+
+    private function imageVersionHasUsage(ContentImage $imageVersion): bool
+    {
+        return (bool) $imageVersion->display_on_website
+            || (bool) $imageVersion->display_as_featured_image
+            || (bool) $imageVersion->use_as_meta_image
+            || (bool) $imageVersion->use_as_social_image
+            || (bool) $imageVersion->use_for_linkedin;
     }
 
     private function resolveContentFromIdentifier(string $identifier): Content
@@ -3238,6 +3247,123 @@ class AppContentController extends Controller
 
         return back()->with('status', sprintf(
             'Queued %d Laravel connector sync(s). Skipped %d item(s).',
+            $queued,
+            $skipped
+        ));
+    }
+
+    public function bulkRepairKnowledgeBaseAndSync(
+        Request $request,
+        LaravelConnectorPublishingService $laravelPublishingService,
+        LaravelConnectorDestinationResolver $laravelDestinationResolver,
+        ContentPublicationService $publicationService,
+    ): RedirectResponse {
+        $this->authorize('viewAny', Content::class);
+
+        $data = $request->validate([
+            'content_ids' => ['required', 'array', 'min:1'],
+            'content_ids.*' => ['required', 'uuid'],
+        ]);
+
+        $organizationId = (int) $request->user()->organization_id;
+
+        $contents = Content::query()
+            ->with(['brief', 'drafts', 'series', 'clientSite', 'contentDestination'])
+            ->whereIn('id', (array) $data['content_ids'])
+            ->where(function ($query) use ($organizationId): void {
+                $query->whereHas('workspace', fn ($workspaceQuery) => $workspaceQuery->where('organization_id', $organizationId))
+                    ->orWhereHas('clientSite.workspace', fn ($workspaceQuery) => $workspaceQuery->where('organization_id', $organizationId));
+            })
+            ->get();
+
+        $repaired = 0;
+        $queued = 0;
+        $skipped = 0;
+        $repairedSeriesIds = [];
+
+        foreach ($contents as $content) {
+            if (! $request->user()->can('update', $content)) {
+                $skipped++;
+
+                continue;
+            }
+
+            try {
+                DB::transaction(function () use ($content, $laravelPublishingService, &$repairedSeriesIds): void {
+                    $content->forceFill([
+                        'type' => 'knowledge_base',
+                        'seo_canonical' => null,
+                    ])->save();
+
+                    if ($content->series instanceof ContentSeries && ! in_array((string) $content->series->id, $repairedSeriesIds, true)) {
+                        $content->series->forceFill([
+                            'content_type' => WordPressPostType::KNOWLEDGE_BASE->value,
+                        ])->save();
+
+                        $repairedSeriesIds[] = (string) $content->series->id;
+                    }
+
+                    $content->brief()->update([
+                        'content_type' => 'knowledge_base',
+                        'output_type' => 'kb_article',
+                    ]);
+
+                    foreach ($content->drafts as $draft) {
+                        $meta = is_array($draft->meta) ? $draft->meta : [];
+                        unset($meta['canonical_url'], $meta['published_url']);
+
+                        $draft->forceFill([
+                            'output_type' => 'kb_article',
+                            'seo_canonical' => null,
+                            'meta' => $meta,
+                        ])->save();
+                    }
+
+                    $fresh = $content->fresh(['clientSite', 'series']);
+                    if ($fresh instanceof Content) {
+                        $fresh->forceFill([
+                            'published_url' => $laravelPublishingService->resolveCurrentPublishedUrl($fresh),
+                        ])->save();
+                    }
+                });
+
+                $freshContent = $content->fresh(['clientSite', 'contentDestination']);
+                if (! $freshContent instanceof Content) {
+                    $skipped++;
+
+                    continue;
+                }
+
+                $laravelDestination = $laravelDestinationResolver->resolveForContent($freshContent);
+
+                if ($laravelDestination) {
+                    $publicationService->dispatchLaravelPublication($freshContent, null, [
+                        'source' => 'app.content.repair-kb-bulk',
+                        'force' => true,
+                        'allow_stale_reclaim' => true,
+                    ]);
+                } else {
+                    $laravelPublishingService->publish($freshContent, null, 'bulk_kb_repair', 'app.content.repair-kb-bulk');
+                }
+
+                $repaired++;
+                $queued++;
+            } catch (Throwable $exception) {
+                Log::error('content.bulk_repair_kb_failed', [
+                    'content_id' => (string) $content->id,
+                    'locale' => $content->localeCode(),
+                    'site_id' => (string) ($content->client_site_id ?? ''),
+                    'exception_class' => $exception::class,
+                    'exception_message' => $exception->getMessage(),
+                ]);
+
+                $skipped++;
+            }
+        }
+
+        return back()->with('status', sprintf(
+            'Moved %d content item(s) to Knowledge Base and queued %d Laravel connector sync(s). Skipped %d item(s).',
+            $repaired,
             $queued,
             $skipped
         ));

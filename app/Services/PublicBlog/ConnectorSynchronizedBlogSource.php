@@ -100,8 +100,14 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
                         ->reorder()
                         ->where('content_images.type', 'featured')
                         ->where('content_images.status', 'ready')
+                        ->where('content_images.is_active', true)
                         ->orderByDesc('content_images.is_active')
                         ->orderByDesc('content_images.created_at'),
+                ])
+                ->withExists([
+                    'images as has_managed_featured_image_history' => fn ($imageQuery) => $imageQuery
+                        ->withTrashed()
+                        ->where('content_images.type', 'featured'),
                 ])
                 ->where('type', 'article')
                 ->where(function ($visibilityQuery): void {
@@ -225,20 +231,27 @@ class ConnectorSynchronizedBlogSource implements PublicBlogSource
 
         $slug = $this->resolveSlug($content, $meta, $title);
         $publishedAt = $this->resolvePublishedAt($content, $meta);
+        $hasManagedFeaturedImageHistory = (bool) $content->getAttribute('has_managed_featured_image_history');
+        $featuredImageCandidates = [
+            // Canonical source: active featured image version selected in app history restore.
+            $this->resolveGeneratedFeaturedImageUrl($content),
+        ];
+
+        if (! $hasManagedFeaturedImageHistory) {
+            $featuredImageCandidates = array_merge($featuredImageCandidates, [
+                (string) data_get($meta, 'featured_image', ''),
+                (string) data_get($meta, 'featured_image_url', ''),
+                (string) data_get($meta, 'images.featured', ''),
+                (string) data_get($meta, 'hero_image', ''),
+            ]);
+        }
 
         return [
             'id' => (string) $content->id,
             'slug' => $slug,
             'title' => $title,
             'excerpt' => $this->resolveExcerpt($meta, $body),
-            'featured_image' => $this->firstNonEmpty([
-                // Canonical source: active featured image version selected in app history restore.
-                $this->resolveGeneratedFeaturedImageUrl($content),
-                (string) data_get($meta, 'featured_image', ''),
-                (string) data_get($meta, 'featured_image_url', ''),
-                (string) data_get($meta, 'images.featured', ''),
-                (string) data_get($meta, 'hero_image', ''),
-            ]),
+            'featured_image' => $this->firstNonEmpty($featuredImageCandidates),
             'featured_image_alt' => $this->firstNonEmpty([
                 (string) ($content->featuredImage?->alt_text ?? ''),
                 (string) data_get($meta, 'featured_image_alt', ''),

@@ -10,6 +10,7 @@ use App\Models\Content;
 use App\Models\ContentDestination;
 use App\Models\ContentPublication;
 use App\Models\ContentPublishTarget;
+use App\Models\ContentSeries;
 use App\Models\Draft;
 use App\Models\Organization;
 use App\Models\Plan;
@@ -1083,6 +1084,89 @@ it('queues bulk laravel connector sync for selected content', function () {
 
     Bus::assertDispatchedTimes(PublishContentJob::class, 2);
     Bus::assertNotDispatched(SyncLaravelKnowledgeArticleJob::class);
+});
+
+it('bulk repairs selected laravel connector content to knowledge base and queues sync', function () {
+    [$user, $site, $content, $draft] = makeLaravelConnectorPublishContext();
+
+    $destination = ContentDestination::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => $site->workspace_id,
+        'name' => 'Laravel Connector Destination',
+        'type' => 'laravel',
+        'status' => 'active',
+        'environment' => 'production',
+        'default_language' => 'en',
+        'tracking_enabled' => true,
+        'seo_audit_enabled' => true,
+        'config' => [
+            'billing_client_site_id' => (string) $site->id,
+            'laravel_connector' => [
+                'base_url' => 'https://publish-now.example.com',
+                'site_id' => 'publish-now-site',
+                'sync_endpoint' => '/argusly/sync',
+                'api_key_encrypted' => Crypt::encryptString('publish-now-secret'),
+                'enabled' => true,
+                'mode' => 'hosted_views',
+            ],
+        ],
+    ]);
+
+    $series = ContentSeries::query()->create([
+        'organization_id' => $user->organization_id,
+        'site_id' => $site->id,
+        'name' => 'Infodation KB Set',
+        'main_topic' => 'Integration architecture',
+        'primary_keyword' => 'integration architecture',
+        'articles_count' => 5,
+        'content_type' => 'post',
+        'status' => ContentSeries::STATUS_PUBLISHED,
+    ]);
+
+    $content->update([
+        'content_destination_id' => $destination->id,
+        'series_id' => $series->id,
+        'type' => 'article',
+        'language' => SupportedLanguage::EN->value,
+        'published_url' => 'https://publish-now.example.com/en/blog/immediate-publish-content',
+        'seo_canonical' => 'https://publish-now.example.com/en/blog/immediate-publish-content',
+    ]);
+
+    $content->brief?->update([
+        'content_type' => 'blog',
+        'output_type' => 'kb_article',
+    ]);
+
+    $draft->update([
+        'content_destination_id' => $destination->id,
+        'seo_canonical' => 'https://publish-now.example.com/en/blog/immediate-publish-content',
+        'meta' => [
+            'canonical_url' => 'https://publish-now.example.com/en/blog/immediate-publish-content',
+            'published_url' => 'https://publish-now.example.com/en/blog/immediate-publish-content',
+        ],
+    ]);
+
+    Bus::fake();
+
+    $this->actingAs($user)
+        ->post(route('app.content.repair-kb-bulk'), [
+            'content_ids' => [(string) $content->id],
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Moved 1 content item(s) to Knowledge Base and queued 1 Laravel connector sync(s). Skipped 0 item(s).');
+
+    Bus::assertDispatched(PublishContentJob::class);
+
+    $content->refresh();
+    $draft->refresh();
+
+    expect((string) $content->type)->toBe('knowledge_base')
+        ->and((string) $content->published_url)->toBe('https://publish-now.example.com/en/knowledge-base/immediate-publish-content')
+        ->and((string) $series->fresh()->content_type->value)->toBe('knowledge_base')
+        ->and((string) $content->brief?->fresh()->content_type)->toBe('knowledge_base')
+        ->and((string) $draft->seo_canonical)->toBe('')
+        ->and(data_get($draft->meta, 'canonical_url'))->toBeNull()
+        ->and(data_get($draft->meta, 'published_url'))->toBeNull();
 });
 
 it('verifies laravel routes through the generic verify action', function () {

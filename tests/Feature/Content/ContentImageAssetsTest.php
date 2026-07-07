@@ -2,6 +2,7 @@
 
 use App\Models\Content;
 use App\Models\ContentImage;
+use App\Models\ContentVersion;
 use App\Models\Campaign;
 use App\Models\Organization;
 use App\Models\Plan;
@@ -173,6 +174,87 @@ it('allows an active featured image asset to be disabled for content', function 
         ->and($content->refresh()->featuredImage)->toBeNull();
 });
 
+it('clears public blog featured image data when managed featured history is disabled', function (): void {
+    [$user, $content] = createContentImageAssetContext();
+
+    $version = ContentVersion::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'revision',
+        'body' => '<p>Body with a stale legacy meta image.</p>',
+        'meta' => [
+            'featured_image' => 'https://cdn.example.test/stale-meta-featured.png',
+        ],
+        'source' => 'pl',
+    ]);
+    $content->forceFill(['current_version_id' => (string) $version->id])->save();
+
+    $image = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'openai',
+        'image_url' => 'https://cdn.example.test/featured.png',
+        'status' => 'ready',
+        'is_active' => true,
+        'display_on_website' => true,
+        'display_as_featured_image' => true,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('app.content.images.usage.update', ['content' => $content, 'imageVersion' => $image]), [])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($content->refresh()->public_blog_featured_image_url)->toBeNull();
+});
+
+it('does not revive stale public blog image metadata after deleting a managed featured asset', function (): void {
+    [$user, $content] = createContentImageAssetContext();
+
+    $version = ContentVersion::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'revision',
+        'body' => '<p>Body with stale legacy image metadata.</p>',
+        'meta' => [
+            'featured_image' => 'https://cdn.example.test/stale-deleted-featured.png',
+        ],
+        'source' => 'pl',
+    ]);
+
+    $content->forceFill([
+        'current_version_id' => (string) $version->id,
+        'public_blog_featured_image_url' => 'https://cdn.example.test/previous-featured.png',
+    ])->save();
+
+    $image = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'openai',
+        'image_url' => 'https://cdn.example.test/deleted-featured.png',
+        'status' => 'ready',
+        'is_active' => false,
+        'display_on_website' => false,
+        'display_as_featured_image' => false,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->delete(route('app.content.images.versions.delete', ['content' => $content, 'imageVersion' => $image]))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(ContentImage::withTrashed()->find($image->id)?->trashed())->toBeTrue()
+        ->and($content->refresh()->public_blog_featured_image_url)->toBeNull();
+});
+
 it('shows a disable featured image control for active website images', function (): void {
     [$user, $content] = createContentImageAssetContext();
 
@@ -196,6 +278,29 @@ it('shows a disable featured image control for active website images', function 
         ->assertOk()
         ->assertSee('Disable featured image')
         ->assertSee(route('app.content.images.usage.update', ['content' => $content, 'imageVersion' => $image]), false);
+});
+
+it('shows a delete action for inactive content image assets', function (): void {
+    [$user, $content] = createContentImageAssetContext();
+
+    $image = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'openai',
+        'image_url' => 'https://cdn.example.test/inactive-featured.png',
+        'status' => 'ready',
+        'is_active' => false,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', ['content' => $content, 'tab' => 'images']))
+        ->assertOk()
+        ->assertSee('Delete asset')
+        ->assertSee(route('app.content.images.versions.delete', ['content' => $content, 'imageVersion' => $image]), false);
 });
 
 it('uploads campaign image assets with persisted usage flags', function (): void {

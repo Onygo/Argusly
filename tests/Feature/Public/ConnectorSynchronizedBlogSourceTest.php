@@ -69,6 +69,111 @@ it('uses generated featured image when post meta does not include one', function
         ->and($posts[0]['featured_image'])->toBe('https://cdn.example.com/generated/featured-post.png');
 });
 
+it('does not fall back to stale meta featured image when managed featured history is inactive', function () {
+    $organization = Organization::query()->create([
+        'name' => 'Inactive Featured Org',
+        'slug' => 'inactive-featured-org-'.Str::random(6),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'id' => (string) Str::uuid(),
+        'name' => 'Inactive Featured Workspace',
+        'organization_id' => $organization->id,
+    ]);
+    config()->set('marketing.blog_source.mode', 'workspace');
+    config()->set('marketing.blog_source.id', (string) $workspace->id);
+
+    $content = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'title' => 'Post Without Active Featured Image',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'wp',
+    ]);
+
+    $version = ContentVersion::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'revision',
+        'body' => '<p>This post used to have a featured image.</p>',
+        'meta' => [
+            'excerpt' => 'Excerpt with stale image fields.',
+            'featured_image' => 'https://cdn.example.com/stale/meta-featured.png',
+        ],
+        'source' => 'pl',
+    ]);
+
+    $content->update([
+        'current_version_id' => (string) $version->id,
+    ]);
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'status' => 'ready',
+        'is_active' => false,
+        'provider' => 'openai',
+        'image_url' => 'https://cdn.example.com/generated/inactive-featured-post.png',
+    ]);
+
+    $posts = app(ConnectorSynchronizedBlogSource::class)->fetchPublishedPosts();
+
+    expect($posts)->toHaveCount(1)
+        ->and($posts[0]['featured_image'])->toBe('');
+});
+
+it('keeps legacy meta featured images when there is no managed featured image history', function () {
+    $organization = Organization::query()->create([
+        'name' => 'Legacy Meta Featured Org',
+        'slug' => 'legacy-meta-featured-org-'.Str::random(6),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'id' => (string) Str::uuid(),
+        'name' => 'Legacy Meta Featured Workspace',
+        'organization_id' => $organization->id,
+    ]);
+    config()->set('marketing.blog_source.mode', 'workspace');
+    config()->set('marketing.blog_source.id', (string) $workspace->id);
+
+    $content = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'title' => 'Legacy Featured Meta Post',
+        'type' => 'article',
+        'status' => 'published',
+        'publish_status' => 'published',
+        'source' => 'wp',
+    ]);
+
+    $version = ContentVersion::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'revision',
+        'body' => '<p>This post only has a legacy meta image.</p>',
+        'meta' => [
+            'featured_image' => 'https://cdn.example.com/legacy/meta-featured.png',
+        ],
+        'source' => 'pl',
+    ]);
+
+    $content->update([
+        'current_version_id' => (string) $version->id,
+    ]);
+
+    $posts = app(ConnectorSynchronizedBlogSource::class)->fetchPublishedPosts();
+
+    expect($posts)->toHaveCount(1)
+        ->and($posts[0]['featured_image'])->toBe('https://cdn.example.com/legacy/meta-featured.png');
+});
+
 it('returns only posts for the configured workspace source', function () {
     $organization = Organization::query()->create([
         'name' => 'Scoped Blog Org',

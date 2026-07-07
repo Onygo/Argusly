@@ -387,6 +387,7 @@
                 <label class="sr-only" for="bulk-scheduled-publish-at">Schedule datetime</label>
                 <input id="bulk-scheduled-publish-at" type="datetime-local" name="scheduled_publish_at" class="h-9 rounded-md border border-white/20 bg-white/10 px-2 text-xs text-textInverse">
                 <button class="rounded-md bg-white px-3 py-2 text-xs font-medium text-textPrimary">Apply schedule</button>
+                <button formaction="{{ route('app.content.repair-kb-bulk') }}" class="rounded-md bg-white/10 px-3 py-2 text-xs font-medium text-textInverse hover:bg-white/15">Move to KB + sync</button>
                 <button formaction="{{ route('app.content.sync-bulk') }}" class="rounded-md bg-white/10 px-3 py-2 text-xs font-medium text-textInverse hover:bg-white/15">Queue sync</button>
             </div>
         </x-data-table.bulk-actions>

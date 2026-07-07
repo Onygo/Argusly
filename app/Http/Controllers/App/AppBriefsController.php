@@ -965,10 +965,11 @@ class AppBriefsController extends Controller
             ]),
         ]);
 
-        if ($siteChanged && $brief->content) {
+        if ($brief->content) {
             $brief->content->update([
-                'workspace_id' => (string) $site->workspace_id,
-                'client_site_id' => (string) $site->id,
+                'workspace_id' => $siteChanged ? (string) $site->workspace_id : $brief->content->workspace_id,
+                'client_site_id' => $siteChanged ? (string) $site->id : $brief->content->client_site_id,
+                'type' => $this->mapBriefContentTypeToContentType((string) ($data['content_type'] ?? '')),
             ]);
         }
 
@@ -1876,6 +1877,7 @@ class AppBriefsController extends Controller
     private function mapBriefContentTypeToContentType(string $contentType): string
     {
         return match (strtolower(trim($contentType))) {
+            'knowledge_base' => 'knowledge_base',
             'landing' => 'seo_page',
             default => 'article',
         };
@@ -1913,6 +1915,7 @@ class AppBriefsController extends Controller
     {
         return [
             'blog' => 'Blog',
+            'knowledge_base' => 'Knowledge base',
             'landing' => 'Landing page',
             'linkedin' => 'LinkedIn',
             'email' => 'Email',

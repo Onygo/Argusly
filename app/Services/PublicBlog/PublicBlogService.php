@@ -470,6 +470,11 @@ class PublicBlogService
                 'content_images.use_as_meta_image',
                 'content_images.created_at',
             ])])
+            ->withExists([
+                'images as has_managed_featured_image_history' => fn ($imageQuery) => $imageQuery
+                    ->withTrashed()
+                    ->where('content_images.type', 'featured'),
+            ])
             ->select([
                 'id',
                 'title',
@@ -525,13 +530,19 @@ class PublicBlogService
         $slug = trim((string) ($content->publish_url_key ?: Str::slug((string) $content->title)));
         $locale = $this->normalizeLocale($content->localeCode());
         $publishedAt = $content->first_published_at;
+        $featuredImage = trim((string) ($content->public_blog_featured_image_url ?? ''));
+
+        if ((bool) $content->getAttribute('has_managed_featured_image_history') && ! $content->featuredImage) {
+            $featuredImage = '';
+        }
+
         return [
             'id' => (string) $content->id,
             'slug' => $slug,
             'url' => $this->canonicals->publicBlogCanonical($slug, $locale),
             'title' => (string) $content->title,
             'excerpt' => trim((string) ($content->public_blog_excerpt ?? '')),
-            'featured_image' => trim((string) ($content->public_blog_featured_image_url ?? '')),
+            'featured_image' => $featuredImage,
             'featured_image_alt' => trim((string) ($content->featuredImage?->alt_text ?? '')) ?: (string) $content->title,
             'featured_image_width' => $content->public_blog_featured_image_width ?: $content->featuredImage?->width,
             'featured_image_height' => $content->public_blog_featured_image_height ?: $content->featuredImage?->height,

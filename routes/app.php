@@ -572,6 +572,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::get('/content/calendar', [AppContentController::class, 'calendar'])->name('app.content.calendar');
         Route::post('/content/calendar/quick-plan', [AppContentController::class, 'quickPlan'])->name('app.content.calendar.quick-plan');
         Route::post('/content/schedule-bulk', [AppContentController::class, 'bulkSchedule'])->name('app.content.schedule-bulk');
+        Route::post('/content/repair-kb-bulk', [AppContentController::class, 'bulkRepairKnowledgeBaseAndSync'])->name('app.content.repair-kb-bulk');
         Route::post('/content/sync-bulk', [AppContentController::class, 'bulkSyncLaravel'])->name('app.content.sync-bulk');
         Route::get('/content/automations', [AppContentAutomationsController::class, 'index'])->name('app.content.automations.index');
         Route::get('/content/automations/create', [AppContentAutomationsController::class, 'create'])->name('app.content.automations.create');

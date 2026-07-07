@@ -35,7 +35,26 @@ class ContentImageObserver
 
     private function shouldSync(ContentImage $image): bool
     {
-        return (string) $image->type === 'featured';
+        if ((string) $image->type === 'featured' || (string) $image->getOriginal('type') === 'featured') {
+            return true;
+        }
+
+        if ((bool) $image->display_on_website
+            || (bool) $image->getOriginal('display_on_website')
+            || (bool) $image->display_as_featured_image
+            || (bool) $image->getOriginal('display_as_featured_image')) {
+            return true;
+        }
+
+        return $image->wasChanged([
+            'is_active',
+            'display_on_website',
+            'display_as_featured_image',
+            'image_path',
+            'image_url',
+            'medium_path',
+            'medium_webp_path',
+        ]);
     }
 
     private function markVisualArtifactsStale(ContentImage $image): void

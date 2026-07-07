@@ -210,6 +210,41 @@ it('loads local blog surfaces with featured images without ambiguous content ima
         ->assertSee('English featured blog');
 });
 
+it('does not render stale local card featured image data after managed featured image removal', function () {
+    $content = makePublishedBlog($this->workspace, [
+        'title' => 'Article without active featured image',
+        'language' => 'en',
+        'publish_url_key' => 'article-without-active-featured-image',
+        'is_source_locale' => true,
+    ]);
+
+    $content->forceFill([
+        'first_published_at' => now()->subHour(),
+        'public_blog_excerpt' => 'Featured image was removed.',
+        'public_blog_reading_time_minutes' => 2,
+        'public_blog_featured_image_url' => 'https://images.example.test/stale-featured.jpg',
+        'public_blog_featured_image_width' => 1200,
+        'public_blog_featured_image_height' => 630,
+    ])->save();
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'provider' => 'test',
+        'image_url' => 'https://images.example.test/inactive-featured.jpg',
+        'status' => 'ready',
+        'is_active' => false,
+        'created_at' => now()->subHour(),
+        'updated_at' => now()->subHour(),
+    ]);
+
+    $this->get('/en/blog')
+        ->assertOk()
+        ->assertSee('Article without active featured image')
+        ->assertDontSee('https://images.example.test/stale-featured.jpg', false);
+});
+
 it('uses the active og image for public article share metadata', function () {
     $content = makePublishedBlog($this->workspace, [
         'title' => 'Article with configured OG image',

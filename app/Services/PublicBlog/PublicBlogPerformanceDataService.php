@@ -186,8 +186,16 @@ class PublicBlogPerformanceDataService
      */
     private function resolveFeaturedImageUrl(Content $content, ?ContentImage $featuredImage, array $meta): ?string
     {
+        $activeAssetUrl = trim($this->assets->urlForContent($content, ContentImage::USAGE_WEBSITE));
+        if ($activeAssetUrl !== '') {
+            return $activeAssetUrl;
+        }
+
+        if ($this->hasManagedFeaturedImageHistory($content)) {
+            return null;
+        }
+
         $candidates = [
-            $this->assets->urlForContent($content, ContentImage::USAGE_WEBSITE),
             (string) data_get($meta, 'featured_image', ''),
             (string) data_get($meta, 'featured_image_url', ''),
             (string) data_get($meta, 'images.featured', ''),
@@ -202,6 +210,20 @@ class PublicBlogPerformanceDataService
         }
 
         return null;
+    }
+
+    private function hasManagedFeaturedImageHistory(Content $content): bool
+    {
+        return ContentImage::query()
+            ->withTrashed()
+            ->where('content_id', (string) $content->id)
+            ->where(function ($query): void {
+                $query
+                    ->where('type', 'featured')
+                    ->orWhere('display_on_website', true)
+                    ->orWhere('display_as_featured_image', true);
+            })
+            ->exists();
     }
 
     /**

@@ -214,6 +214,31 @@ class LaravelConnectorPublishingService
         return $target->fresh();
     }
 
+    public function resolveCurrentPublishedUrl(Content $content, ?Draft $draft = null): ?string
+    {
+        $content->loadMissing('clientSite', 'series');
+        $draft ??= Draft::query()
+            ->where('content_id', $content->id)
+            ->latest('created_at')
+            ->first();
+
+        if ($draft instanceof Draft) {
+            return $this->resolvePublishedUrl($content, $draft)['url'];
+        }
+
+        $base = rtrim((string) ($content->clientSite?->site_url ?? ''), '/');
+        if ($base === '') {
+            return null;
+        }
+
+        $slug = trim((string) ($content->publish_url_key ?: $content->canonical_url_key));
+        if ($slug === '') {
+            $slug = Str::slug((string) $content->title);
+        }
+
+        return $this->localizedPlannedUrlForContent($content, $base, $slug);
+    }
+
     /**
      * @return array{url:?string,source:string}
      */
@@ -222,7 +247,7 @@ class LaravelConnectorPublishingService
         $contentPublishedUrl = trim((string) ($content->published_url ?? ''));
         if ($contentPublishedUrl !== '') {
             return [
-                'url' => $this->canonicals->liveUrlForContent($content, $contentPublishedUrl),
+                'url' => $this->localizedLiveUrlForContent($content, $this->canonicals->liveUrlForContent($content, $contentPublishedUrl)),
                 'source' => 'content.published_url',
             ];
         }
@@ -230,7 +255,7 @@ class LaravelConnectorPublishingService
         $draftCanonical = trim((string) ($draft->seo_canonical ?? ''));
         if ($draftCanonical !== '') {
             return [
-                'url' => $this->canonicals->liveUrlForContent($content, $draftCanonical),
+                'url' => $this->localizedLiveUrlForContent($content, $this->canonicals->liveUrlForContent($content, $draftCanonical)),
                 'source' => 'draft.seo_canonical',
             ];
         }
@@ -238,7 +263,7 @@ class LaravelConnectorPublishingService
         $metaCanonical = trim((string) data_get($draft->meta, 'canonical_url', ''));
         if ($metaCanonical !== '') {
             return [
-                'url' => $this->canonicals->liveUrlForContent($content, $metaCanonical),
+                'url' => $this->localizedLiveUrlForContent($content, $this->canonicals->liveUrlForContent($content, $metaCanonical)),
                 'source' => 'draft.meta.canonical_url',
             ];
         }
@@ -246,22 +271,140 @@ class LaravelConnectorPublishingService
         $metaPublishedUrl = trim((string) data_get($draft->meta, 'published_url', ''));
         if ($metaPublishedUrl !== '') {
             return [
-                'url' => $this->canonicals->liveUrlForContent($content, $metaPublishedUrl),
+                'url' => $this->localizedLiveUrlForContent($content, $this->canonicals->liveUrlForContent($content, $metaPublishedUrl)),
                 'source' => 'draft.meta.published_url',
             ];
         }
 
         $base = rtrim((string) ($content->clientSite?->site_url ?? ''), '/');
         if ($base !== '') {
-            $slug = Str::slug((string) $content->title);
+            $slug = trim((string) ($content->publish_url_key ?: $content->canonical_url_key ?: data_get($draft->meta, 'slug', '')));
+            if ($slug === '') {
+                $slug = Str::slug((string) ($content->title ?: $draft->title));
+            }
 
             return [
-                'url' => $this->canonicals->liveUrlForContent($content, $base.'/blog/'.$slug, $slug),
+                'url' => $this->localizedPlannedUrlForContent($content, $base, $slug),
                 'source' => 'site.slug_guess',
             ];
         }
 
         return ['url' => null, 'source' => 'none'];
+    }
+
+    private function localizedLiveUrlForContent(Content $content, ?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '') {
+            return null;
+        }
+
+        if (! $this->isClientSiteUrl($content, $url)) {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+        if (! is_array($parts)) {
+            return $url;
+        }
+
+        $path = '/' . ltrim((string) ($parts['path'] ?? '/'), '/');
+        $segments = array_values(array_filter(explode('/', trim($path, '/')), fn (string $segment): bool => $segment !== ''));
+        $locales = $this->configuredLocales();
+        $locale = $content->localeCode();
+        $expectedTypeSegment = $this->localizedTypeSegment($content, $locale);
+
+        if ($segments !== []
+            && in_array($segments[0], $locales, true)
+            && ($expectedTypeSegment === '' || ($segments[1] ?? '') === $expectedTypeSegment)) {
+            return $url;
+        }
+
+        $slug = end($segments);
+        if (! is_string($slug) || trim($slug) === '') {
+            return $url;
+        }
+
+        return $this->withOriginalQuery(
+            $this->localizedPlannedUrlForContent($content, $this->baseFromUrl($url), $slug),
+            $url
+        );
+    }
+
+    private function localizedPlannedUrlForContent(Content $content, string $baseUrl, string $slug): string
+    {
+        $locale = $content->localeCode();
+        $segment = $this->localizedTypeSegment($content, $locale);
+
+        $pathSegments = array_values(array_filter([$locale, $segment, trim($slug, '/')], fn (string $segment): bool => $segment !== ''));
+
+        return rtrim($baseUrl, '/') . '/' . implode('/', array_map(
+            fn (string $segment): string => trim($segment, '/'),
+            $pathSegments
+        ));
+    }
+
+    private function localizedTypeSegment(Content $content, string $locale): string
+    {
+        $postType = $content->wordPressPostType();
+
+        if ($postType === \App\Enums\WordPressPostType::POST) {
+            return (string) config("marketing_routing.segments.blog.{$locale}", $postType->urlSegment());
+        }
+
+        if ($postType === \App\Enums\WordPressPostType::KNOWLEDGE_BASE) {
+            return (string) config("marketing_routing.segments.knowledge_base.{$locale}", $postType->urlSegment());
+        }
+
+        return $postType->urlSegment();
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function configuredLocales(): array
+    {
+        return array_values(array_filter(array_map(
+            fn (mixed $locale): string => strtolower(trim((string) $locale)),
+            (array) config('marketing_routing.locales', ['en', 'nl'])
+        )));
+    }
+
+    private function isClientSiteUrl(Content $content, string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        $siteHosts = array_filter([
+            strtolower((string) parse_url((string) ($content->clientSite?->site_url ?? ''), PHP_URL_HOST)),
+            strtolower((string) parse_url((string) ($content->clientSite?->base_url ?? ''), PHP_URL_HOST)),
+        ]);
+
+        return in_array($host, $siteHosts, true);
+    }
+
+    private function baseFromUrl(string $url): string
+    {
+        $parts = parse_url($url);
+        if (! is_array($parts) || empty($parts['host'])) {
+            return rtrim($url, '/');
+        }
+
+        $scheme = (string) ($parts['scheme'] ?? 'https');
+        $port = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+
+        return $scheme . '://' . strtolower((string) $parts['host']) . $port;
+    }
+
+    private function withOriginalQuery(string $url, string $original): string
+    {
+        $query = parse_url($original, PHP_URL_QUERY);
+
+        return is_string($query) && $query !== ''
+            ? $url . '?' . $query
+            : $url;
     }
 
     /**

@@ -211,6 +211,26 @@ it('normalizes legacy laravel blog urls before storing publish now URLs', functi
     expect((string) $content->published_url)->toBe('https://argusly.com/en/blog/immediate-publish-content');
 });
 
+it('localizes same-site laravel blog urls before storing publish now URLs', function () {
+    [$user, , $content, $draft] = makePublishNowContext('laravel');
+
+    $content->forceFill([
+        'language' => 'nl',
+        'published_url' => 'https://publish-now.example.com/blog/immediate-publish-content',
+    ])->save();
+
+    $draft->forceFill([
+        'seo_canonical' => null,
+        'meta' => [],
+    ])->save();
+
+    $this->actingAs($user)
+        ->post(route('app.content.publish-now', $content))
+        ->assertRedirect();
+
+    expect((string) $content->fresh()->published_url)->toBe('https://publish-now.example.com/nl/blog/immediate-publish-content');
+});
+
 it('tracks guessed laravel published urls as local-only pending sync', function () {
     [$user, $site, $content, $draft] = makePublishNowContext('laravel');
 
@@ -237,5 +257,34 @@ it('tracks guessed laravel published urls as local-only pending sync', function 
     expect((string) data_get($target->meta, 'published_url_source'))->toBe('site.slug_guess')
         ->and((string) data_get($target->meta, 'publish_confirmation'))->toBe('local_only')
         ->and((string) data_get($target->meta, 'remote_sync_status'))->toBe('pending')
-        ->and((string) $content->fresh()->published_url)->toBe('https://publish-now.example.com/blog/immediate-publish-content');
+        ->and((string) $content->fresh()->published_url)->toBe('https://publish-now.example.com/en/blog/immediate-publish-content');
+});
+
+it('tracks guessed laravel knowledge base urls with locale prefix', function () {
+    [$user, $site, $content, $draft] = makePublishNowContext('laravel');
+
+    $content->update([
+        'type' => 'knowledge_base',
+        'language' => 'nl',
+        'published_url' => null,
+        'seo_canonical' => null,
+    ]);
+
+    $draft->update([
+        'seo_canonical' => null,
+        'meta' => [],
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('app.content.publish-now', $content))
+        ->assertRedirect();
+
+    $target = \App\Models\ContentPublishTarget::query()
+        ->where('content_id', (string) $content->id)
+        ->where('client_site_id', (string) $site->id)
+        ->where('target_type', 'laravel')
+        ->firstOrFail();
+
+    expect((string) data_get($target->meta, 'published_url_source'))->toBe('site.slug_guess')
+        ->and((string) $content->fresh()->published_url)->toBe('https://publish-now.example.com/nl/kennisbank/immediate-publish-content');
 });

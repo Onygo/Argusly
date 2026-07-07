@@ -1697,6 +1697,14 @@
                                             </div>
                                             <button class="w-full rounded border border-border px-3 py-2 text-sm">Save usage targets</button>
                                         </form>
+
+                                        @if (! $asset->is_active || $activeLabels->isEmpty())
+                                            <form method="POST" action="{{ route('app.content.images.versions.delete', ['content' => $content, 'imageVersion' => $asset]) }}" class="mt-2" onsubmit="return confirm('Delete this image asset?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="w-full rounded border border-rose-200 px-3 py-2 text-sm text-rose-700 hover:bg-rose-50">Delete asset</button>
+                                            </form>
+                                        @endif
                                     @endcan
                                 </div>
                             @endforeach

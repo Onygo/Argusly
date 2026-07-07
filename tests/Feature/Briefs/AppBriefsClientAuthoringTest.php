@@ -3,6 +3,7 @@
 use App\Jobs\GenerateDraftJob;
 use App\Models\Brief;
 use App\Models\ClientSite;
+use App\Models\Content;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\Workspace;
@@ -106,6 +107,76 @@ it('allows creating a brief from the client dashboard', function () {
     expect((string) $brief->content_type)->toBe('blog');
     expect((string) $brief->output_type)->toBe('kb_article');
     expect((string) $brief->clientSite?->workspace_id)->toBe((string) $workspace->id);
+});
+
+it('allows knowledge base briefs and creates knowledge base content records', function () {
+    Queue::fake();
+    [, , $site, $user] = makeBriefAuthContext();
+    app(CreditWalletService::class)->addCredits(
+        clientSiteId: (string) $site->id,
+        amount: 100,
+        type: CreditWalletService::TYPE_ALLOWANCE
+    );
+
+    $createResponse = $this->actingAs($user)->post(route('app.briefs.store'), [
+        'site_id' => $site->id,
+        'title' => 'Knowledge article brief',
+        'content_type' => 'knowledge_base',
+        'language' => 'nl',
+        'primary_keyword' => 'customer knowledge base',
+    ]);
+
+    $createResponse->assertRedirect();
+
+    $brief = Brief::query()->where('title', 'Knowledge article brief')->firstOrFail();
+    expect((string) $brief->content_type)->toBe('knowledge_base');
+    expect((string) $brief->output_type)->toBe('kb_article');
+
+    $generateResponse = $this->actingAs($user)->post(route('app.briefs.generate-draft', $brief));
+    $generateResponse->assertRedirect();
+
+    $content = $brief->fresh()->content;
+    expect($content)->not->toBeNull();
+    expect((string) $content?->type)->toBe('knowledge_base');
+});
+
+it('updates linked content type when a brief is changed to knowledge base', function () {
+    [, , $site, $user] = makeBriefAuthContext();
+
+    $content = Content::query()->create([
+        'workspace_id' => $site->workspace_id,
+        'client_site_id' => $site->id,
+        'title' => 'Existing article',
+        'type' => 'article',
+        'status' => 'brief',
+        'source' => 'manual',
+        'external_key' => (string) Str::uuid(),
+    ]);
+
+    $brief = Brief::query()->create([
+        'client_site_id' => $site->id,
+        'content_id' => $content->id,
+        'status' => 'done',
+        'source' => 'client_ui',
+        'progress' => 100,
+        'title' => 'Existing article',
+        'language' => 'nl',
+        'content_type' => 'blog',
+        'output_type' => 'kb_article',
+    ]);
+
+    $response = $this->actingAs($user)->put(route('app.content.workspace.brief.update', $brief), [
+        'site_id' => $site->id,
+        'title' => 'Existing article',
+        'content_type' => 'knowledge_base',
+        'language' => 'nl',
+    ]);
+
+    $response->assertRedirect(route('app.content.workspace.brief.edit', $brief));
+
+    expect((string) $brief->fresh()->content_type)->toBe('knowledge_base');
+    expect((string) $brief->fresh()->output_type)->toBe('kb_article');
+    expect((string) $content->fresh()->type)->toBe('knowledge_base');
 });
 
 it('blocks creating a brief for a site outside the users organization', function () {
