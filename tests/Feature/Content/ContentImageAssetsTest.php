@@ -142,6 +142,62 @@ it('persists usage flags when selecting an existing content image asset', functi
         ->and($image->type)->toBe('og');
 });
 
+it('allows an active featured image asset to be disabled for content', function (): void {
+    [$user, $content] = createContentImageAssetContext();
+
+    $image = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'openai',
+        'image_url' => 'https://cdn.example.test/featured.png',
+        'status' => 'ready',
+        'is_active' => true,
+        'display_on_website' => true,
+        'display_as_featured_image' => true,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('app.content.images.usage.update', ['content' => $content, 'imageVersion' => $image]), [])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $image->refresh();
+
+    expect($image->display_on_website)->toBeFalse()
+        ->and($image->display_as_featured_image)->toBeFalse()
+        ->and($image->is_active)->toBeFalse()
+        ->and($content->refresh()->featuredImage)->toBeNull();
+});
+
+it('shows a disable featured image control for active website images', function (): void {
+    [$user, $content] = createContentImageAssetContext();
+
+    $image = ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'openai',
+        'image_url' => 'https://cdn.example.test/featured.png',
+        'status' => 'ready',
+        'is_active' => true,
+        'display_on_website' => true,
+        'display_as_featured_image' => true,
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', ['content' => $content, 'tab' => 'images']))
+        ->assertOk()
+        ->assertSee('Disable featured image')
+        ->assertSee(route('app.content.images.usage.update', ['content' => $content, 'imageVersion' => $image]), false);
+});
+
 it('uploads campaign image assets with persisted usage flags', function (): void {
     Storage::fake('content_images');
 
@@ -303,6 +359,19 @@ it('serves content image URLs from persistent public storage when the public sym
         ->toContain('public')
         ->toContain('max-age=31536000')
         ->toContain('immutable');
+});
+
+it('serves content image URLs from the configured image disk', function (): void {
+    Storage::fake('content_images');
+    Storage::fake('public');
+    config()->set('argusly.images.disk', 'content_images');
+    config()->set('domains.base', 'argusly.local');
+
+    Storage::disk('content_images')->put('content-images/generated/featured.png', 'image-bytes');
+
+    $this->get('https://app.argusly.local/content-images/generated/featured.png')
+        ->assertOk()
+        ->assertContent('image-bytes');
 });
 
 it('shows reusable image assets from linked locale variants', function (): void {

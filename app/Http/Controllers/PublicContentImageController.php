@@ -18,16 +18,31 @@ class PublicContentImageController extends Controller
         }
 
         $relativePath = ContentImage::storagePath($path);
-        $disk = Storage::disk('public');
+        foreach ($this->imageDisks() as $diskName) {
+            $disk = Storage::disk($diskName);
 
-        if (! $disk->exists($relativePath)) {
-            abort(404);
+            if (! $disk->exists($relativePath)) {
+                continue;
+            }
+
+            return response((string) $disk->get($relativePath), 200, [
+                'Content-Type' => $disk->mimeType($relativePath) ?: $this->mimeTypeFromPath($relativePath),
+                'Cache-Control' => 'public, max-age=31536000, immutable',
+            ]);
         }
 
-        return response((string) $disk->get($relativePath), 200, [
-            'Content-Type' => $disk->mimeType($relativePath) ?: $this->mimeTypeFromPath($relativePath),
-            'Cache-Control' => 'public, max-age=31536000, immutable',
-        ]);
+        abort(404);
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function imageDisks(): array
+    {
+        return array_values(array_unique(array_filter([
+            (string) config('argusly.images.disk', config('argusly.ai.images.storage_disk', 'content_images')),
+            'public',
+        ])));
     }
 
     private function mimeTypeFromPath(string $path): string

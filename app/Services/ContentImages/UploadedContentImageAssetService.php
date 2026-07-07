@@ -67,7 +67,7 @@ class UploadedContentImageAssetService
             throw new RuntimeException('Image asset does not belong to this content item.');
         }
 
-        $usage = $this->normalizeUsage($usage);
+        $usage = $this->normalizeUsage($usage, allowEmpty: true);
 
         return DB::transaction(function () use ($content, $image, $usage): ContentImage {
             $this->deactivateConflictingContentImages((string) $content->id, $usage, (string) $image->id);
@@ -75,11 +75,12 @@ class UploadedContentImageAssetService
             $metadata = is_array($image->metadata) ? $image->metadata : [];
             $metadata['usage'] = $usage;
             $metadata['usage_updated_at'] = now()->toIso8601String();
+            $hasUsage = in_array(true, $usage, true);
 
             $image->forceFill([
                 'workspace_id' => $image->workspace_id ?: (string) $content->workspace_id,
-                'type' => $this->typeForUsage($usage),
-                'is_active' => true,
+                'type' => $hasUsage ? $this->typeForUsage($usage) : (string) ($image->type ?: 'asset'),
+                'is_active' => $hasUsage,
                 'display_on_website' => $usage['display_on_website'],
                 'display_as_featured_image' => $usage['display_as_featured_image'],
                 'use_as_meta_image' => $usage['use_as_meta_image'],
@@ -101,7 +102,7 @@ class UploadedContentImageAssetService
             throw new RuntimeException('Image asset does not belong to this campaign.');
         }
 
-        $usage = $this->normalizeUsage($usage);
+        $usage = $this->normalizeUsage($usage, allowEmpty: true);
 
         return DB::transaction(function () use ($campaign, $image, $usage): ContentImage {
             $this->deactivateConflictingCampaignImages((string) $campaign->id, $usage, (string) $image->id);
@@ -109,11 +110,12 @@ class UploadedContentImageAssetService
             $metadata = is_array($image->metadata) ? $image->metadata : [];
             $metadata['usage'] = $usage;
             $metadata['usage_updated_at'] = now()->toIso8601String();
+            $hasUsage = in_array(true, $usage, true);
 
             $image->forceFill([
                 'workspace_id' => $image->workspace_id ?: (string) $campaign->workspace_id,
-                'type' => $this->typeForUsage($usage),
-                'is_active' => true,
+                'type' => $hasUsage ? $this->typeForUsage($usage) : (string) ($image->type ?: 'asset'),
+                'is_active' => $hasUsage,
                 'display_on_website' => $usage['display_on_website'],
                 'display_as_featured_image' => $usage['display_as_featured_image'],
                 'use_as_meta_image' => $usage['use_as_meta_image'],
@@ -206,7 +208,7 @@ class UploadedContentImageAssetService
      * @param array<string,bool> $usage
      * @return array{display_on_website:bool,display_as_featured_image:bool,use_as_meta_image:bool,use_as_social_image:bool,use_for_linkedin:bool}
      */
-    private function normalizeUsage(array $usage): array
+    private function normalizeUsage(array $usage, bool $allowEmpty = false): array
     {
         $normalized = [
             'display_on_website' => (bool) ($usage['display_on_website'] ?? false),
@@ -224,7 +226,7 @@ class UploadedContentImageAssetService
             $normalized['use_as_social_image'] = true;
         }
 
-        if (! in_array(true, $normalized, true)) {
+        if (! $allowEmpty && ! in_array(true, $normalized, true)) {
             throw new RuntimeException('Select at least one image usage.');
         }
 

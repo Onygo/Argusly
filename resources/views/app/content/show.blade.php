@@ -1820,6 +1820,26 @@
                                 </form>
                             @endcan
 
+                            @can('update', $content)
+                                @if ($image)
+                                    <form method="POST" action="{{ route('app.content.images.usage.update', ['content' => $content, 'imageVersion' => $image]) }}" class="inline-flex" onsubmit="return confirm('Disable the featured image for this content item?');">
+                                        @csrf
+                                        @if ($image->use_as_meta_image)
+                                            <input type="hidden" name="use_as_meta_image" value="1">
+                                        @endif
+                                        @if ($image->use_as_social_image)
+                                            <input type="hidden" name="use_as_social_image" value="1">
+                                        @endif
+                                        @if ($image->use_for_linkedin)
+                                            <input type="hidden" name="use_for_linkedin" value="1">
+                                        @endif
+                                        <button class="rounded border border-border px-3 py-2 text-sm text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60" @disabled($isGenerating)>
+                                            Disable featured image
+                                        </button>
+                                    </form>
+                                @endif
+                            @endcan
+
                             @if (($isWordPressSite ?? false))
                                 @can('pushFeaturedImage', $content)
                                     <form method="POST" action="{{ route('app.content.images.featured.push', $content) }}" class="inline-flex">
