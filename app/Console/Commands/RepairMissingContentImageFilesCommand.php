@@ -14,6 +14,8 @@ class RepairMissingContentImageFilesCommand extends Command
         {--search=* : Directory to search for backed-up files; repeatable}
         {--limit=0 : Maximum images to inspect; 0 means no limit}
         {--output-limit=50 : Maximum missing/restored file rows to print}
+        {--full-output : Print full ids and paths in the details table}
+        {--no-infer-search-roots : Only scan the explicitly supplied search roots}
         {--restore : Copy found files to the configured image disk}
         {--with-trashed : Include soft-deleted image records}
         {--status=ready : Content image status filter; leave empty for all statuses}';
@@ -164,6 +166,7 @@ class RepairMissingContentImageFilesCommand extends Command
     private function searchRoots(): array
     {
         $roots = [];
+        $infer = ! (bool) $this->option('no-infer-search-roots');
 
         foreach ((array) $this->option('search') as $root) {
             $root = trim((string) $root);
@@ -179,9 +182,68 @@ class RepairMissingContentImageFilesCommand extends Command
             }
 
             $roots[] = $realPath;
+
+            if ($infer) {
+                array_push($roots, ...$this->inferRelatedSearchRoots($realPath));
+            }
         }
 
-        return array_values(array_unique($roots));
+        if ($roots === [] && $infer) {
+            array_push($roots, ...$this->inferRelatedSearchRoots(base_path()));
+        }
+
+        return collect($roots)
+            ->map(fn (string $root): string|false => realpath($root) ?: false)
+            ->filter(fn (string|false $root): bool => is_string($root) && File::isDirectory($root))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function inferRelatedSearchRoots(string $root): array
+    {
+        $root = rtrim(str_replace('\\', '/', $root), '/');
+        $candidates = [
+            $root,
+            $root.'/public',
+            $root.'/storage/app/public',
+            storage_path('app/public'),
+            public_path(),
+        ];
+
+        $parent = dirname($root);
+        if (basename($parent) === 'releases') {
+            foreach (File::directories($parent) as $releaseDirectory) {
+                $candidates[] = $releaseDirectory;
+                $candidates[] = $releaseDirectory.'/public';
+                $candidates[] = $releaseDirectory.'/storage/app/public';
+            }
+
+            $projectRoot = dirname($parent);
+            array_push($candidates, ...[
+                $projectRoot.'/shared',
+                $projectRoot.'/shared/public',
+                $projectRoot.'/shared/storage/app/public',
+                $projectRoot.'/storage/app/public',
+            ]);
+        }
+
+        foreach (['current', 'latest'] as $linkName) {
+            $linkedPath = dirname($root).'/'.$linkName;
+            if (is_link($linkedPath)) {
+                $target = realpath($linkedPath);
+                if ($target !== false) {
+                    $candidates[] = $target;
+                    $candidates[] = $target.'/public';
+                    $candidates[] = $target.'/storage/app/public';
+                }
+            }
+        }
+
+        return $candidates;
     }
 
     /**
@@ -309,11 +371,50 @@ class RepairMissingContentImageFilesCommand extends Command
         }
 
         $details[] = [
-            (string) $image->id,
-            (string) ($image->content_id ?? ''),
-            $path,
+            $this->formatDetailValue((string) $image->id, true),
+            $this->formatDetailValue((string) ($image->content_id ?? ''), true),
+            $this->formatDetailPath($path),
             $status,
-            $source,
+            $this->formatDetailPath($source),
         ];
+    }
+
+    private function formatDetailValue(string $value, bool $isUuid = false): string
+    {
+        if ((bool) $this->option('full-output') || $value === '') {
+            return $value;
+        }
+
+        return $isUuid ? substr($value, 0, 8) : $value;
+    }
+
+    private function formatDetailPath(string $path): string
+    {
+        if ((bool) $this->option('full-output') || $path === '') {
+            return $path;
+        }
+
+        $path = str_replace('\\', '/', $path);
+        $directory = ContentImage::storageDirectory();
+        $relative = ltrim($path, '/');
+
+        if (($position = strpos($relative, $directory.'/')) !== false) {
+            $contentImagePath = substr($relative, $position);
+            $parts = explode('/', $contentImagePath);
+
+            if (count($parts) >= 3) {
+                $parts[1] = substr($parts[1], 0, 8);
+
+                return implode('/', $parts);
+            }
+
+            return $contentImagePath;
+        }
+
+        if (strlen($path) <= 80) {
+            return $path;
+        }
+
+        return basename(dirname($path)).'/'.basename($path);
     }
 }
