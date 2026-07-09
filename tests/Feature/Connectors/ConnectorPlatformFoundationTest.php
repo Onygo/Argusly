@@ -650,7 +650,7 @@ it('loads connector index and detail pages', function () {
         ->assertOk()
         ->assertSee('Data connectors')
         ->assertSee('Google Search Console')
-        ->assertSee('Connect coming soon')
+        ->assertSee('Connect')
         ->assertSee('Primary GSC');
 
     $this->actingAs($context['user'])
@@ -659,7 +659,7 @@ it('loads connector index and detail pages', function () {
         ->assertSee('Primary GSC')
         ->assertSee('Datasets')
         ->assertSee('Sync run history')
-        ->assertSee('Connect coming soon')
+        ->assertSee('Manual Sync')
         ->assertSee('example.test');
 });
 

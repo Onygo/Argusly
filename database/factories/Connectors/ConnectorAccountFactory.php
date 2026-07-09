@@ -41,10 +41,16 @@ class ConnectorAccountFactory extends Factory
             'connected_at' => now(),
             'disconnected_at' => null,
             'last_synced_at' => null,
+            'sync_frequency' => null,
+            'next_sync_at' => null,
             'health_status' => 'healthy',
             'health_severity' => 'info',
             'latest_health_event_id' => null,
             'health_checked_at' => null,
+            'last_api_call_at' => null,
+            'last_error' => null,
+            'rate_limit_json' => [],
+            'health_score' => 100,
             'metadata_json' => [],
         ];
     }

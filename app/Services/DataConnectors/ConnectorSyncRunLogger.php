@@ -61,6 +61,10 @@ class ConnectorSyncRunLogger
             $attributes['finished_at'] = now();
         }
 
+        if (in_array($status, ConnectorSyncRun::TERMINAL_STATUSES, true) && empty($attributes['duration_ms'])) {
+            $attributes['duration_ms'] = $this->durationMs($run, $attributes['finished_at'] ?? now());
+        }
+
         if ($status === ConnectorSyncRun::STATUS_CANCELLED && empty($attributes['cancelled_at'])) {
             $attributes['cancelled_at'] = $attributes['finished_at'] ?? now();
         }
@@ -80,6 +84,7 @@ class ConnectorSyncRunLogger
             'finished_at' => now(),
             'metrics_json' => $metrics,
             'cursor_after_json' => $cursorAfter,
+            'records_processed' => (int) ($metrics['records_processed'] ?? $metrics['observations_written'] ?? 0),
             'error_message' => null,
             'next_retry_at' => null,
         ]);
@@ -199,5 +204,18 @@ class ConnectorSyncRunLogger
         }
 
         return $sanitized;
+    }
+
+    private function durationMs(ConnectorSyncRun $run, mixed $finishedAt): ?int
+    {
+        if ($run->started_at === null) {
+            return null;
+        }
+
+        $finished = $finishedAt instanceof DateTimeInterface
+            ? $finishedAt
+            : now();
+
+        return max(0, (int) $run->started_at->diffInMilliseconds($finished));
     }
 }

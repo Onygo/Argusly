@@ -762,6 +762,16 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
 
         Route::get('/settings', [AppSettingsController::class, 'index'])->name('app.settings');
         Route::get('/connectors', [AppConnectorController::class, 'index'])->name('app.connectors.index');
+        Route::get('/connectors/{provider}/connect', [AppConnectorController::class, 'connect'])->name('app.connectors.connect');
+        Route::get('/connectors/oauth/{provider}/callback', [AppConnectorController::class, 'callback'])->name('app.connectors.oauth.callback');
+        Route::post('/connectors/{connectorAccount}/reconnect', [AppConnectorController::class, 'reconnect'])->name('app.connectors.reconnect');
+        Route::post('/connectors/{connectorAccount}/disconnect', [AppConnectorController::class, 'disconnect'])->name('app.connectors.disconnect');
+        Route::post('/connectors/{connectorAccount}/discover', [AppConnectorController::class, 'discover'])->name('app.connectors.discover');
+        Route::post('/connectors/{connectorAccount}/sync', [AppConnectorController::class, 'sync'])->name('app.connectors.sync');
+        Route::post('/connectors/{connectorAccount}/health-check', [AppConnectorController::class, 'healthCheck'])->name('app.connectors.health-check');
+        Route::get('/connectors/{connectorAccount}/diagnostics', [AppConnectorController::class, 'diagnostics'])->name('app.connectors.diagnostics');
+        Route::post('/connectors/datasets/{connectorDataset}/enable', [AppConnectorController::class, 'enableDataset'])->name('app.connectors.datasets.enable');
+        Route::post('/connectors/datasets/{connectorDataset}/disable', [AppConnectorController::class, 'disableDataset'])->name('app.connectors.datasets.disable');
         Route::get('/connectors/{connectorAccount}', [AppConnectorController::class, 'show'])->name('app.connectors.show');
         Route::get('/settings/integrations/linkedin', [LinkedInIntegrationController::class, 'show'])->name('app.settings.integrations.linkedin');
         Route::get('/settings/integrations/linkedin/connect', [LinkedInIntegrationController::class, 'connect'])->name('app.settings.integrations.linkedin.connect');

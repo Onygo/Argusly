@@ -4,14 +4,13 @@ namespace App\Services\DataConnectors\GoogleSearchConsole;
 
 use App\Models\Connectors\ConnectorAccount;
 use App\Services\DataConnectors\ConnectorDatasetDiscoveryAdapter;
-use App\Services\DataConnectors\ConnectorTokenVault;
+use App\Services\DataConnectors\ConnectorProviderHttpClient;
 use App\Support\MarketingMetadataRedactor;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class GoogleSearchConsoleDatasetDiscoveryAdapter implements ConnectorDatasetDiscoveryAdapter
 {
-    public function __construct(private readonly ConnectorTokenVault $tokens)
+    public function __construct(private readonly ConnectorProviderHttpClient $http)
     {
     }
 
@@ -22,16 +21,7 @@ class GoogleSearchConsoleDatasetDiscoveryAdapter implements ConnectorDatasetDisc
 
     public function discoverDatasets(ConnectorAccount $account): array
     {
-        $token = $this->tokens->latestFor($account);
-
-        if ($token === null || trim((string) $token->access_token) === '') {
-            throw new RuntimeException('Google Search Console connector account does not have an access token.');
-        }
-
-        $response = Http::withToken((string) $token->access_token)
-            ->acceptJson()
-            ->timeout($this->timeoutSeconds())
-            ->get($this->apiBaseUrl().'/sites');
+        $response = $this->http->get($account, $this->apiBaseUrl().'/sites', timeout: $this->timeoutSeconds());
 
         if (! $response->successful()) {
             throw new RuntimeException('Google Search Console site discovery failed with status '.$response->status().'.');

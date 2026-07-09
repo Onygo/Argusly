@@ -23,6 +23,7 @@ class ConnectorDataset extends Model
 
     public const STATUS_ACTIVE = 'active';
     public const STATUS_INACTIVE = 'inactive';
+    public const STATUS_DISABLED = 'disabled';
     public const STATUS_ERROR = 'error';
 
     protected $fillable = [
@@ -145,5 +146,10 @@ class ConnectorDataset extends Model
     public function marketingObservations(): HasMany
     {
         return $this->hasMany(MarketingObservation::class, 'connector_dataset_id');
+    }
+
+    public function rawRecords(): HasMany
+    {
+        return $this->hasMany(ConnectorRawRecord::class, 'connector_dataset_id');
     }
 }

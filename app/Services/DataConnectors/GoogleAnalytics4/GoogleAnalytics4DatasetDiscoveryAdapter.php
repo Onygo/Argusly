@@ -4,15 +4,14 @@ namespace App\Services\DataConnectors\GoogleAnalytics4;
 
 use App\Models\Connectors\ConnectorAccount;
 use App\Services\DataConnectors\ConnectorDatasetDiscoveryAdapter;
-use App\Services\DataConnectors\ConnectorTokenVault;
+use App\Services\DataConnectors\ConnectorProviderHttpClient;
 use App\Support\MarketingMetadataRedactor;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscoveryAdapter
 {
-    public function __construct(private readonly ConnectorTokenVault $tokens)
+    public function __construct(private readonly ConnectorProviderHttpClient $http)
     {
     }
 
@@ -23,15 +22,9 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
 
     public function discoverDatasets(ConnectorAccount $account): array
     {
-        $token = $this->tokens->latestFor($account);
-
-        if ($token === null || trim((string) $token->access_token) === '') {
-            throw new RuntimeException('Google Analytics 4 connector account does not have an access token.');
-        }
-
         $datasets = [];
 
-        foreach ($this->accountSummaries((string) $token->access_token) as $summary) {
+        foreach ($this->accountSummaries($account) as $summary) {
             if ($this->supportsDataset('accounts')) {
                 $datasets[] = $this->mapAccountSummary($summary);
             }
@@ -42,7 +35,7 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
                 }
 
                 if ($this->includeDataStreams()) {
-                    foreach ($this->dataStreams((string) $token->access_token, (string) $property['property']) as $stream) {
+                    foreach ($this->dataStreams($account, (string) $property['property']) as $stream) {
                         $datasets[] = $this->mapDataStream($summary, $property, $stream);
                     }
                 }
@@ -55,7 +48,7 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function accountSummaries(string $accessToken): array
+    private function accountSummaries(ConnectorAccount $account): array
     {
         $summaries = [];
         $pageToken = null;
@@ -66,10 +59,7 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
                 'pageToken' => $pageToken,
             ], fn (mixed $value): bool => $value !== null && $value !== '');
 
-            $response = Http::withToken($accessToken)
-                ->acceptJson()
-                ->timeout($this->timeoutSeconds())
-                ->get($this->adminBaseUrl().'/accountSummaries', $query);
+            $response = $this->http->get($account, $this->adminBaseUrl().'/accountSummaries', $query, timeout: $this->timeoutSeconds());
 
             $this->throwIfDiscoveryFailed($response, 'account summary discovery');
 
@@ -99,7 +89,7 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function dataStreams(string $accessToken, string $propertyName): array
+    private function dataStreams(ConnectorAccount $account, string $propertyName): array
     {
         $streams = [];
         $pageToken = null;
@@ -110,10 +100,12 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
                 'pageToken' => $pageToken,
             ], fn (mixed $value): bool => $value !== null && $value !== '');
 
-            $response = Http::withToken($accessToken)
-                ->acceptJson()
-                ->timeout($this->timeoutSeconds())
-                ->get($this->adminBaseUrl().'/'.trim($propertyName, '/').'/dataStreams', $query);
+            $response = $this->http->get(
+                $account,
+                $this->adminBaseUrl().'/'.trim($propertyName, '/').'/dataStreams',
+                $query,
+                timeout: $this->timeoutSeconds(),
+            );
 
             $this->throwIfDiscoveryFailed($response, 'data stream discovery');
 

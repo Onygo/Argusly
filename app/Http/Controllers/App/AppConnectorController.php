@@ -3,11 +3,22 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\Connectors\CheckConnectorHealthJob;
+use App\Jobs\Connectors\DiscoverConnectorDatasetsJob;
+use App\Jobs\Connectors\SyncConnectorDatasetJob;
 use App\Models\Connectors\ConnectorAccount;
+use App\Models\Connectors\ConnectorDataset;
+use App\Models\Connectors\ConnectorSyncRun;
 use App\Models\Connectors\ConnectorProvider;
 use App\Models\Workspace;
+use App\Services\DataConnectors\ConnectorAuditLogger;
+use App\Services\DataConnectors\ConnectorDriverManager;
+use App\Services\DataConnectors\ConnectorProviderKeyResolver;
+use App\Services\DataConnectors\ConnectorSyncScheduler;
 use App\Services\DataConnectors\DataConnectorRegistry;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AppConnectorController extends Controller
@@ -26,7 +37,7 @@ class AppConnectorController extends Controller
             ->keyBy('provider_key');
 
         $accounts = ConnectorAccount::query()
-            ->with(['provider', 'datasets'])
+            ->with(['provider', 'datasets', 'scopes'])
             ->forWorkspace($workspace)
             ->orderBy('provider_key')
             ->orderBy('account_name')
@@ -40,6 +51,61 @@ class AppConnectorController extends Controller
         ]);
     }
 
+    public function connect(
+        Request $request,
+        string $provider,
+        ConnectorDriverManager $drivers,
+        ConnectorProviderKeyResolver $keys,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+
+        $this->authorize('create', ConnectorAccount::class);
+
+        $providerKey = $keys->resolve($provider);
+        $authorization = $drivers->driver($providerKey)->authorize($workspace, $request->user());
+
+        return redirect()->away($authorization->url);
+    }
+
+    public function callback(
+        Request $request,
+        string $provider,
+        ConnectorDriverManager $drivers,
+        ConnectorProviderKeyResolver $keys,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+
+        if ($request->filled('error')) {
+            return redirect()
+                ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
+                ->withErrors(['connector' => 'Connector access was not granted: '.$request->query('error_description', $request->query('error'))]);
+        }
+
+        $code = trim((string) $request->query('code', ''));
+        $state = trim((string) $request->query('state', ''));
+
+        if ($code === '' || $state === '') {
+            return redirect()
+                ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
+                ->withErrors(['connector' => 'Connector authorization response was missing code or state.']);
+        }
+
+        try {
+            $providerKey = $keys->resolve($provider);
+            $result = $drivers->driver($providerKey)->callback($state, $code, $request->user());
+        } catch (\Throwable $exception) {
+            return redirect()
+                ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
+                ->withErrors(['connector' => 'Connector authorization failed: '.$exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('app.connectors.show', $result['account'])
+            ->with('status', 'Connector connected.');
+    }
+
     public function show(Request $request, ConnectorAccount $connectorAccount): View
     {
         $workspace = $this->resolveWorkspace($request);
@@ -51,6 +117,7 @@ class AppConnectorController extends Controller
         $connectorAccount->load([
             'provider',
             'clientSite',
+            'scopes' => fn ($query) => $query->orderBy('scope_type')->orderBy('scope'),
             'datasets' => fn ($query) => $query->orderBy('display_name'),
             'syncRuns' => fn ($query) => $query->latest('created_at')->limit(25),
             'healthEvents' => fn ($query) => $query->latest('occurred_at')->limit(10),
@@ -59,7 +126,182 @@ class AppConnectorController extends Controller
         return view('app.connectors.show', [
             'workspace' => $workspace,
             'account' => $connectorAccount,
+            'diagnostics' => $this->diagnosticsFor($connectorAccount),
         ]);
+    }
+
+    public function diagnostics(Request $request, ConnectorAccount $connectorAccount): View
+    {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('view', $connectorAccount);
+
+        $connectorAccount->load([
+            'provider',
+            'scopes' => fn ($query) => $query->orderBy('scope_type')->orderBy('scope'),
+            'datasets' => fn ($query) => $query->orderBy('display_name'),
+            'syncRuns' => fn ($query) => $query->latest('created_at')->limit(50),
+            'healthEvents' => fn ($query) => $query->latest('occurred_at')->limit(25),
+        ]);
+
+        return view('app.connectors.diagnostics', [
+            'workspace' => $workspace,
+            'account' => $connectorAccount,
+            'diagnostics' => $this->diagnosticsFor($connectorAccount),
+        ]);
+    }
+
+    public function reconnect(
+        Request $request,
+        ConnectorAccount $connectorAccount,
+        ConnectorDriverManager $drivers,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorAccount);
+
+        $authorization = $drivers->driver($connectorAccount->provider_key)
+            ->authorize($workspace, $request->user(), $connectorAccount);
+
+        return redirect()->away($authorization->url);
+    }
+
+    public function disconnect(
+        Request $request,
+        ConnectorAccount $connectorAccount,
+        ConnectorDriverManager $drivers,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('delete', $connectorAccount);
+
+        $drivers->driver($connectorAccount->provider_key)->disconnect($connectorAccount, $request->user());
+
+        return redirect()
+            ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
+            ->with('status', 'Connector disconnected.');
+    }
+
+    public function discover(Request $request, ConnectorAccount $connectorAccount, ConnectorAuditLogger $audit): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorAccount);
+
+        DiscoverConnectorDatasetsJob::dispatch((string) $connectorAccount->id);
+
+        $audit->record($connectorAccount, 'connector.dataset_discovery_requested', null, [
+            'workspace_id' => $connectorAccount->workspace_id,
+            'provider_key' => $connectorAccount->provider_key,
+        ], $request->user(), $request);
+
+        return back()->with('status', 'Dataset discovery queued.');
+    }
+
+    public function sync(Request $request, ConnectorAccount $connectorAccount, ConnectorAuditLogger $audit): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorAccount);
+
+        $datasetIds = $connectorAccount->datasets()
+            ->where('status', ConnectorDataset::STATUS_ACTIVE)
+            ->orderBy('display_name')
+            ->pluck('id');
+
+        if ($datasetIds->isEmpty()) {
+            DiscoverConnectorDatasetsJob::dispatch((string) $connectorAccount->id);
+
+            return back()->with('status', 'Dataset discovery queued before manual sync.');
+        }
+
+        $datasetIds->each(fn (string $datasetId) => SyncConnectorDatasetJob::dispatch($datasetId, ConnectorSyncRun::TYPE_MANUAL));
+
+        $audit->record($connectorAccount, 'connector.manual_sync_requested', null, [
+            'workspace_id' => $connectorAccount->workspace_id,
+            'provider_key' => $connectorAccount->provider_key,
+            'dataset_count' => $datasetIds->count(),
+        ], $request->user(), $request);
+
+        return back()->with('status', 'Manual sync queued.');
+    }
+
+    public function healthCheck(Request $request, ConnectorAccount $connectorAccount): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorAccount);
+
+        CheckConnectorHealthJob::dispatch((string) $connectorAccount->id);
+
+        return back()->with('status', 'Health check queued.');
+    }
+
+    public function enableDataset(
+        Request $request,
+        ConnectorDataset $connectorDataset,
+        ConnectorSyncScheduler $scheduler,
+        ConnectorAuditLogger $audit,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorDataset->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorDataset);
+
+        $before = $connectorDataset->attributesToArray();
+        $frequency = $request->validate([
+            'sync_frequency' => ['nullable', 'in:hourly,daily,weekly,manual'],
+        ])['sync_frequency'] ?? $connectorDataset->sync_frequency ?? 'daily';
+
+        $connectorDataset->forceFill([
+            'status' => ConnectorDataset::STATUS_ACTIVE,
+            'sync_frequency' => $frequency,
+            'deactivated_at' => null,
+        ])->save();
+
+        if ($frequency !== 'manual') {
+            $scheduler->scheduleNext($connectorDataset->fresh(), now());
+        }
+
+        $audit->record($connectorDataset, 'connector.dataset_enabled', $before, $connectorDataset->fresh()->attributesToArray(), $request->user(), $request);
+
+        return back()->with('status', 'Dataset enabled.');
+    }
+
+    public function disableDataset(
+        Request $request,
+        ConnectorDataset $connectorDataset,
+        ConnectorAuditLogger $audit,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorDataset->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorDataset);
+
+        $before = $connectorDataset->attributesToArray();
+        $connectorDataset->forceFill([
+            'status' => ConnectorDataset::STATUS_DISABLED,
+            'next_sync_at' => null,
+            'deactivated_at' => now(),
+        ])->save();
+
+        $audit->record($connectorDataset, 'connector.dataset_disabled', $before, $connectorDataset->fresh()->attributesToArray(), $request->user(), $request);
+
+        return back()->with('status', 'Dataset disabled.');
     }
 
     private function resolveWorkspace(Request $request): ?Workspace
@@ -84,5 +326,42 @@ class AppConnectorController extends Controller
             ->where('organization_id', $request->user()->organization_id)
             ->orderBy('created_at')
             ->first();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function diagnosticsFor(ConnectorAccount $account): array
+    {
+        $token = $account->tokens()
+            ->latest('created_at')
+            ->first();
+
+        $lastRun = $account->syncRuns()
+            ->latest('created_at')
+            ->first();
+
+        return [
+            'oauth_status' => $account->status,
+            'token_valid' => $token !== null && $token->revoked_at === null && ($token->expires_at === null || $token->expires_at->isFuture()),
+            'token_expires_at' => $token?->expires_at,
+            'has_refresh_token' => $token !== null && trim((string) $token->refresh_token) !== '',
+            'scopes' => $account->scopes->pluck('scope')->unique()->values()->all(),
+            'rate_limit' => $account->rate_limit_json ?? [],
+            'last_api_call_at' => $account->last_api_call_at,
+            'last_error' => $account->last_error ?: $lastRun?->error_message,
+            'last_sync_duration_ms' => $lastRun?->duration_ms,
+            'health_score' => $account->health_score,
+            'raw_records' => DB::table('connector_raw_records')->where('connector_account_id', $account->id)->count(),
+            'observations' => DB::table('marketing_observations')->where('connector_account_id', $account->id)->count(),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function workspaceRouteParams(Workspace $workspace): array
+    {
+        return ['workspace_id' => (string) $workspace->id];
     }
 }

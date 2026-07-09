@@ -103,8 +103,24 @@ class ConnectorHealthService
             return ConnectorHealthEvent::STATUS_HEALTHY;
         }
 
+        if ($eventType === ConnectorHealthEvent::EVENT_TOKEN_EXPIRED) {
+            return ConnectorHealthEvent::STATUS_EXPIRED_TOKEN;
+        }
+
+        if ($eventType === ConnectorHealthEvent::EVENT_RECONNECT_REQUIRED) {
+            return ConnectorHealthEvent::STATUS_NEEDS_RECONNECT;
+        }
+
+        if ($eventType === ConnectorHealthEvent::EVENT_RATE_LIMITED) {
+            return ConnectorHealthEvent::STATUS_RATE_LIMITED;
+        }
+
+        if ($eventType === ConnectorHealthEvent::EVENT_DISABLED) {
+            return ConnectorHealthEvent::STATUS_DISABLED;
+        }
+
         return match ($severity) {
-            ConnectorHealthEvent::SEVERITY_WARNING => ConnectorHealthEvent::STATUS_DEGRADED,
+            ConnectorHealthEvent::SEVERITY_WARNING => ConnectorHealthEvent::STATUS_WARNING,
             ConnectorHealthEvent::SEVERITY_ERROR => ConnectorHealthEvent::STATUS_ERROR,
             ConnectorHealthEvent::SEVERITY_CRITICAL => ConnectorHealthEvent::STATUS_CRITICAL,
             default => ConnectorHealthEvent::STATUS_HEALTHY,

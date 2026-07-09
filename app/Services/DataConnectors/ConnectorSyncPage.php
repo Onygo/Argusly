@@ -6,6 +6,7 @@ class ConnectorSyncPage
 {
     /**
      * @param array<int, array<string, mixed>> $observations
+     * @param array<int, array<string, mixed>> $rawRecords
      * @param array<string, mixed> $metadata
      * @param array<string, mixed> $rateLimit
      */
@@ -15,6 +16,7 @@ class ConnectorSyncPage
         public readonly bool $hasMore = false,
         public readonly array $metadata = [],
         public readonly array $rateLimit = [],
+        public readonly array $rawRecords = [],
     ) {
     }
 
@@ -25,7 +27,8 @@ class ConnectorSyncPage
         array $observations,
         ?ConnectorSyncCursor $nextCursor = null,
         bool $hasMore = false,
+        array $rawRecords = [],
     ): self {
-        return new self($observations, $nextCursor, $hasMore);
+        return new self($observations, $nextCursor, $hasMore, rawRecords: $rawRecords);
     }
 }

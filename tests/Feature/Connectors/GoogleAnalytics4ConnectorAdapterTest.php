@@ -249,7 +249,7 @@ it('routes failed Google Analytics 4 API responses through generic sync run and 
         ->and($run->error_message)->toBe('Google Analytics 4 reporting request failed with status 500.')
         ->and($run->retry_json['recoverable'])->toBeTrue()
         ->and($event->event_type)->toBe('sync.recoverable_failed')
-        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_DEGRADED);
+        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_WARNING);
 });
 
 it('does not introduce Google Analytics 4 specific tables or models', function () {

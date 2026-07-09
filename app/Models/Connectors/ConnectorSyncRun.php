@@ -76,6 +76,8 @@ class ConnectorSyncRun extends Model
         'cursor_after_json',
         'started_at',
         'finished_at',
+        'duration_ms',
+        'records_processed',
         'attempts',
         'error_message',
         'metrics_json',
@@ -93,6 +95,8 @@ class ConnectorSyncRun extends Model
         'cursor_after_json' => 'array',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'duration_ms' => 'integer',
+        'records_processed' => 'integer',
         'attempts' => 'integer',
         'metrics_json' => 'array',
         'rate_limit_json' => 'array',
@@ -148,5 +152,10 @@ class ConnectorSyncRun extends Model
     public function marketingObservations(): HasMany
     {
         return $this->hasMany(MarketingObservation::class, 'connector_sync_run_id');
+    }
+
+    public function rawRecords(): HasMany
+    {
+        return $this->hasMany(ConnectorRawRecord::class, 'connector_sync_run_id');
     }
 }

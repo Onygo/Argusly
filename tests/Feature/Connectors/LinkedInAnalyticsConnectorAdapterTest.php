@@ -231,13 +231,14 @@ it('routes failed LinkedIn API responses through generic sync run and health fai
     ));
 
     $run = $result->run->fresh();
-    $event = ConnectorHealthEvent::query()->firstOrFail();
+    $event = ConnectorHealthEvent::query()->where('event_type', 'sync.recoverable_failed')->firstOrFail();
 
     expect($run->status)->toBe(ConnectorSyncRun::STATUS_FAILED)
         ->and($run->error_message)->toBe('LinkedIn share statistics request failed with status 429.')
         ->and($run->retry_json['recoverable'])->toBeTrue()
         ->and($event->event_type)->toBe('sync.recoverable_failed')
-        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_DEGRADED);
+        ->and(ConnectorHealthEvent::query()->where('event_type', ConnectorHealthEvent::EVENT_RATE_LIMITED)->exists())->toBeTrue()
+        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_WARNING);
 });
 
 it('keeps the existing LinkedIn publishing connector behavior unaffected', function () {

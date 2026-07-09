@@ -17,16 +17,22 @@ class ConnectorDatasetPolicy
 
     public function create(User $user): bool
     {
-        return $this->canManage($user);
+        return $this->canManageConnectors($user);
     }
 
     public function update(User $user, ConnectorDataset $dataset): bool
     {
-        return $this->view($user, $dataset) && $this->canManage($user);
+        return $this->view($user, $dataset) && $this->canManageConnectors($user);
     }
 
     public function delete(User $user, ConnectorDataset $dataset): bool
     {
         return $this->update($user, $dataset);
+    }
+
+    private function canManageConnectors(User $user): bool
+    {
+        return $user->is_admin
+            || ((bool) $user->organization_id && in_array((string) $user->role, ['owner', 'admin'], true));
     }
 }

@@ -17,16 +17,22 @@ class ConnectorSyncRunPolicy
 
     public function create(User $user): bool
     {
-        return $this->canManage($user);
+        return $this->canManageConnectors($user);
     }
 
     public function update(User $user, ConnectorSyncRun $run): bool
     {
-        return $this->view($user, $run) && $this->canManage($user);
+        return $this->view($user, $run) && $this->canManageConnectors($user);
     }
 
     public function delete(User $user, ConnectorSyncRun $run): bool
     {
         return $this->update($user, $run);
+    }
+
+    private function canManageConnectors(User $user): bool
+    {
+        return $user->is_admin
+            || ((bool) $user->organization_id && in_array((string) $user->role, ['owner', 'admin'], true));
     }
 }

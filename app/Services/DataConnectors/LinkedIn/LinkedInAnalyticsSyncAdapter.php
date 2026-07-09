@@ -4,16 +4,15 @@ namespace App\Services\DataConnectors\LinkedIn;
 
 use App\Models\MarketingObservation;
 use App\Services\DataConnectors\ConnectorFatalSyncException;
+use App\Services\DataConnectors\ConnectorProviderHttpClient;
 use App\Services\DataConnectors\ConnectorRecoverableSyncException;
 use App\Services\DataConnectors\ConnectorSyncAdapter;
 use App\Services\DataConnectors\ConnectorSyncContext;
 use App\Services\DataConnectors\ConnectorSyncCursor;
 use App\Services\DataConnectors\ConnectorSyncPage;
-use App\Services\DataConnectors\ConnectorTokenVault;
 use App\Support\MarketingMetadataRedactor;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 
 class LinkedInAnalyticsSyncAdapter implements ConnectorSyncAdapter
 {
@@ -77,18 +76,12 @@ class LinkedInAnalyticsSyncAdapter implements ConnectorSyncAdapter
         ],
     ];
 
-    public function __construct(private readonly ConnectorTokenVault $tokens)
+    public function __construct(private readonly ConnectorProviderHttpClient $http)
     {
     }
 
     public function fetch(ConnectorSyncContext $context, ConnectorSyncCursor $cursor): ConnectorSyncPage
     {
-        $token = $this->tokens->latestFor($context->plan->account);
-
-        if ($token === null || trim((string) $token->access_token) === '') {
-            throw new ConnectorFatalSyncException('LinkedIn connector account does not have an access token.');
-        }
-
         $dateRange = $this->dateRange($context, $cursor);
         $resources = $this->resources($context);
         $resourceIndex = $this->resourceIndex($cursor, $dateRange, count($resources));
@@ -96,11 +89,13 @@ class LinkedInAnalyticsSyncAdapter implements ConnectorSyncAdapter
         $count = $this->pageSize($context);
         $start = $this->start($cursor, $dateRange, $resourceIndex);
 
-        $response = Http::withToken((string) $token->access_token)
-            ->withHeaders($this->headers())
-            ->acceptJson()
-            ->timeout($this->timeoutSeconds())
-            ->get($this->resourceUrl($resource), $this->resourceQuery($context, $dateRange, $start, $count));
+        $response = $this->http->get(
+            $context->plan->account,
+            $this->resourceUrl($resource),
+            $this->resourceQuery($context, $dateRange, $start, $count),
+            $this->headers(),
+            $this->timeoutSeconds(),
+        );
 
         $this->throwIfFailed($response, $resource);
 
@@ -131,6 +126,7 @@ class LinkedInAnalyticsSyncAdapter implements ConnectorSyncAdapter
                 'row_count' => count($rows),
             ],
             rateLimit: $this->rateLimit($response),
+            rawRecords: $this->rawRecords($context, $resource, $rows, $dateRange),
         );
     }
 
@@ -332,6 +328,41 @@ class LinkedInAnalyticsSyncAdapter implements ConnectorSyncAdapter
         }
 
         return $observations;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @param array{start: string, end: string} $dateRange
+     * @return array<int, array<string, mixed>>
+     */
+    private function rawRecords(ConnectorSyncContext $context, string $resource, array $rows, array $dateRange): array
+    {
+        return collect($rows)
+            ->map(function (array $row) use ($context, $resource, $dateRange): array {
+                $periodDate = $this->periodDate($row, $dateRange);
+
+                return [
+                    'record_type' => $resource,
+                    'external_record_id' => $this->externalId(
+                        $context,
+                        $resource,
+                        'raw',
+                        $this->dimensionValues($context, $row, $periodDate),
+                        $periodDate,
+                    ),
+                    'period_start' => Carbon::parse($periodDate)->startOfDay()->toDateTimeString(),
+                    'period_end' => Carbon::parse($periodDate)->endOfDay()->toDateTimeString(),
+                    'observed_at' => now()->toDateTimeString(),
+                    'payload' => $row,
+                    'metadata' => [
+                        'provider' => 'linkedin',
+                        'resource' => $resource,
+                        'organization' => $this->organizationUrn($context),
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

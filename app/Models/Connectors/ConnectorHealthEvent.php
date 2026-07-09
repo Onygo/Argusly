@@ -15,7 +15,12 @@ class ConnectorHealthEvent extends Model
     use HasUuids;
 
     public const STATUS_HEALTHY = 'healthy';
+    public const STATUS_WARNING = 'warning';
     public const STATUS_DEGRADED = 'degraded';
+    public const STATUS_EXPIRED_TOKEN = 'expired_token';
+    public const STATUS_NEEDS_RECONNECT = 'needs_reconnect';
+    public const STATUS_RATE_LIMITED = 'rate_limited';
+    public const STATUS_DISABLED = 'disabled';
     public const STATUS_ERROR = 'error';
     public const STATUS_CRITICAL = 'critical';
 
@@ -26,6 +31,10 @@ class ConnectorHealthEvent extends Model
 
     public const EVENT_RESOLVED = 'health.resolved';
     public const EVENT_RECOVERED = 'health.recovered';
+    public const EVENT_TOKEN_EXPIRED = 'token.expired';
+    public const EVENT_RECONNECT_REQUIRED = 'oauth.needs_reconnect';
+    public const EVENT_RATE_LIMITED = 'api.rate_limited';
+    public const EVENT_DISABLED = 'connector.disabled';
 
     protected $fillable = [
         'connector_account_id',

@@ -222,7 +222,7 @@ it('records generic retry metadata and health updates for recoverable failures',
         ->and($run->retry_json['backoff_seconds'])->toBe(60)
         ->and($run->next_retry_at)->not->toBeNull()
         ->and($event->event_type)->toBe('sync.recoverable_failed')
-        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_DEGRADED);
+        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_WARNING);
 
     Event::assertDispatched(ConnectorSyncFailed::class);
 });

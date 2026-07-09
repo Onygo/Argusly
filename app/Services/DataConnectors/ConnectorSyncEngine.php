@@ -22,6 +22,7 @@ class ConnectorSyncEngine
         private readonly ConnectorObservationWriter $writer,
         private readonly ConnectorSyncCheckpoint $checkpoints,
         private readonly ConnectorHealthService $health,
+        private readonly ?ConnectorRawRecordWriter $rawRecords = null,
         private readonly ?ConnectorSyncPipeline $pipeline = null,
     ) {
     }
@@ -71,6 +72,7 @@ class ConnectorSyncEngine
         $cursor = $context->plan->checkpoint();
         $pages = 0;
         $written = 0;
+        $rawWritten = 0;
 
         do {
             $context->run->refresh();
@@ -80,8 +82,9 @@ class ConnectorSyncEngine
             }
 
             $page = $adapter->fetch($context, $cursor);
-            $writeResult = DB::transaction(function () use ($context, $page): ConnectorObservationWriteResult {
+            $writeResult = DB::transaction(function () use ($context, $page, &$rawWritten): ConnectorObservationWriteResult {
                 $writeResult = $this->writer->write($context, $page->observations);
+                $rawWritten += ($this->rawRecords ?? new ConnectorRawRecordWriter)->write($context, $page->rawRecords);
 
                 if ($page->nextCursor instanceof ConnectorSyncCursor) {
                     $this->checkpoints->advance($context, $page->nextCursor);
@@ -108,6 +111,8 @@ class ConnectorSyncEngine
         $metrics = [
             'pages' => $pages,
             'observations_written' => $written,
+            'raw_records_written' => $rawWritten,
+            'records_processed' => $written + $rawWritten,
             'incremental' => $context->plan->incremental,
             'backfill' => $context->plan->backfill,
         ];

@@ -4,15 +4,14 @@ namespace App\Services\DataConnectors\LinkedIn;
 
 use App\Models\Connectors\ConnectorAccount;
 use App\Services\DataConnectors\ConnectorDatasetDiscoveryAdapter;
-use App\Services\DataConnectors\ConnectorTokenVault;
+use App\Services\DataConnectors\ConnectorProviderHttpClient;
 use App\Support\MarketingMetadataRedactor;
 use Illuminate\Http\Client\Response;
-use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class LinkedInDatasetDiscoveryAdapter implements ConnectorDatasetDiscoveryAdapter
 {
-    public function __construct(private readonly ConnectorTokenVault $tokens)
+    public function __construct(private readonly ConnectorProviderHttpClient $http)
     {
     }
 
@@ -27,29 +26,19 @@ class LinkedInDatasetDiscoveryAdapter implements ConnectorDatasetDiscoveryAdapte
             return [];
         }
 
-        $token = $this->tokens->latestFor($account);
-
-        if ($token === null || trim((string) $token->access_token) === '') {
-            throw new RuntimeException('LinkedIn connector account does not have an access token.');
-        }
-
         $datasets = [];
         $start = 0;
         $count = $this->pageSize();
 
         do {
-            $response = Http::withToken((string) $token->access_token)
-                ->withHeaders($this->headers())
-                ->acceptJson()
-                ->timeout($this->timeoutSeconds())
-                ->get($this->apiBaseUrl().'/organizationalEntityAcls', array_filter([
+            $response = $this->http->get($account, $this->apiBaseUrl().'/organizationalEntityAcls', array_filter([
                     'q' => 'roleAssignee',
                     'role' => $this->discoveryRole(),
                     'state' => $this->discoveryState(),
                     'start' => $start,
                     'count' => $count,
                     'projection' => '(elements*(role,state,organizationalTarget,organizationalTarget~(id,localizedName,vanityName)))',
-                ], fn (mixed $value): bool => $value !== null && $value !== ''));
+                ], fn (mixed $value): bool => $value !== null && $value !== ''), $this->headers(), $this->timeoutSeconds());
 
             $this->throwIfDiscoveryFailed($response);
 

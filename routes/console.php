@@ -99,6 +99,21 @@ Schedule::command('social:dispatch-scheduled-publications --limit=50')
     ->withoutOverlapping()
     ->appendOutputTo($scheduleLogPath . '/social-dispatch-scheduled-publications.log');
 
+Schedule::command('connectors:dispatch-scheduled-syncs --limit=100 --queue=default')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->appendOutputTo($scheduleLogPath . '/connectors-dispatch-scheduled-syncs.log');
+
+Schedule::command('connectors:health-check --limit=100 --queue=default')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->appendOutputTo($scheduleLogPath . '/connectors-health-check.log');
+
+Schedule::command('connectors:recover-stale-runs --limit=100')
+    ->hourly()
+    ->withoutOverlapping()
+    ->appendOutputTo($scheduleLogPath . '/connectors-recover-stale-runs.log');
+
 Schedule::command('content:run-automations --limit=25')
     ->everyMinute()
     ->withoutOverlapping();

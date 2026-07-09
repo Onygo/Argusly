@@ -25,6 +25,7 @@ class ConnectorAccount extends Model
     public const STATUS_EXPIRED = 'expired';
     public const STATUS_REVOKED = 'revoked';
     public const STATUS_ERROR = 'error';
+    public const STATUS_DISABLED = 'disabled';
 
     protected $fillable = [
         'workspace_id',
@@ -37,10 +38,16 @@ class ConnectorAccount extends Model
         'connected_at',
         'disconnected_at',
         'last_synced_at',
+        'sync_frequency',
+        'next_sync_at',
         'health_status',
         'health_severity',
         'latest_health_event_id',
         'health_checked_at',
+        'last_api_call_at',
+        'last_error',
+        'rate_limit_json',
+        'health_score',
         'metadata_json',
     ];
 
@@ -48,7 +55,11 @@ class ConnectorAccount extends Model
         'connected_at' => 'datetime',
         'disconnected_at' => 'datetime',
         'last_synced_at' => 'datetime',
+        'next_sync_at' => 'datetime',
         'health_checked_at' => 'datetime',
+        'last_api_call_at' => 'datetime',
+        'rate_limit_json' => 'array',
+        'health_score' => 'integer',
         'metadata_json' => 'array',
         'deleted_at' => 'datetime',
     ];
@@ -113,5 +124,10 @@ class ConnectorAccount extends Model
     public function marketingObservations(): HasMany
     {
         return $this->hasMany(MarketingObservation::class, 'connector_account_id');
+    }
+
+    public function rawRecords(): HasMany
+    {
+        return $this->hasMany(ConnectorRawRecord::class, 'connector_account_id');
     }
 }

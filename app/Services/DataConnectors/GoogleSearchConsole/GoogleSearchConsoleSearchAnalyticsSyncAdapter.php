@@ -5,15 +5,14 @@ namespace App\Services\DataConnectors\GoogleSearchConsole;
 use App\Models\MarketingObservation;
 use App\Services\DataConnectors\ConnectorFatalSyncException;
 use App\Services\DataConnectors\ConnectorRecoverableSyncException;
+use App\Services\DataConnectors\ConnectorProviderHttpClient;
 use App\Services\DataConnectors\ConnectorSyncAdapter;
 use App\Services\DataConnectors\ConnectorSyncContext;
 use App\Services\DataConnectors\ConnectorSyncCursor;
 use App\Services\DataConnectors\ConnectorSyncPage;
-use App\Services\DataConnectors\ConnectorTokenVault;
 use App\Support\MarketingMetadataRedactor;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 
 class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdapter
 {
@@ -26,33 +25,29 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
         'position' => ['unit' => 'rank'],
     ];
 
-    public function __construct(private readonly ConnectorTokenVault $tokens)
+    public function __construct(private readonly ConnectorProviderHttpClient $http)
     {
     }
 
     public function fetch(ConnectorSyncContext $context, ConnectorSyncCursor $cursor): ConnectorSyncPage
     {
-        $token = $this->tokens->latestFor($context->plan->account);
-
-        if ($token === null || trim((string) $token->access_token) === '') {
-            throw new ConnectorFatalSyncException('Google Search Console connector account does not have an access token.');
-        }
-
         $dateRange = $this->dateRange($context, $cursor);
         $dimensions = $this->dimensions($context);
         $rowLimit = $this->rowLimit($context);
         $startRow = $this->startRow($cursor, $dateRange);
 
-        $response = Http::withToken((string) $token->access_token)
-            ->acceptJson()
-            ->timeout($this->timeoutSeconds())
-            ->post($this->searchAnalyticsUrl($context), [
+        $response = $this->http->post(
+            $context->plan->account,
+            $this->searchAnalyticsUrl($context),
+            [
                 'startDate' => $dateRange['start'],
                 'endDate' => $dateRange['end'],
                 'dimensions' => $dimensions,
                 'rowLimit' => $rowLimit,
                 'startRow' => $startRow,
-            ]);
+            ],
+            timeout: $this->timeoutSeconds(),
+        );
 
         $this->throwIfFailed($response);
 
@@ -83,6 +78,7 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
                 'row_count' => count($rows),
             ],
             rateLimit: $this->rateLimit($response),
+            rawRecords: $this->rawRecords($context, $rows, $dimensions, $dateRange),
         );
     }
 
@@ -191,6 +187,38 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
         }
 
         return $observations;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @param list<string> $dimensions
+     * @param array{start: string, end: string} $dateRange
+     * @return array<int, array<string, mixed>>
+     */
+    private function rawRecords(ConnectorSyncContext $context, array $rows, array $dimensions, array $dateRange): array
+    {
+        return collect($rows)
+            ->map(function (array $row) use ($context, $dimensions, $dateRange): array {
+                $dimensionValues = $this->dimensionValues((array) ($row['keys'] ?? []), $dimensions);
+                $periodDate = (string) ($dimensionValues['date'] ?? $dateRange['start']);
+
+                return [
+                    'record_type' => 'search_analytics',
+                    'external_record_id' => $this->externalId($context, 'raw', $dimensionValues, $periodDate),
+                    'period_start' => Carbon::parse($periodDate)->startOfDay()->toDateTimeString(),
+                    'period_end' => Carbon::parse($periodDate)->endOfDay()->toDateTimeString(),
+                    'observed_at' => now()->toDateTimeString(),
+                    'payload' => $row,
+                    'metadata' => [
+                        'provider' => 'google_search_console',
+                        'dimensions' => $dimensions,
+                        'site_url' => data_get($context->plan->dataset->config_json, 'site_url')
+                            ?: $context->plan->dataset->external_dataset_id,
+                    ],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

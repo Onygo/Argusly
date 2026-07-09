@@ -194,7 +194,7 @@ it('routes failed Search Analytics API responses through generic sync run and he
         ->and($run->error_message)->toBe('Google Search Console Search Analytics request failed with status 500.')
         ->and($run->retry_json['recoverable'])->toBeTrue()
         ->and($event->event_type)->toBe('sync.recoverable_failed')
-        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_DEGRADED);
+        ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_WARNING);
 });
 
 it('does not introduce Google Search Console specific tables or models', function () {

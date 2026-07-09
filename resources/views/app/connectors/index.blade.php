@@ -13,6 +13,7 @@
         <x-metric-card label="Configured providers" :value="$providerDefinitions->count()" />
         <x-metric-card label="Connected accounts" :value="$accounts->where('status', 'connected')->count()" />
         <x-metric-card label="Datasets" :value="$accounts->sum(fn ($account) => $account->datasets->count())" />
+        <x-metric-card label="Healthy" :value="$accounts->where('health_status', 'healthy')->count()" />
     </x-metric-section>
 @endsection
 
@@ -22,12 +23,8 @@
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h2 class="text-base font-semibold text-textPrimary">Available providers</h2>
-                    <p class="mt-1 text-sm text-textSecondary">Provider definitions are registered, but connection flows are intentionally gated for a later phase.</p>
+                    <p class="mt-1 text-sm text-textSecondary">Connect workspace-owned source accounts for search, analytics, social, ads, CRM, and other data providers.</p>
                 </div>
-                <button class="pl-btn-secondary opacity-60" disabled>
-                    <i data-lucide="plug-zap" class="h-4 w-4"></i>
-                    <span>Connect coming soon</span>
-                </button>
             </div>
 
             <div class="mt-5 grid gap-4 lg:grid-cols-3">
@@ -35,6 +32,7 @@
                     @php
                         $provider = $providers->get($providerKey);
                         $providerAccounts = $accounts->where('provider_key', $providerKey);
+                        $providerSlug = str_replace('_', '-', (string) $providerKey);
                     @endphp
                     <div class="rounded-lg border border-border bg-background p-4">
                         <div class="flex items-start justify-between gap-3">
@@ -58,6 +56,15 @@
                                 <p class="mt-1 font-medium text-textPrimary">{{ $providerAccounts->count() }}</p>
                             </div>
                         </div>
+                        <div class="mt-4 flex flex-wrap items-center gap-2">
+                            <a href="{{ route('app.connectors.connect', ['provider' => $providerSlug, 'workspace_id' => $workspace->id]) }}" class="pl-btn-primary">
+                                <i data-lucide="plug-zap" class="h-4 w-4"></i>
+                                <span>Connect</span>
+                            </a>
+                            @if ($providerAccounts->isNotEmpty())
+                                <span class="text-xs text-textSecondary">{{ $providerAccounts->where('status', 'connected')->count() }} connected</span>
+                            @endif
+                        </div>
                     </div>
                 @endforeach
             </div>
@@ -67,7 +74,7 @@
             <div class="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
                 <div>
                     <h2 class="text-base font-semibold text-textPrimary">Connector accounts</h2>
-                    <p class="mt-1 text-sm text-textSecondary">Workspace-scoped source accounts prepared for future OAuth and sync jobs.</p>
+                    <p class="mt-1 text-sm text-textSecondary">Workspace-scoped source accounts, datasets, health, and sync state.</p>
                 </div>
             </div>
 
@@ -77,7 +84,7 @@
                         <i data-lucide="database-zap" class="h-5 w-5 text-textSecondary"></i>
                     </div>
                     <p class="mt-3 text-sm font-medium text-textPrimary">No connector accounts yet</p>
-                    <p class="mt-1 text-sm text-textSecondary">Accounts will appear here once provider-specific connection flows are enabled.</p>
+                    <p class="mt-1 text-sm text-textSecondary">Use a provider Connect button to authorize the first workspace connector.</p>
                 </div>
             @else
                 <div class="overflow-x-auto">
@@ -87,8 +94,10 @@
                                 <th class="px-5 py-3 font-medium">Account</th>
                                 <th class="px-5 py-3 font-medium">Provider</th>
                                 <th class="px-5 py-3 font-medium">Status</th>
+                                <th class="px-5 py-3 font-medium">Health</th>
                                 <th class="px-5 py-3 font-medium">Datasets</th>
                                 <th class="px-5 py-3 font-medium">Last sync</th>
+                                <th class="px-5 py-3 font-medium">Next sync</th>
                                 <th class="px-5 py-3 font-medium"></th>
                             </tr>
                         </thead>
@@ -101,8 +110,10 @@
                                     </td>
                                     <td class="px-5 py-4 text-textSecondary">{{ $account->provider?->name ?? \Illuminate\Support\Str::headline($account->provider_key) }}</td>
                                     <td class="px-5 py-4">@include('app.connectors.partials.status-badge', ['status' => $account->status])</td>
+                                    <td class="px-5 py-4">@include('app.connectors.partials.status-badge', ['status' => $account->health_status ?? 'unknown'])</td>
                                     <td class="px-5 py-4 text-textSecondary">{{ $account->datasets->count() }}</td>
                                     <td class="px-5 py-4 text-textSecondary">{{ $account->last_synced_at?->diffForHumans() ?? 'Never' }}</td>
+                                    <td class="px-5 py-4 text-textSecondary">{{ $account->datasets->pluck('next_sync_at')->filter()->sort()->first()?->diffForHumans() ?? 'Manual' }}</td>
                                     <td class="px-5 py-4 text-right">
                                         <a href="{{ route('app.connectors.show', $account) }}" class="pl-btn-secondary">
                                             <i data-lucide="arrow-right" class="h-4 w-4"></i>

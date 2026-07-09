@@ -34,6 +34,8 @@ class ConnectorSyncRunFactory extends Factory
             'cursor_after_json' => null,
             'started_at' => null,
             'finished_at' => null,
+            'duration_ms' => null,
+            'records_processed' => 0,
             'attempts' => 0,
             'error_message' => null,
             'metrics_json' => [],
