@@ -152,4 +152,19 @@ class ConnectorDataset extends Model
     {
         return $this->hasMany(ConnectorRawRecord::class, 'connector_dataset_id');
     }
+
+    public function backfillRanges(): HasMany
+    {
+        return $this->hasMany(ConnectorBackfillRange::class, 'connector_dataset_id');
+    }
+
+    public function asyncReportJobs(): HasMany
+    {
+        return $this->hasMany(ConnectorAsyncReportJob::class, 'connector_dataset_id');
+    }
+
+    public function fieldMappingPreparations(): HasMany
+    {
+        return $this->hasMany(ConnectorFieldMappingPreparation::class, 'connector_dataset_id');
+    }
 }

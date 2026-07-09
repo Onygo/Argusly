@@ -17,6 +17,8 @@ class ConnectorDatasetDiscoveryService
         private readonly ConnectorDatasetResolver $resolver,
         private readonly ConnectorSyncRunLogger $syncRuns,
         private readonly ConnectorHealthService $health,
+        private readonly ?ConnectorWebhookPreparationService $webhooks = null,
+        private readonly ?ConnectorFieldMappingPreparationService $fieldMappings = null,
     ) {
     }
 
@@ -67,6 +69,9 @@ class ConnectorDatasetDiscoveryService
                 'updated' => $updated,
                 'deactivated' => $deactivated,
             ]);
+
+            ($this->webhooks ?? new ConnectorWebhookPreparationService($this->registry))->prepare($account);
+            ($this->fieldMappings ?? new ConnectorFieldMappingPreparationService)->prepare($account, $datasets);
 
             return [
                 'sync_run' => $run->fresh(),

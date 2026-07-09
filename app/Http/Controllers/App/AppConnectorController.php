@@ -12,8 +12,12 @@ use App\Models\Connectors\ConnectorSyncRun;
 use App\Models\Connectors\ConnectorProvider;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorAuditLogger;
+use App\Services\DataConnectors\ConnectorBackfillService;
 use App\Services\DataConnectors\ConnectorDriverManager;
+use App\Services\DataConnectors\ConnectorFieldMappingPreparationService;
+use App\Services\DataConnectors\ConnectorProviderManifestService;
 use App\Services\DataConnectors\ConnectorProviderKeyResolver;
+use App\Services\DataConnectors\ConnectorRateLimitService;
 use App\Services\DataConnectors\ConnectorSyncScheduler;
 use App\Services\DataConnectors\DataConnectorRegistry;
 use Illuminate\Http\Request;
@@ -121,11 +125,19 @@ class AppConnectorController extends Controller
             'datasets' => fn ($query) => $query->orderBy('display_name'),
             'syncRuns' => fn ($query) => $query->latest('created_at')->limit(25),
             'healthEvents' => fn ($query) => $query->latest('occurred_at')->limit(10),
+            'quotaBudgets' => fn ($query) => $query->orderBy('budget_type')->orderBy('connector_account_id'),
+            'asyncReportJobs' => fn ($query) => $query->latest('created_at')->limit(10),
+            'backfillRanges' => fn ($query) => $query->latest('created_at')->limit(10),
+            'fieldMappingPreparations' => fn ($query) => $query->orderBy('object_key'),
+            'webhookRegistration',
         ]);
+
+        $manifest = app(ConnectorProviderManifestService::class)->manifest($connectorAccount);
 
         return view('app.connectors.show', [
             'workspace' => $workspace,
             'account' => $connectorAccount,
+            'manifest' => $manifest,
             'diagnostics' => $this->diagnosticsFor($connectorAccount),
         ]);
     }
@@ -144,6 +156,9 @@ class AppConnectorController extends Controller
             'datasets' => fn ($query) => $query->orderBy('display_name'),
             'syncRuns' => fn ($query) => $query->latest('created_at')->limit(50),
             'healthEvents' => fn ($query) => $query->latest('occurred_at')->limit(25),
+            'quotaBudgets' => fn ($query) => $query->orderBy('budget_type')->orderBy('connector_account_id'),
+            'asyncReportJobs' => fn ($query) => $query->latest('created_at')->limit(25),
+            'webhookRegistration',
         ]);
 
         return view('app.connectors.diagnostics', [
@@ -249,6 +264,95 @@ class AppConnectorController extends Controller
         return back()->with('status', 'Health check queued.');
     }
 
+    public function backfill(
+        Request $request,
+        ConnectorDataset $connectorDataset,
+        ConnectorBackfillService $backfills,
+        ConnectorAuditLogger $audit,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorDataset->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorDataset);
+
+        $validated = $request->validate([
+            'range_start' => ['required', 'date'],
+            'range_end' => ['required', 'date', 'after_or_equal:range_start'],
+            'chunk_days' => ['nullable', 'integer', 'min:1', 'max:90'],
+        ]);
+
+        $ranges = $backfills->request(
+            dataset: $connectorDataset,
+            start: $validated['range_start'],
+            end: $validated['range_end'],
+            requestedBy: $request->user(),
+            chunkDays: isset($validated['chunk_days']) ? (int) $validated['chunk_days'] : null,
+        );
+
+        $audit->record($connectorDataset, 'connector.backfill_requested', null, [
+            'workspace_id' => $connectorDataset->workspace_id,
+            'provider_key' => $connectorDataset->provider_key,
+            'range_start' => $validated['range_start'],
+            'range_end' => $validated['range_end'],
+            'range_count' => $ranges->count(),
+        ], $request->user(), $request);
+
+        return back()->with('status', 'Backfill queued for '.$ranges->count().' range(s).');
+    }
+
+    public function retryBackfills(
+        Request $request,
+        ConnectorDataset $connectorDataset,
+        ConnectorBackfillService $backfills,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorDataset->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorDataset);
+
+        $ranges = $backfills->retryFailed($connectorDataset);
+
+        return back()->with('status', 'Retry queued for '.$ranges->count().' failed backfill range(s).');
+    }
+
+    public function fieldMapping(Request $request, ConnectorAccount $connectorAccount): View
+    {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('view', $connectorAccount);
+
+        $connectorAccount->load([
+            'provider',
+            'datasets' => fn ($query) => $query->orderBy('display_name'),
+            'fieldMappingPreparations' => fn ($query) => $query->orderBy('object_key'),
+        ]);
+
+        return view('app.connectors.field-mapping', [
+            'workspace' => $workspace,
+            'account' => $connectorAccount,
+        ]);
+    }
+
+    public function prepareFieldMapping(
+        Request $request,
+        ConnectorAccount $connectorAccount,
+        ConnectorFieldMappingPreparationService $fieldMappings,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorAccount);
+
+        $count = $fieldMappings->prepare($connectorAccount);
+
+        return back()->with('status', 'Field mapping prep refreshed for '.$count.' object(s).');
+    }
+
     public function enableDataset(
         Request $request,
         ConnectorDataset $connectorDataset,
@@ -348,12 +452,16 @@ class AppConnectorController extends Controller
             'has_refresh_token' => $token !== null && trim((string) $token->refresh_token) !== '',
             'scopes' => $account->scopes->pluck('scope')->unique()->values()->all(),
             'rate_limit' => $account->rate_limit_json ?? [],
+            'quota' => app(ConnectorRateLimitService::class)->snapshot($account),
             'last_api_call_at' => $account->last_api_call_at,
             'last_error' => $account->last_error ?: $lastRun?->error_message,
             'last_sync_duration_ms' => $lastRun?->duration_ms,
             'health_score' => $account->health_score,
             'raw_records' => DB::table('connector_raw_records')->where('connector_account_id', $account->id)->count(),
             'observations' => DB::table('marketing_observations')->where('connector_account_id', $account->id)->count(),
+            'async_report_jobs' => DB::table('connector_async_report_jobs')->where('connector_account_id', $account->id)->count(),
+            'backfill_ranges' => DB::table('connector_backfill_ranges')->where('connector_account_id', $account->id)->count(),
+            'webhook_status' => $account->webhookRegistration?->status,
         ];
     }
 

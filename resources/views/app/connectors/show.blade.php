@@ -102,6 +102,10 @@
                         <i data-lucide="stethoscope" class="h-4 w-4"></i>
                         <span>Diagnostics</span>
                     </a>
+                    <a href="{{ route('app.connectors.field-mapping', $account) }}" class="pl-btn-secondary">
+                        <i data-lucide="list-checks" class="h-4 w-4"></i>
+                        <span>Field Mapping</span>
+                    </a>
                     <form method="POST" action="{{ route('app.connectors.disconnect', $account) }}">
                         @csrf
                         <button type="submit" class="pl-btn-danger">
@@ -112,6 +116,88 @@
                 </div>
             </div>
         </div>
+
+        <div class="grid gap-6 lg:grid-cols-3">
+            <div class="rounded-lg border border-border bg-surface p-5">
+                <h2 class="text-base font-semibold text-textPrimary">Capabilities</h2>
+                <dl class="mt-4 space-y-3 text-sm">
+                    <div>
+                        <dt class="text-xs text-textFaint">Sync modes</dt>
+                        <dd class="mt-1 text-textPrimary">{{ collect($manifest['sync_modes'] ?? [])->map(fn ($mode) => \Illuminate\Support\Str::headline((string) $mode))->join(', ') ?: 'Manual' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Datasets</dt>
+                        <dd class="mt-1 text-textPrimary">{{ collect($manifest['supported_datasets'] ?? [])->map(fn ($dataset) => \Illuminate\Support\Str::headline((string) $dataset))->join(', ') ?: 'Provider default' }}</dd>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        @include('app.connectors.partials.status-badge', ['status' => data_get($manifest, 'supports_async_reports') ? 'active' : 'disabled', 'label' => 'Async reports'])
+                        @include('app.connectors.partials.status-badge', ['status' => data_get($manifest, 'supports_webhooks') ? 'active' : 'disabled', 'label' => 'Webhooks'])
+                        @include('app.connectors.partials.status-badge', ['status' => data_get($manifest, 'supports_incremental_sync') ? 'active' : 'disabled', 'label' => 'Incremental'])
+                    </div>
+                </dl>
+            </div>
+
+            <div class="rounded-lg border border-border bg-surface p-5">
+                <h2 class="text-base font-semibold text-textPrimary">Quota usage</h2>
+                <div class="mt-4 space-y-3">
+                    @forelse ((array) data_get($diagnostics, 'quota.budgets', []) as $budget)
+                        <div>
+                            <div class="flex items-center justify-between gap-3 text-xs">
+                                <span class="font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($budget['scope'].' '.$budget['type']) }}</span>
+                                @include('app.connectors.partials.status-badge', ['status' => $budget['status']])
+                            </div>
+                            <div class="mt-2 h-2 overflow-hidden rounded-full bg-surfaceSubtle">
+                                <div class="h-full bg-emerald-500" style="width: {{ min(100, ($budget['limit'] > 0 ? ($budget['used'] / $budget['limit']) * 100 : 0)) }}%"></div>
+                            </div>
+                            <p class="mt-1 text-xs text-textSecondary">{{ $budget['used'] }} / {{ $budget['limit'] }} used</p>
+                        </div>
+                    @empty
+                        <p class="text-sm text-textSecondary">No quota budgets configured for this provider.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div class="rounded-lg border border-border bg-surface p-5">
+                <h2 class="text-base font-semibold text-textPrimary">Webhook readiness</h2>
+                <div class="mt-4">
+                    @include('app.connectors.partials.status-badge', ['status' => $account->webhookRegistration?->status ?? 'pending'])
+                    <p class="mt-3 text-sm text-textSecondary">{{ data_get($account->webhookRegistration?->metadata_json, 'registration_ready') ? 'Provider webhook registration can be enabled in a later phase.' : 'Provider webhooks are not available or not prepared yet.' }}</p>
+                    <p class="mt-2 text-xs text-textFaint">{{ collect((array) $account->webhookRegistration?->event_types_json)->join(', ') ?: 'No event types advertised' }}</p>
+                </div>
+            </div>
+        </div>
+
+        @if (data_get($account->metadata_json, 'account_hierarchy') || data_get($account->metadata_json, 'crm_object_overview'))
+            <div class="grid gap-6 lg:grid-cols-2">
+                <div class="rounded-lg border border-border bg-surface p-5">
+                    <h2 class="text-base font-semibold text-textPrimary">Account hierarchy</h2>
+                    <div class="mt-4 space-y-3">
+                        @forelse ((array) data_get($account->metadata_json, 'account_hierarchy', []) as $node)
+                            <div class="rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                <p class="font-medium text-textPrimary">{{ $node['name'] ?? $node['id'] ?? 'Ad account' }}</p>
+                                <p class="mt-1 text-xs text-textSecondary">{{ $node['id'] ?? 'Unknown ID' }}{{ !empty($node['parent_id']) ? ' · Parent '.$node['parent_id'] : '' }}</p>
+                            </div>
+                        @empty
+                            <p class="text-sm text-textSecondary">No ad account hierarchy recorded.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="rounded-lg border border-border bg-surface p-5">
+                    <h2 class="text-base font-semibold text-textPrimary">CRM objects</h2>
+                    <div class="mt-4 space-y-3">
+                        @forelse ((array) data_get($account->metadata_json, 'crm_object_overview', []) as $objectKey => $object)
+                            <div class="flex items-center justify-between rounded-md border border-border bg-background px-3 py-2 text-sm">
+                                <span class="font-medium text-textPrimary">{{ $object['display_name'] ?? \Illuminate\Support\Str::headline((string) $objectKey) }}</span>
+                                <span class="text-xs text-textSecondary">{{ $object['field_count'] ?? 0 }} fields</span>
+                            </div>
+                        @empty
+                            <p class="text-sm text-textSecondary">No CRM schema overview recorded.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div class="rounded-lg border border-border bg-surface p-5">
             <h2 class="text-base font-semibold text-textPrimary">Scopes</h2>
@@ -153,6 +239,15 @@
                                     <div class="flex flex-col items-end gap-2">
                                         @include('app.connectors.partials.status-badge', ['status' => $dataset->status])
                                         <div class="flex flex-wrap justify-end gap-2">
+                                            <form method="POST" action="{{ route('app.connectors.datasets.backfill', $dataset) }}" class="flex flex-wrap items-center justify-end gap-2">
+                                                @csrf
+                                                <input type="date" name="range_start" value="{{ now()->subDays(30)->toDateString() }}" class="rounded-md border border-border bg-background px-2 py-1 text-xs text-textPrimary">
+                                                <input type="date" name="range_end" value="{{ now()->subDay()->toDateString() }}" class="rounded-md border border-border bg-background px-2 py-1 text-xs text-textPrimary">
+                                                <button type="submit" class="pl-btn-secondary">
+                                                    <i data-lucide="calendar-clock" class="h-4 w-4"></i>
+                                                    <span>Backfill</span>
+                                                </button>
+                                            </form>
                                             @if ($dataset->status === \App\Models\Connectors\ConnectorDataset::STATUS_ACTIVE)
                                                 <form method="POST" action="{{ route('app.connectors.datasets.disable', $dataset) }}">
                                                     @csrf
@@ -181,10 +276,56 @@
                             </div>
                         @endforeach
                     </div>
-                @endif
+            @endif
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+            <div class="rounded-lg border border-border bg-surface">
+                <div class="border-b border-border px-5 py-4">
+                    <h2 class="text-base font-semibold text-textPrimary">Latest report jobs</h2>
+                    <p class="mt-1 text-sm text-textSecondary">Async report preparation and retrieval status.</p>
+                </div>
+                <div class="divide-y divide-border">
+                    @forelse ($account->asyncReportJobs as $job)
+                        <div class="px-5 py-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($job->report_type) }}</p>
+                                    <p class="mt-1 text-xs text-textSecondary">{{ $job->external_report_id ?: 'Provider job pending' }} · {{ $job->created_at?->diffForHumans() }}</p>
+                                </div>
+                                @include('app.connectors.partials.status-badge', ['status' => $job->status])
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-6 text-sm text-textSecondary">No async report jobs recorded.</div>
+                    @endforelse
+                </div>
             </div>
 
             <div class="rounded-lg border border-border bg-surface">
+                <div class="border-b border-border px-5 py-4">
+                    <h2 class="text-base font-semibold text-textPrimary">Backfill status</h2>
+                    <p class="mt-1 text-sm text-textSecondary">Recently queued historical ranges.</p>
+                </div>
+                <div class="divide-y divide-border">
+                    @forelse ($account->backfillRanges as $range)
+                        <div class="px-5 py-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-medium text-textPrimary">{{ $range->dataset_key }}</p>
+                                    <p class="mt-1 text-xs text-textSecondary">{{ $range->range_start?->toDateString() }} to {{ $range->range_end?->toDateString() }}</p>
+                                </div>
+                                @include('app.connectors.partials.status-badge', ['status' => $range->status])
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-6 text-sm text-textSecondary">No backfill ranges queued.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-surface">
                 <div class="border-b border-border px-5 py-4">
                     <h2 class="text-base font-semibold text-textPrimary">Health events</h2>
                     <p class="mt-1 text-sm text-textSecondary">Provider and dataset health history.</p>

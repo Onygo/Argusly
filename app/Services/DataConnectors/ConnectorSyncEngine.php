@@ -4,6 +4,7 @@ namespace App\Services\DataConnectors;
 
 use App\Events\Connectors\ConnectorSyncCancelled;
 use App\Events\Connectors\ConnectorSyncCheckpointAdvanced;
+use App\Events\Connectors\ConnectorSyncCompletedForTransformation;
 use App\Events\Connectors\ConnectorSyncFailed;
 use App\Events\Connectors\ConnectorSyncFinished;
 use App\Events\Connectors\ConnectorSyncPageProcessed;
@@ -24,6 +25,7 @@ class ConnectorSyncEngine
         private readonly ConnectorHealthService $health,
         private readonly ?ConnectorRawRecordWriter $rawRecords = null,
         private readonly ?ConnectorSyncPipeline $pipeline = null,
+        private readonly ?ConnectorRateLimitService $rateLimits = null,
     ) {
     }
 
@@ -73,6 +75,11 @@ class ConnectorSyncEngine
         $pages = 0;
         $written = 0;
         $rawWritten = 0;
+        $rateLimits = $this->rateLimits ?? new ConnectorRateLimitService($this->registry, $this->health);
+
+        if (! $rateLimits->canAttempt($context->plan->account, $context->plan->dataset)) {
+            throw new ConnectorRecoverableSyncException('Connector quota hard stop reached for this provider.');
+        }
 
         do {
             $context->run->refresh();
@@ -105,6 +112,8 @@ class ConnectorSyncEngine
                 $context->run->forceFill(['rate_limit_json' => $page->rateLimit])->save();
             }
 
+            $rateLimits->consume($context->plan->account, 1, $context->plan->dataset);
+
             event(new ConnectorSyncPageProcessed($context, $page, $writeResult));
         } while ($page->hasMore);
 
@@ -126,6 +135,7 @@ class ConnectorSyncEngine
         ], $context->plan->dataset);
 
         event(new ConnectorSyncFinished(new ConnectorSyncContext($context->plan, $run), $metrics));
+        event(new ConnectorSyncCompletedForTransformation(new ConnectorSyncContext($context->plan, $run), $metrics));
 
         if (($context->plan->account->health_status ?? null) !== ConnectorHealthEvent::STATUS_HEALTHY) {
             event(new ConnectorSyncRecovered(new ConnectorSyncContext($context->plan, $run)));

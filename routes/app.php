@@ -770,8 +770,12 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/connectors/{connectorAccount}/sync', [AppConnectorController::class, 'sync'])->name('app.connectors.sync');
         Route::post('/connectors/{connectorAccount}/health-check', [AppConnectorController::class, 'healthCheck'])->name('app.connectors.health-check');
         Route::get('/connectors/{connectorAccount}/diagnostics', [AppConnectorController::class, 'diagnostics'])->name('app.connectors.diagnostics');
+        Route::get('/connectors/{connectorAccount}/field-mapping', [AppConnectorController::class, 'fieldMapping'])->name('app.connectors.field-mapping');
+        Route::post('/connectors/{connectorAccount}/field-mapping/prepare', [AppConnectorController::class, 'prepareFieldMapping'])->name('app.connectors.field-mapping.prepare');
         Route::post('/connectors/datasets/{connectorDataset}/enable', [AppConnectorController::class, 'enableDataset'])->name('app.connectors.datasets.enable');
         Route::post('/connectors/datasets/{connectorDataset}/disable', [AppConnectorController::class, 'disableDataset'])->name('app.connectors.datasets.disable');
+        Route::post('/connectors/datasets/{connectorDataset}/backfill', [AppConnectorController::class, 'backfill'])->name('app.connectors.datasets.backfill');
+        Route::post('/connectors/datasets/{connectorDataset}/backfills/retry', [AppConnectorController::class, 'retryBackfills'])->name('app.connectors.datasets.backfills.retry');
         Route::get('/connectors/{connectorAccount}', [AppConnectorController::class, 'show'])->name('app.connectors.show');
         Route::get('/settings/integrations/linkedin', [LinkedInIntegrationController::class, 'show'])->name('app.settings.integrations.linkedin');
         Route::get('/settings/integrations/linkedin/connect', [LinkedInIntegrationController::class, 'connect'])->name('app.settings.integrations.linkedin.connect');

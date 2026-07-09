@@ -130,4 +130,29 @@ class ConnectorAccount extends Model
     {
         return $this->hasMany(ConnectorRawRecord::class, 'connector_account_id');
     }
+
+    public function quotaBudgets(): HasMany
+    {
+        return $this->hasMany(ConnectorQuotaBudget::class, 'connector_account_id');
+    }
+
+    public function backfillRanges(): HasMany
+    {
+        return $this->hasMany(ConnectorBackfillRange::class, 'connector_account_id');
+    }
+
+    public function asyncReportJobs(): HasMany
+    {
+        return $this->hasMany(ConnectorAsyncReportJob::class, 'connector_account_id');
+    }
+
+    public function fieldMappingPreparations(): HasMany
+    {
+        return $this->hasMany(ConnectorFieldMappingPreparation::class, 'connector_account_id');
+    }
+
+    public function webhookRegistration(): HasOne
+    {
+        return $this->hasOne(ConnectorWebhookRegistration::class, 'connector_account_id');
+    }
 }

@@ -37,9 +37,15 @@ it('seeds configured connector provider definitions', function () {
     $this->seed(ConnectorProviderSeeder::class);
 
     expect(ConnectorProvider::query()->pluck('provider_key')->sort()->values()->all())->toBe([
+        'google_ads',
         'google_analytics_4',
         'google_search_console',
+        'hubspot',
         'linkedin',
+        'meta_ads',
+        'microsoft_ads',
+        'pipedrive',
+        'salesforce',
     ]);
 
     $gsc = ConnectorProvider::query()->where('provider_key', 'google_search_console')->firstOrFail();

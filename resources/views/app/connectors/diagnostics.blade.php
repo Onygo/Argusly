@@ -84,12 +84,58 @@
                         <dt class="text-xs text-textFaint">Canonical observations</dt>
                         <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['observations'] }}</dd>
                     </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Async report jobs</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['async_report_jobs'] }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Backfill ranges</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['backfill_ranges'] }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Webhook status</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($diagnostics['webhook_status'] ?? 'pending') }}</dd>
+                    </div>
                 </dl>
                 @if ($diagnostics['last_error'])
                     <div class="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                         {{ $diagnostics['last_error'] }}
                     </div>
                 @endif
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-surface">
+            <div class="border-b border-border px-5 py-4">
+                <h2 class="text-base font-semibold text-textPrimary">Quota budgets</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-border text-sm">
+                    <thead class="bg-surfaceSubtle text-left text-xs uppercase tracking-wide text-textFaint">
+                        <tr>
+                            <th class="px-5 py-3 font-medium">Scope</th>
+                            <th class="px-5 py-3 font-medium">Type</th>
+                            <th class="px-5 py-3 font-medium">Used</th>
+                            <th class="px-5 py-3 font-medium">Remaining</th>
+                            <th class="px-5 py-3 font-medium">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        @forelse ((array) data_get($diagnostics, 'quota.budgets', []) as $budget)
+                            <tr>
+                                <td class="px-5 py-4 text-textSecondary">{{ \Illuminate\Support\Str::headline($budget['scope']) }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ \Illuminate\Support\Str::headline($budget['type']) }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $budget['used'] }} / {{ $budget['limit'] }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $budget['remaining'] }}</td>
+                                <td class="px-5 py-4">@include('app.connectors.partials.status-badge', ['status' => $budget['status']])</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-5 py-6 text-textSecondary">No quota budgets configured.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 

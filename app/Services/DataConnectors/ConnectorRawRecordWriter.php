@@ -2,6 +2,7 @@
 
 namespace App\Services\DataConnectors;
 
+use App\Events\Connectors\ConnectorRawRecordsWritten;
 use App\Models\Connectors\ConnectorRawRecord;
 use App\Support\MarketingMetadataRedactor;
 use Illuminate\Support\Arr;
@@ -18,6 +19,10 @@ class ConnectorRawRecordWriter
         foreach ($records as $record) {
             $this->writeOne($context, (array) $record);
             $written++;
+        }
+
+        if ($written > 0) {
+            event(new ConnectorRawRecordsWritten($context, $written));
         }
 
         return $written;

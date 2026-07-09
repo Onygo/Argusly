@@ -33,6 +33,9 @@
                         $provider = $providers->get($providerKey);
                         $providerAccounts = $accounts->where('provider_key', $providerKey);
                         $providerSlug = str_replace('_', '-', (string) $providerKey);
+                        $manifest = (array) data_get($definition, 'config_json.capabilities', []);
+                        $datasets = (array) ($manifest['supported_datasets'] ?? data_get($definition, 'config_json.datasets', []));
+                        $syncModes = (array) ($manifest['sync_modes'] ?? []);
                     @endphp
                     <div class="rounded-lg border border-border bg-background p-4">
                         <div class="flex items-start justify-between gap-3">
@@ -54,6 +57,26 @@
                             <div class="rounded-md border border-border bg-surface px-2 py-2">
                                 <p class="text-textFaint">Accounts</p>
                                 <p class="mt-1 font-medium text-textPrimary">{{ $providerAccounts->count() }}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-3 text-xs">
+                            <div>
+                                <p class="text-textFaint">Datasets</p>
+                                <p class="mt-1 text-textSecondary">{{ collect($datasets)->take(5)->map(fn ($item) => \Illuminate\Support\Str::headline((string) $item))->join(', ') }}{{ count($datasets) > 5 ? ' +' . (count($datasets) - 5) : '' }}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                @foreach ($syncModes as $mode)
+                                    <span class="rounded-full border border-border bg-surface px-2 py-0.5 text-textSecondary">{{ \Illuminate\Support\Str::headline((string) $mode) }}</span>
+                                @endforeach
+                                @if (data_get($manifest, 'supports_async_reports'))
+                                    <span class="rounded-full border border-border bg-surface px-2 py-0.5 text-textSecondary">Async reports</span>
+                                @endif
+                                @if (data_get($manifest, 'supports_webhooks'))
+                                    <span class="rounded-full border border-border bg-surface px-2 py-0.5 text-textSecondary">Webhooks</span>
+                                @endif
+                                @if (data_get($manifest, 'supports_incremental_sync'))
+                                    <span class="rounded-full border border-border bg-surface px-2 py-0.5 text-textSecondary">Incremental</span>
+                                @endif
                             </div>
                         </div>
                         <div class="mt-4 flex flex-wrap items-center gap-2">
