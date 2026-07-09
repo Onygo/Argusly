@@ -1,11 +1,14 @@
 @php
+    $resolvedMetaTitle = \App\Support\SeoTitle::normalize($metaTitle ?? config('app.name', 'Argusly'));
+    $resolvedOgTitle = \App\Support\SeoTitle::normalize($ogTitle ?? $resolvedMetaTitle);
+    $resolvedTwitterTitle = \App\Support\SeoTitle::normalize($twitterTitle ?? $resolvedOgTitle);
     $resolvedSocialImage = app(\App\Support\SocialImageResolver::class)->resolve(
         $ogImage ?? $socialImage ?? null,
         $canonicalUrl ?? null,
         $socialImagePageType ?? $pageType ?? null
     );
 @endphp
-<title>{{ $metaTitle ?? config('app.name', 'Argusly') }}</title>
+<title>{{ $resolvedMetaTitle }}</title>
 <meta name="description" content="{{ $metaDescription ?? '' }}" />
 @if (filled(config('services.google.search_console_verification')))
     <meta name="google-site-verification" content="{{ config('services.google.search_console_verification') }}" />
@@ -22,7 +25,7 @@
         <link rel="alternate" hreflang="{{ $hreflang }}" href="{{ $href }}" />
     @endif
 @endforeach
-<meta property="og:title" content="{{ $ogTitle ?? $metaTitle }}" />
+<meta property="og:title" content="{{ $resolvedOgTitle }}" />
 <meta property="og:description" content="{{ $ogDescription ?? $metaDescription }}" />
 @if (! empty($ogType ?? null))
     <meta property="og:type" content="{{ $ogType }}" />
@@ -31,7 +34,7 @@
 <meta property="og:image:width" content="{{ (int) config('argusly_social.width', 1200) }}" />
 <meta property="og:image:height" content="{{ (int) config('argusly_social.height', 630) }}" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{{ $twitterTitle ?? $ogTitle ?? $metaTitle }}" />
+<meta name="twitter:title" content="{{ $resolvedTwitterTitle }}" />
 <meta name="twitter:description" content="{{ $twitterDescription ?? $ogDescription ?? $metaDescription }}" />
 <meta name="twitter:image" content="{{ $resolvedSocialImage }}" />
 <script type="application/ld+json">{!! json_encode([

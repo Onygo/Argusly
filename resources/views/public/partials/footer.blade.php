@@ -8,9 +8,12 @@
         $companyItems = MarketingNavigation::footerCompanyItems();
         $resourceItems = MarketingNavigation::footerResourceItems();
         $showResourcesColumn = $resourceItems !== [];
+        $communityItems = MarketingNavigation::footerCommunityItems();
+        $showCommunityColumn = $communityItems !== [];
         $legalItems = MarketingNavigation::footerLegalItems();
         $tagline = MarketingNavigation::footerTagline();
         $earlyAccessNote = MarketingNavigation::footerEarlyAccessNote();
+        $footerColumnCount = 3 + ($showResourcesColumn ? 1 : 0) + ($showCommunityColumn ? 1 : 0);
     @endphp
     <div class="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div class="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
@@ -35,7 +38,7 @@
                 />
             </div>
 
-            <div class="grid grid-cols-2 gap-8 text-sm {{ $showResourcesColumn ? 'md:grid-cols-4' : 'md:grid-cols-3' }}">
+            <div class="grid grid-cols-2 gap-8 text-sm {{ $footerColumnCount >= 5 ? 'md:grid-cols-5' : ($footerColumnCount === 4 ? 'md:grid-cols-4' : 'md:grid-cols-3') }}">
                 <div>
                     <p class="font-semibold text-textPrimary">{{ __('public.footer.product') }}</p>
                     <ul class="mt-3 space-y-2 text-textSecondary">
@@ -60,6 +63,21 @@
                         <ul class="mt-3 space-y-2 text-textSecondary">
                             @foreach ($resourceItems as $item)
                                 <li><a href="{{ MarketingNavigation::buildUrl($item) }}" class="hover:text-textPrimary">{{ $item['label'] }}</a></li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if ($showCommunityColumn)
+                    <div>
+                        <p class="font-semibold text-textPrimary">{{ __('public.footer.community') }}</p>
+                        <ul class="mt-3 space-y-2 text-textSecondary">
+                            @foreach ($communityItems as $item)
+                                <li>
+                                    <a href="{{ $item['href'] }}" class="hover:text-textPrimary" @if($item['external'] ?? false) target="_blank" rel="noopener noreferrer" @endif>
+                                        {{ $item['label'] }}
+                                    </a>
+                                </li>
                             @endforeach
                         </ul>
                     </div>

@@ -2034,6 +2034,11 @@
                                             </div>
                                             <div>{{ optional($historyItem->created_at)->format('Y-m-d H:i:s') }}</div>
                                             <div>Status: <span class="font-medium text-textPrimary">{{ $historyItem->status }}</span></div>
+                                            @if (!empty($historyItem->error_message))
+                                                <div class="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-800">
+                                                    {{ $historyItem->error_message }}
+                                                </div>
+                                            @endif
                                         </div>
 
                                         <div class="mt-3 flex flex-wrap gap-2">
@@ -2085,6 +2090,11 @@
                                             </div>
                                             <div>{{ optional($historyItem->created_at)->format('Y-m-d H:i:s') }}</div>
                                             <div>Status: <span class="font-medium text-textPrimary">{{ $historyItem->status }}</span></div>
+                                            @if (!empty($historyItem->error_message))
+                                                <div class="rounded border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-rose-800">
+                                                    {{ $historyItem->error_message }}
+                                                </div>
+                                            @endif
                                         </div>
 
                                         <div class="mt-3 flex flex-wrap gap-2">

@@ -163,6 +163,7 @@ class AdminLlmController extends Controller
             'selectedWorkspaceId' => $selectedWorkspaceId,
             'auditLogs' => $auditLogs,
             'capabilities' => (array) config('llm.capabilities', []),
+            'openAiBillingStatus' => $this->openAiBillingStatus(),
         ]);
     }
 
@@ -424,6 +425,102 @@ class AdminLlmController extends Controller
             'mistral' => 'Mistral',
             default => Str::headline($provider),
         };
+    }
+
+    /**
+     * @return array{
+     *     tone:string,
+     *     label:string,
+     *     message:string,
+     *     auto_recharge_enabled:bool,
+     *     api_key_configured:bool,
+     *     project:string,
+     *     image_provider:string,
+     *     image_model:string,
+     *     billing_url:string,
+     *     last_issue:?array{created_at:string,message:string,code:string},
+     *     last_success:?array{created_at:string,feature:string,modality:string}
+     * }
+     */
+    private function openAiBillingStatus(): array
+    {
+        $apiKeyConfigured = trim((string) config('llm.providers.openai.api_key', '')) !== '';
+        $autoRechargeEnabled = (bool) config('llm.providers.openai.auto_recharge_enabled', false);
+        $billingUrl = (string) config('llm.providers.openai.billing_url', 'https://platform.openai.com/settings/organization/billing/overview');
+
+        $lastBillingIssue = LlmRequest::query()
+            ->where('provider', 'openai')
+            ->where('status', 'error')
+            ->latest('created_at')
+            ->limit(50)
+            ->get(['created_at', 'error_message', 'error_code'])
+            ->first(fn (LlmRequest $entry): bool => $this->isOpenAiBillingIssue(
+                (string) $entry->error_message,
+                (string) $entry->error_code
+            ));
+
+        $lastSuccess = null;
+        if ($lastBillingIssue) {
+            $lastSuccess = LlmRequest::query()
+                ->where('provider', 'openai')
+                ->where('status', 'success')
+                ->where('created_at', '>', $lastBillingIssue->created_at)
+                ->latest('created_at')
+                ->first(['created_at', 'feature', 'modality']);
+        }
+
+        $tone = 'success';
+        $label = 'Ready';
+        $message = 'OpenAI API key is configured and no recent billing block was detected in Argusly request logs.';
+
+        if (! $apiKeyConfigured) {
+            $tone = 'danger';
+            $label = 'Not configured';
+            $message = 'OPENAI_API_KEY is missing, so OpenAI requests cannot run.';
+        } elseif ($lastBillingIssue && ! $lastSuccess) {
+            $tone = $autoRechargeEnabled ? 'warning' : 'danger';
+            $label = $autoRechargeEnabled ? 'Auto recharge enabled, waiting for recovery' : 'Billing blocked';
+            $message = $autoRechargeEnabled
+                ? 'Auto recharge is marked as enabled, but the latest OpenAI billing issue has not been followed by a successful OpenAI request yet.'
+                : 'OpenAI recently blocked a request because billing credits or spend access were unavailable.';
+        } elseif ($lastBillingIssue && $lastSuccess) {
+            $tone = 'success';
+            $label = 'Recovered';
+            $message = 'A successful OpenAI request was logged after the latest billing issue.';
+        }
+
+        return [
+            'tone' => $tone,
+            'label' => $label,
+            'message' => $message,
+            'auto_recharge_enabled' => $autoRechargeEnabled,
+            'api_key_configured' => $apiKeyConfigured,
+            'project' => (string) config('llm.providers.openai.project', ''),
+            'image_provider' => (string) config('argusly.ai.images.provider', 'openai'),
+            'image_model' => (string) config('argusly.ai.images.openai.model', config('llm.providers.openai.default_model', '')),
+            'billing_url' => $billingUrl,
+            'last_issue' => $lastBillingIssue ? [
+                'created_at' => optional($lastBillingIssue->created_at)->format('Y-m-d H:i:s') ?? '',
+                'message' => Str::limit((string) $lastBillingIssue->error_message, 220),
+                'code' => (string) ($lastBillingIssue->error_code ?: ''),
+            ] : null,
+            'last_success' => $lastSuccess ? [
+                'created_at' => optional($lastSuccess->created_at)->format('Y-m-d H:i:s') ?? '',
+                'feature' => (string) $lastSuccess->feature,
+                'modality' => (string) $lastSuccess->modality,
+            ] : null,
+        ];
+    }
+
+    private function isOpenAiBillingIssue(string $message, string $code): bool
+    {
+        $text = Str::lower($message . ' ' . $code);
+
+        return str_contains($text, 'billing hard limit')
+            || str_contains($text, 'credit balance')
+            || str_contains($text, 'insufficient_quota')
+            || str_contains($text, 'quota exceeded')
+            || str_contains($text, 'exceeded your current quota');
     }
 
     private function ensureModelAllowed(string $provider, string $model, string $field): void

@@ -15,6 +15,8 @@ return [
             'default_model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
             'organization' => env('OPENAI_ORGANIZATION_ID'),
             'project' => env('OPENAI_PROJECT_ID'),
+            'auto_recharge_enabled' => (bool) env('OPENAI_AUTO_RECHARGE_ENABLED', false),
+            'billing_url' => env('OPENAI_BILLING_URL', 'https://platform.openai.com/settings/organization/billing/overview'),
         ],
         'anthropic' => [
             'api_key' => env('ANTHROPIC_API_KEY'),

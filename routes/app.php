@@ -29,6 +29,7 @@ use App\Http\Controllers\App\AppWorkspaceIntelligenceController;
 use App\Http\Controllers\App\AppWriterProfileController;
 use App\Http\Controllers\App\AppBriefsController;
 use App\Http\Controllers\App\AppCompanyOnboardingController;
+use App\Http\Controllers\App\AppConnectorController;
 use App\Http\Controllers\App\AppCompetitorIntelligenceController;
 use App\Http\Controllers\App\AppContentBatchesController;
 use App\Http\Controllers\App\AppContentController;
@@ -64,6 +65,7 @@ use App\Http\Controllers\App\AppInvoiceController;
 use App\Http\Controllers\App\AppLearningsController;
 use App\Http\Controllers\App\AppLlmTrackingController;
 use App\Http\Controllers\App\AppLlmTrackingQuerySetController;
+use App\Http\Controllers\App\AppMarketingIntelligenceWorkspaceController;
 use App\Http\Controllers\App\AppMonitoredPageController;
 use App\Http\Controllers\App\AppPageIntelligenceReportController;
 use App\Http\Controllers\App\AppScheduledPageIntelligenceBriefingController;
@@ -144,6 +146,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
     ->group(function () {
         Route::redirect('/', '/dashboard')->name('app');
         Route::get('/dashboard', [AppDashboardController::class, 'index'])->name('app.dashboard');
+        Route::get('/intelligence', [AppMarketingIntelligenceWorkspaceController::class, 'index'])->name('app.marketing-intelligence.index');
         Route::get('/activation', [ActivationController::class, 'index'])->name('app.activation.index');
         Route::get('/setup', [SetupController::class, 'index'])->name('app.setup.index');
         Route::get('/notifications', [AppNotificationsController::class, 'index'])->name('app.notifications.index');
@@ -758,6 +761,8 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::post('/workspace-intelligence/runs/{run}/reject', [AppWorkspaceIntelligenceController::class, 'reject'])->name('app.workspace-intelligence.runs.reject');
 
         Route::get('/settings', [AppSettingsController::class, 'index'])->name('app.settings');
+        Route::get('/connectors', [AppConnectorController::class, 'index'])->name('app.connectors.index');
+        Route::get('/connectors/{connectorAccount}', [AppConnectorController::class, 'show'])->name('app.connectors.show');
         Route::get('/settings/integrations/linkedin', [LinkedInIntegrationController::class, 'show'])->name('app.settings.integrations.linkedin');
         Route::get('/settings/integrations/linkedin/connect', [LinkedInIntegrationController::class, 'connect'])->name('app.settings.integrations.linkedin.connect');
         Route::get('/settings/integrations/linkedin/callback', [LinkedInIntegrationController::class, 'callback'])->name('app.settings.integrations.linkedin.callback');

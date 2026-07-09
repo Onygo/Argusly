@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\GenerateDraftJob;
 use App\Models\Brief;
 use App\Models\ClientSite;
 use App\Models\Organization;
@@ -10,11 +11,24 @@ use App\Models\Subscription;
 use App\Models\Workspace;
 use App\Services\CreditWalletService;
 use App\Services\Entitlements\WorkspaceEntitlementsService;
+use App\Services\Llm\LlmManager;
 use App\Services\PlanQuotaService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
+
+function fakeDraftGenerationForQuotaApi(): void
+{
+    Queue::fake([GenerateDraftJob::class]);
+
+    $llm = Mockery::mock(LlmManager::class);
+    $llm->shouldReceive('generateJson')->never();
+    $llm->shouldReceive('generateText')->never();
+
+    app()->instance(LlmManager::class, $llm);
+}
 
 function makeQuotaApiContext(int $articlesLimit): array
 {
@@ -111,6 +125,8 @@ function makeQuotaApiContext(int $articlesLimit): array
 }
 
 it('allows draft generation api above the legacy article quota when credits are available', function () {
+    fakeDraftGenerationForQuotaApi();
+
     [, $site, $draft, $token] = makeQuotaApiContext(0);
     app(CreditWalletService::class)->addCredits((string) $site->id, 100, CreditWalletService::TYPE_ALLOWANCE);
 
@@ -124,9 +140,16 @@ it('allows draft generation api above the legacy article quota when credits are 
 
     $response->assertStatus(202);
     $response->assertJsonPath('ok', true);
+
+    Queue::assertPushed(
+        GenerateDraftJob::class,
+        fn (GenerateDraftJob $job): bool => $job->draftId === (string) $draft->id
+    );
 });
 
 it('returns a structured insufficient credits error when draft generation has no credits left', function () {
+    fakeDraftGenerationForQuotaApi();
+
     [, $site, $draft, $token] = makeQuotaApiContext(20);
 
     $response = $this->withHeaders([
@@ -138,9 +161,13 @@ it('returns a structured insufficient credits error when draft generation has no
     $response->assertJsonPath('code', 'INSUFFICIENT_CREDITS');
     $response->assertJsonPath('public_error_code', 'CREDIT_BALANCE_LOW');
     $response->assertJsonPath('action', 'draft_generate');
+
+    Queue::assertNotPushed(GenerateDraftJob::class);
 });
 
 it('allows draft generation again immediately after extra credits are purchased', function () {
+    fakeDraftGenerationForQuotaApi();
+
     [, $site, $draft, $token] = makeQuotaApiContext(0);
 
     $firstResponse = $this->withHeaders([
@@ -150,6 +177,7 @@ it('allows draft generation again immediately after extra credits are purchased'
 
     $firstResponse->assertStatus(422);
     $firstResponse->assertJsonPath('code', 'INSUFFICIENT_CREDITS');
+    Queue::assertNotPushed(GenerateDraftJob::class);
 
     app(CreditWalletService::class)->addCredits((string) $site->id, 24, CreditWalletService::TYPE_PACK_PURCHASE);
 
@@ -160,6 +188,11 @@ it('allows draft generation again immediately after extra credits are purchased'
 
     $secondResponse->assertStatus(202);
     $secondResponse->assertJsonPath('ok', true);
+
+    Queue::assertPushed(
+        GenerateDraftJob::class,
+        fn (GenerateDraftJob $job): bool => $job->draftId === (string) $draft->id
+    );
 });
 
 it('keeps site plan limits enforced while article generation moved to credits', function () {

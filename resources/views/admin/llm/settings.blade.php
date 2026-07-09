@@ -94,6 +94,77 @@
                 </div>
             </form>
         </div>
+
+        @php
+            $openAiBillingTone = $openAiBillingStatus['tone'] ?? 'warning';
+            $openAiBillingClasses = match ($openAiBillingTone) {
+                'success' => 'border-emerald-400/40 bg-emerald-500/5 text-emerald-800',
+                'danger' => 'border-rose-400/40 bg-rose-500/5 text-rose-800',
+                default => 'border-amber-400/40 bg-amber-500/5 text-amber-800',
+            };
+        @endphp
+        <div class="rounded-lg border border-border bg-surface p-5 xl:col-span-2">
+            <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold">OpenAI billing status</h2>
+                    <p class="mt-1 text-sm text-textSecondary">Provider billing state inferred from Argusly request logs and local OpenAI configuration.</p>
+                </div>
+                <span class="rounded-full px-2.5 py-1 text-xs font-medium {{ $openAiBillingClasses }}">
+                    {{ $openAiBillingStatus['label'] ?? 'Unknown' }}
+                </span>
+            </div>
+
+            <div class="rounded-md border px-4 py-3 text-sm {{ $openAiBillingClasses }}">
+                {{ $openAiBillingStatus['message'] ?? 'OpenAI billing status could not be determined.' }}
+            </div>
+
+            <dl class="mt-4 grid gap-3 text-sm md:grid-cols-2 xl:grid-cols-4">
+                <div>
+                    <dt class="text-textSecondary">API key</dt>
+                    <dd class="font-medium">{{ ($openAiBillingStatus['api_key_configured'] ?? false) ? 'Configured' : 'Missing' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-textSecondary">Auto recharge</dt>
+                    <dd class="font-medium">{{ ($openAiBillingStatus['auto_recharge_enabled'] ?? false) ? 'Enabled in config' : 'Not marked enabled' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-textSecondary">OpenAI project</dt>
+                    <dd class="font-medium">{{ ($openAiBillingStatus['project'] ?? '') !== '' ? $openAiBillingStatus['project'] : 'Default project' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-textSecondary">Image route</dt>
+                    <dd class="font-medium">{{ $openAiBillingStatus['image_provider'] ?? '-' }} · {{ $openAiBillingStatus['image_model'] ?? '-' }}</dd>
+                </div>
+            </dl>
+
+            <div class="mt-4 grid gap-3 text-sm md:grid-cols-2">
+                <div class="rounded-md border border-border bg-background p-3">
+                    <div class="font-medium">Last billing issue</div>
+                    @if (!empty($openAiBillingStatus['last_issue']))
+                        <div class="mt-1 text-xs text-textSecondary">{{ $openAiBillingStatus['last_issue']['created_at'] }}</div>
+                        <p class="mt-2 text-textPrimary">{{ $openAiBillingStatus['last_issue']['message'] }}</p>
+                    @else
+                        <p class="mt-1 text-textSecondary">No OpenAI billing issue found in recent request logs.</p>
+                    @endif
+                </div>
+                <div class="rounded-md border border-border bg-background p-3">
+                    <div class="font-medium">Recovery signal</div>
+                    @if (!empty($openAiBillingStatus['last_success']))
+                        <div class="mt-1 text-xs text-textSecondary">{{ $openAiBillingStatus['last_success']['created_at'] }}</div>
+                        <p class="mt-2 text-textPrimary">Latest successful OpenAI request after the issue: {{ $openAiBillingStatus['last_success']['feature'] }} / {{ $openAiBillingStatus['last_success']['modality'] }}.</p>
+                    @else
+                        <p class="mt-1 text-textSecondary">No successful OpenAI request has been logged after the latest billing issue.</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+                <a href="{{ $openAiBillingStatus['billing_url'] ?? 'https://platform.openai.com/settings/organization/billing/overview' }}" target="_blank" rel="noopener" class="inline-flex items-center rounded-md border border-border px-3 py-2 font-medium">
+                    Open OpenAI billing
+                </a>
+                <span class="text-xs text-textSecondary">Set <code>OPENAI_AUTO_RECHARGE_ENABLED=true</code> after enabling auto recharge in OpenAI.</span>
+            </div>
+        </div>
     </div>
 
     <div class="mt-6 rounded-lg border border-border bg-surface p-5">

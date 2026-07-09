@@ -44,7 +44,7 @@ class SourceBasedBriefGenerator
             ],
             'source_inspiration_note' => 'Generated from external source analysis for original, brand-aligned briefing. Use as strategic inspiration, not as copy.',
             'language' => (string) ($source->source_language ?: data_get($workspaceContext, 'workspace.default_language', 'en')),
-            'chain_suitability' => $outputMode === 'brief_chain' || count((array) ($analysis['content_gaps'] ?? [])) >= 2,
+            'chain_suitability' => in_array($outputMode, ['brief_chain', 'full_chain'], true) || count((array) ($analysis['content_gaps'] ?? [])) >= 2,
         ];
 
         $keywordBlock = [
@@ -59,7 +59,39 @@ class SourceBasedBriefGenerator
         return [
             'brief' => $brief,
             'keywords' => $outputMode === 'brief_only' ? null : $keywordBlock,
-            'chain_proposal' => $outputMode === 'brief_chain' ? $chainProposal : null,
+            'chain_proposal' => in_array($outputMode, ['brief_chain', 'full_chain'], true) ? $chainProposal : null,
+            'accuracy' => $this->accuracySummary($analysis),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $analysis
+     * @return array<string, mixed>
+     */
+    private function accuracySummary(array $analysis): array
+    {
+        $confidence = max(0, min(100, (int) ($analysis['analysis_confidence'] ?? 55)));
+        $diagnostics = is_array($analysis['accuracy_diagnostics'] ?? null)
+            ? (array) $analysis['accuracy_diagnostics']
+            : [];
+        $sourceSufficiency = trim((string) ($diagnostics['source_context_sufficiency'] ?? 'medium'));
+        $copyRisk = trim((string) ($diagnostics['copy_risk'] ?? 'medium'));
+
+        $reviewReasons = collect([
+            $confidence < 60 ? 'Low analysis confidence; review source fit and inferred recommendations.' : null,
+            $sourceSufficiency === 'low' ? 'Source context is limited; verify audience, funnel stage, and content gaps.' : null,
+            $copyRisk === 'high' ? 'High source reuse risk; ensure the final brief drives original content.' : null,
+        ])->filter()->values()->all();
+
+        return [
+            'prompt_version' => (string) data_get($analysis, '_debug.prompt_version', ''),
+            'analysis_confidence' => $confidence,
+            'source_context_sufficiency' => in_array($sourceSufficiency, ['high', 'medium', 'low'], true) ? $sourceSufficiency : 'medium',
+            'copy_risk' => in_array($copyRisk, ['low', 'medium', 'high'], true) ? $copyRisk : 'medium',
+            'review_required' => $reviewReasons !== [],
+            'review_reasons' => $reviewReasons,
+            'missing_context' => $this->normalizeList($diagnostics['missing_context'] ?? []),
+            'uncertain_inferences' => $this->normalizeList($diagnostics['uncertain_inferences'] ?? []),
         ];
     }
 

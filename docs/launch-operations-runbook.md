@@ -5,7 +5,7 @@ This runbook covers the minimum operating posture for a public SaaS launch.
 ## Release Gates
 
 - `APP_ENV=production`, `APP_DEBUG=false`, and a non-local `APP_URL`.
-- `php artisan optimize:clear` before deployment and `php artisan config:cache`, `route:cache`, and `view:cache` after environment variables are final.
+- `php artisan optimize:clear` before deployment, `php artisan storage:link --force` after code is in place, and `php artisan config:cache`, `route:cache`, and `view:cache` after environment variables are final.
 - `ARGUSLY_WP_REQUIRE_TS_NONCE=true` unless a named legacy connector migration window is active.
 - `ARGUSLY_LEGACY_PATH_ROUTES_ENABLED=false` unless a measured compatibility window is active.
 - Sentry DSN configured for application errors and queue worker exceptions.
@@ -31,6 +31,18 @@ Restart workers after each deployment:
 ```bash
 php artisan queue:restart
 ```
+
+## Content Images
+
+Content images are served from `/content-images/...` and must be backed by the configured public storage link after every production update:
+
+```bash
+mkdir -p storage/app/public/content-images
+php artisan storage:link --force
+php artisan argusly:diagnostics
+```
+
+`argusly:diagnostics` should report `images.public_link` as `linked` and `images.storage_dir` as `exists`. Do not use `storage:link --relative` unless `symfony/filesystem` is installed in the production build.
 
 ## Monitoring
 

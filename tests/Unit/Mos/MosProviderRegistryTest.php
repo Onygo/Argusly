@@ -6,6 +6,7 @@ use App\Services\Mos\MosDomain;
 use App\Services\Mos\MosProviderRegistry;
 use App\Services\Mos\Opportunity\Providers\ContentOpportunityProvider;
 use App\Services\Mos\Providers\AgentWorkflowMosProvider;
+use App\Services\Mos\Providers\MarketingOperatingSystemMosProvider;
 use App\Services\Mos\Providers\OpportunityIntelligenceMosProvider;
 use App\Services\Mos\Providers\SignalIntelligenceMosProvider;
 
@@ -15,15 +16,18 @@ it('registers mos providers by normalized key and domain', function () {
     expect($registry->has('Opportunity-Intelligence'))->toBeTrue()
         ->and($registry->has('signal-intelligence'))->toBeTrue()
         ->and($registry->has('agent-workflows'))->toBeTrue()
+        ->and($registry->has('marketing-operating-system'))->toBeTrue()
         ->and($registry->has('legacy-content-opportunities'))->toBeTrue()
         ->and($registry->get('opportunity-intelligence'))->toBeInstanceOf(OpportunityIntelligenceMosProvider::class)
         ->and($registry->get('signal-intelligence'))->toBeInstanceOf(SignalIntelligenceMosProvider::class)
         ->and($registry->get('agent-workflows'))->toBeInstanceOf(AgentWorkflowMosProvider::class)
+        ->and($registry->get('marketing-operating-system'))->toBeInstanceOf(MarketingOperatingSystemMosProvider::class)
         ->and($registry->get('legacy-content-opportunities'))->toBeInstanceOf(ContentOpportunityProvider::class)
         ->and($registry->forDomain(MosDomain::OPPORTUNITY))->toHaveKey('opportunity-intelligence')
         ->and($registry->forDomain(MosDomain::OPPORTUNITY))->toHaveKey('legacy-content-opportunities')
         ->and($registry->forDomain(MosDomain::SIGNAL))->toHaveKey('signal-intelligence')
-        ->and($registry->forDomain(MosDomain::WORKFLOW))->toHaveKey('agent-workflows');
+        ->and($registry->forDomain(MosDomain::WORKFLOW))->toHaveKey('agent-workflows')
+        ->and($registry->forDomain(MosDomain::WORKFLOW))->toHaveKey('marketing-operating-system');
 });
 
 it('exposes a capability map for migration planning', function () {
@@ -32,13 +36,14 @@ it('exposes a capability map for migration planning', function () {
     expect($capabilities['opportunity-intelligence'])->toContain('generate_opportunities', 'recommend_actions')
         ->and($capabilities['signal-intelligence'])->toContain('detect_signals', 'promote_to_opportunities')
         ->and($capabilities['agent-workflows'])->toContain('trigger_workflows', 'coordinate_agents')
+        ->and($capabilities['marketing-operating-system'])->toContain('orchestrate_objectives', 'link_recommendations', 'integrate_reports', 'integrate_briefings')
         ->and($capabilities['legacy-content-opportunities'])->toContain('emit_canonical_opportunity_payload');
 });
 
 it('formats provider diagnostics for internal observability', function () {
     $diagnostics = app(MosProviderRegistry::class)->diagnostics();
 
-    expect($diagnostics)->toHaveCount(9)
+    expect($diagnostics)->toHaveCount(10)
         ->and($diagnostics[0])->toHaveKeys(['key', 'label', 'domain', 'capabilities', 'capabilities_list', 'priority', 'class'])
         ->and($diagnostics[0]['key'])->toBe('opportunity-intelligence')
         ->and($diagnostics[0]['domain'])->toBe(MosDomain::OPPORTUNITY)

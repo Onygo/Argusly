@@ -24,6 +24,14 @@ final class ResourceType
     public const USER = 'user';
     public const QUEUE_JOB = 'queue_job';
     public const FAILED_JOB = 'failed_job';
+    public const MARKETING_OBJECTIVE = 'marketing_objective';
+    public const MARKETING_INITIATIVE = 'marketing_initiative';
+    public const MARKETING_THEME = 'marketing_theme';
+    public const MARKETING_PRIORITY = 'marketing_priority';
+    public const MARKETING_WORKFLOW = 'marketing_workflow';
+    public const MARKETING_REVIEW = 'marketing_review';
+    public const MARKETING_TIMELINE_EVENT = 'marketing_timeline_event';
+    public const MARKETING_OPERATING_LINK = 'marketing_operating_link';
 
     private ?string $description = null;
     private ?string $icon = null;

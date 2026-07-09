@@ -374,6 +374,7 @@ class LlmManager
     ): array {
         $promptCharsTotal = collect($request->messages)
             ->sum(fn (LlmMessage $message) => mb_strlen((string) $message->content));
+        $promptMetrics = $this->promptMetrics($request->messages);
 
         return [
             'workspace_id' => $workspaceId,
@@ -395,6 +396,8 @@ class LlmManager
             'metadata' => [
                 'message_count' => count($request->messages),
                 'prompt_chars_total' => $promptCharsTotal,
+                'prompt_hash' => $promptMetrics['prompt_hash'],
+                'message_metrics' => $promptMetrics['messages'],
                 'provider_raw' => $response->raw,
                 'meta' => $this->safeMetaSubset($mergedMeta),
             ],
@@ -419,6 +422,7 @@ class LlmManager
     ): array {
         $promptCharsTotal = collect($request->messages)
             ->sum(fn (LlmMessage $message) => mb_strlen((string) $message->content));
+        $promptMetrics = $this->promptMetrics($request->messages);
 
         $statusCode = $exception instanceof LlmException ? $exception->statusCode : null;
         $requestId = $exception instanceof LlmException ? $exception->requestId : null;
@@ -441,6 +445,8 @@ class LlmManager
             'metadata' => [
                 'message_count' => count($request->messages),
                 'prompt_chars_total' => $promptCharsTotal,
+                'prompt_hash' => $promptMetrics['prompt_hash'],
+                'message_metrics' => $promptMetrics['messages'],
                 'meta' => $this->safeMetaSubset($mergedMeta),
             ],
         ];
@@ -458,8 +464,43 @@ class LlmManager
             'contentId' => $meta['contentId'] ?? null,
             'draftId' => $meta['draftId'] ?? null,
             'queryId' => $meta['queryId'] ?? null,
+            'source_draft_id' => $meta['source_draft_id'] ?? null,
+            'source_language' => $meta['source_language'] ?? null,
+            'target_language' => $meta['target_language'] ?? null,
+            'sub_feature' => $meta['sub_feature'] ?? null,
+            'prompt_version' => $meta['prompt_version'] ?? null,
+            'eval_case_id' => $meta['eval_case_id'] ?? null,
+            'eval_rubric_version' => $meta['eval_rubric_version'] ?? null,
+            'schema_name' => $meta['schema_name'] ?? null,
+            'context_strategy' => $meta['context_strategy'] ?? null,
             'trigger' => $meta['trigger'] ?? null,
             'fallback_from_provider' => $meta['fallback_from_provider'] ?? null,
+            'llm_json_fix_retry_attempted' => $meta['llm_json_fix_retry_attempted'] ?? null,
+        ];
+    }
+
+    /**
+     * @param array<int, LlmMessage> $messages
+     * @return array{prompt_hash:string,messages:array<int,array{role:string,chars:int,sha1:string}>}
+     */
+    private function promptMetrics(array $messages): array
+    {
+        $parts = [];
+        $metrics = [];
+
+        foreach ($messages as $message) {
+            $content = (string) $message->content;
+            $parts[] = $message->role . ':' . sha1($content);
+            $metrics[] = [
+                'role' => $message->role,
+                'chars' => mb_strlen($content),
+                'sha1' => sha1($content),
+            ];
+        }
+
+        return [
+            'prompt_hash' => sha1(implode('|', $parts)),
+            'messages' => $metrics,
         ];
     }
 

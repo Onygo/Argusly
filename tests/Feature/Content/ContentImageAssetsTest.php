@@ -107,6 +107,44 @@ it('shows image asset usage metadata in the content editor', function (): void {
         ]), false);
 });
 
+it('shows failed image generation errors in image history', function (): void {
+    [$user, $content] = createContentImageAssetContext();
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'featured',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'openai',
+        'status' => 'failed',
+        'is_active' => false,
+        'error_message' => 'Image generation failed: HTTP 400 - Billing hard limit has been reached.',
+        'credit_cost' => 6,
+    ]);
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $content->workspace_id,
+        'content_id' => (string) $content->id,
+        'type' => 'og',
+        'source' => ContentImage::SOURCE_GENERATED,
+        'provider' => 'pl-renderer',
+        'status' => 'failed',
+        'is_active' => false,
+        'error_message' => 'OG image generation failed: background image provider limit reached.',
+        'credit_cost' => 0,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('app.content.show', ['content' => $content, 'tab' => 'images']))
+        ->assertOk()
+        ->assertSee('Featured Image History')
+        ->assertSee('OG Image History')
+        ->assertSee('Image generation failed: HTTP 400 - Billing hard limit has been reached.')
+        ->assertSee('OG image generation failed: background image provider limit reached.');
+});
+
 it('persists usage flags when selecting an existing content image asset', function (): void {
     [$user, $content] = createContentImageAssetContext();
 

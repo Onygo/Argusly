@@ -3,6 +3,7 @@
 namespace App\Support\Interaction;
 
 use App\Support\Interaction\Providers\AppContentInteractionProvider;
+use App\Support\Interaction\Providers\AppMarketingOperatingSystemInteractionProvider;
 use App\Support\Interaction\Providers\AppPageIntelligenceInteractionProvider;
 use App\Support\Interaction\Providers\AppResearchInteractionProvider;
 use App\Support\Interaction\Providers\AppSignalInteractionProvider;
@@ -21,6 +22,7 @@ final class AppInteractionRegistry
             new AppSiteInteractionProvider(),
             new AppSignalInteractionProvider(),
             new AppPageIntelligenceInteractionProvider(),
+            new AppMarketingOperatingSystemInteractionProvider(),
         ];
     }
 

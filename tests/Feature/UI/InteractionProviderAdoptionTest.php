@@ -310,8 +310,15 @@ it('keeps registered adoption actions as metadata-only links without business ex
         expect($resolved['execution_mode'])->toBe(Action::EXECUTION_LINK)
             ->and($resolved['method'])->toBe('GET')
             ->and($resolved['form'])->toBeNull()
-            ->and($resolved['confirmation'])->toBeNull()
-            ->and($resolved['drawer'])->toBeNull()
-            ->and($resolved['route']['exists'])->toBeTrue();
+            ->and($resolved['confirmation'])->toBeNull();
+
+        if ($resolved['drawer'] !== null) {
+            expect($resolved['route'])->toBeNull()
+                ->and($resolved['metadata']['dashboard'] ?? false)->toBeFalse();
+
+            continue;
+        }
+
+        expect($resolved['route']['exists'])->toBeTrue();
     }
 });

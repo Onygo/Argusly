@@ -810,6 +810,82 @@
         box-shadow: inset 0 4px 0 var(--pl-v2-yellow);
     }
 
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities {
+        border-color: rgba(18, 109, 204, 0.16) !important;
+        background: linear-gradient(180deg, #ffffff 0%, #eef7fd 100%) !important;
+        box-shadow: inset 0 -1px 0 rgba(18, 109, 204, 0.14);
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities .pl-public-pill-soft {
+        border-color: rgba(255, 198, 0, 0.56) !important;
+        background: rgba(255, 198, 0, 0.18) !important;
+        color: var(--pl-v2-ink) !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities article {
+        overflow: hidden;
+        border-color: rgba(18, 109, 204, 0.24) !important;
+        background: #ffffff !important;
+        box-shadow: inset 0 4px 0 var(--pl-v2-blue), 0 14px 36px rgba(6, 47, 79, 0.08);
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities article:nth-child(even) {
+        box-shadow: inset 0 4px 0 var(--pl-v2-yellow), 0 14px 36px rgba(6, 47, 79, 0.08);
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities article > span.inline-flex:first-child {
+        background: var(--pl-v2-blue) !important;
+        color: #ffffff !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities article:nth-child(even) > span.inline-flex:first-child {
+        background: var(--pl-v2-yellow) !important;
+        color: var(--pl-v2-ink) !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities article li > span.inline-flex:first-child {
+        background: rgba(18, 109, 204, 0.08) !important;
+        color: var(--pl-v2-blue-deep) !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #capabilities article:nth-child(even) li > span.inline-flex:first-child {
+        background: rgba(255, 198, 0, 0.22) !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #governance {
+        border-color: rgba(207, 238, 255, 0.18) !important;
+        background: linear-gradient(135deg, var(--pl-v2-navy-deep) 0%, var(--pl-v2-navy) 52%, var(--pl-v2-blue-deep) 100%) !important;
+        box-shadow: inset 0 4px 0 var(--pl-v2-yellow), inset 0 -1px 0 rgba(207, 238, 255, 0.18);
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #governance .pl-public-hero-label {
+        border-color: var(--pl-v2-yellow) !important;
+        background: var(--pl-v2-yellow) !important;
+        color: var(--pl-v2-ink) !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #governance article {
+        overflow: hidden;
+        border-color: rgba(207, 238, 255, 0.22) !important;
+        background: rgba(255, 255, 255, 0.1) !important;
+        box-shadow: inset 0 4px 0 rgba(255, 198, 0, 0.82);
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #governance article > span.inline-flex:first-child {
+        background: rgba(255, 198, 0, 0.95) !important;
+        color: var(--pl-v2-ink) !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #governance li > span.inline-flex:first-child {
+        background: rgba(255, 198, 0, 0.18) !important;
+        color: #ffffff !important;
+    }
+
+    .pl-marketing-v2 [data-page="product-platform"] #governance h2,
+    .pl-marketing-v2 [data-page="product-platform"] #governance h3 {
+        color: #ffffff !important;
+    }
+
     .pl-marketing-v2 [class*="pl-animate-step-"] {
         display: flex;
         min-height: 10.5rem;

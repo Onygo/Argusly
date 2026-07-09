@@ -461,8 +461,55 @@ class TranslationServiceTest extends TestCase
 
         $this->assertStringContainsString('You may improve headings, sentence rhythm, paragraph flow, local idiom', $systemPrompt);
         $this->assertStringContainsString('Do not preserve AI-like rhythm', $systemPrompt);
+        $this->assertStringContainsString('When translating Dutch "Van X naar Y" titles', $systemPrompt);
         $this->assertStringContainsString('Improve heading naturalness, sentence rhythm, paragraph flow', $userPrompt);
+        $this->assertStringContainsString('write "From X to Y"', $userPrompt);
         $this->assertStringNotContainsString('Preserve the exact HTML structure', $userPrompt);
+    }
+
+    public function test_translate_normalizes_dutch_van_naar_connectors_in_english_titles(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::NL->value,
+            'status' => 'ready',
+            'title' => 'Van AI-chatbot naar AI-orchestratie',
+            'content_html' => '<h1>Van AI-chatbot naar AI-orchestratie</h1><p>Nederlandse broncontent met een duidelijke route.</p>',
+        ]);
+
+        $llmManager = \Mockery::mock(LlmManager::class);
+        $llmManager->shouldReceive('generateJson')
+            ->once()
+            ->andReturn(new LlmResponse(
+                text: '',
+                json: [
+                    'title' => 'Van AI Chatbot to AI Orchestration: A Practical Decision Framework',
+                    'content_html' => '<h1>Van AI Chatbot to AI Orchestration</h1><p>English body text.</p>',
+                    'seo' => [
+                        'seo_title' => 'Van AI Chatbot to AI Orchestration',
+                        'seo_meta_description' => 'Van AI chatbot to orchestration without losing governance.',
+                        'seo_h1' => 'Van AI Chatbot to AI Orchestration',
+                        'seo_og_title' => 'Van AI Chatbot to AI Orchestration',
+                        'seo_og_description' => 'Van AI chatbot to orchestration without losing governance.',
+                        'slug' => 'van-ai-chatbot-to-ai-orchestration',
+                        'suggested_primary_keyword' => 'AI orchestration',
+                        'secondary_keywords' => ['AI chatbot'],
+                    ],
+                ],
+                usage: new LlmUsage(120, 180, 300),
+                modelUsed: 'gpt-4.1-mini',
+                providerName: 'test',
+                requestId: 'req-translation-english-connectors',
+            ));
+        $this->app->instance(LlmManager::class, $llmManager);
+
+        $result = $this->app->make(TranslationService::class)->translate($sourceDraft, SupportedLanguage::EN);
+
+        $this->assertSame('From AI Chatbot to AI Orchestration: A Practical Decision Framework', $result['title']);
+        $this->assertStringContainsString('<h1>From AI Chatbot to AI Orchestration</h1>', $result['content_html']);
+        $this->assertSame('From AI Chatbot to AI Orchestration', $result['seo']['seo_title']);
+        $this->assertSame('From AI chatbot to orchestration without losing governance.', $result['seo']['seo_meta_description']);
+        $this->assertSame('From AI Chatbot to AI Orchestration', $result['seo']['seo_h1']);
     }
 
     public function test_translate_preserves_link_urls_in_translation_result(): void
@@ -751,6 +798,44 @@ class TranslationServiceTest extends TestCase
         $this->assertSame(['nederlandse vertaling'], (array) $contentSeo->secondary_keywords);
         $this->assertIsInt(data_get($translatedDraft->meta, 'human_content.locales.nl.after.human_content_score'));
         $this->assertSame('nl', data_get($translatedDraft->meta, 'translation.human_content.locale'));
+    }
+
+    public function test_create_translated_draft_persists_normalized_english_van_naar_title_and_slug(): void
+    {
+        $sourceDraft = $this->createDraft([
+            'draft_type' => DraftType::ORIGINAL->value,
+            'language' => SupportedLanguage::NL->value,
+            'status' => 'ready',
+            'title' => 'Van AI-chatbot naar AI-orchestratie',
+            'content_html' => '<h1>Van AI-chatbot naar AI-orchestratie</h1><p>Nederlandse broncontent.</p>',
+        ]);
+
+        $translatedDraft = $this->service->createTranslatedDraft(
+            $sourceDraft,
+            SupportedLanguage::EN,
+            [
+                'title' => 'Van AI Chatbot to AI Orchestration: A Practical Decision Framework',
+                'content_html' => '<h1>Van AI Chatbot to AI Orchestration</h1><p>English body text.</p>',
+                'seo' => [
+                    'seo_title' => 'Van AI Chatbot to AI Orchestration',
+                    'seo_meta_description' => 'Van AI chatbot to orchestration without losing governance.',
+                    'seo_h1' => 'Van AI Chatbot to AI Orchestration',
+                    'slug' => 'van-ai-chatbot-to-ai-orchestration',
+                    'suggested_primary_keyword' => 'AI orchestration',
+                    'secondary_keywords' => ['AI chatbot'],
+                ],
+                'model_used' => 'gpt-4.1-mini',
+            ],
+            (string) $this->user->id
+        );
+
+        $translatedContent = $translatedDraft->content->fresh();
+
+        $this->assertSame('From AI Chatbot to AI Orchestration: A Practical Decision Framework', (string) $translatedDraft->title);
+        $this->assertSame('From AI Chatbot to AI Orchestration: A Practical Decision Framework', (string) $translatedContent->title);
+        $this->assertSame('from-ai-chatbot-to-ai-orchestration-a-practical-decision-framework', (string) $translatedContent->publish_url_key);
+        $this->assertSame('From AI Chatbot to AI Orchestration', (string) $translatedDraft->seo_title);
+        $this->assertStringContainsString('<h1>From AI Chatbot to AI Orchestration</h1>', (string) $translatedDraft->content_html);
     }
 
     public function test_weak_translated_rhythm_can_be_humanized_in_target_locale(): void

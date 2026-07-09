@@ -170,6 +170,34 @@ it('falls back to jina reader when direct extraction is too short', function () 
         && $request->hasHeader('Authorization', 'Bearer jina-test-key'));
 });
 
+it('preserves too short classification when reader fallback generically fails', function () {
+    config([
+        'source_extraction.jina_enabled' => true,
+        'source_extraction.jina_api_key' => null,
+    ]);
+
+    Http::fake([
+        'https://example.com/thin-reader-failed' => Http::response('<html><body><h1>Thin</h1><p>Short.</p></body></html>', 200, ['Content-Type' => 'text/html']),
+        'https://r.jina.ai/http://example.com/thin-reader-failed' => Http::response('Reader failed', 500, ['Content-Type' => 'text/plain']),
+    ]);
+
+    $result = app(SourceUrlExtractor::class)->extract('https://example.com/thin-reader-failed', null, [
+        'use_cache' => false,
+        'browser_enabled' => false,
+    ]);
+    $attemptCodes = array_map(
+        fn (array $attempt): ?string => $attempt['error_code'] ?? null,
+        (array) data_get($result->metadata, 'attempts', [])
+    );
+    $finalAttemptCode = end($attemptCodes);
+
+    expect($result->success)->toBeFalse()
+        ->and($result->errorCode)->toBe('SOURCE_EXTRACTION_TOO_SHORT')
+        ->and($attemptCodes)->toContain('SOURCE_EXTRACTION_TOO_SHORT')
+        ->and($attemptCodes)->toContain('SOURCE_JINA_FAILED')
+        ->and($finalAttemptCode)->toBe('SOURCE_JINA_FAILED');
+});
+
 it('reports jina auth requirements clearly when the reader endpoint requires a key', function () {
     config([
         'source_extraction.jina_enabled' => true,
@@ -195,6 +223,40 @@ it('reports jina auth requirements clearly when the reader endpoint requires a k
     expect($result->success)->toBeFalse()
         ->and($result->errorCode)->toBe('SOURCE_JINA_AUTH_REQUIRED')
         ->and((bool) data_get($result->metadata, 'has_api_key'))->toBeFalse();
+});
+
+it('preserves jina fallback failure after direct fetch is blocked', function () {
+    config([
+        'source_extraction.jina_enabled' => true,
+        'source_extraction.jina_api_key' => null,
+    ]);
+
+    Http::fake([
+        'https://example.com/blocked-then-jina' => Http::response('Forbidden', 403, ['Content-Type' => 'text/html']),
+        'https://r.jina.ai/http://example.com/blocked-then-jina' => Http::response([
+            'data' => null,
+            'code' => 401,
+            'name' => 'AuthenticationRequiredError',
+            'status' => 40103,
+            'message' => 'Authentication is required to use this endpoint. Please provide a valid API key via Authorization header.',
+        ], 401),
+    ]);
+
+    $result = app(SourceUrlExtractor::class)->extract('https://example.com/blocked-then-jina', null, [
+        'use_cache' => false,
+        'browser_enabled' => false,
+    ]);
+    $attemptCodes = array_map(
+        fn (array $attempt): ?string => $attempt['error_code'] ?? null,
+        (array) data_get($result->metadata, 'attempts', [])
+    );
+    $finalAttemptCode = end($attemptCodes);
+
+    expect($result->success)->toBeFalse()
+        ->and($result->errorCode)->toBe('SOURCE_JINA_AUTH_REQUIRED')
+        ->and($attemptCodes)->toContain('SOURCE_FETCH_BLOCKED')
+        ->and($attemptCodes)->toContain('SOURCE_JINA_AUTH_REQUIRED')
+        ->and($finalAttemptCode)->toBe('SOURCE_JINA_AUTH_REQUIRED');
 });
 
 it('builds jina reader urls without double prefixing r jina ai', function () {
@@ -263,6 +325,33 @@ it('skips browser fallback safely when disabled', function () {
 
     expect($result->success)->toBeFalse()
         ->and($result->errorCode)->toBe('SOURCE_BROWSER_DISABLED');
+});
+
+it('preserves browser fallback state after direct fetch is blocked', function () {
+    config([
+        'source_extraction.jina_enabled' => false,
+        'source_extraction.browser_enabled' => false,
+    ]);
+
+    Http::fake([
+        'https://example.com/blocked-browser' => Http::response('Forbidden', 403, ['Content-Type' => 'text/html']),
+    ]);
+
+    $result = app(SourceUrlExtractor::class)->extract('https://example.com/blocked-browser', null, [
+        'use_cache' => false,
+        'browser_enabled' => true,
+    ]);
+    $attemptCodes = array_map(
+        fn (array $attempt): ?string => $attempt['error_code'] ?? null,
+        (array) data_get($result->metadata, 'attempts', [])
+    );
+    $finalAttemptCode = end($attemptCodes);
+
+    expect($result->success)->toBeFalse()
+        ->and($result->errorCode)->toBe('SOURCE_BROWSER_DISABLED')
+        ->and($attemptCodes)->toContain('SOURCE_FETCH_BLOCKED')
+        ->and($attemptCodes)->toContain('SOURCE_BROWSER_DISABLED')
+        ->and($finalAttemptCode)->toBe('SOURCE_BROWSER_DISABLED');
 });
 
 it('returns a cached successful extraction without refetching', function () {

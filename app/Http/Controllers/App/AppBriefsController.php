@@ -19,6 +19,8 @@ use App\Models\BriefSuggestion;
 use App\Models\ClientSite;
 use App\Models\Content;
 use App\Models\ContentDestination;
+use App\Models\ContentSeries;
+use App\Models\ContentSeriesArticle;
 use App\Models\ContentSource;
 use App\Models\ResearchProject;
 use App\Models\Workspace;
@@ -47,6 +49,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -391,6 +394,7 @@ class AppBriefsController extends Controller
             $source = $this->resolveSourceForOrganization((string) ($validated['content_source_id'] ?? ''), $organizationId);
             $sourceUrl = trim((string) ($validated['source_url'] ?? $source?->source_url ?? ''));
             $manualSourceNotes = trim((string) ($validated['manual_source_notes'] ?? ''));
+            $chainSettings = $this->sourceChainSettings($validated);
 
             if ($sourceUrl === '') {
                 return $this->sourceGenerationValidationError($request, 'A valid source URL is required.');
@@ -434,6 +438,7 @@ class AppBriefsController extends Controller
                             'requested_mode' => (string) ($validated['extraction_mode'] ?? 'default'),
                         ],
                         'manual_source_notes' => $manualSourceNotes !== '' ? $manualSourceNotes : null,
+                        'chain_settings' => $chainSettings !== [] ? $chainSettings : null,
                     ],
                 ]);
             } else {
@@ -446,6 +451,9 @@ class AppBriefsController extends Controller
                         'manual_source_notes' => $manualSourceNotes !== ''
                             ? $manualSourceNotes
                             : data_get($source->metadata_json, 'manual_source_notes'),
+                        'chain_settings' => $chainSettings !== []
+                            ? $chainSettings
+                            : data_get($source->metadata_json, 'chain_settings'),
                     ]),
                 ]);
             }
@@ -589,6 +597,7 @@ class AppBriefsController extends Controller
                 abort(404);
             }
 
+            $nextAction = (string) ($request->validated('next_action') ?? 'save');
             $generated = is_array($source->generated_payload_json) ? $source->generated_payload_json : [];
             $briefPayload = is_array($generated['brief'] ?? null) ? $generated['brief'] : [];
             if ($briefPayload === []) {
@@ -602,10 +611,27 @@ class AppBriefsController extends Controller
                 ->latest('created_at')
                 ->first();
 
-            if ($existingBrief instanceof Brief) {
+            if ($existingBrief instanceof Brief && ! in_array($nextAction, ['create_chain', 'create_selected_chain_items'], true)) {
                 return redirect()
                     ->route('app.content.workspace.show', $existingBrief)
                     ->with('status', 'This generated source was already saved. Reusing the existing brief.');
+            }
+
+            if ($existingBrief instanceof Brief && in_array($nextAction, ['create_chain', 'create_selected_chain_items'], true)) {
+                $existingSeriesId = trim((string) data_get($source->metadata_json, 'result_chain_series_id', ''));
+
+                if ($existingSeriesId !== '') {
+                    $existingSeries = ContentSeries::query()
+                        ->whereKey($existingSeriesId)
+                        ->where('organization_id', $organizationId)
+                        ->first();
+
+                    if ($existingSeries instanceof ContentSeries) {
+                        return redirect()
+                            ->route('app.content.series.show', $existingSeries)
+                            ->with('status', 'This source has already been converted into a content chain.');
+                    }
+                }
             }
 
             $destinationMode = (string) ($request->validated('destination_mode') ?? 'connected');
@@ -631,6 +657,19 @@ class AppBriefsController extends Controller
                 $entitlements->consumeBriefQuota($site->workspace);
             } catch (\RuntimeException $exception) {
                 return back()->withErrors(['site_id' => $exception->getMessage()]);
+            }
+
+            if (in_array($nextAction, ['create_chain', 'create_selected_chain_items'], true)
+                && ((string) ($source->generation_output_mode ?? '') === 'full_chain' || $request->has('chain_items'))
+            ) {
+                $series = $this->createFullChainFromSourceBrief($request, $source->fresh() ?? $source, null, $site, $selectedDestination);
+
+                return redirect()
+                    ->route('app.content.series.show', $series)
+                    ->with('status', sprintf(
+                        'Content chain created with %d approved item(s). Review the chain before publishing.',
+                        (int) $series->contents()->count()
+                    ));
             }
 
             $notes = $this->composeSourceBriefNotes($source, $generated);
@@ -707,8 +746,6 @@ class AppBriefsController extends Controller
                 'result_brief_id' => (string) $brief->id,
             ]);
 
-            $nextAction = (string) ($request->validated('next_action') ?? 'save');
-
             if ($nextAction === 'generate_draft') {
                 return $this->queueDraftGeneration(
                     $request,
@@ -719,10 +756,10 @@ class AppBriefsController extends Controller
                 );
             }
 
-            if ($nextAction === 'create_chain') {
+            if (in_array($nextAction, ['create_chain', 'create_selected_chain_items'], true)) {
                 return redirect()
                     ->route('app.content.series.create', ['source_brief' => $brief->id])
-                    ->with('status', 'Brief saved. Review the prefilled chained content plan.');
+                    ->with('status', 'Brief saved. Review the chain proposal before creating content items.');
             }
 
             return redirect()
@@ -1770,6 +1807,263 @@ class AppBriefsController extends Controller
     }
 
     /**
+     * @param array<string,mixed> $validated
+     * @return array<string,mixed>
+     */
+    private function sourceChainSettings(array $validated): array
+    {
+        $settings = [
+            'title' => $this->nullableText($validated['chain_title'] ?? null),
+            'goal' => $this->nullableText($validated['chain_goal'] ?? null),
+            'main_topic' => $this->nullableText($validated['chain_main_topic'] ?? null),
+            'primary_keyword' => $this->nullableText($validated['chain_primary_keyword'] ?? null),
+            'secondary_keywords' => $this->toArrayList($validated['chain_secondary_keywords'] ?? ''),
+            'target_audience' => $this->nullableText($validated['chain_target_audience'] ?? null),
+            'funnel_stage' => $this->nullableText($validated['chain_funnel_stage'] ?? null),
+            'search_intent' => $this->nullableText($validated['chain_search_intent'] ?? null),
+            'tone_of_voice' => $this->nullableText($validated['chain_tone_of_voice'] ?? null),
+            'unique_angle' => $this->nullableText($validated['chain_unique_angle'] ?? null),
+            'items_count' => isset($validated['chain_items_count']) ? max(1, min(20, (int) $validated['chain_items_count'])) : null,
+            'item_types' => collect((array) ($validated['chain_item_types'] ?? []))
+                ->map(fn (mixed $value): string => trim((string) $value))
+                ->filter()
+                ->values()
+                ->all(),
+            'language' => $this->nullableText($validated['chain_language'] ?? null),
+            'destination_site' => $this->nullableText($validated['chain_destination_site'] ?? null),
+            'cms_destination' => $this->nullableText($validated['chain_cms_destination'] ?? null),
+            'cta' => $this->nullableText($validated['chain_cta'] ?? null),
+            'internal_link_targets' => $this->toArrayList($validated['chain_internal_link_targets'] ?? ''),
+            'notes' => $this->nullableText($validated['chain_notes'] ?? null),
+        ];
+
+        return array_filter($settings, fn (mixed $value): bool => $value !== null && $value !== []);
+    }
+
+    private function createFullChainFromSourceBrief(
+        SaveUrlBriefSourceRequest $request,
+        ContentSource $source,
+        ?Brief $brief,
+        ClientSite $site,
+        ?ContentDestination $destination
+    ): ContentSeries {
+        $generated = is_array($source->generated_payload_json) ? $source->generated_payload_json : [];
+        $briefPayload = is_array($generated['brief'] ?? null) ? $generated['brief'] : [];
+        $chainProposal = is_array($generated['chain_proposal'] ?? null) ? $generated['chain_proposal'] : [];
+        $settings = array_replace(
+            (array) data_get($source->metadata_json, 'chain_settings', []),
+            $this->sourceChainSettings($request->validated())
+        );
+        $items = $this->approvedChainItems($request, $chainProposal, $briefPayload, $settings);
+
+        if ($items === []) {
+            throw ValidationException::withMessages([
+                'chain_items' => 'Review and approve the proposed chain items before creating them.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($request, $source, $brief, $site, $destination, $generated, $briefPayload, $chainProposal, $settings, $items): ContentSeries {
+            $seriesId = (string) Str::uuid();
+            $primaryKeyword = $this->nullableText($settings['primary_keyword'] ?? null)
+                ?: $this->nullableText(data_get($items, '0.primary_keyword'))
+                ?: $this->nullableText($briefPayload['primary_keyword'] ?? null)
+                ?: (string) ($source->source_title ?? 'Content chain');
+            $seriesName = $this->nullableText($settings['title'] ?? null)
+                ?: $this->nullableText($settings['main_topic'] ?? null)
+                ?: $this->nullableText($chainProposal['pillar_topic'] ?? null)
+                ?: $this->nullableText($briefPayload['working_title'] ?? null)
+                ?: 'Content chain';
+            $mainTopic = $this->nullableText($settings['main_topic'] ?? null)
+                ?: $this->nullableText($chainProposal['pillar_topic'] ?? null)
+                ?: $seriesName;
+
+            $strategyArticles = collect($items)->map(function (array $item, int $index) use ($items): array {
+                $articleNumber = $index + 1;
+
+                return [
+                    'article_number' => $articleNumber,
+                    'title' => (string) $item['title'],
+                    'content_type' => (string) ($item['content_type'] ?? 'supporting_blog'),
+                    'primary_keyword' => (string) ($item['primary_keyword'] ?? ''),
+                    'secondary_keywords' => (array) ($item['secondary_keywords'] ?? []),
+                    'search_intent' => (string) ($item['search_intent'] ?? ''),
+                    'funnel_stage' => (string) ($item['funnel_stage'] ?? ''),
+                    'target_audience' => (string) ($item['target_audience'] ?? ''),
+                    'editorial_angle' => (string) ($item['angle'] ?? ''),
+                    'key_points' => (array) ($item['key_points'] ?? []),
+                    'cta' => (string) ($item['cta'] ?? ''),
+                    'internal_links_to' => $articleNumber === 1 && count($items) > 1
+                        ? collect(range(2, count($items)))->values()->all()
+                        : ($articleNumber === 1 ? [] : [1]),
+                    'suggested_internal_links' => (array) ($item['suggested_internal_links'] ?? []),
+                    'is_pillar' => $articleNumber === 1,
+                    'proposal_status' => 'approved',
+                ];
+            })->values()->all();
+
+            $series = ContentSeries::query()->create([
+                'id' => $seriesId,
+                'organization_id' => (int) $request->user()->organization_id,
+                'site_id' => (string) $site->id,
+                'name' => Str::limit($seriesName, 255, ''),
+                'main_topic' => Str::limit($mainTopic, 255, ''),
+                'primary_keyword' => Str::limit($primaryKeyword, 255, ''),
+                'supporting_keywords' => collect($items)
+                    ->flatMap(fn (array $item): array => (array) ($item['secondary_keywords'] ?? []))
+                    ->filter()
+                    ->unique()
+                    ->take(40)
+                    ->values()
+                    ->all(),
+                'intent_keys' => [],
+                'audience' => $this->nullableText($settings['target_audience'] ?? null) ?: $this->nullableText(data_get($items, '0.target_audience')),
+                'tone' => $this->nullableText($settings['tone_of_voice'] ?? null),
+                'funnel_stage' => $this->nullableText($settings['funnel_stage'] ?? null) ?: $this->nullableText(data_get($items, '0.funnel_stage')),
+                'articles_count' => count($items),
+                'content_type' => 'post',
+                'status' => ContentSeries::STATUS_DRAFT,
+                'is_locked' => false,
+                'strategy_json' => [
+                    'angle' => $this->nullableText($settings['unique_angle'] ?? null)
+                        ?: $this->nullableText($briefPayload['summary'] ?? null)
+                        ?: 'Use the approved source-derived chain proposal as the content plan.',
+                    'articles' => $strategyArticles,
+                    'meta' => [
+                        'source' => 'source_url_chain_proposal',
+                        'chain_mode' => (string) ($source->generation_output_mode ?: 'full_chain'),
+                        'proposal_only' => false,
+                        'source_brief_id' => $brief?->id,
+                        'content_source_id' => (string) $source->id,
+                        'source_url' => (string) ($source->final_url ?: $source->source_url),
+                        'source_title' => (string) ($source->source_title ?? ''),
+                        'source_summary' => (string) data_get($source->metadata_json, 'extraction.summary', ''),
+                        'detected_topic' => (string) data_get($source->analysis_json, 'main_topic', ''),
+                        'detected_keywords' => (array) data_get($generated, 'keywords.secondary_keywords', []),
+                        'recommended_structure' => (array) data_get($briefPayload, 'recommended_structure', []),
+                        'extraction_metadata' => (array) data_get($source->metadata_json, 'extraction', []),
+                        'chain_settings' => $settings,
+                        'chain_proposal' => $chainProposal,
+                        'created_at' => now()->toIso8601String(),
+                    ],
+                ],
+                'created_by' => (int) $request->user()->id,
+            ]);
+
+            foreach ($items as $index => $item) {
+                $articleNumber = $index + 1;
+                $content = Content::query()->create([
+                    'id' => (string) Str::uuid(),
+                    'workspace_id' => (string) $site->workspace_id,
+                    'client_site_id' => (string) $site->id,
+                    'content_destination_id' => $destination?->id,
+                    'series_id' => (string) $series->id,
+                    'title' => Str::limit((string) $item['title'], 255, ''),
+                    'language' => (string) ($settings['language'] ?? $briefPayload['language'] ?? $source->source_language ?? 'en'),
+                    'translation_source_locale' => null,
+                    'is_source_locale' => true,
+                    'type' => 'article',
+                    'status' => 'brief',
+                    'source' => 'manual',
+                    'external_key' => sprintf('series-%s-article-%d', (string) $series->id, $articleNumber),
+                    'primary_keyword' => (string) ($item['primary_keyword'] ?? ''),
+                    'generation_mode' => 'balanced',
+                    'preferred_length' => 'medium',
+                    'internal_links_meta' => [
+                        'chain_item_type' => (string) ($item['content_type'] ?? ''),
+                        'search_intent' => (string) ($item['search_intent'] ?? ''),
+                        'funnel_stage' => (string) ($item['funnel_stage'] ?? ''),
+                        'target_audience' => (string) ($item['target_audience'] ?? ''),
+                        'angle' => (string) ($item['angle'] ?? ''),
+                        'key_points' => (array) ($item['key_points'] ?? []),
+                        'cta' => (string) ($item['cta'] ?? ''),
+                        'suggested_internal_links' => (array) ($item['suggested_internal_links'] ?? []),
+                        'source_content_source_id' => (string) $source->id,
+                    ],
+                    'created_by' => (int) $request->user()->id,
+                    'updated_by' => (int) $request->user()->id,
+                ]);
+
+                ContentSeriesArticle::query()
+                    ->where('series_id', (string) $series->id)
+                    ->where('article_number', $articleNumber)
+                    ->first()
+                    ?->update([
+                        'content_id' => (string) $content->id,
+                        'title' => Str::limit((string) $item['title'], 255, ''),
+                        'primary_keyword' => (string) ($item['primary_keyword'] ?? ''),
+                        'secondary_keywords' => (array) ($item['secondary_keywords'] ?? []),
+                        'is_pillar' => $articleNumber === 1,
+                        'meta' => [
+                            'proposal_status' => 'approved',
+                            'content_type' => (string) ($item['content_type'] ?? ''),
+                            'search_intent' => (string) ($item['search_intent'] ?? ''),
+                            'funnel_stage' => (string) ($item['funnel_stage'] ?? ''),
+                            'target_audience' => (string) ($item['target_audience'] ?? ''),
+                            'angle' => (string) ($item['angle'] ?? ''),
+                            'key_points' => (array) ($item['key_points'] ?? []),
+                            'cta' => (string) ($item['cta'] ?? ''),
+                            'suggested_internal_links' => (array) ($item['suggested_internal_links'] ?? []),
+                        ],
+                    ]);
+            }
+
+            $source->update([
+                'metadata_json' => array_merge((array) $source->metadata_json, [
+                    'result_chain_series_id' => (string) $series->id,
+                ]),
+                'result_content_id' => (string) ($series->contents()->orderBy('created_at')->value('id') ?? ''),
+            ]);
+
+            return $series->fresh(['contents', 'seriesArticles']) ?? $series;
+        });
+    }
+
+    /**
+     * @param array<string,mixed> $chainProposal
+     * @param array<string,mixed> $briefPayload
+     * @param array<string,mixed> $settings
+     * @return array<int,array<string,mixed>>
+     */
+    private function approvedChainItems(SaveUrlBriefSourceRequest $request, array $chainProposal, array $briefPayload, array $settings): array
+    {
+        $submitted = collect((array) $request->validated('chain_items', []));
+
+        return $submitted
+            ->map(function (mixed $row, int|string $index) use ($briefPayload, $settings): array {
+                $row = is_array($row) ? $row : [];
+                $title = $this->nullableText($row['title'] ?? null);
+
+                return [
+                    'order' => (int) ($row['order'] ?? ((int) $index + 1)),
+                    'status' => (string) ($row['status'] ?? 'proposed'),
+                    'title' => $title,
+                    'content_type' => $this->nullableText($row['content_type'] ?? null) ?: 'supporting_blog',
+                    'primary_keyword' => $this->nullableText($row['primary_keyword'] ?? null) ?: $title,
+                    'secondary_keywords' => $this->toArrayList($row['secondary_keywords'] ?? ''),
+                    'search_intent' => $this->nullableText($row['search_intent'] ?? null) ?: $this->nullableText($briefPayload['search_intent'] ?? null),
+                    'funnel_stage' => $this->nullableText($row['funnel_stage'] ?? null) ?: $this->nullableText($settings['funnel_stage'] ?? null),
+                    'target_audience' => $this->nullableText($row['target_audience'] ?? null) ?: $this->nullableText($settings['target_audience'] ?? null) ?: $this->nullableText($briefPayload['target_audience'] ?? null),
+                    'angle' => $this->nullableText($row['angle'] ?? null) ?: $this->nullableText($settings['unique_angle'] ?? null),
+                    'key_points' => $this->toArrayList($row['key_points'] ?? ''),
+                    'cta' => $this->nullableText($row['cta'] ?? null) ?: $this->nullableText($settings['cta'] ?? null) ?: $this->nullableText($briefPayload['cta_recommendation'] ?? null),
+                    'suggested_internal_links' => $this->toArrayList($row['suggested_internal_links'] ?? ''),
+                ];
+            })
+            ->filter(fn (array $row): bool => (string) $row['status'] === 'approved' && filled($row['title']))
+            ->sortBy('order')
+            ->values()
+            ->take(20)
+            ->all();
+    }
+
+    private function nullableText(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
      * @return array{
      *   enabled:bool,
      *   meta:array<string,mixed>,
@@ -1856,6 +2150,14 @@ class AppBriefsController extends Controller
      */
     private function toArrayList(mixed $value): array
     {
+        if (is_array($value)) {
+            return collect($value)
+                ->map(fn (mixed $item): string => trim((string) $item))
+                ->filter()
+                ->values()
+                ->all();
+        }
+
         $string = trim((string) $value);
         if ($string === '') {
             return [];

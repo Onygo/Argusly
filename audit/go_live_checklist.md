@@ -146,6 +146,12 @@
   ```bash
   php artisan migrate --force
   ```
+- [ ] Recreate public storage links for generated content images
+  ```bash
+  mkdir -p storage/app/public/content-images
+  php artisan storage:link --force
+  php artisan argusly:diagnostics
+  ```
 - [ ] Clear and rebuild caches
   ```bash
   php artisan config:cache
@@ -259,4 +265,3 @@
 
 **Checklist Status**: Ready for Use
 **Last Updated**: 2026-03-13
-

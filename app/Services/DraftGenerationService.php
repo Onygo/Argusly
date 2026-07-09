@@ -121,6 +121,10 @@ class DraftGenerationService
             'credits' => (float) ($draft->credit_cost ?? 0),
             'trigger' => 'draft_generation_service',
             'requested_max_output_tokens' => $maxOutputTokens,
+            'prompt_version' => 'draft-generation.editorial-accuracy.v3',
+            'eval_rubric_version' => 'llm-accuracy.draft-generation.v1',
+            'schema_name' => 'draft_generation',
+            'context_strategy' => 'editorial_plan_with_brand_context',
         ];
 
         $response = $this->generateJsonWithTokenFallback(
@@ -932,6 +936,12 @@ class DraftGenerationService
             '- Use non-generic h2/h3 headings that communicate the actual argument of each section.',
             '- The final section must have a contextual, useful heading and close with a decision, implication, or next action; do not use a template-like conclusion.',
             '- Keep SEO, AEO, entity coverage, brand voice, and internal-link context intact while following the Editorial Plan.',
+            '',
+            'QUALITY GATES BEFORE RETURNING',
+            '- Every major claim must be grounded in the Editorial Plan, provided research/context, or obvious domain reasoning; do not invent customer facts, statistics, integrations, pricing, or legal/compliance claims.',
+            '- If the brief lacks evidence for a stronger claim, write a more cautious practical statement instead of guessing.',
+            '- Ensure the opening gives a direct answer or thesis, and each following section advances that thesis.',
+            '- Ensure the final JSON is complete, valid, and contains the full article, not notes about how to write it.',
         ]);
     }
 

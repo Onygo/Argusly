@@ -2,6 +2,7 @@
 
 namespace App\Services\PageIntelligence\Reports;
 
+use Carbon\CarbonInterface;
 use App\Contracts\PageIntelligence\ScheduledBriefingContract;
 use App\Models\Campaign;
 use App\Models\ClientSite;
@@ -25,11 +26,12 @@ use App\Models\SiteCompetitor;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\PageIntelligence\PageIntelligenceScoreCalculator;
+use App\Support\Intelligence\TimeWindowPreset;
+use App\Support\Intelligence\TimeWindowResolver;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -79,6 +81,10 @@ class ReportBuilder implements ScheduledBriefingContract
         ],
     ];
 
+    public function __construct(private readonly TimeWindowResolver $timeWindows)
+    {
+    }
+
     /**
      * @return array<string,array<string,mixed>>
      */
@@ -107,9 +113,12 @@ class ReportBuilder implements ScheduledBriefingContract
         $this->assertTenantScope($workspace, $options, $user);
 
         $template = self::REPORT_TYPES[$reportType];
-        [$periodStart, $periodEnd] = $this->period($template, $options);
         $marketPackKey = trim((string) ($options['market_pack_key'] ?? $options['market_pack'] ?? '')) ?: null;
         $clientSiteId = trim((string) ($options['client_site_id'] ?? '')) ?: null;
+        $clientSite = $clientSiteId !== null
+            ? ClientSite::query()->whereKey($clientSiteId)->where('workspace_id', $workspace->id)->first()
+            : null;
+        [$periodStart, $periodEnd] = $this->period($template, $options, $workspace, $clientSite);
         $marketPack = $this->resolveInstalledMarketPack($workspace, $marketPackKey, $clientSiteId);
         $identity = $this->reportIdentity($workspace, $reportType, $periodStart, $periodEnd, $marketPackKey, $clientSiteId);
         $idempotencyKey = $this->idempotencyKey($identity, $options);
@@ -270,18 +279,41 @@ class ReportBuilder implements ScheduledBriefingContract
     /**
      * @param array<string,mixed> $template
      * @param array<string,mixed> $options
-     * @return array{0:Carbon,1:Carbon}
+     * @return array{0:CarbonInterface,1:CarbonInterface}
      */
-    private function period(array $template, array $options): array
+    private function period(array $template, array $options, Workspace $workspace, ?ClientSite $clientSite): array
     {
-        $periodEnd = isset($options['period_end'])
-            ? Carbon::parse((string) $options['period_end'])->endOfDay()
-            : now();
-        $periodStart = isset($options['period_start'])
-            ? Carbon::parse((string) $options['period_start'])->startOfDay()
-            : $periodEnd->copy()->subDays((int) $template['days'])->startOfDay();
+        $preset = $options['time_window_preset'] ?? $options['preset'] ?? null;
 
-        return [$periodStart, $periodEnd];
+        if ($preset !== null) {
+            $window = $this->timeWindows->resolve($preset, [
+                'to' => $options['period_end'] ?? $options['to'] ?? null,
+                'from' => $options['period_start'] ?? $options['from'] ?? null,
+                'periods' => $options['periods'] ?? $options['days'] ?? $template['days'],
+                'granularity' => $options['granularity'] ?? null,
+                'timezone' => $options['timezone'] ?? null,
+            ], $workspace, $clientSite);
+
+            return [$window->start, $window->end];
+        }
+
+        $periodEnd = $options['period_end'] ?? now();
+        $periodStart = $options['period_start'] ?? $this->timeWindows
+            ->resolve(TimeWindowPreset::CUSTOM_RANGE, [
+                'from' => $periodEnd,
+                'to' => $periodEnd,
+                'timezone' => $options['timezone'] ?? null,
+            ], $workspace, $clientSite)
+            ->end
+            ->subDays((int) $template['days']);
+
+        $window = $this->timeWindows->resolve(TimeWindowPreset::CUSTOM_RANGE, [
+            'from' => $periodStart,
+            'to' => $periodEnd,
+            'timezone' => $options['timezone'] ?? null,
+        ], $workspace, $clientSite);
+
+        return [$window->start, $window->end];
     }
 
     /**
@@ -814,7 +846,7 @@ class ReportBuilder implements ScheduledBriefingContract
         return trim((string) ($page?->title_current ?: $page?->domain ?: $page?->canonical_url ?: 'Untitled page'));
     }
 
-    private function title(string $label, Carbon $periodStart, Carbon $periodEnd, ?MarketPack $marketPack): string
+    private function title(string $label, CarbonInterface $periodStart, CarbonInterface $periodEnd, ?MarketPack $marketPack): string
     {
         $market = $marketPack ? $marketPack->name.' - ' : '';
 
@@ -874,7 +906,7 @@ class ReportBuilder implements ScheduledBriefingContract
     /**
      * @return array{hash:string,parts:array<string,mixed>}
      */
-    private function reportIdentity(Workspace $workspace, string $reportType, Carbon $periodStart, Carbon $periodEnd, ?string $marketPackKey, ?string $clientSiteId): array
+    private function reportIdentity(Workspace $workspace, string $reportType, CarbonInterface $periodStart, CarbonInterface $periodEnd, ?string $marketPackKey, ?string $clientSiteId): array
     {
         $parts = [
             'workspace_id' => $workspace->id,
@@ -927,8 +959,8 @@ class ReportBuilder implements ScheduledBriefingContract
     private function allocateSnapshotVersion(
         Workspace $workspace,
         string $reportType,
-        Carbon $periodStart,
-        Carbon $periodEnd,
+        CarbonInterface $periodStart,
+        CarbonInterface $periodEnd,
         ?string $marketPackKey,
         ?string $clientSiteId,
         string $identityHash,

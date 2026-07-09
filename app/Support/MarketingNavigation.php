@@ -28,6 +28,8 @@ final class MarketingNavigation
 
     public const SECTION_FOOTER_RESOURCES = 'footer_resources';
 
+    public const SECTION_FOOTER_COMMUNITY = 'footer_community';
+
     /**
      * Get header navigation items for the current mode.
      *
@@ -210,6 +212,31 @@ final class MarketingNavigation
     public static function footerResourceItems(): array
     {
         return self::resourceItems();
+    }
+
+    /**
+     * @return array<int, array{label: string, href: string, external?: bool}>
+     */
+    public static function footerCommunityItems(): array
+    {
+        $redditUrl = trim((string) config('argusly.community.reddit_url', ''));
+        $linkedInUrl = trim((string) config('argusly.community.linkedin_url', ''));
+
+        return collect([
+            [
+                'label' => __('public.footer.reddit_join'),
+                'href' => $redditUrl,
+                'external' => true,
+            ],
+            [
+                'label' => __('public.footer.linkedin_follow'),
+                'href' => $linkedInUrl,
+                'external' => true,
+            ],
+        ])
+            ->filter(fn (array $item): bool => $item['href'] !== '')
+            ->values()
+            ->all();
     }
 
     /**

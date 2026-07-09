@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ $metaTitle ?? __('public.early_access.soft_launch_meta_title') }}</title>
+    <title>{{ \App\Support\SeoTitle::normalize($metaTitle ?? __('public.early_access.soft_launch_meta_title')) }}</title>
     <meta name="description" content="{{ $metaDescription ?? __('public.early_access.soft_launch_meta_description') }}" />
     @include('partials.brand-meta')
     @include('public.partials.argusly-tracking')

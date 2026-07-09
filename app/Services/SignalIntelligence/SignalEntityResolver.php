@@ -5,7 +5,7 @@ namespace App\Services\SignalIntelligence;
 use App\Models\ClientSite;
 use App\Models\SignalEntity;
 use App\Models\Workspace;
-use Illuminate\Support\Str;
+use App\Support\Intelligence\CanonicalEntityReference;
 
 class SignalEntityResolver
 {
@@ -19,7 +19,8 @@ class SignalEntityResolver
         ?ClientSite $clientSite = null,
         array $metadata = []
     ): SignalEntity {
-        $entityKey = $this->entityKey($entityName);
+        $reference = CanonicalEntityReference::fromName($entityType, $entityName);
+        $entityKey = $reference->key;
 
         $entity = SignalEntity::query()->firstOrCreate(
             [
@@ -70,8 +71,6 @@ class SignalEntityResolver
 
     public function entityKey(string $entityName): string
     {
-        $key = Str::slug(Str::lower(trim($entityName)));
-
-        return $key !== '' ? $key : hash('sha256', $entityName);
+        return CanonicalEntityReference::keyForName($entityName);
     }
 }

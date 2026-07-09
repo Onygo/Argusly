@@ -124,6 +124,26 @@
     </div>
 </section>
 
+@php($redditUrl = trim((string) config('argusly.community.reddit_url', '')))
+@if ($redditUrl !== '')
+    <section class="bg-surface">
+        <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
+            <div class="pl-public-card p-6 md:p-8">
+                <div class="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-publicPrimary">{{ __('public.about.community_eyebrow') }}</p>
+                        <h2 class="mt-2 pl-public-heading pl-public-heading-h2">{{ __('public.about.community_title') }}</h2>
+                        <p class="mt-3 max-w-2xl text-sm leading-6 text-textSecondary md:text-base">{{ __('public.about.community_text') }}</p>
+                    </div>
+                    <a href="{{ $redditUrl }}" target="_blank" rel="noopener noreferrer" class="pl-public-secondary-button justify-center">
+                        {{ __('public.about.community_cta') }}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+@endif
+
 {{-- CTA --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">

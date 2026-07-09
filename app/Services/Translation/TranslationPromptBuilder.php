@@ -7,6 +7,8 @@ use App\Models\Draft;
 
 class TranslationPromptBuilder
 {
+    public const PROMPT_VERSION = 'draft-translation.accuracy.v2';
+
     public function buildSystemPrompt(SupportedLanguage $targetLanguage): string
     {
         $languageName = $targetLanguage->englishLabel();
@@ -34,7 +36,9 @@ You are an expert multilingual translator specializing in content translation fo
 
 9. **Dutch Casing**: When translating into Dutch, use normal Dutch sentence case for titles, headings, SEO fields, and body copy. Do not use English Title Case. Keep only proper nouns, brand names, and acronyms uppercase.
 
-10. **Editorial Naturalization Boundaries**: You may improve heading naturalness, rhythm, paragraph flow, local idiom, and overly literal phrasing. You may not change facts, entities, CTA intent, source meaning, SEO intent, internal link URLs, or product/brand names.
+10. **Dutch-to-English Connector Naturalization**: When translating Dutch "Van X naar Y" titles, headings, or SEO fields into English, use "From X to Y". Never leave the Dutch connector "Van" at the start of an English title or heading unless it is part of a proper noun.
+
+11. **Editorial Naturalization Boundaries**: You may improve heading naturalness, rhythm, paragraph flow, local idiom, and overly literal phrasing. You may not change facts, entities, CTA intent, source meaning, SEO intent, internal link URLs, or product/brand names.
 
 ## Output Format
 
@@ -54,7 +58,7 @@ Return a valid JSON object with the following structure:
     "suggested_primary_keyword": "Localized focus keyword",
     "secondary_keywords": ["Localized secondary keyword"]
   },
-  "translation_notes": "Optional notes about any challenges or decisions made during translation"
+  "translation_notes": "Notes about any challenges or decisions made during translation, or an empty string when none"
 }
 ```
 
@@ -98,8 +102,9 @@ Translate the following content from {$sourceLanguageName} to {$targetLanguageNa
 4. Suggest a localized slug using lowercase words separated by hyphens
 5. Suggest a localized primary keyword and localized secondary keywords when possible
 6. If the target language is Dutch, use normal Dutch sentence case for titles, headings, SEO fields, and body copy; do not use English Title Case
-7. Improve heading naturalness, sentence rhythm, paragraph flow, local idiom, overly literal phrasing, and AI-like source structure where the meaning remains intact
-8. Return the result as a JSON object with the required structure
+7. If translating Dutch "Van X naar Y" into English, write "From X to Y"; do not leave "Van" as the first word unless it is part of a proper noun
+8. Improve heading naturalness, sentence rhythm, paragraph flow, local idiom, overly literal phrasing, and AI-like source structure where the meaning remains intact
+9. Return the result as a JSON object with the required structure
 PROMPT;
     }
 
@@ -175,5 +180,58 @@ PROMPT;
         $total = $estimatedTokens + $buffer + 500;
 
         return min(max($total, 2000), 12000);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function responseSchema(): array
+    {
+        return [
+            'name' => 'draft_translation',
+            'strict' => true,
+            'schema' => [
+                'type' => 'object',
+                'additionalProperties' => false,
+                'properties' => [
+                    'title' => ['type' => 'string'],
+                    'content_html' => ['type' => 'string'],
+                    'seo' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'properties' => [
+                            'seo_title' => ['type' => 'string'],
+                            'seo_meta_description' => ['type' => 'string'],
+                            'seo_h1' => ['type' => 'string'],
+                            'seo_og_title' => ['type' => 'string'],
+                            'seo_og_description' => ['type' => 'string'],
+                            'slug' => ['type' => 'string'],
+                            'suggested_primary_keyword' => ['type' => 'string'],
+                            'secondary_keywords' => [
+                                'type' => 'array',
+                                'items' => ['type' => 'string'],
+                            ],
+                        ],
+                        'required' => [
+                            'seo_title',
+                            'seo_meta_description',
+                            'seo_h1',
+                            'seo_og_title',
+                            'seo_og_description',
+                            'slug',
+                            'suggested_primary_keyword',
+                            'secondary_keywords',
+                        ],
+                    ],
+                    'translation_notes' => ['type' => 'string'],
+                ],
+                'required' => [
+                    'title',
+                    'content_html',
+                    'seo',
+                    'translation_notes',
+                ],
+            ],
+        ];
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LlmGlobalSetting;
+use App\Models\LlmRequest;
 use App\Models\LlmRoutingRule;
 use App\Models\LlmSettingsAuditLog;
 use App\Models\Organization;
@@ -123,4 +124,42 @@ it('renders available provider models as selectable suggestions', function () {
         ->assertSee('list="llm-models-openai-text"', false)
         ->assertSee('gpt-live-option')
         ->assertSee('gpt-image-live-option');
+});
+
+it('shows openai billing and auto recharge status from request logs', function () {
+    [$admin] = makeAdminLlmUser();
+
+    config([
+        'llm.providers.openai.api_key' => 'test-openai-key',
+        'llm.providers.openai.project' => 'proj_argusly_prod',
+        'llm.providers.openai.auto_recharge_enabled' => true,
+        'argusly.ai.images.provider' => 'openai',
+        'argusly.ai.images.openai.model' => 'gpt-image-1',
+    ]);
+
+    LlmRequest::query()->create([
+        'workspace_id' => null,
+        'site_id' => null,
+        'feature' => 'image_generation',
+        'modality' => 'image',
+        'provider' => 'openai',
+        'model' => 'gpt-image-1',
+        'status' => 'error',
+        'error_type' => 'RuntimeException',
+        'error_code' => '400',
+        'error_message' => 'Image generation failed: HTTP 400 - Billing hard limit has been reached.',
+        'metadata' => ['trigger' => 'image_generation_service'],
+        'created_at' => now()->subMinute(),
+        'updated_at' => now()->subMinute(),
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.llm.settings'))
+        ->assertOk()
+        ->assertSee('OpenAI billing status')
+        ->assertSee('Auto recharge enabled, waiting for recovery')
+        ->assertSee('Enabled in config')
+        ->assertSee('proj_argusly_prod')
+        ->assertSee('Billing hard limit has been reached')
+        ->assertSee('No successful OpenAI request has been logged after the latest billing issue.');
 });

@@ -3,6 +3,13 @@
 @php
     $singleSiteId = ($sites ?? collect())->count() === 1 ? (string) ($sites ?? collect())->first()->id : null;
     $selectedCreateSiteId = old('site_id', $singleSiteId);
+    $sourceOutputOptions = [
+        'brief_only' => ['label' => 'Generate brief only', 'copy' => 'Creates one editable brief. No draft or chain will be created.'],
+        'brief_keywords' => ['label' => 'Generate brief with SEO opportunities', 'copy' => 'Creates one editable brief and keyword/entity suggestions.'],
+        'brief_chain' => ['label' => 'Generate chain proposal', 'copy' => 'Creates a proposal only. No chain will be created yet.'],
+        'full_chain' => ['label' => 'Create full content chain', 'copy' => 'Generates a proposal first, then lets you approve items before creating the chain.'],
+    ];
+    $sourceChainSettings = (array) data_get($sourcePreview?->metadata_json, 'chain_settings', []);
 @endphp
 
 @section('pageHeader')
@@ -118,24 +125,24 @@
                     placeholder="Optional: paste notes, headings, or key observations if the source blocks automated extraction."
                 >{{ old('manual_source_notes') }}</textarea>
             </div>
-            <div>
-                <label class="mb-2 block text-xs text-textSecondary">Output type</label>
-                <div class="grid gap-2 lg:grid-cols-3">
-                    @foreach ([
-                        'brief_only' => ['label' => 'Brief only', 'copy' => 'Generate a structured brief only.'],
-                        'brief_keywords' => ['label' => 'Brief + keywords', 'copy' => 'Add keyword and entity opportunities.'],
-                        'brief_chain' => ['label' => 'Brief + chain proposal', 'copy' => 'Add chained content recommendations.'],
-                    ] as $value => $option)
-                        <label class="rounded-md border border-border bg-background px-3 py-3 text-sm">
-                            <input type="radio" name="output_mode" value="{{ $value }}" class="mr-2" @checked(old('output_mode', 'brief_only') === $value)>
-                            <span class="font-medium text-textPrimary">{{ $option['label'] }}</span>
-                            <span class="mt-1 block text-xs text-textSecondary">{{ $option['copy'] }}</span>
-                        </label>
-                    @endforeach
-                </div>
-                @error('output_mode')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
-            </div>
-            <div id="source-generate-start-feedback" class="hidden rounded-md border px-3 py-2 text-sm"></div>
+	            <div>
+	                <label class="mb-2 block text-xs text-textSecondary">Output type</label>
+	                <div class="grid gap-2 lg:grid-cols-4">
+	                    @foreach ($sourceOutputOptions as $value => $option)
+	                        <label class="rounded-md border border-border bg-background px-3 py-3 text-sm">
+	                            <input type="radio" name="output_mode" value="{{ $value }}" class="mr-2 source-output-mode" @checked(old('output_mode', 'brief_only') === $value)>
+	                            <span class="font-medium text-textPrimary">{{ $option['label'] }}</span>
+	                            <span class="mt-1 block text-xs text-textSecondary">{{ $option['copy'] }}</span>
+	                        </label>
+	                    @endforeach
+	                </div>
+	                @error('output_mode')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+	            </div>
+	            <div class="source-chain-message hidden rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">
+	                This will generate a chain proposal only. No chain will be created yet. Review and approve the proposed chain items before creating them.
+	            </div>
+	            @include('app.briefs.partials.chain-settings-fields', ['chainSettings' => $sourceChainSettings])
+	            <div id="source-generate-start-feedback" class="hidden rounded-md border px-3 py-2 text-sm"></div>
             <div class="flex justify-end">
                 <button id="source-generate-start-btn" class="rounded border border-border bg-background px-3 py-2 text-sm">Generate from URL</button>
             </div>
@@ -367,26 +374,26 @@
                                     <label class="mb-1 block text-xs text-textSecondary">Paste source notes manually</label>
                                     <textarea name="manual_source_notes" rows="4" class="w-full rounded border border-border bg-background px-3 py-2 text-sm" placeholder="Optional: add source notes or corrections for the brief generator.">{{ old('manual_source_notes') }}</textarea>
                                 </div>
-                                <div>
-                                    <label class="mb-2 block text-xs text-textSecondary">Output type</label>
-                                    <div class="grid gap-2 lg:grid-cols-3">
-                                        @foreach ([
-                                            'brief_only' => ['label' => 'Brief only', 'copy' => 'Generate a structured brief only.'],
-                                            'brief_keywords' => ['label' => 'Brief + keywords', 'copy' => 'Add keyword and entity opportunities.'],
-                                            'brief_chain' => ['label' => 'Brief + chain proposal', 'copy' => 'Add chained content recommendations.'],
-                                        ] as $value => $option)
-                                            <label class="rounded-md border border-border bg-background px-3 py-3 text-sm">
-                                                <input type="radio" name="output_mode" value="{{ $value }}" class="mr-2" @checked(old('output_mode', 'brief_only') === $value)>
-                                                <span class="font-medium text-textPrimary">{{ $option['label'] }}</span>
-                                                <span class="mt-1 block text-xs text-textSecondary">{{ $option['copy'] }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                    @error('output_mode')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
-                                </div>
-                                <div class="flex justify-end">
-                                    <button id="source-generate-btn" class="rounded border border-border bg-background px-3 py-2 text-sm">Generate brief from source</button>
-                                </div>
+	                                <div>
+	                                    <label class="mb-2 block text-xs text-textSecondary">Output type</label>
+	                                    <div class="grid gap-2 lg:grid-cols-4">
+	                                        @foreach ($sourceOutputOptions as $value => $option)
+	                                            <label class="rounded-md border border-border bg-background px-3 py-3 text-sm">
+	                                                <input type="radio" name="output_mode" value="{{ $value }}" class="mr-2 source-output-mode" @checked(old('output_mode', 'brief_only') === $value)>
+	                                                <span class="font-medium text-textPrimary">{{ $option['label'] }}</span>
+	                                                <span class="mt-1 block text-xs text-textSecondary">{{ $option['copy'] }}</span>
+	                                            </label>
+	                                        @endforeach
+	                                    </div>
+	                                    @error('output_mode')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+	                                </div>
+	                                <div class="source-chain-message hidden rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">
+	                                    This will generate a chain proposal only. No chain will be created yet. Review and approve the proposed chain items before creating them.
+	                                </div>
+	                                @include('app.briefs.partials.chain-settings-fields', ['chainSettings' => $sourceChainSettings])
+	                                <div class="flex justify-end">
+	                                    <button id="source-generate-btn" class="rounded border border-border bg-background px-3 py-2 text-sm">Generate brief from source</button>
+	                                </div>
                             </form>
                             <script>
                                 (function() {
@@ -465,14 +472,21 @@
                                     </div>
                                 @endif
 
-                                @if ($generatedChain !== [])
-                                    <div class="mt-3 rounded-md border border-border bg-surface px-3 py-3">
-                                        <p class="text-xs uppercase tracking-wide text-textSecondary">Chain proposal</p>
-                                        <p class="mt-2 text-sm font-medium text-textPrimary">{{ $generatedChain['pillar_topic'] ?? '-' }}</p>
-                                        <ul class="mt-2 space-y-1 text-sm text-textPrimary">
-                                            @foreach ((array) ($generatedChain['supporting_subtopics'] ?? []) as $row)
-                                                <li>• {{ data_get($row, 'title', '') }}</li>
-                                            @endforeach
+	                                @if ($generatedChain !== [])
+	                                    <div class="mt-3 rounded-md border border-border bg-surface px-3 py-3">
+	                                        <p class="text-xs uppercase tracking-wide text-textSecondary">Chain proposal</p>
+	                                        <p class="mt-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+	                                            @if ((string) ($sourcePreview->generation_output_mode ?? '') === 'full_chain')
+	                                                Review and approve the proposed chain items before creating them.
+	                                            @else
+	                                                This is a chain proposal only. No chain has been created yet.
+	                                            @endif
+	                                        </p>
+	                                        <p class="mt-2 text-sm font-medium text-textPrimary">{{ $generatedChain['pillar_topic'] ?? '-' }}</p>
+	                                        <ul class="mt-2 space-y-1 text-sm text-textPrimary">
+	                                            @foreach ((array) ($generatedChain['supporting_subtopics'] ?? []) as $row)
+	                                                <li>• {{ data_get($row, 'title', '') }}</li>
+	                                            @endforeach
                                         </ul>
                                         <p class="mt-2 text-xs text-textSecondary">{{ $generatedChain['source_fit'] ?? '' }}</p>
                                     </div>
@@ -547,9 +561,9 @@
                                         <p class="mt-1 text-xs text-textSecondary">Required for connected CMS publishing.</p>
                                         @error('site_id')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
                                     </div>
-                                    <div>
-                                        <label class="mb-1 block text-xs text-textSecondary">Destination (API/hybrid)</label>
-                                        <select name="content_destination_id" class="pl-select bg-background">
+	                                    <div>
+	                                        <label class="mb-1 block text-xs text-textSecondary">Destination (API/hybrid)</label>
+	                                        <select name="content_destination_id" class="pl-select bg-background">
                                             <option value="">Select destination</option>
                                             @foreach ($destinations as $destination)
                                                 <option value="{{ $destination->id }}" @selected(old('content_destination_id') === (string) $destination->id)>
@@ -557,16 +571,32 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        @error('content_destination_id')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
-                                    </div>
-                                </div>
+	                                        @error('content_destination_id')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+	                                    </div>
+	                                </div>
 
-                                <div class="grid gap-2">
-                                    <button name="next_action" value="save" class="rounded border border-border bg-background px-3 py-2 text-sm">Save as brief</button>
-                                    <button name="next_action" value="create_chain" class="rounded border border-border bg-background px-3 py-2 text-sm">Create chain</button>
-                                    <button name="next_action" value="generate_draft" class="rounded border border-border bg-background px-3 py-2 text-sm">Generate first draft</button>
-                                </div>
-                            </form>
+	                                @if ($generatedChain !== [])
+	                                    <div class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">
+	                                        @if ((string) ($sourcePreview->generation_output_mode ?? '') === 'full_chain')
+	                                            This will create {{ count((array) data_get($generatedChain, 'proposal_items', [])) ?: max(1, count((array) data_get($generatedChain, 'supporting_subtopics', [])) + 1) }} content items in a new chain after you approve them.
+	                                        @else
+	                                            This will generate a chain proposal only. No chain will be created yet unless you continue to chain setup.
+	                                        @endif
+	                                    </div>
+	                                    @include('app.briefs.partials.chain-settings-fields', ['chainSettings' => $sourceChainSettings, 'visible' => true])
+	                                    @include('app.briefs.partials.chain-proposal-items', ['generatedChain' => $generatedChain, 'generatedBrief' => $generatedBrief])
+	                                @endif
+
+	                                <div class="grid gap-2">
+	                                    <button name="next_action" value="save" class="rounded border border-border bg-background px-3 py-2 text-sm">Save as brief</button>
+	                                    <button name="next_action" value="generate_draft" class="rounded border border-border bg-background px-3 py-2 text-sm">Generate first draft</button>
+	                                    @if ($generatedChain !== [] && (string) ($sourcePreview->generation_output_mode ?? '') === 'full_chain')
+	                                        <button name="next_action" value="create_selected_chain_items" class="rounded border border-border bg-background px-3 py-2 text-sm">Create selected chain items</button>
+	                                    @elseif ($generatedChain !== [])
+	                                        <button name="next_action" value="create_chain" class="rounded border border-border bg-background px-3 py-2 text-sm">Review proposal in chain setup</button>
+	                                    @endif
+	                                </div>
+	                            </form>
                         @endif
 
                         @if ($canViewSourceDiagnostics)
@@ -581,10 +611,47 @@
                     </div>
                 </div>
             </div>
-        @endif
-    </div>
+	        @endif
+	    </div>
+	    <script>
+	        (function() {
+	            function selectedMode(form) {
+	                const selected = form.querySelector('input[name="output_mode"]:checked');
+	                return selected ? selected.value : 'brief_only';
+	            }
 
-    <form method="POST" action="{{ route('app.content.create.store') }}" class="space-y-4 rounded-lg border border-border bg-surface p-4">
+	            function syncSourceForm(form) {
+	                const mode = selectedMode(form);
+	                const isChain = mode === 'brief_chain' || mode === 'full_chain';
+	                const settings = form.querySelectorAll('.source-chain-settings');
+	                const messages = form.querySelectorAll('.source-chain-message');
+	                const submit = form.querySelector('button[type="submit"], button:not([name])');
+
+	                settings.forEach((node) => node.classList.toggle('hidden', !isChain));
+	                messages.forEach((node) => {
+	                    node.classList.toggle('hidden', !isChain);
+	                    node.textContent = mode === 'full_chain'
+	                        ? 'This will prepare a full-chain proposal first. No chain is created until you approve selected items.'
+	                        : 'This will generate a chain proposal only. No chain will be created yet.';
+	                });
+
+	                if (submit) {
+	                    submit.textContent = mode === 'full_chain'
+	                        ? 'Generate chain proposal'
+	                        : (mode === 'brief_chain' ? 'Generate chain proposal' : 'Generate from URL');
+	                }
+	            }
+
+	            document.querySelectorAll('#source-generate-start-form, #source-generate-form').forEach((form) => {
+	                syncSourceForm(form);
+	                form.querySelectorAll('input[name="output_mode"]').forEach((input) => {
+	                    input.addEventListener('change', () => syncSourceForm(form));
+	                });
+	            });
+	        })();
+	    </script>
+
+	    <form method="POST" action="{{ route('app.content.create.store') }}" class="space-y-4 rounded-lg border border-border bg-surface p-4">
         @csrf
 
         <div class="rounded border border-border bg-background px-3 py-2">

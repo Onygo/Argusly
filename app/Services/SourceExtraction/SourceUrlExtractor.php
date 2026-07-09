@@ -93,7 +93,7 @@ class SourceUrlExtractor
             }
         }
 
-        $last = $this->preferredFailureAttempt($attempts);
+        $last = $this->finalFailureAttempt($attempts);
         $result = $this->failure(
             $normalized,
             (string) ($last['error_code'] ?? 'SOURCE_EXTRACTION_FAILED'),
@@ -499,19 +499,27 @@ class SourceUrlExtractor
      * @param array<int, array<string, mixed>> $attempts
      * @return array<string, mixed>
      */
-    private function preferredFailureAttempt(array $attempts): array
+    private function finalFailureAttempt(array $attempts): array
     {
-        foreach (['SOURCE_FETCH_TIMEOUT', 'SOURCE_FETCH_BLOCKED', 'SOURCE_FETCH_UNAVAILABLE'] as $code) {
-            foreach ($attempts as $attempt) {
-                if (($attempt['error_code'] ?? null) === $code) {
+        $last = end($attempts);
+
+        if (! is_array($last)) {
+            return [];
+        }
+
+        if (in_array((string) ($last['error_code'] ?? ''), [
+            'SOURCE_JINA_FAILED',
+            'SOURCE_BROWSER_FAILED',
+            'SOURCE_BROWSER_UNAVAILABLE',
+        ], true)) {
+            foreach (array_reverse($attempts) as $attempt) {
+                if (($attempt['error_code'] ?? null) === 'SOURCE_EXTRACTION_TOO_SHORT') {
                     return $attempt;
                 }
             }
         }
 
-        $last = end($attempts);
-
-        return is_array($last) ? $last : [];
+        return $last;
     }
 
     private function normalizeUrl(string $url): ?string
@@ -800,6 +808,9 @@ class SourceUrlExtractor
             'SOURCE_EXTRACTION_UNSUPPORTED_STRUCTURE' => 'The page uses a structure we could not extract reliably.',
             'SOURCE_JINA_AUTH_REQUIRED' => 'Reader fallback requires a Jina API key. Configure SOURCE_EXTRACTION_JINA_API_KEY or disable Jina fallback.',
             'SOURCE_JINA_FAILED' => 'Reader fallback could not extract this source.',
+            'SOURCE_BROWSER_DISABLED' => 'Browser extraction is disabled.',
+            'SOURCE_BROWSER_UNAVAILABLE' => 'Browser extraction is not available on this server.',
+            'SOURCE_BROWSER_FAILED' => 'Browser extraction could not extract this source.',
             default => 'We could not extract this source automatically.',
         };
     }

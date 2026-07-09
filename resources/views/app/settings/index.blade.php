@@ -21,6 +21,9 @@
             ? __($key)
             : $value;
     };
+    $redditUrl = trim((string) config('argusly.community.reddit_url', ''));
+    $publicLocale = app()->getLocale();
+    $productUpdatesUrl = \App\Support\LocalizedMarketingUrl::route('public.company.roadmap', [], $publicLocale);
 @endphp
 
 @section('pageHeader')
@@ -216,6 +219,23 @@
                         </div>
                     </div>
                     <a href="{{ route('app.settings.integrations.instagram') }}" class="pl-btn-secondary">
+                        <i data-lucide="settings" class="h-4 w-4"></i>
+                        <span>Manage</span>
+                    </a>
+                </div>
+            </div>
+            <div class="mt-3 rounded-lg border border-border bg-background p-4">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface">
+                            <i data-lucide="database-zap" class="h-4 w-4 text-textSecondary"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-sm font-semibold text-textPrimary">Source data connectors</h3>
+                            <p class="mt-1 text-xs text-textSecondary">Reusable foundation for search, analytics, social, ads, CRM, and other source data.</p>
+                        </div>
+                    </div>
+                    <a href="{{ route('app.connectors.index') }}" class="pl-btn-secondary">
                         <i data-lucide="settings" class="h-4 w-4"></i>
                         <span>Manage</span>
                     </a>
@@ -662,6 +682,49 @@
                             <a href="{{ route('app.developer.webhooks') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Webhooks</a>
                             <a href="{{ route('app.developer.docs') }}" class="inline-flex items-center justify-center rounded-md border border-border px-4 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">Docs</a>
                         </div>
+                    </div>
+                </x-settings.section-card>
+            @endif
+
+            @if ($redditUrl !== '')
+                <x-settings.section-card title="Community" description="Documentation, updates, discussion, and product input.">
+                    <div class="grid gap-3 md:grid-cols-2">
+                        <a href="{{ route('app.developer.docs') }}" class="group rounded-lg border border-border bg-background px-4 py-3 hover:border-primary/40 hover:bg-surfaceSubtle">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-textPrimary">Documentation</p>
+                                    <p class="mt-1 text-xs text-textSecondary">API reference, downloads, and integration details.</p>
+                                </div>
+                                <i data-lucide="book-open" class="h-4 w-4 text-textSecondary group-hover:text-textPrimary"></i>
+                            </div>
+                        </a>
+                        <a href="{{ $productUpdatesUrl }}" class="group rounded-lg border border-border bg-background px-4 py-3 hover:border-primary/40 hover:bg-surfaceSubtle">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-textPrimary">Product Updates</p>
+                                    <p class="mt-1 text-xs text-textSecondary">Roadmap direction and product progress.</p>
+                                </div>
+                                <i data-lucide="history" class="h-4 w-4 text-textSecondary group-hover:text-textPrimary"></i>
+                            </div>
+                        </a>
+                        <a href="{{ $redditUrl }}" target="_blank" rel="noopener noreferrer" class="group rounded-lg border border-border bg-background px-4 py-3 hover:border-primary/40 hover:bg-surfaceSubtle">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-textPrimary">Reddit Community</p>
+                                    <p class="mt-1 text-xs text-textSecondary">Discuss AI Search, GEO, marketing intelligence, and Argusly.</p>
+                                </div>
+                                <i data-lucide="message-circle" class="h-4 w-4 text-textSecondary group-hover:text-textPrimary"></i>
+                            </div>
+                        </a>
+                        <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.contact', ['subject' => 'feature-request'], $publicLocale) }}#contact-form" class="group rounded-lg border border-border bg-background px-4 py-3 hover:border-primary/40 hover:bg-surfaceSubtle">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-textPrimary">Feature Requests</p>
+                                    <p class="mt-1 text-xs text-textSecondary">Share product ideas and workflow feedback.</p>
+                                </div>
+                                <i data-lucide="lightbulb" class="h-4 w-4 text-textSecondary group-hover:text-textPrimary"></i>
+                            </div>
+                        </a>
                     </div>
                 </x-settings.section-card>
             @endif

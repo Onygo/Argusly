@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             \Database\Seeders\AdminUserSeeder::class,
             \Database\Seeders\CreditActionsSeeder::class,
+            \Database\Seeders\ConnectorProviderSeeder::class,
             \Database\Seeders\LlmSourceRulesSeeder::class,
             \Database\Seeders\TaxonomySetSeeder::class,
             \Database\Seeders\ProductUpdatesSeeder::class,

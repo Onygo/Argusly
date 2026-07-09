@@ -3,6 +3,14 @@
 namespace App\Models;
 
 use App\Concerns\BelongsToOrganizationViaWorkspace;
+use App\Support\Intelligence\EvidenceBag;
+use App\Support\Intelligence\EvidenceReference;
+use App\Support\Intelligence\IntelligenceGraphEdge;
+use App\Support\Intelligence\IntelligenceGraphEdgeType;
+use App\Support\Intelligence\IntelligenceGraphReference;
+use App\Support\Intelligence\IntelligenceStage;
+use App\Support\Intelligence\TimeWindow;
+use App\Support\Intelligence\TimeWindowFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -123,11 +131,85 @@ class ScheduledPageIntelligenceBriefing extends Model
         $periodStart = $this->frequency === self::FREQUENCY_MONTHLY
             ? $run->copy()->subMonthNoOverflow()->startOfDay()
             : $periodEnd->copy()->subDays(6)->startOfDay();
+        $window = (new TimeWindowFactory())->custom($periodStart, $periodEnd, $timezone);
 
         return [
-            'period_start' => $periodStart->toDateString(),
-            'period_end' => $periodEnd->toDateString(),
+            'period_start' => $window->start->toDateString(),
+            'period_end' => $window->end->toDateString(),
         ];
+    }
+
+    public function reportTimeWindowForRun(?Carbon $runAt = null): TimeWindow
+    {
+        $period = $this->reportPeriodForRun($runAt);
+
+        return (new TimeWindowFactory())->custom(
+            $period['period_start'],
+            $period['period_end'],
+            $this->validTimezone(),
+        );
+    }
+
+    public function evidenceBag(?Carbon $runAt = null): EvidenceBag
+    {
+        $window = $this->reportTimeWindowForRun($runAt);
+
+        return new EvidenceBag([
+            EvidenceReference::briefing(
+                $this->briefingKey(),
+                $this->report_type,
+                timeWindow: $window,
+                metadata: [
+                    'report_type' => $this->report_type,
+                    'frequency' => $this->frequency,
+                    'market_pack_key' => $this->market_pack_key,
+                    'timezone' => $this->timezone,
+                    'is_active' => $this->is_active,
+                    'next_run_at' => $this->next_run_at?->toDateTimeString(),
+                    'created_by' => $this->created_by,
+                ],
+            ),
+        ]);
+    }
+
+    public function toGraphReference(): IntelligenceGraphReference
+    {
+        return IntelligenceGraphReference::briefing($this->briefingKey(), $this->report_type, [
+            'report_type' => $this->report_type,
+            'frequency' => $this->frequency,
+            'market_pack_key' => $this->market_pack_key,
+            'is_active' => $this->is_active,
+        ]);
+    }
+
+    /**
+     * @return array<int, IntelligenceGraphEdge>
+     */
+    public function toGraphEdges(?Carbon $runAt = null): array
+    {
+        $source = $this->toGraphReference();
+        $bag = $this->evidenceBag($runAt);
+        $reports = $this->relationLoaded('generatedReports')
+            ? $this->generatedReports
+            : ($this->exists ? $this->generatedReports()->get() : collect());
+
+        return $reports
+            ->filter(fn (mixed $report): bool => $report instanceof PageIntelligenceReport)
+            ->map(fn (PageIntelligenceReport $report): IntelligenceGraphEdge => new IntelligenceGraphEdge(
+                IntelligenceGraphEdgeType::REPORTS,
+                $source,
+                $report->toGraphReference(),
+                evidence: $bag->toEvidence(),
+                timeWindow: $this->reportTimeWindowForRun($runAt),
+                metadata: [
+                    'briefing_id' => $this->briefingKey(),
+                    'report_type' => $this->report_type,
+                    'frequency' => $this->frequency,
+                ],
+                stage: IntelligenceStage::INSIGHT,
+            ))
+            ->values()
+            ->all();
     }
 
     public function idempotencyKeyForPeriod(string $periodStart, string $periodEnd): string
@@ -139,6 +221,24 @@ class ScheduledPageIntelligenceBriefing extends Model
             $periodStart,
             $periodEnd,
         ]);
+    }
+
+    private function briefingKey(): string
+    {
+        $key = $this->getKey();
+
+        if ($key !== null && trim((string) $key) !== '') {
+            return (string) $key;
+        }
+
+        return 'unsaved:'.sha1(json_encode([
+            'workspace_id' => $this->workspace_id,
+            'client_site_id' => $this->client_site_id,
+            'report_type' => $this->report_type,
+            'frequency' => $this->frequency,
+            'market_pack_key' => $this->market_pack_key,
+            'next_run_at' => $this->next_run_at?->toDateTimeString(),
+        ], JSON_THROW_ON_ERROR));
     }
 
     private function monthlyCandidate(Carbon $date, int $day): Carbon

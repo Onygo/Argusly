@@ -35,6 +35,8 @@ it('logs llm request success entries from manager calls', function () {
             'workspaceId' => null,
             'siteId' => null,
             'credits' => 2,
+            'prompt_version' => 'test.prompt.v1',
+            'eval_case_id' => 'eval-hello-world',
         ],
     ));
 
@@ -49,6 +51,14 @@ it('logs llm request success entries from manager calls', function () {
         'output_cost_eur' => 0.0000048,
         'total_cost_eur' => 0.0000088,
     ]);
+
+    $entry = \App\Models\LlmRequest::query()->firstOrFail();
+    expect(data_get($entry->metadata, 'prompt_hash'))->toBe(sha1('user:' . sha1('Hello world')))
+        ->and(data_get($entry->metadata, 'message_metrics.0.role'))->toBe('user')
+        ->and(data_get($entry->metadata, 'message_metrics.0.chars'))->toBe(11)
+        ->and(data_get($entry->metadata, 'message_metrics.0.sha1'))->toBe(sha1('Hello world'))
+        ->and(data_get($entry->metadata, 'meta.prompt_version'))->toBe('test.prompt.v1')
+        ->and(data_get($entry->metadata, 'meta.eval_case_id'))->toBe('eval-hello-world');
 });
 
 it('uses the longest matching pricing rule for dated model ids', function () {

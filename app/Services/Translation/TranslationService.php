@@ -21,6 +21,7 @@ use App\Services\Llm\Data\LlmRequest;
 use App\Services\Llm\LlmManager;
 use App\Support\ContentPersistencePayloadNormalizer;
 use App\Support\DutchTextCasingNormalizer;
+use App\Support\EnglishTranslationNormalizer;
 use App\Support\TitleSanitizer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -102,6 +103,10 @@ class TranslationService
                 'source_draft_id' => $sourceDraft->id,
                 'source_language' => $sourceLanguage->value,
                 'target_language' => $targetLanguage->value,
+                'prompt_version' => TranslationPromptBuilder::PROMPT_VERSION,
+                'eval_rubric_version' => 'llm-accuracy.draft-translation.v1',
+                'schema_name' => 'draft_translation',
+                'context_strategy' => 'full_html_with_seo_fields',
             ],
         );
 
@@ -116,9 +121,10 @@ class TranslationService
             'user_prompt_sha1' => sha1($userPrompt),
             'locale' => $targetLanguage->value,
             'max_output_tokens' => $maxTokens,
+            'prompt_version' => TranslationPromptBuilder::PROMPT_VERSION,
         ]);
 
-        $response = $this->llmManager->generateJson($request);
+        $response = $this->llmManager->generateJson($request, $this->promptBuilder->responseSchema());
 
         $contentHtml = (string) data_get($response->json, 'content_html', '');
         $this->translationDebug->logProviderResponse($debugContext + [
@@ -138,7 +144,7 @@ class TranslationService
             throw new RuntimeException('Translation LLM response was not valid JSON');
         }
 
-        $result = $this->normalizeTranslationResultForLanguage($response->json, $targetLanguage);
+        $result = $this->normalizeTranslationResultForLanguage($response->json, $targetLanguage, $sourceLanguage);
         $this->validateTranslatedLinks($sourceDraft, (string) data_get($result, 'content_html', ''));
 
         return [
@@ -165,8 +171,34 @@ class TranslationService
      * @param array<string,mixed> $result
      * @return array<string,mixed>
      */
-    private function normalizeTranslationResultForLanguage(array $result, SupportedLanguage $targetLanguage): array
+    private function normalizeTranslationResultForLanguage(
+        array $result,
+        SupportedLanguage $targetLanguage,
+        ?SupportedLanguage $sourceLanguage = null
+    ): array
     {
+        if ($targetLanguage === SupportedLanguage::EN && $sourceLanguage === SupportedLanguage::NL) {
+            foreach (['title', 'translation_notes'] as $key) {
+                if (array_key_exists($key, $result) && is_string($result[$key])) {
+                    $result[$key] = EnglishTranslationNormalizer::normalizeText($result[$key]);
+                }
+            }
+
+            if (array_key_exists('content_html', $result) && is_string($result['content_html'])) {
+                $result['content_html'] = $this->normalizeEnglishHtmlHeadingConnectors($result['content_html']);
+            }
+
+            if (isset($result['seo']) && is_array($result['seo'])) {
+                foreach (['seo_title', 'seo_meta_description', 'seo_h1', 'seo_og_title', 'seo_og_description', 'seo_twitter_title', 'seo_twitter_description'] as $key) {
+                    if (array_key_exists($key, $result['seo']) && is_string($result['seo'][$key])) {
+                        $result['seo'][$key] = EnglishTranslationNormalizer::normalizeText($result['seo'][$key]);
+                    }
+                }
+            }
+
+            return $result;
+        }
+
         if ($targetLanguage !== SupportedLanguage::NL) {
             return $result;
         }
@@ -190,6 +222,18 @@ class TranslationService
         }
 
         return $result;
+    }
+
+    private function normalizeEnglishHtmlHeadingConnectors(string $html): string
+    {
+        return preg_replace_callback('/(<h[1-6]\b[^>]*>)(.*?)(<\/h[1-6]>)/is', function (array $matches): string {
+            $inner = (string) $matches[2];
+            if ($inner !== strip_tags($inner)) {
+                return (string) $matches[0];
+            }
+
+            return $matches[1].EnglishTranslationNormalizer::normalizeText($inner).$matches[3];
+        }, $html) ?? $html;
     }
 
     private function normalizeDutchHtmlHeadingCasing(string $html): string
@@ -240,9 +284,9 @@ class TranslationService
         array $translationResult,
         ?string $userId = null
     ): Draft {
-        $translationResult = $this->normalizeTranslationResultForLanguage($translationResult, $targetLanguage);
         $originalSource = $sourceDraft->getOriginalSourceDraft() ?? $sourceDraft;
         $originalSourceLanguage = $this->resolveSourceLanguage($originalSource);
+        $translationResult = $this->normalizeTranslationResultForLanguage($translationResult, $targetLanguage, $originalSourceLanguage);
         $titleResult = TitleSanitizer::normalizeWithMetadata(
             $translationResult['title'] ?? $sourceDraft->title,
             fallback: 'Untitled translation'
@@ -883,6 +927,7 @@ class TranslationService
     ): Draft {
         $originalSource = $sourceDraft->getOriginalSourceDraft() ?? $sourceDraft;
         $originalSourceLanguage = $this->resolveSourceLanguage($originalSource);
+        $translationResult = $this->normalizeTranslationResultForLanguage($translationResult, $targetLanguage, $originalSourceLanguage);
         $titleResult = TitleSanitizer::normalizeWithMetadata(
             $translationResult['title'] ?? $sourceDraft->title,
             fallback: 'Untitled translation'

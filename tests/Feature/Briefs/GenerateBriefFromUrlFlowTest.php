@@ -2,6 +2,8 @@
 
 use App\Models\Brief;
 use App\Models\ClientSite;
+use App\Models\Content;
+use App\Models\ContentSeries;
 use App\Models\ContentSource;
 use App\Models\Organization;
 use App\Models\Plan;
@@ -272,7 +274,116 @@ it('adds a chain proposal when requested', function () {
     $source->refresh();
 
     expect((string) data_get($source->generated_payload_json, 'chain_proposal.pillar_topic'))->not->toBe('')
-        ->and(count((array) data_get($source->generated_payload_json, 'chain_proposal.supporting_subtopics', [])))->toBeGreaterThanOrEqual(3);
+        ->and(count((array) data_get($source->generated_payload_json, 'chain_proposal.supporting_subtopics', [])))->toBeGreaterThanOrEqual(3)
+        ->and((bool) data_get($source->generated_payload_json, 'chain_proposal.proposal_only'))->toBeTrue()
+        ->and(ContentSeries::query()->count())->toBe(0)
+        ->and(Content::query()->count())->toBe(0);
+});
+
+it('creates a full content chain only from approved reviewed source proposal items', function () {
+    [, , $site, $user] = makeSourceBriefingContext();
+
+    Http::fake([
+        'https://example.com/aeo' => Http::response(sampleArticleHtml(), 200, ['Content-Type' => 'text/html']),
+    ]);
+
+    $this->actingAs($user)->post(route('app.content.create.from-url.preview'), [
+        'source_url' => 'https://example.com/aeo',
+    ]);
+
+    $source = ContentSource::query()->firstOrFail();
+
+    $this->actingAs($user)->post(route('app.content.create.from-url.generate'), [
+        'content_source_id' => (string) $source->id,
+        'output_mode' => 'full_chain',
+        'chain_title' => 'AI visibility chain',
+        'chain_main_topic' => 'Manual AI visibility topic',
+        'chain_primary_keyword' => 'manual ai visibility keyword',
+        'chain_secondary_keywords' => "ai visibility platform\nanswer engine reporting",
+        'chain_target_audience' => 'B2B marketing leaders',
+        'chain_search_intent' => 'commercial investigation',
+        'chain_items_count' => 4,
+        'chain_item_types' => ['cornerstone_article', 'faq_article'],
+    ])->assertRedirect();
+
+    $source->refresh();
+
+    expect((string) data_get($source->generated_payload_json, 'chain_proposal.mode'))->toBe('full_chain')
+        ->and((bool) data_get($source->generated_payload_json, 'chain_proposal.proposal_only'))->toBeFalse()
+        ->and((string) data_get($source->generated_payload_json, 'chain_proposal.pillar_topic'))->toBe('Manual AI visibility topic')
+        ->and((string) data_get($source->generated_payload_json, 'chain_proposal.source_context.source_title'))->toBe('What is Answer Engine Optimization?')
+        ->and((array) data_get($source->generated_payload_json, 'chain_proposal.proposal_items'))->toHaveCount(4);
+
+    $response = $this->actingAs($user)->post(route('app.content.create.from-url.save'), [
+        'content_source_id' => (string) $source->id,
+        'destination_mode' => 'connected',
+        'site_id' => (string) $site->id,
+        'next_action' => 'create_selected_chain_items',
+        'chain_title' => 'Edited AI chain',
+        'chain_main_topic' => 'Edited source-derived topic',
+        'chain_primary_keyword' => 'edited chain keyword',
+        'chain_items' => [
+            [
+                'order' => 2,
+                'status' => 'approved',
+                'title' => 'Edited supporting FAQ',
+                'content_type' => 'faq_article',
+                'primary_keyword' => 'edited faq keyword',
+                'secondary_keywords' => "faq one\nfaq two",
+                'search_intent' => 'informational',
+                'funnel_stage' => 'consideration',
+                'target_audience' => 'Editors',
+                'angle' => 'Answer practical implementation questions.',
+                'key_points' => "Question one\nQuestion two",
+                'cta' => 'Invite readers to audit visibility.',
+                'suggested_internal_links' => 'Pillar',
+            ],
+            [
+                'order' => 1,
+                'status' => 'approved',
+                'title' => 'Edited pillar article',
+                'content_type' => 'cornerstone_article',
+                'primary_keyword' => 'edited pillar keyword',
+                'secondary_keywords' => 'pillar secondary',
+                'search_intent' => 'commercial investigation',
+                'funnel_stage' => 'awareness',
+                'target_audience' => 'CMOs',
+                'angle' => 'Lead with the source-derived market gap.',
+                'key_points' => 'Point A',
+                'cta' => 'Book a walkthrough.',
+                'suggested_internal_links' => 'FAQ',
+            ],
+            [
+                'order' => 3,
+                'status' => 'skipped',
+                'title' => 'Skipped comparison',
+            ],
+            [
+                'order' => 4,
+                'status' => 'approved',
+                'title' => 'Manual LinkedIn follow-up',
+                'content_type' => 'linkedin_post',
+                'primary_keyword' => 'linkedin ai visibility',
+            ],
+        ],
+    ]);
+
+    $response->assertRedirect();
+
+    $series = ContentSeries::query()->firstOrFail();
+
+    expect(Brief::query()->count())->toBe(0)
+        ->and((string) $series->name)->toBe('Edited AI chain')
+        ->and((string) $series->main_topic)->toBe('Edited source-derived topic')
+        ->and((string) $series->primary_keyword)->toBe('edited chain keyword')
+        ->and((int) $series->articles_count)->toBe(3)
+        ->and(Content::query()->where('series_id', (string) $series->id)->count())->toBe(3)
+        ->and(data_get($series->strategy_json, 'meta.source_title'))->toBe('What is Answer Engine Optimization?')
+        ->and(data_get($series->strategy_json, 'meta.chain_settings.primary_keyword'))->toBe('edited chain keyword')
+        ->and(data_get($series->strategy_json, 'articles.0.title'))->toBe('Edited pillar article')
+        ->and(data_get($series->strategy_json, 'articles.1.title'))->toBe('Edited supporting FAQ')
+        ->and(data_get($series->strategy_json, 'articles.2.title'))->toBe('Manual LinkedIn follow-up')
+        ->and(data_get($series->strategy_json, 'articles.2.content_type'))->toBe('linkedin_post');
 });
 
 it('saves a generated source brief and links it back to the source record', function () {

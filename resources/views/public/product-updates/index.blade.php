@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ $metaTitle }}</title>
+    @php($resolvedMetaTitle = \App\Support\SeoTitle::normalize($metaTitle))
+    <title>{{ $resolvedMetaTitle }}</title>
     <meta name="description" content="{{ $metaDescription }}" />
     @include('partials.brand-meta')
     @include('public.partials.argusly-tracking', ['canonicalUrl' => $canonicalUrl ?? null])
     @include('public.partials.analytics')
     <link rel="canonical" href="{{ $canonicalUrl }}" />
     <meta property="og:type" content="{{ $ogType ?? 'website' }}" />
-    <meta property="og:title" content="{{ $metaTitle }}" />
+    <meta property="og:title" content="{{ $resolvedMetaTitle }}" />
     <meta property="og:description" content="{{ $metaDescription }}" />
     <meta property="og:url" content="{{ $canonicalUrl }}" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="{{ $metaTitle }}" />
+    <meta name="twitter:title" content="{{ $resolvedMetaTitle }}" />
     <meta name="twitter:description" content="{{ $metaDescription }}" />
     @vite(['resources/css/app.css', 'resources/js/public.js'])
     <script defer src="https://unpkg.com/lucide@latest"></script>

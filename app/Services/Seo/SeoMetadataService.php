@@ -5,6 +5,7 @@ namespace App\Services\Seo;
 use App\Models\Content;
 use App\Models\ContentImage;
 use App\Services\ContentImages\ContentImageAssetResolver;
+use App\Support\SeoTitle;
 use Illuminate\Support\Str;
 
 class SeoMetadataService
@@ -111,6 +112,8 @@ class SeoMetadataService
 
         if (trim((string) ($content->seo_title ?? '')) === '') {
             $warnings[] = ['type' => 'missing_seo_title', 'message' => 'Missing SEO title. A fallback will render, but set a specific title before publishing.'];
+        } elseif (mb_strlen(trim((string) $content->seo_title)) > SeoTitle::MAX_LENGTH) {
+            $warnings[] = ['type' => 'long_seo_title', 'message' => 'SEO title is longer than 70 characters and may be shortened in public metadata.'];
         }
 
         if ($this->hasDuplicateSeoTitle($content)) {
@@ -157,7 +160,7 @@ class SeoMetadataService
         $title = trim($seoTitle) !== '' ? trim($seoTitle) : trim($fallbackTitle);
         $title = $title !== '' ? $title : 'Argusly';
 
-        return str_contains($title, 'Argusly') ? $title : $title . ' | ' . $suffix;
+        return SeoTitle::withSuffix($title, $suffix);
     }
 
     /**

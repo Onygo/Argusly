@@ -63,6 +63,9 @@ use App\Models\ContentSeo;
 use App\Models\ContentSeries;
 use App\Models\ContentTranslation;
 use App\Models\ContentVersion;
+use App\Models\Connectors\ConnectorAccount;
+use App\Models\Connectors\ConnectorDataset;
+use App\Models\Connectors\ConnectorSyncRun;
 use App\Models\CrossLinkPermission;
 use App\Models\Draft;
 use App\Models\DraftComparison;
@@ -125,6 +128,9 @@ use App\Policies\ContentAutomationPolicy;
 use App\Policies\ContentDestinationPolicy;
 use App\Policies\ContentPolicy;
 use App\Policies\ContentSeriesPolicy;
+use App\Policies\ConnectorAccountPolicy;
+use App\Policies\ConnectorDatasetPolicy;
+use App\Policies\ConnectorSyncRunPolicy;
 use App\Policies\CrossLinkPermissionPolicy;
 use App\Policies\DraftComparisonPolicy;
 use App\Policies\DraftPolicy;
@@ -162,6 +168,9 @@ use App\Policies\TeamMemberPolicy;
 use App\Policies\WorkspacePolicy;
 use App\Policies\WriterProfilePolicy;
 use App\Services\Credits\CreditWarningService;
+use App\Services\DataConnectors\ConnectorOAuthTokenClient;
+use App\Services\DataConnectors\DataConnectorRegistry;
+use App\Services\DataConnectors\HttpConnectorOAuthTokenClient;
 use App\Services\DompdfInvoicePdfRenderer;
 use App\Services\FakeInvoicePdfRenderer;
 use App\Services\Integrations\ApiCapabilityService;
@@ -177,6 +186,7 @@ use App\Services\Mos\Opportunity\Providers\FaqOpportunityAuditProvider;
 use App\Services\Mos\Opportunity\Providers\LinkOpportunityProvider;
 use App\Services\Mos\Opportunity\Providers\ProgrammaticOpportunityProvider;
 use App\Services\Mos\Providers\AgentWorkflowMosProvider;
+use App\Services\Mos\Providers\MarketingOperatingSystemMosProvider;
 use App\Services\Mos\Providers\OpportunityIntelligenceMosProvider;
 use App\Services\Mos\Providers\SignalIntelligenceMosProvider;
 use App\Services\Notifications\NotificationService;
@@ -240,6 +250,7 @@ class AppServiceProvider extends ServiceProvider
             OpportunityIntelligenceMosProvider::class,
             SignalIntelligenceMosProvider::class,
             AgentWorkflowMosProvider::class,
+            MarketingOperatingSystemMosProvider::class,
             ContentOpportunityProvider::class,
             AgenticMarketingOpportunityProvider::class,
             CompetitorContentOpportunityProvider::class,
@@ -251,6 +262,13 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(MosProviderRegistry::class, fn ($app) => new MosProviderRegistry(
             $app->tagged('mos.providers')
         ));
+
+        $this->app->singleton(DataConnectorRegistry::class, fn ($app) => new DataConnectorRegistry(
+            (array) config('data_connectors.providers', []),
+            $app
+        ));
+
+        $this->app->bind(ConnectorOAuthTokenClient::class, HttpConnectorOAuthTokenClient::class);
 
         $this->app->singleton(SerpProviderRegistry::class, function ($app) {
             $providers = [];
@@ -446,6 +464,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(AgenticMarketingOpportunity::class, AgenticMarketingPolicy::class);
         Gate::policy(AgenticMarketingRun::class, AgenticMarketingPolicy::class);
         Gate::policy(ContentDestination::class, ContentDestinationPolicy::class);
+        Gate::policy(ConnectorAccount::class, ConnectorAccountPolicy::class);
+        Gate::policy(ConnectorDataset::class, ConnectorDatasetPolicy::class);
+        Gate::policy(ConnectorSyncRun::class, ConnectorSyncRunPolicy::class);
         Gate::policy(ContentAutomation::class, ContentAutomationPolicy::class);
         Gate::policy(ApiKey::class, ApiKeyPolicy::class);
         Gate::policy(ApiWebhook::class, ApiWebhookPolicy::class);

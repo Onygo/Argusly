@@ -45,11 +45,15 @@
                     <div class="flex flex-wrap items-center gap-2">
                         <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.index') }}" class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium {{ ($activeTag ?? '') === '' && ($activeCategory ?? '') === '' ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">{{ __('public.blog.filter_all') }}</a>
                         @foreach(($categories ?? []) as $category)
-                            @php($active = strtolower(trim((string) ($activeCategory ?? ''))) === strtolower(trim((string) $category)) )
+                            @php
+                                $active = strtolower(trim((string) ($activeCategory ?? ''))) === strtolower(trim((string) $category));
+                            @endphp
                             <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.category', ['category' => $category]) }}" class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium {{ $active ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">{{ $category }}</a>
                         @endforeach
                         @foreach(($tags ?? []) as $tag)
-                            @php($active = strtolower(trim((string) ($activeTag ?? ''))) === strtolower(trim((string) $tag)) )
+                            @php
+                                $active = strtolower(trim((string) ($activeTag ?? ''))) === strtolower(trim((string) $tag));
+                            @endphp
                             <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.tag', ['tag' => $tag]) }}" class="inline-flex items-center rounded-md border px-3 py-1.5 text-xs font-medium {{ $active ? 'border-publicPrimary/20 bg-publicPrimary text-white' : 'border-border bg-[#f8fafc] text-textSecondary hover:text-textPrimary' }}">#{{ $tag }}</a>
                         @endforeach
                         <a href="{{ \App\Support\LocalizedMarketingUrl::route('public.blog.rss') }}" class="ml-auto inline-flex items-center rounded-md border border-border bg-white px-3 py-1.5 text-xs font-medium text-textSecondary hover:text-textPrimary">RSS</a>
@@ -64,6 +68,16 @@
                         @endif
                     </div>
                 @else
+                    @php
+                        $hasFeaturedImages = false;
+
+                        foreach ($posts as $candidatePost) {
+                            if (trim((string) ($candidatePost['featured_image'] ?? '')) !== '') {
+                                $hasFeaturedImages = true;
+                                break;
+                            }
+                        }
+                    @endphp
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         @foreach($posts as $post)
                             <article class="flex h-full flex-col pl-public-card-compact p-5">
@@ -78,6 +92,10 @@
                                             @if(!empty($post['featured_image_width'])) width="{{ $post['featured_image_width'] }}" @endif
                                             @if(!empty($post['featured_image_height'])) height="{{ $post['featured_image_height'] }}" @endif
                                         >
+                                    </a>
+                                @elseif($hasFeaturedImages)
+                                    <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="mb-5 flex aspect-[4/3] items-center justify-center rounded-md border border-border/80 bg-[#f8fafc] text-publicPrimary" aria-label="{{ $post['title'] }}" data-blog-card-placeholder>
+                                        <x-public.icon name="file-text" size="lg" class="bg-white" />
                                     </a>
                                 @endif
                                 <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">

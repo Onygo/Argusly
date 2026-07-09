@@ -15,48 +15,68 @@
 <section class="pl-public-hero">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="max-w-3xl">
-            <h1 class="pl-public-heading pl-public-heading-hero">
+            <span class="pl-public-hero-label">
+                {{ __('public.footer.roadmap') }}
+            </span>
+            <h1 class="mt-5 pl-public-heading pl-public-heading-hero">
                 {{ __('public.roadmap.hero_title') }}
             </h1>
+            <p class="mt-5 max-w-2xl text-pretty text-lg leading-8 text-textPrimary">
+                {{ __('public.roadmap.hero_subtitle') }}
+            </p>
             <p class="mt-4 max-w-2xl text-pretty text-sm leading-6 text-textSecondary md:text-base">
-                {{ __('public.roadmap.hero_text') }}
+                {{ __('public.roadmap.hero_intro') }}
             </p>
         </div>
     </div>
 </section>
 
-{{-- Current Focus Areas --}}
+{{-- Capability Roadmap --}}
 <section class="bg-surface">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="mb-10 max-w-3xl">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-publicPrimary">{{ __('public.roadmap.focus_eyebrow') }}</p>
-            <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.roadmap.focus_title') }}</h2>
-            <p class="mt-3 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.roadmap.focus_text') }}</p>
+            <p class="pl-public-eyebrow">{{ __('public.roadmap.capabilities_eyebrow') }}</p>
+            <h2 class="mt-3 pl-public-heading pl-public-heading-h2">{{ __('public.roadmap.capabilities_title') }}</h2>
+            <p class="mt-3 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.roadmap.capabilities_text') }}</p>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2">
-            @foreach(__('public.roadmap.focus_areas') as $area)
-                <div class="pl-public-card-compact p-5">
-                    <x-public.icon :name="$area['icon']" size="sm" />
-                    <h3 class="mt-4 text-sm font-semibold text-textPrimary">{{ $area['title'] }}</h3>
-                    <p class="mt-2 text-sm leading-6 text-textSecondary">{{ $area['text'] }}</p>
-                </div>
+        <div class="grid gap-5 md:grid-cols-2">
+            @foreach(__('public.roadmap.capabilities') as $capability)
+                <article class="flex h-full flex-col pl-public-card-compact p-5 md:p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <x-public.icon :name="$capability['icon']" size="sm" class="flex-none" />
+                        <span class="rounded-md border border-publicPrimary/15 bg-publicPrimary/5 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-publicPrimary">
+                            {{ $capability['status'] }}
+                        </span>
+                    </div>
+                    <h3 class="mt-5 pl-public-heading pl-public-heading-card">{{ $capability['title'] }}</h3>
+                    <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $capability['text'] }}</p>
+                    <ul class="mt-5 grid gap-2.5 border-t border-border/70 pt-5 text-sm text-textSecondary">
+                        @foreach($capability['items'] as $item)
+                            <li class="flex items-start gap-3">
+                                <x-public.icon name="check" size="xs" class="mt-0.5 flex-none" />
+                                <span>{{ $item }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </article>
             @endforeach
         </div>
     </div>
 </section>
 
-{{-- How Prioritization Works --}}
+{{-- Roadmap Note --}}
 <section class="pl-public-warm">
     <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
         <div class="grid gap-8 lg:grid-cols-2 lg:items-center">
             <div>
-                <h2 class="pl-public-heading pl-public-heading-h2">{{ __('public.roadmap.prioritization_title') }}</h2>
-                <p class="mt-4 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.roadmap.prioritization_text') }}</p>
+                <p class="pl-public-eyebrow">{{ __('public.roadmap.disclaimer_eyebrow') }}</p>
+                <h2 class="mt-3 pl-public-heading pl-public-heading-h2">{{ __('public.roadmap.disclaimer_title') }}</h2>
+                <p class="mt-4 text-sm leading-6 text-textSecondary md:text-base">{{ __('public.roadmap.disclaimer_text') }}</p>
             </div>
             <div class="pl-public-card p-6">
                 <ul class="space-y-4">
-                    @foreach(__('public.roadmap.prioritization_points') as $point)
+                    @foreach(__('public.roadmap.principles') as $point)
                         <li class="flex items-start gap-3">
                             <x-public.icon name="check" size="xs" class="mt-0.5 flex-none" />
                             <span class="text-sm text-textSecondary">{{ $point }}</span>
@@ -64,34 +84,6 @@
                     @endforeach
                 </ul>
             </div>
-        </div>
-    </div>
-</section>
-
-{{-- Customer Feedback (dark) --}}
-<section class="border-y border-publicPrimary/10 bg-publicPrimary">
-    <div class="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-20">
-        <div class="grid gap-8 md:grid-cols-2 md:items-center">
-            <div>
-                <div class="mb-3 inline-flex items-center gap-2 text-xs font-semibold text-white/80">
-                    <x-public.icon name="message-circle" size="xs" class="bg-white/10 text-white" />
-                    <span>{{ __('public.roadmap.feedback_badge') }}</span>
-                </div>
-                <h2 class="pl-public-heading pl-public-heading-h2 text-white">{{ __('public.roadmap.feedback_title') }}</h2>
-                <p class="mt-3 text-sm leading-6 text-white/76 md:text-base">{{ __('public.roadmap.feedback_text') }}</p>
-            </div>
-
-            @php($feedbackPoints = __('public.roadmap.feedback_points'))
-            @if(is_array($feedbackPoints) && count($feedbackPoints) > 0)
-                <ul class="space-y-3 text-sm text-white/86">
-                    @foreach($feedbackPoints as $point)
-                        <li class="flex gap-3 rounded-md border border-white/10 bg-white/8 px-4 py-3">
-                            <x-public.icon name="check" size="xs" class="mt-0.5 flex-none bg-white/10 text-white" />
-                            <span>{{ $point }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
         </div>
     </div>
 </section>

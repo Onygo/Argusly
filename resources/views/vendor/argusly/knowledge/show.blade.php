@@ -7,6 +7,7 @@
 @endpush
 
 @section('content')
+    @php($redditUrl = trim((string) config('argusly.community.reddit_url', '')))
     <article class="argusly-knowledge-article">
         @includeWhen(!empty($breadcrumbs), 'argusly::knowledge.partials.breadcrumbs', ['breadcrumbs' => $breadcrumbs])
 
@@ -80,6 +81,14 @@
                         </article>
                     @endforeach
                 </div>
+            </aside>
+        @endif
+
+        @if ($redditUrl !== '')
+            <aside aria-label="Community">
+                <h2>Questions or ideas?</h2>
+                <p>Join the discussion on Reddit.</p>
+                <p><a href="{{ $redditUrl }}" target="_blank" rel="noopener noreferrer">Reddit Community</a></p>
             </aside>
         @endif
     </article>

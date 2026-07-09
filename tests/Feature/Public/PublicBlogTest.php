@@ -242,7 +242,57 @@ it('does not render stale local card featured image data after managed featured 
     $this->get('/en/blog')
         ->assertOk()
         ->assertSee('Article without active featured image')
-        ->assertDontSee('https://images.example.test/stale-featured.jpg', false);
+        ->assertDontSee('https://images.example.test/stale-featured.jpg', false)
+        ->assertDontSee('data-blog-card-placeholder', false);
+});
+
+it('reserves a media slot for image-less cards in a mixed public blog grid', function () {
+    $publishedAt = now()->subHour();
+
+    $withImage = makePublishedBlog($this->workspace, [
+        'title' => 'Article with overview image',
+        'language' => 'en',
+        'publish_url_key' => 'article-with-overview-image',
+        'is_source_locale' => true,
+    ]);
+
+    $withoutImage = makePublishedBlog($this->workspace, [
+        'title' => 'Article without overview image',
+        'language' => 'en',
+        'publish_url_key' => 'article-without-overview-image',
+        'is_source_locale' => true,
+    ]);
+
+    foreach ([$withImage, $withoutImage] as $content) {
+        $content->forceFill([
+            'first_published_at' => $publishedAt,
+            'public_blog_excerpt' => 'Mixed image overview excerpt.',
+            'public_blog_reading_time_minutes' => 2,
+        ])->save();
+    }
+
+    ContentImage::query()->create([
+        'id' => (string) Str::uuid(),
+        'content_id' => (string) $withImage->id,
+        'type' => 'featured',
+        'provider' => 'test',
+        'image_url' => 'https://images.example.test/mixed-featured.jpg',
+        'alt_text' => 'Article with overview image alt',
+        'width' => 1200,
+        'height' => 630,
+        'status' => 'ready',
+        'is_active' => true,
+        'created_at' => $publishedAt,
+        'updated_at' => $publishedAt,
+    ]);
+
+    $html = $this->get('/en/blog')
+        ->assertOk()
+        ->assertSee('https://images.example.test/mixed-featured.jpg', false)
+        ->assertSee('data-blog-card-placeholder', false)
+        ->content();
+
+    expect(substr_count($html, 'data-blog-card-placeholder'))->toBe(1);
 });
 
 it('uses the active og image for public article share metadata', function () {
@@ -355,6 +405,29 @@ it('resolves localized detail pages by locale and slug', function () {
         ->assertSee('rel="canonical" href="' . url($enUrl) . '"', false)
         ->assertSee('rel="alternate" hreflang="nl" href="' . url($nlUrl) . '"', false)
         ->assertSee('rel="alternate" hreflang="en" href="' . url($enUrl) . '"', false);
+});
+
+it('renders public article title tags within the Bing title length guidance', function () {
+    makePublishedBlog($this->workspace, [
+        'title' => 'How AI Agents Collaborate Across SEO, GEO, Content and Analytics',
+        'language' => 'en',
+        'publish_url_key' => 'how-ai-agents-collaborate-across-seo-geo-content-and-analytics',
+        'is_source_locale' => true,
+        'seo_title' => null,
+        'seo_meta_description' => 'A practical look at AI agent collaboration across marketing workflows.',
+    ]);
+
+    $html = $this->get(LocalizedMarketingUrl::route('public.blog.show', [
+        'slug' => 'how-ai-agents-collaborate-across-seo-geo-content-and-analytics',
+    ], 'en', false))
+        ->assertOk()
+        ->content();
+
+    preg_match('/<title>(.*?)<\/title>/s', $html, $matches);
+    $title = html_entity_decode((string) ($matches[1] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    expect($title)->not->toBe('')
+        ->and(mb_strlen($title))->toBeLessThanOrEqual(\App\Support\SeoTitle::MAX_LENGTH);
 });
 
 it('localizes generated related-reading links inside translated articles', function () {

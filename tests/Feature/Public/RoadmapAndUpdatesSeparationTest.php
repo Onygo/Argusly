@@ -10,5 +10,5 @@ it('keeps roadmap future focused and does not show released updates', function (
 
     $this->get(route('public.company.roadmap'))
         ->assertOk()
-        ->assertSee(__('public.roadmap.focus_title'));
+        ->assertSee(__('public.roadmap.capabilities_title'));
 });

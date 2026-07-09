@@ -59,6 +59,20 @@ it('renders automotive industry pages in English and Dutch', function () {
         ->assertSee('Vraag een AI Visibility Scan aan', false);
 });
 
+it('keeps rendered marketing and industry title tags within the Bing title length guidance', function () {
+    foreach (['/en/ai-visibility-agentic-marketing', '/en/industries/automotive', '/nl/sectoren/automotive'] as $path) {
+        $html = $this->get($path)
+            ->assertOk()
+            ->content();
+
+        preg_match('/<title>(.*?)<\/title>/s', $html, $matches);
+        $title = html_entity_decode((string) ($matches[1] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        expect($title)->not->toBe('')
+            ->and(mb_strlen($title))->toBeLessThanOrEqual(\App\Support\SeoTitle::MAX_LENGTH);
+    }
+});
+
 it('uses the requested primary industry navigation order per locale', function () {
     app()->setLocale('en');
 

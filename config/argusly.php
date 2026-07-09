@@ -31,7 +31,6 @@ return [
             'og' => [
                 'width' => (int) env('ARGUSLY_OG_IMAGE_WIDTH', 1200),
                 'height' => (int) env('ARGUSLY_OG_IMAGE_HEIGHT', 630),
-                'font_path' => env('ARGUSLY_OG_FONT_PATH', resource_path('fonts/Inter-SemiBold.ttf')),
             ],
             'openai' => [
                 'api_key' => env('OPENAI_API_KEY', ''),
@@ -105,6 +104,11 @@ return [
         'schedule_call_url' => env('ARGUSLY_CONTACT_SCHEDULE_CALL_URL', ''),
     ],
 
+    'community' => [
+        'reddit_url' => env('ARGUSLY_REDDIT_URL', 'https://www.reddit.com/r/argusly/'),
+        'linkedin_url' => env('ARGUSLY_LINKEDIN_URL', 'https://www.linkedin.com/company/argusly/'),
+    ],
+
     'public_blog' => [
         // Optional scoping for connector-synced public blog posts.
         'client_site_id' => env('ARGUSLY_PUBLIC_BLOG_CLIENT_SITE_ID', ''),
@@ -114,6 +118,64 @@ return [
 
     'answer_blocks' => [
         'default_max_visible' => (int) env('ARGUSLY_ANSWER_BLOCKS_MAX_VISIBLE', 3),
+    ],
+
+    'intelligence_score_v2' => [
+        'model_key' => 'argusly_intelligence_score_v2',
+        'model_version' => 'v2',
+        'lookback_days' => (int) env('ARGUSLY_INTELLIGENCE_SCORE_V2_LOOKBACK_DAYS', 30),
+        'weights' => [
+            'organic_growth' => 0.08,
+            'traffic_trend' => 0.08,
+            'engagement_trend' => 0.07,
+            'topic_momentum' => 0.07,
+            'channel_momentum' => 0.07,
+            'content_momentum' => 0.07,
+            'search_visibility' => 0.10,
+            'ai_visibility' => 0.10,
+            'pr_value' => 0.10,
+            'competitor_pressure' => 0.08,
+            'market_pack_relevance' => 0.06,
+            'risk' => 0.06,
+            'opportunity' => 0.06,
+        ],
+        'labels' => [
+            'organic_growth' => 'Organic Growth',
+            'traffic_trend' => 'Traffic Trend',
+            'engagement_trend' => 'Engagement Trend',
+            'topic_momentum' => 'Topic Momentum',
+            'channel_momentum' => 'Channel Momentum',
+            'content_momentum' => 'Content Momentum',
+            'search_visibility' => 'Search Visibility',
+            'ai_visibility' => 'AI Visibility',
+            'pr_value' => 'PR Value',
+            'competitor_pressure' => 'Competitor Pressure',
+            'market_pack_relevance' => 'Market Pack Relevance',
+            'risk' => 'Risk',
+            'opportunity' => 'Opportunity',
+        ],
+    ],
+
+    'agentic_marketing_intelligence' => [
+        'model_key' => 'argusly_agentic_marketing_intelligence',
+        'model_version' => 'v1',
+        'lookback_days' => (int) env('ARGUSLY_AGENTIC_MARKETING_INTELLIGENCE_LOOKBACK_DAYS', 30),
+        'thresholds' => [
+            'strong_growth_percent' => 20,
+            'meaningful_decline_percent' => -10,
+            'weak_search_visibility' => 50,
+            'weak_ai_visibility' => 50,
+            'high_competitor_pressure' => 60,
+            'strong_pr_value' => 70,
+            'low_intelligence_score' => 55,
+            'notification_priority_min' => 65,
+        ],
+        'priority_weights' => [
+            'impact' => 0.40,
+            'confidence' => 0.25,
+            'risk' => 0.20,
+            'opportunity' => 0.15,
+        ],
     ],
 
     'onboarding' => [

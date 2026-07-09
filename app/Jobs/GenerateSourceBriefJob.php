@@ -191,7 +191,7 @@ class GenerateSourceBriefJob implements ShouldQueue
 
             // Generate chain proposal if requested
             $chainProposal = null;
-            if ($this->outputMode === 'brief_chain') {
+            if (in_array($this->outputMode, ['brief_chain', 'full_chain'], true)) {
                 $source->markGenerationProgress('generating_chain');
                 $chainProposal = $chainGenerator->generate($source, $analysis, $workspaceContext);
             }

@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 
 class SourceContentAnalyzer
 {
+    private const PROMPT_VERSION = 'source-analysis.accuracy.v2';
+
     public function __construct(
         private readonly LlmManager $llmManager,
         private readonly WorkspaceSourceContextBuilder $contextBuilder,
@@ -50,9 +52,13 @@ class SourceContentAnalyzer
                     metadata: [
                         'feature' => 'source_briefing',
                         'sub_feature' => 'source_analysis',
+                        'prompt_version' => self::PROMPT_VERSION,
+                        'eval_rubric_version' => 'llm-accuracy.source-briefing.v1',
+                        'schema_name' => 'source_briefing_analysis',
+                        'context_strategy' => 'source_excerpt_with_heuristic_baseline',
                     ],
                 ),
-                null,
+                $this->responseSchema(),
                 ['feature' => 'source_briefing']
             );
 
@@ -72,6 +78,7 @@ class SourceContentAnalyzer
                 '_debug' => [
                     'ai_provider' => $response->providerName,
                     'ai_model' => $response->modelUsed,
+                    'prompt_version' => self::PROMPT_VERSION,
                     'generation_duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
                     'estimated_source_tokens' => $estimatedTokens,
                 ],
@@ -91,6 +98,7 @@ class SourceContentAnalyzer
                 '_debug' => [
                     'ai_provider' => 'heuristic',
                     'ai_model' => null,
+                    'prompt_version' => self::PROMPT_VERSION,
                     'generation_duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
                     'estimated_source_tokens' => $estimatedTokens,
                     'fallback_reason' => $exception->getMessage(),
@@ -108,6 +116,8 @@ This is not a rewrite task. Do not reproduce source wording or propose paraphras
 Use the source only for semantic analysis: themes, gaps, entities, structure, audience signals, questions, and opportunity discovery.
 Infer strategic opportunities for a brand-aligned original article.
 The eventual brief must enable original content, not copied sentences, paragraphs, examples, or section-by-section rewriting.
+Separate source-supported observations from strategic inferences. If the source excerpt or workspace context is insufficient, say so in accuracy_diagnostics instead of inventing detail.
+Score confidence based on context sufficiency, source clarity, and how much the final recommendation depends on inference.
 
 Return:
 {
@@ -123,9 +133,104 @@ Return:
   "questions_answered": ["string"],
   "content_gaps": ["string"],
   "cta_style": "string",
-  "suggested_differentiators": ["string"]
+  "suggested_differentiators": ["string"],
+  "analysis_confidence": 0,
+  "accuracy_diagnostics": {
+    "source_context_sufficiency": "high|medium|low",
+    "copy_risk": "low|medium|high",
+    "missing_context": ["string"],
+    "uncertain_inferences": ["string"],
+    "evaluation_notes": ["string"]
+  }
 }
 PROMPT;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function responseSchema(): array
+    {
+        $stringList = [
+            'type' => 'array',
+            'items' => ['type' => 'string'],
+        ];
+
+        return [
+            'name' => 'source_briefing_analysis',
+            'strict' => true,
+            'schema' => [
+                'type' => 'object',
+                'additionalProperties' => false,
+                'properties' => [
+                    'main_topic' => ['type' => 'string'],
+                    'primary_keyword' => ['type' => 'string'],
+                    'secondary_keywords' => $stringList,
+                    'semantic_entities' => $stringList,
+                    'search_intent' => [
+                        'type' => 'string',
+                        'enum' => ['informational', 'commercial', 'transactional', 'navigational'],
+                    ],
+                    'likely_audience' => ['type' => 'string'],
+                    'funnel_stage' => [
+                        'type' => 'string',
+                        'enum' => ['awareness', 'consideration', 'decision', 'retention'],
+                    ],
+                    'source_tone' => ['type' => 'string'],
+                    'key_claims' => $stringList,
+                    'questions_answered' => $stringList,
+                    'content_gaps' => $stringList,
+                    'cta_style' => ['type' => 'string'],
+                    'suggested_differentiators' => $stringList,
+                    'analysis_confidence' => [
+                        'type' => 'integer',
+                        'minimum' => 0,
+                        'maximum' => 100,
+                    ],
+                    'accuracy_diagnostics' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'properties' => [
+                            'source_context_sufficiency' => [
+                                'type' => 'string',
+                                'enum' => ['high', 'medium', 'low'],
+                            ],
+                            'copy_risk' => [
+                                'type' => 'string',
+                                'enum' => ['low', 'medium', 'high'],
+                            ],
+                            'missing_context' => $stringList,
+                            'uncertain_inferences' => $stringList,
+                            'evaluation_notes' => $stringList,
+                        ],
+                        'required' => [
+                            'source_context_sufficiency',
+                            'copy_risk',
+                            'missing_context',
+                            'uncertain_inferences',
+                            'evaluation_notes',
+                        ],
+                    ],
+                ],
+                'required' => [
+                    'main_topic',
+                    'primary_keyword',
+                    'secondary_keywords',
+                    'semantic_entities',
+                    'search_intent',
+                    'likely_audience',
+                    'funnel_stage',
+                    'source_tone',
+                    'key_claims',
+                    'questions_answered',
+                    'content_gaps',
+                    'cta_style',
+                    'suggested_differentiators',
+                    'analysis_confidence',
+                    'accuracy_diagnostics',
+                ],
+            ],
+        ];
     }
 
     /**
@@ -188,6 +293,8 @@ PROMPT;
             'content_gaps' => $this->detectContentGaps($text, $outline),
             'cta_style' => $this->detectCtaStyle($text),
             'suggested_differentiators' => $this->workspaceDifferentiators($workspaceContext)->take(5)->values()->all(),
+            'analysis_confidence' => $this->heuristicConfidence($source, $text),
+            'accuracy_diagnostics' => $this->fallbackDiagnostics($source, $text, $outline),
         ];
     }
 
@@ -212,7 +319,89 @@ PROMPT;
             'content_gaps' => $this->normalizeStringList($json['content_gaps'] ?? $fallback['content_gaps'] ?? []),
             'cta_style' => trim((string) ($json['cta_style'] ?? $fallback['cta_style'] ?? 'subtle')),
             'suggested_differentiators' => $this->normalizeStringList($json['suggested_differentiators'] ?? $fallback['suggested_differentiators'] ?? []),
+            'analysis_confidence' => $this->normalizeConfidence($json['analysis_confidence'] ?? $fallback['analysis_confidence'] ?? 55),
+            'accuracy_diagnostics' => $this->normalizeDiagnostics($json['accuracy_diagnostics'] ?? $fallback['accuracy_diagnostics'] ?? []),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $outline
+     * @return array<string, mixed>
+     */
+    private function fallbackDiagnostics(ContentSource $source, string $text, array $outline): array
+    {
+        $wordCount = (int) data_get($source->metadata_json, 'extraction.word_count', str_word_count($text));
+        $hasOutline = trim((string) ($outline['h1'] ?? '')) !== '' || count((array) ($outline['h2'] ?? [])) > 0;
+
+        $sufficiency = match (true) {
+            $wordCount >= 900 && $hasOutline => 'high',
+            $wordCount >= 350 => 'medium',
+            default => 'low',
+        };
+
+        return [
+            'source_context_sufficiency' => $sufficiency,
+            'copy_risk' => 'medium',
+            'missing_context' => $sufficiency === 'low'
+                ? ['Source excerpt is short, so audience and opportunity recommendations may need human review.']
+                : [],
+            'uncertain_inferences' => [
+                'Audience and funnel stage are inferred from source and workspace signals.',
+            ],
+            'evaluation_notes' => [
+                'Heuristic fallback used when LLM analysis is unavailable or incomplete.',
+            ],
+        ];
+    }
+
+    private function heuristicConfidence(ContentSource $source, string $text): int
+    {
+        $wordCount = (int) data_get($source->metadata_json, 'extraction.word_count', str_word_count($text));
+
+        return match (true) {
+            $wordCount >= 900 => 72,
+            $wordCount >= 350 => 62,
+            default => 45,
+        };
+    }
+
+    private function normalizeConfidence(mixed $value): int
+    {
+        return max(0, min(100, (int) $value));
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function normalizeDiagnostics(mixed $value): array
+    {
+        $diagnostics = is_array($value) ? $value : [];
+
+        return [
+            'source_context_sufficiency' => $this->normalizeDiagnosticBand(
+                $diagnostics['source_context_sufficiency'] ?? 'medium',
+                ['high', 'medium', 'low'],
+                'medium'
+            ),
+            'copy_risk' => $this->normalizeDiagnosticBand(
+                $diagnostics['copy_risk'] ?? 'medium',
+                ['low', 'medium', 'high'],
+                'medium'
+            ),
+            'missing_context' => $this->normalizeStringList($diagnostics['missing_context'] ?? []),
+            'uncertain_inferences' => $this->normalizeStringList($diagnostics['uncertain_inferences'] ?? []),
+            'evaluation_notes' => $this->normalizeStringList($diagnostics['evaluation_notes'] ?? []),
+        ];
+    }
+
+    /**
+     * @param array<int,string> $allowed
+     */
+    private function normalizeDiagnosticBand(mixed $value, array $allowed, string $fallback): string
+    {
+        $candidate = trim((string) $value);
+
+        return in_array($candidate, $allowed, true) ? $candidate : $fallback;
     }
 
     private function extractKeywordCandidates(string $text): Collection

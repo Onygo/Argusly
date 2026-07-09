@@ -8,6 +8,7 @@
 @endsection
 
 @section('content')
+    @php($redditUrl = trim((string) config('argusly.community.reddit_url', '')))
     <div class="space-y-6">
         <header class="space-y-2">
             <div class="flex items-center gap-2">
@@ -96,5 +97,16 @@
                 <li>Start making API requests</li>
             </ol>
         </div>
+
+        @if ($redditUrl !== '')
+            <div class="rounded-lg border border-border bg-background p-4">
+                <h3 class="font-semibold text-textPrimary">Questions or ideas?</h3>
+                <p class="mt-1 text-sm text-textSecondary">Join the discussion on Reddit for API questions, product feedback, and feature ideas.</p>
+                <a href="{{ $redditUrl }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium text-textPrimary hover:bg-surfaceSubtle">
+                    <i data-lucide="message-circle" class="h-4 w-4"></i>
+                    Reddit Community
+                </a>
+            </div>
+        @endif
     </div>
 @endsection
