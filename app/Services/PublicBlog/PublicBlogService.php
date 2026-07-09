@@ -28,7 +28,7 @@ use Throwable;
 class PublicBlogService
 {
     private const CACHE_TTL_MINUTES = 15;
-    private const CACHE_VERSION = 'v3';
+    private const CACHE_VERSION = 'v4';
 
     public function __construct(
         private readonly PublicBlogSource $source,
@@ -451,10 +451,28 @@ class PublicBlogService
         return Content::query()
             ->with(['featuredImage' => fn ($imageQuery) => $imageQuery->select([
                 'content_images.id',
+                'content_images.workspace_id',
                 'content_images.content_id',
+                'content_images.type',
+                'content_images.source',
+                'content_images.image_path',
+                'content_images.image_url',
                 'content_images.alt_text',
+                'content_images.original_path',
+                'content_images.medium_path',
+                'content_images.thumbnail_path',
+                'content_images.original_webp_path',
+                'content_images.medium_webp_path',
+                'content_images.thumbnail_webp_path',
                 'content_images.width',
                 'content_images.height',
+                'content_images.status',
+                'content_images.is_active',
+                'content_images.display_on_website',
+                'content_images.display_as_featured_image',
+                'content_images.use_as_meta_image',
+                'content_images.use_as_social_image',
+                'content_images.use_for_linkedin',
             ]), 'ogImage' => fn ($imageQuery) => $imageQuery->select([
                 'content_images.id',
                 'content_images.content_id',
@@ -530,11 +548,11 @@ class PublicBlogService
         $slug = trim((string) ($content->publish_url_key ?: Str::slug((string) $content->title)));
         $locale = $this->normalizeLocale($content->localeCode());
         $publishedAt = $content->first_published_at;
-        $featuredImage = trim((string) ($content->public_blog_featured_image_url ?? ''));
-
-        if ((bool) $content->getAttribute('has_managed_featured_image_history') && ! $content->featuredImage) {
-            $featuredImage = '';
-        }
+        $hasManagedFeaturedImageHistory = (bool) $content->getAttribute('has_managed_featured_image_history');
+        $activeFeaturedImageUrl = $content->featuredImage?->bestUrlForUsage(ContentImage::USAGE_WEBSITE) ?? '';
+        $featuredImage = $this->normalizePublicImageUrl($hasManagedFeaturedImageHistory
+            ? $activeFeaturedImageUrl
+            : $this->firstNonEmpty([$activeFeaturedImageUrl, $content->public_blog_featured_image_url]));
 
         return [
             'id' => (string) $content->id,
@@ -546,10 +564,10 @@ class PublicBlogService
             'featured_image_alt' => trim((string) ($content->featuredImage?->alt_text ?? '')) ?: (string) $content->title,
             'featured_image_width' => $content->public_blog_featured_image_width ?: $content->featuredImage?->width,
             'featured_image_height' => $content->public_blog_featured_image_height ?: $content->featuredImage?->height,
-            'seo_og_image' => $this->firstNonEmpty([
+            'seo_og_image' => $this->normalizePublicImageUrl($this->firstNonEmpty([
                 $content->ogImage?->bestUrlForUsage(ContentImage::USAGE_META),
                 $content->seo_og_image,
-            ]),
+            ])),
             'author' => trim((string) ($content->public_blog_author ?? '')),
             'published_at' => $publishedAt?->toIso8601String(),
             'published_at_ts' => $publishedAt?->timestamp ?? 0,
@@ -699,7 +717,7 @@ class PublicBlogService
             'content_html' => $safeHtml,
             'answer_blocks' => $this->normalizeAnswerBlocks($post['answer_blocks'] ?? []),
             'faq_schema' => $this->normalizeSchema($post['faq_schema'] ?? null),
-            'featured_image' => trim((string) ($post['featured_image'] ?? '')),
+            'featured_image' => $this->normalizePublicImageUrl((string) ($post['featured_image'] ?? '')),
             'featured_image_alt' => trim((string) ($post['featured_image_alt'] ?? ($post['featured_image_alt_text'] ?? ''))),
             'featured_image_width' => isset($post['featured_image_width']) ? (int) $post['featured_image_width'] : null,
             'featured_image_height' => isset($post['featured_image_height']) ? (int) $post['featured_image_height'] : null,
@@ -717,7 +735,7 @@ class PublicBlogService
             'seo_meta_description' => trim((string) ($post['seo_meta_description'] ?? '')),
             'seo_og_title' => trim((string) ($post['seo_og_title'] ?? '')),
             'seo_og_description' => trim((string) ($post['seo_og_description'] ?? '')),
-            'seo_og_image' => trim((string) ($post['seo_og_image'] ?? '')),
+            'seo_og_image' => $this->normalizePublicImageUrl((string) ($post['seo_og_image'] ?? '')),
             'seo_twitter_title' => trim((string) ($post['seo_twitter_title'] ?? '')),
             'seo_twitter_description' => trim((string) ($post['seo_twitter_description'] ?? '')),
             'status' => trim((string) ($post['status'] ?? 'published')),
@@ -828,6 +846,13 @@ class PublicBlogService
         $html = preg_replace('/\s(href|src)\s*=\s*([\'"])\s*javascript:[^\'"]*\\2/i', '', $html) ?? '';
 
         return trim($html);
+    }
+
+    private function normalizePublicImageUrl(string $url): string
+    {
+        $url = trim($url);
+
+        return $url !== '' ? ContentImage::publicUrlForStorageValue($url) : '';
     }
 
     private function normalizeLocale(?string $locale): string

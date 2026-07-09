@@ -89,6 +89,33 @@ const initLegalNavigation = () => {
     });
 };
 
+const showPublicBlogImageFallback = (image) => {
+    const media = image.closest('[data-blog-media]');
+    const fallback = media?.querySelector('[data-blog-image-fallback]');
+
+    image.classList.add('hidden');
+    image.setAttribute('aria-hidden', 'true');
+
+    if (fallback instanceof HTMLElement) {
+        fallback.hidden = false;
+        fallback.classList.remove('hidden');
+    }
+};
+
+const initPublicBlogImages = () => {
+    document.querySelectorAll('img[data-blog-image]').forEach((image) => {
+        if (!(image instanceof HTMLImageElement)) {
+            return;
+        }
+
+        image.addEventListener('error', () => showPublicBlogImageFallback(image), { once: true });
+
+        if (image.complete && image.naturalWidth === 0) {
+            showPublicBlogImageFallback(image);
+        }
+    });
+};
+
 const createLucideIcons = () => {
     window.lucide?.createIcons?.();
 };
@@ -97,6 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPublicMobileNav();
     initPublicNavDetails();
     initLegalNavigation();
+    initPublicBlogImages();
     createLucideIcons();
 });
 

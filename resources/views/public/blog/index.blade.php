@@ -80,22 +80,29 @@
                     @endphp
                     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         @foreach($posts as $post)
+                            @php
+                                $postUrl = $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]);
+                            @endphp
                             <article class="flex h-full flex-col pl-public-card-compact p-5">
                                 @if(($post['featured_image'] ?? '') !== '')
-                                    <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="mb-5 block overflow-hidden rounded-md border border-border bg-[#f8fafc]">
+                                    <a href="{{ $postUrl }}" class="relative mb-5 block aspect-[4/3] overflow-hidden rounded-md border border-border bg-[#f8fafc]" data-blog-media>
                                         <img
                                             src="{{ $post['featured_image'] }}"
                                             alt="{{ $post['title'] }}"
-                                            class="aspect-[4/3] w-full object-cover"
+                                            class="absolute inset-0 h-full w-full object-cover"
                                             loading="lazy"
                                             decoding="async"
+                                            data-blog-image
                                             @if(!empty($post['featured_image_width'])) width="{{ $post['featured_image_width'] }}" @endif
                                             @if(!empty($post['featured_image_height'])) height="{{ $post['featured_image_height'] }}" @endif
                                         >
+                                        <span class="absolute inset-0 flex items-center justify-center text-publicPrimary" data-blog-image-fallback hidden>
+                                            <x-public.icon name="file-text" size="lg" class="self-center bg-white" />
+                                        </span>
                                     </a>
                                 @elseif($hasFeaturedImages)
-                                    <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="mb-5 flex aspect-[4/3] items-center justify-center rounded-md border border-border/80 bg-[#f8fafc] text-publicPrimary" aria-label="{{ $post['title'] }}" data-blog-card-placeholder>
-                                        <x-public.icon name="file-text" size="lg" class="bg-white" />
+                                    <a href="{{ $postUrl }}" class="mb-5 flex aspect-[4/3] items-center justify-center rounded-md border border-border/80 bg-[#f8fafc] text-publicPrimary" aria-label="{{ $post['title'] }}" data-blog-card-placeholder>
+                                        <x-public.icon name="file-text" size="lg" class="self-center bg-white" />
                                     </a>
                                 @endif
                                 <div class="flex flex-wrap items-center gap-2 text-xs text-textSecondary">
@@ -108,7 +115,7 @@
                                     @endif
                                 </div>
                                 <h2 class="mt-4 pl-public-heading pl-public-heading-h3">
-                                    <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="hover:underline">{{ $post['title'] }}</a>
+                                    <a href="{{ $postUrl }}" class="hover:underline">{{ $post['title'] }}</a>
                                 </h2>
                                 <p class="mt-3 text-sm leading-6 text-textSecondary">{{ $post['excerpt'] }}</p>
                                 @if(!empty($post['tags']))
@@ -118,7 +125,7 @@
                                         @endforeach
                                     </div>
                                 @endif
-                                <a href="{{ $post['url'] ?? \App\Support\LocalizedMarketingUrl::route('public.blog.show', ['slug' => $post['slug']]) }}" class="mt-6 inline-flex text-sm font-semibold text-publicPrimary hover:text-publicPrimaryHover">{{ __('public.blog.read_more') }}</a>
+                                <a href="{{ $postUrl }}" class="mt-6 inline-flex text-sm font-semibold text-publicPrimary hover:text-publicPrimaryHover">{{ __('public.blog.read_more') }}</a>
                             </article>
                         @endforeach
                     </div>

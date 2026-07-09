@@ -74,16 +74,20 @@
     <section class="bg-white">
         <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 md:py-16">
             @if(($post['featured_image'] ?? '') !== '')
-                <div class="mb-8 overflow-hidden rounded-md border border-border">
+                <div class="relative mb-8 aspect-[1200/630] overflow-hidden rounded-md border border-border bg-[#f8fafc]" data-blog-media>
                     <img
                         src="{{ $post['featured_image'] }}"
                         alt="{{ $post['featured_image_alt'] ?? $post['title'] ?? __('public.blog.meta_title') }}"
-                        class="h-auto w-full object-cover"
+                        class="absolute inset-0 h-full w-full object-cover"
                         @if(!empty($post['featured_image_width'])) width="{{ $post['featured_image_width'] }}" @endif
                         @if(!empty($post['featured_image_height'])) height="{{ $post['featured_image_height'] }}" @endif
                         loading="eager"
                         fetchpriority="high"
+                        data-blog-image
                     >
+                    <div class="absolute inset-0 flex items-center justify-center text-publicPrimary" data-blog-image-fallback hidden>
+                        <x-public.icon name="file-text" size="lg" class="self-center bg-white" />
+                    </div>
                 </div>
             @endif
 

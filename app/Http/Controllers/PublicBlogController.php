@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\PublicBlogSourceUnavailableException;
+use App\Models\ContentImage;
 use App\Services\Content\ContentRenderNormalizer;
 use App\Services\PublicBlog\MarketingBlogSourceScope;
 use App\Services\PublicBlog\PublicBlogService;
@@ -25,6 +26,8 @@ use Illuminate\View\View;
 
 class PublicBlogController extends Controller
 {
+    private const ARTICLE_RESPONSE_CACHE_VERSION = 'v2';
+
     public function __construct(
         private readonly MarketingBlogSourceScope $sourceScope,
         private readonly ContentRenderNormalizer $renderNormalizer,
@@ -261,7 +264,7 @@ class PublicBlogController extends Controller
         $post['published_date'] = trim((string) ($post['published_date'] ?? ''));
         $post['reading_time'] = max(0, (int) ($post['reading_time'] ?? 0));
         $post['author'] = trim((string) ($post['author'] ?? ''));
-        $post['featured_image'] = trim((string) ($post['featured_image'] ?? ''));
+        $post['featured_image'] = $this->normalizePublicImageUrl((string) ($post['featured_image'] ?? ''));
         $post['featured_image_alt'] = trim((string) ($post['featured_image_alt'] ?? $post['title']));
         $post['localized_variants'] = is_array($post['localized_variants'] ?? null) ? $post['localized_variants'] : [];
         $post['answer_blocks'] = is_array($post['answer_blocks'] ?? null) ? $post['answer_blocks'] : [];
@@ -704,6 +707,13 @@ class PublicBlogController extends Controller
         return LocalizedMarketingUrl::route($name, $params, $locale);
     }
 
+    private function normalizePublicImageUrl(string $url): string
+    {
+        $url = trim($url);
+
+        return $url !== '' ? ContentImage::publicUrlForStorageValue($url) : '';
+    }
+
     private function canCacheArticleResponse(Request $request): bool
     {
         return $request->isMethod('GET')
@@ -715,7 +725,8 @@ class PublicBlogController extends Controller
     private function articleResponseCacheKey(PublicBlogService $blog, string $locale, string $slug): string
     {
         return sprintf(
-            'public_blog.article_response.%s.%s.%s',
+            'public_blog.article_response.%s.%s.%s.%s',
+            self::ARTICLE_RESPONSE_CACHE_VERSION,
             $locale,
             $blog->xmlLocaleVersion($locale),
             $slug

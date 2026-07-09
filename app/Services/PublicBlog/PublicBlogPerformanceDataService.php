@@ -188,7 +188,7 @@ class PublicBlogPerformanceDataService
     {
         $activeAssetUrl = trim($this->assets->urlForContent($content, ContentImage::USAGE_WEBSITE));
         if ($activeAssetUrl !== '') {
-            return $activeAssetUrl;
+            return ContentImage::publicUrlForStorageValue($activeAssetUrl);
         }
 
         if ($this->hasManagedFeaturedImageHistory($content)) {
@@ -205,7 +205,7 @@ class PublicBlogPerformanceDataService
         foreach ($candidates as $candidate) {
             $resolved = trim((string) $candidate);
             if ($resolved !== '') {
-                return $resolved;
+                return ContentImage::publicUrlForStorageValue($resolved);
             }
         }
 

@@ -295,6 +295,56 @@ it('reserves a media slot for image-less cards in a mixed public blog grid', fun
     expect(substr_count($html, 'data-blog-card-placeholder'))->toBe(1);
 });
 
+it('normalizes stale storage image urls and renders fallback-ready blog cards', function () {
+    $content = makePublishedBlog($this->workspace, [
+        'title' => 'Article with stale storage image url',
+        'language' => 'en',
+        'publish_url_key' => 'article-with-stale-storage-image-url',
+        'is_source_locale' => true,
+    ]);
+
+    $content->forceFill([
+        'first_published_at' => now()->subHour(),
+        'public_blog_excerpt' => 'Image URLs from older releases should still resolve.',
+        'public_blog_reading_time_minutes' => 2,
+        'public_blog_featured_image_url' => url('/storage/content-images/stale-release/featured.png'),
+        'public_blog_featured_image_width' => 1200,
+        'public_blog_featured_image_height' => 630,
+    ])->save();
+
+    $this->get('/en/blog')
+        ->assertOk()
+        ->assertSee('Article with stale storage image url')
+        ->assertSee(url('/content-images/stale-release/featured.png'), false)
+        ->assertDontSee('/storage/content-images/stale-release/featured.png', false)
+        ->assertSee('data-blog-image', false)
+        ->assertSee('data-blog-image-fallback', false);
+});
+
+it('normalizes stale storage image urls on public blog detail pages', function () {
+    $content = makePublishedBlog($this->workspace, [
+        'title' => 'Detail article with stale storage image url',
+        'language' => 'en',
+        'publish_url_key' => 'detail-article-with-stale-storage-image-url',
+        'is_source_locale' => true,
+    ]);
+
+    $version = $content->currentVersion;
+    $meta = is_array($version->meta) ? $version->meta : [];
+    $version->forceFill([
+        'meta' => array_merge($meta, [
+            'featured_image_url' => url('/storage/content-images/stale-release/detail.png'),
+        ]),
+    ])->save();
+
+    $this->get('/en/blog/detail-article-with-stale-storage-image-url')
+        ->assertOk()
+        ->assertSee(url('/content-images/stale-release/detail.png'), false)
+        ->assertDontSee('/storage/content-images/stale-release/detail.png', false)
+        ->assertSee('data-blog-image', false)
+        ->assertSee('data-blog-image-fallback', false);
+});
+
 it('uses the active og image for public article share metadata', function () {
     $content = makePublishedBlog($this->workspace, [
         'title' => 'Article with configured OG image',

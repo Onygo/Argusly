@@ -32,11 +32,11 @@ class SeoMetadataService
             (string) ($post['excerpt'] ?? ''),
             (string) ($post['content_html'] ?? ''),
         ]);
-        $image = $this->absoluteUrl($this->firstNonEmpty([
+        $image = $this->absoluteUrl($this->normalizePublicImageUrl($this->firstNonEmpty([
             $post['seo_og_image'] ?? null,
             $post['og_image'] ?? null,
             $post['featured_image'] ?? null,
-        ]));
+        ])));
         $ogTitle = trim((string) ($post['seo_og_title'] ?? '')) ?: $title;
         $ogDescription = trim((string) ($post['seo_og_description'] ?? '')) ?: $description;
 
@@ -82,12 +82,12 @@ class SeoMetadataService
     {
         $assetUrl = $this->assets->urlForContent($content, ContentImage::USAGE_META);
         if ($assetUrl !== '') {
-            return $assetUrl;
+            return $this->normalizePublicImageUrl($assetUrl);
         }
 
         $legacyUrl = trim((string) ($content->seo_og_image ?? ''));
         if ($legacyUrl !== '') {
-            return $legacyUrl;
+            return $this->normalizePublicImageUrl($legacyUrl);
         }
 
         $featured = $content->featuredImage;
@@ -96,7 +96,7 @@ class SeoMetadataService
                 return '';
             }
 
-            return $featured->bestUrlForUsage(ContentImage::USAGE_META);
+            return $this->normalizePublicImageUrl($featured->bestUrlForUsage(ContentImage::USAGE_META));
         }
 
         return '';
@@ -203,6 +203,13 @@ class SeoMetadataService
         }
 
         return str_starts_with($url, '/') ? url($url) : $url;
+    }
+
+    private function normalizePublicImageUrl(string $url): string
+    {
+        $url = trim($url);
+
+        return $url !== '' ? ContentImage::publicUrlForStorageValue($url) : '';
     }
 
     private function hasDuplicateSeoTitle(Content $content): bool
