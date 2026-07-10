@@ -84,6 +84,33 @@ it('creates guided drafts and stores structured agentic metadata', function () {
         ->and($article->answer_blocks[0]['question'])->toBe('What is this?');
 });
 
+it('accepts guided publishing when publish operations are allowed', function () {
+    config()->set('argusly-connector.policy.allowed_operations', ['create', 'update', 'draft', 'publish']);
+
+    $response = $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
+        ->postJson('/api/argusly/sync', agenticConnectorPayload([
+            'article' => [
+                'id' => 'content-publish-1',
+                'title' => 'Agentic Published Article',
+                'slug' => 'agentic-published-article',
+                'status' => 'published',
+            ],
+            'policy' => [
+                'max_allowed_operation' => 'publish',
+                'idempotency_key' => 'idem-agentic-publish',
+            ],
+        ]));
+
+    $response->assertOk()
+        ->assertJsonPath('accepted', true)
+        ->assertJsonPath('draft_created', false);
+
+    $article = ArguslyArticle::query()->where('source_argusly_id', 'content-publish-1')->firstOrFail();
+
+    expect($article->status)->toBe('published')
+        ->and($article->locale)->toBe('en');
+});
+
 it('blocks autonomous publishing by default', function () {
     $response = $this->withHeaders(['X-Argusly-Api-Key' => 'sync-secret'])
         ->postJson('/api/argusly/sync', agenticConnectorPayload([

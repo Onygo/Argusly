@@ -28,7 +28,7 @@ return [
     ],
 
     'policy' => [
-        'allowed_operations' => array_filter(array_map('trim', explode(',', (string) env('ARGUSLY_CONNECTOR_ALLOWED_OPERATIONS', 'create,update,draft')))),
+        'allowed_operations' => array_filter(array_map('trim', explode(',', (string) env('ARGUSLY_CONNECTOR_ALLOWED_OPERATIONS', 'create,update,draft,publish')))),
         'autonomous_allowed' => (bool) env('ARGUSLY_CONNECTOR_AUTONOMOUS_ALLOWED', false),
     ],
 ];

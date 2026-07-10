@@ -40,7 +40,7 @@ it('exposes the inbound connector sync endpoint in the package', function () {
 it('reports the laravel connector release version', function () {
     require_once base_path('packages/laravel-connector/src/InstalledVersions.php');
 
-    expect(\Onygo\ArguslyConnector\InstalledVersions::version())->toBe('0.1.5');
+    expect(\Onygo\ArguslyConnector\InstalledVersions::version())->toBe('0.1.6');
 });
 
 it('does not document a connector-specific cron job', function () {
