@@ -36,6 +36,13 @@ return [
         'stale_running_after_minutes' => (int) env('DATA_CONNECTOR_SYNC_STALE_RUNNING_AFTER_MINUTES', 60),
     ],
 
+    'backfills' => [
+        'default_chunk_days' => (int) env('DATA_CONNECTOR_BACKFILL_DEFAULT_CHUNK_DAYS', 7),
+        'max_chunk_days' => (int) env('DATA_CONNECTOR_BACKFILL_MAX_CHUNK_DAYS', 30),
+        'max_requested_days' => (int) env('DATA_CONNECTOR_BACKFILL_MAX_REQUESTED_DAYS', 90),
+        'max_ranges_per_request' => (int) env('DATA_CONNECTOR_BACKFILL_MAX_RANGES_PER_REQUEST', 30),
+    ],
+
     'providers' => [
         'google_search_console' => [
             'provider_key' => 'google_search_console',

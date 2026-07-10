@@ -42,6 +42,8 @@ Connector work should stay inside each package directory. The platform applicati
 
 Develop against local path installs until the API contracts are stable. Keep package versions in development status and do not publish releases until the release checklist is approved.
 
+For data-provider OAuth apps, staging tests, first production syncs, monitoring, privacy lifecycle, and the Phase 31 gate, use [Connector Production Activation Runbook](connector-production-activation-runbook.md).
+
 ## Planned Release Process
 
 1. Stabilize the Argusly connector contract.

@@ -9,6 +9,7 @@ use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 class ConnectorBackfillService
 {
@@ -45,8 +46,10 @@ class ConnectorBackfillService
         $dataset->loadMissing('account');
         $startDate = $this->date($start)->startOfDay();
         $endDate = $this->date($end)->startOfDay();
-        $chunkDays = max(1, $chunkDays ?? (int) config('data_connectors.backfills.default_chunk_days', 31));
+        $chunkDays = max(1, $chunkDays ?? (int) config('data_connectors.backfills.default_chunk_days', 7));
         $ranges = collect();
+
+        $this->guardBackfillRequest($startDate, $endDate, $chunkDays);
 
         for ($cursor = $startDate->copy(); $cursor->lte($endDate); $cursor->addDays($chunkDays)) {
             $rangeStart = $cursor->copy();
@@ -68,6 +71,8 @@ class ConnectorBackfillService
                     'attempts' => 0,
                     'metadata_json' => [
                         'duplicate_prevention' => 'connector_raw_records.fingerprint',
+                        'requested_days' => $this->inclusiveDays($startDate, $endDate),
+                        'chunk_days' => $chunkDays,
                         'raw_only' => true,
                     ],
                 ],
@@ -117,5 +122,34 @@ class ConnectorBackfillService
     private function date(CarbonInterface|string $date): Carbon
     {
         return $date instanceof CarbonInterface ? Carbon::instance($date) : Carbon::parse($date);
+    }
+
+    private function guardBackfillRequest(Carbon $startDate, Carbon $endDate, int $chunkDays): void
+    {
+        if ($endDate->lt($startDate)) {
+            throw new InvalidArgumentException('Connector backfill end date must be on or after the start date.');
+        }
+
+        $maxChunkDays = max(1, (int) config('data_connectors.backfills.max_chunk_days', 30));
+        if ($chunkDays > $maxChunkDays) {
+            throw new InvalidArgumentException("Connector backfill chunks may not exceed {$maxChunkDays} day(s).");
+        }
+
+        $requestedDays = $this->inclusiveDays($startDate, $endDate);
+        $maxRequestedDays = max(1, (int) config('data_connectors.backfills.max_requested_days', 90));
+        if ($requestedDays > $maxRequestedDays) {
+            throw new InvalidArgumentException("Connector backfill request covers {$requestedDays} day(s), which exceeds the configured {$maxRequestedDays} day limit.");
+        }
+
+        $rangeCount = (int) ceil($requestedDays / max(1, $chunkDays));
+        $maxRanges = max(1, (int) config('data_connectors.backfills.max_ranges_per_request', 30));
+        if ($rangeCount > $maxRanges) {
+            throw new InvalidArgumentException("Connector backfill request would create {$rangeCount} range(s), which exceeds the configured {$maxRanges} range limit.");
+        }
+    }
+
+    private function inclusiveDays(CarbonInterface $startDate, CarbonInterface $endDate): int
+    {
+        return ((int) $startDate->diffInDays($endDate)) + 1;
     }
 }

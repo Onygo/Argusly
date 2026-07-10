@@ -26,7 +26,9 @@ use App\Services\DataConnectors\Normalization\ConnectorNormalizationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use InvalidArgumentException;
 
 class AppConnectorController extends Controller
 {
@@ -324,19 +326,27 @@ class AppConnectorController extends Controller
 
         $this->authorize('update', $connectorDataset);
 
+        $maxChunkDays = max(1, (int) config('data_connectors.backfills.max_chunk_days', 30));
+
         $validated = $request->validate([
             'range_start' => ['required', 'date'],
             'range_end' => ['required', 'date', 'after_or_equal:range_start'],
-            'chunk_days' => ['nullable', 'integer', 'min:1', 'max:90'],
+            'chunk_days' => ['nullable', 'integer', 'min:1', 'max:'.$maxChunkDays],
         ]);
 
-        $ranges = $backfills->request(
-            dataset: $connectorDataset,
-            start: $validated['range_start'],
-            end: $validated['range_end'],
-            requestedBy: $request->user(),
-            chunkDays: isset($validated['chunk_days']) ? (int) $validated['chunk_days'] : null,
-        );
+        try {
+            $ranges = $backfills->request(
+                dataset: $connectorDataset,
+                start: $validated['range_start'],
+                end: $validated['range_end'],
+                requestedBy: $request->user(),
+                chunkDays: isset($validated['chunk_days']) ? (int) $validated['chunk_days'] : null,
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'range_end' => $exception->getMessage(),
+            ]);
+        }
 
         $audit->record($connectorDataset, 'connector.backfill_requested', null, [
             'workspace_id' => $connectorDataset->workspace_id,

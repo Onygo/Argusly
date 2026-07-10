@@ -238,6 +238,48 @@ it('creates idempotent backfill ranges and enforces connector permissions and wo
         ->assertNotFound();
 });
 
+it('limits production backfill windows to configured rollout guardrails', function () {
+    Bus::fake();
+
+    $this->seed(ConnectorProviderSeeder::class);
+    $context = phase28ConnectedConnector('phase28-backfill-guardrail', 'google_ads', 'ads_daily_performance');
+
+    Config::set('data_connectors.backfills.default_chunk_days', 7);
+    Config::set('data_connectors.backfills.max_chunk_days', 30);
+    Config::set('data_connectors.backfills.max_requested_days', 30);
+    Config::set('data_connectors.backfills.max_ranges_per_request', 10);
+
+    $ranges = app(ConnectorBackfillService::class)->request(
+        dataset: $context['dataset'],
+        start: '2026-06-01',
+        end: '2026-06-30',
+        requestedBy: $context['user'],
+        dispatch: false,
+    );
+
+    expect($ranges)->toHaveCount(5)
+        ->and($ranges->first()->range_start->toDateString())->toBe('2026-06-01')
+        ->and($ranges->first()->range_end->toDateString())->toBe('2026-06-07')
+        ->and($ranges->last()->range_end->toDateString())->toBe('2026-06-30')
+        ->and($ranges->first()->metadata_json['requested_days'])->toBe(30)
+        ->and($ranges->first()->metadata_json['chunk_days'])->toBe(7);
+
+    expect(fn () => app(ConnectorBackfillService::class)->request(
+        dataset: $context['dataset'],
+        start: '2026-06-01',
+        end: '2026-07-01',
+        requestedBy: $context['user'],
+        dispatch: false,
+    ))->toThrow(InvalidArgumentException::class, 'exceeds the configured 30 day limit');
+
+    $this->actingAs($context['user'])
+        ->post(route('app.connectors.datasets.backfill', $context['dataset']), [
+            'range_start' => '2026-06-01',
+            'range_end' => '2026-07-01',
+        ])
+        ->assertSessionHasErrors('range_end');
+});
+
 it('shows Phase 28 UI and exposes intelligence feed interfaces', function () {
     $this->seed(ConnectorProviderSeeder::class);
     $context = phase28ConnectedConnector('phase28-ui', 'meta_ads', 'ads_daily_performance');
