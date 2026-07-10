@@ -19,6 +19,17 @@
 
 @section('content')
     <div class="space-y-6">
+        @if (session('status'))
+            <x-alert>{{ session('status') }}</x-alert>
+        @endif
+
+        @if ($errors->has('connector'))
+            <x-alert variant="error" iconName="circle-alert">
+                <x-slot:title>Connector action failed</x-slot:title>
+                {{ $errors->first('connector') }}
+            </x-alert>
+        @endif
+
         <div class="rounded-lg border border-border bg-surface p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>

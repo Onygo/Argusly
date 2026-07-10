@@ -57,6 +57,42 @@ it('discovers connector datasets from a fake provider without external calls', f
         ->and($result['sync_run']->metrics_json['discovered'])->toBe(1);
 });
 
+it('applies initial dataset status while preserving explicit enablement choices', function () {
+    [$account] = makeDatasetEngineAccount('dataset-engine-status');
+    $service = datasetEngineDiscoveryService($account, [
+        [
+            'external_dataset_id' => 'property-123',
+            'dataset_type' => 'property',
+            'display_name' => 'Demo Analytics Property',
+            'status' => ConnectorDataset::STATUS_DISABLED,
+        ],
+    ]);
+
+    $service->discover($account);
+    $dataset = ConnectorDataset::query()->firstOrFail();
+
+    expect($dataset->status)->toBe(ConnectorDataset::STATUS_DISABLED);
+
+    $dataset->forceFill(['status' => ConnectorDataset::STATUS_ACTIVE])->save();
+    $service->discover($account);
+
+    expect($dataset->fresh()->status)->toBe(ConnectorDataset::STATUS_ACTIVE);
+
+    Config::set('data_connectors.testing.fake_dataset_discovery.datasets', [
+        [
+            'external_dataset_id' => 'property-123',
+            'dataset_type' => 'property',
+            'display_name' => 'Demo Analytics Property',
+            'status' => ConnectorDataset::STATUS_ACTIVE,
+        ],
+    ]);
+
+    $dataset->forceFill(['status' => ConnectorDataset::STATUS_DISABLED])->save();
+    $service->discover($account);
+
+    expect($dataset->fresh()->status)->toBe(ConnectorDataset::STATUS_DISABLED);
+});
+
 it('updates existing datasets idempotently during repeated discovery', function () {
     [$account] = makeDatasetEngineAccount('dataset-engine-idempotent');
     $service = datasetEngineDiscoveryService($account, [

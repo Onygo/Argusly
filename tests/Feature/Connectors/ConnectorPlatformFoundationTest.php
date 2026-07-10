@@ -650,6 +650,12 @@ it('loads connector index and detail pages', function () {
     $provider = ConnectorProvider::query()->where('provider_key', 'google_search_console')->firstOrFail();
     $account = makeConnectorAccount($context, $provider, ['account_name' => 'Primary GSC']);
     makeConnectorDataset($account, ['display_name' => 'example.test']);
+    app(ConnectorHealthService::class)->record(
+        account: $account,
+        severity: ConnectorHealthEvent::SEVERITY_WARNING,
+        eventType: 'dataset.discovery_deferred',
+        message: 'Google Search Console returned 0 properties for this OAuth token.',
+    );
 
     $this->actingAs($context['user'])
         ->get(route('app.connectors.index'))
@@ -666,6 +672,8 @@ it('loads connector index and detail pages', function () {
         ->assertSee('Datasets')
         ->assertSee('Sync run history')
         ->assertSee('Manual Sync')
+        ->assertSee('Latest health event')
+        ->assertSee('Google Search Console returned 0 properties for this OAuth token.')
         ->assertSee('example.test');
 });
 

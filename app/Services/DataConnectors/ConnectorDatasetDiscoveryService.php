@@ -81,6 +81,10 @@ class ConnectorDatasetDiscoveryService
                 'deactivated' => $deactivated,
             ];
         } catch (Throwable $exception) {
+            $message = $exception instanceof ConnectorProviderActionRequiredException
+                ? $exception->getMessage()
+                : 'Dataset discovery failed.';
+
             $this->syncRuns->fail($run, $exception->getMessage(), [
                 'operation' => 'dataset_discovery',
                 'exception' => $exception::class,
@@ -90,7 +94,7 @@ class ConnectorDatasetDiscoveryService
                 account: $account,
                 severity: ConnectorHealthEvent::SEVERITY_ERROR,
                 eventType: 'dataset.discovery_failed',
-                message: 'Dataset discovery failed.',
+                message: $message,
                 context: [
                     'exception' => $exception::class,
                     'message' => $exception->getMessage(),
@@ -119,7 +123,7 @@ class ConnectorDatasetDiscoveryService
             'dataset_type' => (string) ($item['dataset_type'] ?? $item['type'] ?? 'dataset'),
             'external_dataset_id' => $item['external_dataset_id'] ?? $item['external_id'] ?? $item['id'] ?? null,
             'display_name' => (string) ($item['display_name'] ?? $item['name'] ?? $datasetKey),
-            'status' => ConnectorDataset::STATUS_ACTIVE,
+            'status' => $this->datasetStatus($item, $existing),
             'sync_frequency' => $item['sync_frequency'] ?? data_get($item, 'sync.frequency') ?? $existing?->sync_frequency,
             'next_sync_at' => $item['next_sync_at'] ?? $existing?->next_sync_at,
             'last_seen_at' => $seenAt,
@@ -139,6 +143,38 @@ class ConnectorDatasetDiscoveryService
         return ConnectorDataset::query()->create(array_merge($attributes, [
             'discovered_at' => $seenAt,
         ]));
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     */
+    private function datasetStatus(array $item, ?ConnectorDataset $existing): string
+    {
+        $requested = (string) ($item['status'] ?? ConnectorDataset::STATUS_ACTIVE);
+        $allowed = [
+            ConnectorDataset::STATUS_ACTIVE,
+            ConnectorDataset::STATUS_INACTIVE,
+            ConnectorDataset::STATUS_DISABLED,
+            ConnectorDataset::STATUS_ERROR,
+        ];
+
+        if (! in_array($requested, $allowed, true)) {
+            $requested = ConnectorDataset::STATUS_ACTIVE;
+        }
+
+        if (! $existing instanceof ConnectorDataset) {
+            return $requested;
+        }
+
+        if ($existing->status === ConnectorDataset::STATUS_DISABLED && $requested === ConnectorDataset::STATUS_ACTIVE) {
+            return ConnectorDataset::STATUS_DISABLED;
+        }
+
+        if ($existing->status === ConnectorDataset::STATUS_ACTIVE && $requested === ConnectorDataset::STATUS_DISABLED) {
+            return ConnectorDataset::STATUS_ACTIVE;
+        }
+
+        return $requested;
     }
 
     /**

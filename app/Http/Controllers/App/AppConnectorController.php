@@ -11,12 +11,14 @@ use App\Models\Connectors\ConnectorAccount;
 use App\Models\Connectors\ConnectorDataset;
 use App\Models\Connectors\ConnectorProvider;
 use App\Models\Connectors\ConnectorSyncRun;
+use App\Models\Connectors\ConnectorToken;
 use App\Models\Connectors\NormalizationRun;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorAuditLogger;
 use App\Services\DataConnectors\ConnectorBackfillService;
 use App\Services\DataConnectors\ConnectorDriverManager;
 use App\Services\DataConnectors\ConnectorFieldMappingPreparationService;
+use App\Services\DataConnectors\ConnectorProviderActionRequiredException;
 use App\Services\DataConnectors\ConnectorProviderKeyResolver;
 use App\Services\DataConnectors\ConnectorProviderManifestService;
 use App\Services\DataConnectors\ConnectorRateLimitService;
@@ -79,7 +81,7 @@ class AppConnectorController extends Controller
 
             return redirect()
                 ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
-                ->withErrors(['connector' => 'Connector authorization could not start: '.$exception->getMessage()]);
+                ->withErrors(['connector' => $this->connectorActionFailureMessage('Connector authorization could not start', $exception)]);
         }
 
         return redirect()->away($authorization->url);
@@ -117,7 +119,7 @@ class AppConnectorController extends Controller
 
             return redirect()
                 ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
-                ->withErrors(['connector' => 'Connector authorization failed: '.$exception->getMessage()]);
+                ->withErrors(['connector' => $this->connectorActionFailureMessage('Connector authorization failed', $exception)]);
         }
 
         return redirect()
@@ -137,7 +139,7 @@ class AppConnectorController extends Controller
             'provider',
             'clientSite',
             'scopes' => fn ($query) => $query->orderBy('scope_type')->orderBy('scope'),
-            'datasets' => fn ($query) => $query->orderBy('display_name'),
+            'datasets' => fn ($query) => $query->with('clientSite')->orderBy('display_name'),
             'syncRuns' => fn ($query) => $query->latest('created_at')->limit(25),
             'healthEvents' => fn ($query) => $query->latest('occurred_at')->limit(10),
             'quotaBudgets' => fn ($query) => $query->orderBy('budget_type')->orderBy('connector_account_id'),
@@ -220,22 +222,42 @@ class AppConnectorController extends Controller
             ->with('status', 'Connector disconnected.');
     }
 
-    public function discover(Request $request, ConnectorAccount $connectorAccount, ConnectorAuditLogger $audit): RedirectResponse
-    {
+    public function discover(
+        Request $request,
+        ConnectorAccount $connectorAccount,
+        ConnectorDriverManager $drivers,
+        ConnectorAuditLogger $audit,
+    ): RedirectResponse {
         $workspace = $this->resolveWorkspace($request);
         abort_unless($workspace, 404);
         abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
 
         $this->authorize('update', $connectorAccount);
 
-        DiscoverConnectorDatasetsJob::dispatch((string) $connectorAccount->id);
+        try {
+            $result = $drivers->driver($connectorAccount->provider_key)->discoverDatasets($connectorAccount);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'connector' => $this->connectorActionFailureMessage('Dataset discovery failed', $exception),
+            ]);
+        }
 
         $audit->record($connectorAccount, 'connector.dataset_discovery_requested', null, [
             'workspace_id' => $connectorAccount->workspace_id,
             'provider_key' => $connectorAccount->provider_key,
+            'discovered' => count($result['datasets'] ?? []),
+            'created' => $result['created'] ?? 0,
+            'updated' => $result['updated'] ?? 0,
         ], $request->user(), $request);
 
-        return back()->with('status', 'Dataset discovery queued.');
+        return back()->with('status', sprintf(
+            'Dataset discovery completed: %d discovered, %d new, %d updated.',
+            count($result['datasets'] ?? []),
+            (int) ($result['created'] ?? 0),
+            (int) ($result['updated'] ?? 0),
+        ));
     }
 
     public function sync(Request $request, ConnectorAccount $connectorAccount, ConnectorAuditLogger $audit): RedirectResponse
@@ -513,9 +535,18 @@ class AppConnectorController extends Controller
             ->latest('created_at')
             ->first();
 
+        $latestHealthEvent = $account->relationLoaded('healthEvents')
+            ? $account->healthEvents->first()
+            : $account->healthEvents()
+                ->latest('occurred_at')
+                ->latest('created_at')
+                ->latest('id')
+                ->first();
+
         return [
             'oauth_status' => $account->status,
             'token_valid' => $token !== null && $token->revoked_at === null && ($token->expires_at === null || $token->expires_at->isFuture()),
+            'token_status_label' => $this->tokenStatusLabel($token),
             'token_expires_at' => $token?->expires_at,
             'has_refresh_token' => $token !== null && trim((string) $token->refresh_token) !== '',
             'scopes' => $account->scopes->pluck('scope')->unique()->values()->all(),
@@ -524,7 +555,10 @@ class AppConnectorController extends Controller
             'last_api_call_at' => $account->last_api_call_at,
             'last_error' => $account->last_error ?: $lastRun?->error_message,
             'last_sync_duration_ms' => $lastRun?->duration_ms,
+            'health_status' => $account->health_status,
+            'health_severity' => $account->health_severity,
             'health_score' => $account->health_score,
+            'latest_health_event' => $latestHealthEvent,
             'workspace_reporting_timezone' => $this->workspaceReportingTimezone($account),
             'raw_records' => DB::table('connector_raw_records')->where('connector_account_id', $account->id)->count(),
             'observations' => DB::table('marketing_observations')->where('connector_account_id', $account->id)->count(),
@@ -652,5 +686,31 @@ class AppConnectorController extends Controller
     private function workspaceRouteParams(Workspace $workspace): array
     {
         return ['workspace_id' => (string) $workspace->id];
+    }
+
+    private function connectorActionFailureMessage(string $message, \Throwable $exception): string
+    {
+        if ($exception instanceof InvalidArgumentException || $exception instanceof ConnectorProviderActionRequiredException) {
+            return $message.': '.$exception->getMessage();
+        }
+
+        return $message.'. The technical details were logged. Please check the connector deployment, migrations, and environment configuration.';
+    }
+
+    private function tokenStatusLabel(?ConnectorToken $token): string
+    {
+        if (! $token instanceof ConnectorToken || $token->revoked_at !== null) {
+            return 'Needs reconnect';
+        }
+
+        if ($token->expires_at === null || $token->expires_at->isFuture()) {
+            return 'Valid';
+        }
+
+        if (trim((string) $token->refresh_token) !== '') {
+            return 'Refreshable';
+        }
+
+        return 'Needs reconnect';
     }
 }

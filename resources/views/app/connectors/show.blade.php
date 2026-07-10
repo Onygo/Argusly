@@ -15,6 +15,7 @@
         <x-metric-card label="Datasets" :value="$account->datasets->count()" />
         <x-metric-card label="Sync runs" :value="$account->syncRuns->count()" />
         <x-metric-card label="Raw records" :value="$diagnostics['raw_records']" />
+        <x-metric-card label="Observations" :value="$diagnostics['observations']" />
         <x-metric-card label="Normalized" :value="collect(data_get($diagnostics, 'normalization.normalized_counts', []))->sum()" />
         <x-metric-card label="Timezone" :value="$diagnostics['workspace_reporting_timezone']" />
         <x-metric-card label="Money" :value="\Illuminate\Support\Str::headline(data_get($diagnostics, 'currency.status', 'unavailable'))" />
@@ -23,6 +24,19 @@
 
 @section('content')
     <div class="space-y-6">
+        @php($latestHealthEvent = data_get($diagnostics, 'latest_health_event'))
+
+        @if (session('status'))
+            <x-alert>{{ session('status') }}</x-alert>
+        @endif
+
+        @if ($errors->has('connector'))
+            <x-alert variant="error" iconName="circle-alert">
+                <x-slot:title>Connector action failed</x-slot:title>
+                {{ $errors->first('connector') }}
+            </x-alert>
+        @endif
+
         <div class="rounded-lg border border-border bg-surface p-5">
             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
@@ -67,12 +81,19 @@
                         </div>
                         <div>
                             <dt class="text-xs text-textFaint">Token</dt>
-                            <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['token_valid'] ? 'Valid' : 'Needs attention' }}</dd>
+                            <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['token_status_label'] }}</dd>
                         </div>
                     </dl>
                     @if ($account->last_error)
                         <div class="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                             {{ $account->last_error }}
+                        </div>
+                    @endif
+                    @if ($latestHealthEvent && $account->health_status !== \App\Models\Connectors\ConnectorHealthEvent::STATUS_HEALTHY)
+                        <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                            <span class="font-medium text-amber-950">Latest health event:</span>
+                            {{ $latestHealthEvent->message }}
+                            <span class="text-amber-800">({{ $latestHealthEvent->event_type }} &middot; {{ $latestHealthEvent->occurred_at?->diffForHumans() ?? 'just now' }})</span>
                         </div>
                     @endif
                 </div>
@@ -372,6 +393,9 @@
                                     <div>
                                         <p class="font-medium text-textPrimary">{{ $dataset->display_name }}</p>
                                         <p class="mt-1 text-xs text-textSecondary">{{ $dataset->dataset_key }} &middot; {{ $dataset->dataset_type }}</p>
+                                        @if ($dataset->clientSite)
+                                            <p class="mt-1 text-xs text-textSecondary">Site {{ $dataset->clientSite->name }}</p>
+                                        @endif
                                         <p class="mt-1 text-xs text-textSecondary">
                                             Last {{ $dataset->last_sync_at?->diffForHumans() ?? 'never' }} &middot;
                                             Next {{ $dataset->next_sync_at?->diffForHumans() ?? 'manual' }}
@@ -380,16 +404,16 @@
                                     <div class="flex flex-col items-end gap-2">
                                         @include('app.connectors.partials.status-badge', ['status' => $dataset->status])
                                         <div class="flex flex-wrap justify-end gap-2">
-                                            <form method="POST" action="{{ route('app.connectors.datasets.backfill', $dataset) }}" class="flex flex-wrap items-center justify-end gap-2">
-                                                @csrf
-                                                <input type="date" name="range_start" value="{{ now()->subDays(30)->toDateString() }}" class="rounded-md border border-border bg-background px-2 py-1 text-xs text-textPrimary">
-                                                <input type="date" name="range_end" value="{{ now()->subDay()->toDateString() }}" class="rounded-md border border-border bg-background px-2 py-1 text-xs text-textPrimary">
-                                                <button type="submit" class="pl-btn-secondary">
-                                                    <i data-lucide="calendar-clock" class="h-4 w-4"></i>
-                                                    <span>Backfill</span>
-                                                </button>
-                                            </form>
                                             @if ($dataset->status === \App\Models\Connectors\ConnectorDataset::STATUS_ACTIVE)
+                                                <form method="POST" action="{{ route('app.connectors.datasets.backfill', $dataset) }}" class="flex flex-wrap items-center justify-end gap-2">
+                                                    @csrf
+                                                    <input type="date" name="range_start" value="{{ now()->subDays(30)->toDateString() }}" class="rounded-md border border-border bg-background px-2 py-1 text-xs text-textPrimary">
+                                                    <input type="date" name="range_end" value="{{ now()->subDay()->toDateString() }}" class="rounded-md border border-border bg-background px-2 py-1 text-xs text-textPrimary">
+                                                    <button type="submit" class="pl-btn-secondary">
+                                                        <i data-lucide="calendar-clock" class="h-4 w-4"></i>
+                                                        <span>Backfill</span>
+                                                    </button>
+                                                </form>
                                                 <form method="POST" action="{{ route('app.connectors.datasets.disable', $dataset) }}">
                                                     @csrf
                                                     <button type="submit" class="pl-btn-secondary">

@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorDatasetDiscoveryService;
 use App\Services\DataConnectors\ConnectorOAuthAuthorizationUrlGenerator;
+use App\Services\DataConnectors\ConnectorProviderActionRequiredException;
 use App\Services\DataConnectors\ConnectorProviderConfigValidator;
 use App\Services\DataConnectors\ConnectorSyncEngine;
 use App\Services\DataConnectors\ConnectorSyncPlan;
@@ -89,14 +90,65 @@ it('discovers verified Google Search Console sites into connector datasets idemp
         ->and($second['updated'])->toBe(1)
         ->and(ConnectorDataset::query()->count())->toBe(1)
         ->and($dataset->provider_key)->toBe('google_search_console')
+        ->and($dataset->client_site_id)->toBe($context['site']->id)
         ->and($dataset->dataset_type)->toBe('site')
         ->and($dataset->external_dataset_id)->toBe('sc-domain:example.com')
         ->and($dataset->display_name)->toBe('sc-domain:example.com')
+        ->and($dataset->status)->toBe(ConnectorDataset::STATUS_ACTIVE)
         ->and($dataset->config_json['site_url'])->toBe('sc-domain:example.com')
         ->and($dataset->metadata_json['permission_level'])->toBe('siteOwner')
         ->and($dataset->metadata_json['property_type'])->toBe('domain')
         ->and($dataset->hasCapability('search.analytics'))->toBeTrue()
         ->and($first['sync_run']->status)->toBe(ConnectorSyncRun::STATUS_SUCCEEDED);
+});
+
+it('discovers multiple Google Search Console sites as disabled choices before syncing', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://www.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [
+                ['siteUrl' => 'sc-domain:example.com', 'permissionLevel' => 'siteOwner'],
+                ['siteUrl' => 'https://other.example.test/', 'permissionLevel' => 'siteFullUser'],
+            ],
+        ]),
+    ]);
+
+    $context = phase32GscContext(withDataset: false);
+    $context['account']->forceFill(['client_site_id' => null])->save();
+
+    $result = app(ConnectorDatasetDiscoveryService::class)->discover($context['account']->fresh());
+    $matched = ConnectorDataset::query()->where('external_dataset_id', 'sc-domain:example.com')->firstOrFail();
+    $unmatched = ConnectorDataset::query()->where('external_dataset_id', 'https://other.example.test/')->firstOrFail();
+
+    expect($result['created'])->toBe(2)
+        ->and(ConnectorDataset::query()->count())->toBe(2)
+        ->and($matched->status)->toBe(ConnectorDataset::STATUS_DISABLED)
+        ->and($unmatched->status)->toBe(ConnectorDataset::STATUS_DISABLED)
+        ->and($matched->client_site_id)->toBe($context['site']->id)
+        ->and($unmatched->client_site_id)->toBeNull()
+        ->and($matched->metadata_json['matched_client_site_id'])->toBe($context['site']->id);
+});
+
+it('surfaces action required when Google Search Console returns no properties', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://www.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [],
+        ]),
+    ]);
+
+    $context = phase32GscContext(withDataset: false);
+
+    expect(fn () => app(ConnectorDatasetDiscoveryService::class)->discover($context['account']))
+        ->toThrow(ConnectorProviderActionRequiredException::class);
+
+    $run = ConnectorSyncRun::query()->firstOrFail();
+    $event = ConnectorHealthEvent::query()->firstOrFail();
+
+    expect($run->status)->toBe(ConnectorSyncRun::STATUS_FAILED)
+        ->and($run->error_message)->toContain('Google Search Console returned 0 properties')
+        ->and($event->message)->toContain('Google Search Console returned 0 properties')
+        ->and($context['account']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_ERROR);
 });
 
 it('syncs Search Analytics rows into canonical marketing observations with dimensions and checkpoint advancement', function () {

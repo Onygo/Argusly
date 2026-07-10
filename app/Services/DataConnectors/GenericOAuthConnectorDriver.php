@@ -96,11 +96,15 @@ class GenericOAuthConnectorDriver implements ConnectorProviderDriver
             $datasets = $discovered['datasets'];
             $this->refreshAccountIdentityFromDatasets($account, $datasets);
         } catch (Throwable $exception) {
+            $message = $exception instanceof ConnectorProviderActionRequiredException
+                ? $exception->getMessage()
+                : 'Connector connected, but dataset discovery needs a retry.';
+
             $this->health->record(
                 account: $account,
                 severity: ConnectorHealthEvent::SEVERITY_WARNING,
                 eventType: 'dataset.discovery_deferred',
-                message: 'Connector connected, but dataset discovery needs a retry.',
+                message: $message,
                 context: [
                     'exception' => $exception::class,
                     'message' => $exception->getMessage(),

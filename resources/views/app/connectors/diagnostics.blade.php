@@ -12,6 +12,7 @@
     <x-metric-section>
         <x-metric-card label="OAuth" :value="\Illuminate\Support\Str::headline($diagnostics['oauth_status'])" />
         <x-metric-card label="Token" :value="$diagnostics['token_valid'] ? 'Valid' : 'Invalid'" />
+        <x-metric-card label="Health status" :value="\Illuminate\Support\Str::headline($diagnostics['health_status'] ?? 'unknown')" />
         <x-metric-card label="Health score" :value="$diagnostics['health_score'] !== null ? $diagnostics['health_score'].'/100' : 'Pending'" />
         <x-metric-card label="Raw records" :value="$diagnostics['raw_records']" />
         <x-metric-card label="Normalized" :value="collect(data_get($diagnostics, 'normalization.normalized_counts', []))->sum()" />
@@ -22,6 +23,19 @@
 
 @section('content')
     <div class="space-y-6">
+        @php($latestHealthEvent = data_get($diagnostics, 'latest_health_event'))
+
+        @if (session('status'))
+            <x-alert>{{ session('status') }}</x-alert>
+        @endif
+
+        @if ($errors->has('connector'))
+            <x-alert variant="error" iconName="circle-alert">
+                <x-slot:title>Connector action failed</x-slot:title>
+                {{ $errors->first('connector') }}
+            </x-alert>
+        @endif
+
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('app.connectors.show', $account) }}" class="pl-btn-secondary">
                 <i data-lucide="arrow-left" class="h-4 w-4"></i>
@@ -79,6 +93,14 @@
                 <h2 class="text-base font-semibold text-textPrimary">Provider diagnostics</h2>
                 <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                     <div>
+                        <dt class="text-xs text-textFaint">Health status</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($diagnostics['health_status'] ?? 'unknown') }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Health severity</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($diagnostics['health_severity'] ?? 'unknown') }}</dd>
+                    </div>
+                    <div>
                         <dt class="text-xs text-textFaint">Reporting timezone</dt>
                         <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['workspace_reporting_timezone'] }}</dd>
                     </div>
@@ -111,6 +133,13 @@
                         <dd class="mt-1 font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($diagnostics['webhook_status'] ?? 'pending') }}</dd>
                     </div>
                 </dl>
+                @if ($latestHealthEvent)
+                    <div class="mt-4 rounded-md border border-border bg-background px-3 py-2 text-sm text-textSecondary">
+                        <span class="font-medium text-textPrimary">Latest health event:</span>
+                        {{ $latestHealthEvent->message }}
+                        <span class="text-textFaint">({{ $latestHealthEvent->event_type }} &middot; {{ $latestHealthEvent->occurred_at?->diffForHumans() ?? 'just now' }})</span>
+                    </div>
+                @endif
                 @if ($diagnostics['last_error'])
                     <div class="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                         {{ $diagnostics['last_error'] }}

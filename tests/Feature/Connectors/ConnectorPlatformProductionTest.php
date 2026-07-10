@@ -19,6 +19,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorOAuthTokenClient;
+use App\Services\DataConnectors\ConnectorDriverManager;
 use App\Services\DataConnectors\ConnectorSyncEngine;
 use App\Services\DataConnectors\ConnectorSyncPlan;
 use App\Services\DataConnectors\ConnectorSyncScheduler;
@@ -92,13 +93,41 @@ it('redirects admins back when Google Search Console OAuth setup still contains 
     Config::set('data_connectors.providers.google_search_console', $definition);
     app()->forgetInstance(DataConnectorRegistry::class);
 
-    $this->actingAs($context['user'])
+    $this->followingRedirects()
+        ->actingAs($context['user'])
         ->get(route('app.connectors.connect', [
             'provider' => 'google-search-console',
             'workspace_id' => $context['workspace']->id,
         ]))
-        ->assertRedirect(route('app.connectors.index', ['workspace_id' => $context['workspace']->id]))
-        ->assertSessionHasErrors('connector');
+        ->assertOk()
+        ->assertSee('Connector action failed')
+        ->assertSee('Connector authorization could not start')
+        ->assertSee('requires a real [client_id]');
+});
+
+it('does not expose internal connector authorization exceptions on the connectors page', function () {
+    $context = phase27ConnectorContext('phase27-safe-failure');
+    $drivers = Mockery::mock(ConnectorDriverManager::class);
+
+    $drivers->shouldReceive('driver')
+        ->once()
+        ->with('google_search_console')
+        ->andThrow(new RuntimeException('SQLSTATE[42S02]: Base table or view not found: connector_oauth_states pkce_code_verifier'));
+
+    app()->instance(ConnectorDriverManager::class, $drivers);
+
+    $this->followingRedirects()
+        ->actingAs($context['user'])
+        ->get(route('app.connectors.connect', [
+            'provider' => 'google-search-console',
+            'workspace_id' => $context['workspace']->id,
+        ]))
+        ->assertOk()
+        ->assertSee('Connector action failed')
+        ->assertSee('Connector authorization could not start. The technical details were logged.')
+        ->assertDontSee('SQLSTATE')
+        ->assertDontSee('connector_oauth_states')
+        ->assertDontSee('pkce_code_verifier');
 });
 
 it('automatically refreshes expired tokens before provider API calls', function () {
@@ -132,6 +161,56 @@ it('automatically refreshes expired tokens before provider API calls', function 
         ->and($latest->refresh_token)->toBe('phase27-refresh-token')
         ->and($client->refreshedToken)->toBe('phase27-refresh-token')
         ->and(AuditLog::query()->where('action', 'connector.token_refreshed')->exists())->toBeTrue();
+});
+
+it('discovers Google Search Console datasets immediately from the account detail action', function () {
+    $context = phase27ConnectedAccount('phase27-discover-action');
+    $context['dataset']->forceDelete();
+    app(ConnectorTokenVault::class)->store($context['account'], 'phase27-access-token', 'phase27-refresh-token');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://www.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [
+                ['siteUrl' => 'sc-domain:phase27.test', 'permissionLevel' => 'siteOwner'],
+            ],
+        ]),
+    ]);
+
+    $this->from(route('app.connectors.show', $context['account']))
+        ->followingRedirects()
+        ->actingAs($context['user'])
+        ->post(route('app.connectors.discover', $context['account']))
+        ->assertOk()
+        ->assertSee('Dataset discovery completed: 1 discovered, 1 new, 0 updated.')
+        ->assertSee('sc-domain:phase27.test');
+
+    $dataset = ConnectorDataset::query()->where('connector_account_id', $context['account']->id)->firstOrFail();
+
+    expect($dataset->external_dataset_id)->toBe('sc-domain:phase27.test')
+        ->and($dataset->status)->toBe(ConnectorDataset::STATUS_ACTIVE)
+        ->and(AuditLog::query()->where('action', 'connector.dataset_discovery_requested')->exists())->toBeTrue();
+});
+
+it('shows Google Search Console discovery action-required errors on the account detail action', function () {
+    $context = phase27ConnectedAccount('phase27-discover-action-required');
+    $context['dataset']->forceDelete();
+    app(ConnectorTokenVault::class)->store($context['account'], 'phase27-access-token', 'phase27-refresh-token');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://www.googleapis.com/webmasters/v3/sites' => Http::response([
+            'siteEntry' => [],
+        ]),
+    ]);
+
+    $this->from(route('app.connectors.show', $context['account']))
+        ->followingRedirects()
+        ->actingAs($context['user'])
+        ->post(route('app.connectors.discover', $context['account']))
+        ->assertOk()
+        ->assertSee('Connector action failed')
+        ->assertSee('Dataset discovery failed: Google Search Console returned 0 properties');
 });
 
 it('stores raw provider rows during sync alongside existing observations', function () {
