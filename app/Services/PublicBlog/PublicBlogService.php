@@ -7,6 +7,7 @@ use App\Contracts\PublicBlogSource;
 use App\Exceptions\PublicBlogSourceUnavailableException;
 use App\Models\Content;
 use App\Models\ContentImage;
+use App\Models\ContentPublication;
 use App\Models\MarketingBlogRedirect;
 use App\Services\Content\ContentCacheInvalidationService;
 use App\Services\Publication\ContentPublicationStateService;
@@ -229,6 +230,7 @@ class PublicBlogService
             return $this->deduplicatePublicCards($localQuery
                 ->get()
                 ->map(fn (Content $content): array => $this->mapLocalCard($content))
+                ->filter(fn (array $post): bool => $this->isEligiblePublicPost($post))
                 ->values())
                 ->take($limit)
                 ->values()
@@ -355,6 +357,7 @@ class PublicBlogService
                 $items = $this->deduplicatePublicCards($working
                     ->get()
                     ->map(fn (Content $content): array => $this->mapLocalCard($content))
+                    ->filter(fn (array $post): bool => $this->isEligiblePublicPost($post))
                     ->values());
                 $total = $items->count();
 
@@ -449,7 +452,11 @@ class PublicBlogService
         }
 
         return Content::query()
-            ->with(['featuredImage' => fn ($imageQuery) => $imageQuery->select([
+            ->with(['currentVersion' => fn ($versionQuery) => $versionQuery->select([
+                'content_versions.id',
+                'content_versions.content_id',
+                'content_versions.meta',
+            ]), 'featuredImage' => fn ($imageQuery) => $imageQuery->select([
                 'content_images.id',
                 'content_images.workspace_id',
                 'content_images.content_id',
@@ -495,9 +502,12 @@ class PublicBlogService
             ])
             ->select([
                 'id',
+                'current_version_id',
                 'title',
                 'language',
                 'publish_url_key',
+                'canonical_url_key',
+                'published_url',
                 'first_published_at',
                 'public_blog_excerpt',
                 'public_blog_reading_time_minutes',
@@ -508,17 +518,60 @@ class PublicBlogService
                 'public_blog_featured_image_width',
                 'public_blog_featured_image_height',
                 'seo_og_image',
+                'created_at',
+                'updated_at',
             ])
             ->where($scopeColumn, $scope['id'])
             ->where('type', 'article')
             ->where('language', $locale)
             ->where('status', 'published')
             ->where('publish_status', 'published')
-            ->whereNotNull('first_published_at')
-            ->where('first_published_at', '<=', now())
-            ->whereNotNull('publish_url_key')
-            ->where('publish_url_key', '<>', '')
-            ->orderByDesc('first_published_at')
+            ->where(function ($publicationQuery) use ($locale): void {
+                $publicationQuery
+                    ->whereDoesntHave('publications')
+                    ->orWhereHas('publications', function ($query) use ($locale): void {
+                        $query
+                            ->where('provider', ContentPublication::PROVIDER_LARAVEL)
+                            ->where('delivery_status', ContentPublication::STATUS_DELIVERED)
+                            ->where(function ($statusQuery): void {
+                                $statusQuery
+                                    ->where('remote_status', ContentPublication::REMOTE_PUBLISHED)
+                                    ->orWhereNull('remote_status');
+                            })
+                            ->where(function ($localeQuery) use ($locale): void {
+                                $localeQuery
+                                    ->whereNull('locale')
+                                    ->orWhere('locale', '')
+                                    ->orWhere('locale', $locale);
+                            });
+                    });
+            })
+            ->where(function ($publishedAtQuery): void {
+                $publishedAtQuery
+                    ->whereNull('first_published_at')
+                    ->orWhere('first_published_at', '<=', now());
+            })
+            ->where(function ($slugQuery): void {
+                $slugQuery
+                    ->whereNotNull('publish_url_key')
+                    ->where('publish_url_key', '<>', '')
+                    ->orWhere(function ($canonicalQuery): void {
+                        $canonicalQuery
+                            ->whereNotNull('canonical_url_key')
+                            ->where('canonical_url_key', '<>', '');
+                    })
+                    ->orWhere(function ($publishedUrlQuery): void {
+                        $publishedUrlQuery
+                            ->whereNotNull('published_url')
+                            ->where('published_url', '<>', '');
+                    })
+                    ->orWhere(function ($titleQuery): void {
+                        $titleQuery
+                            ->whereNotNull('title')
+                            ->where('title', '<>', '');
+                    });
+            })
+            ->orderByRaw('COALESCE(first_published_at, updated_at, created_at) DESC')
             ->orderByDesc('id');
     }
 
@@ -545,9 +598,15 @@ class PublicBlogService
      */
     private function mapLocalCard(Content $content): array
     {
-        $slug = trim((string) ($content->publish_url_key ?: Str::slug((string) $content->title)));
+        $versionMeta = is_array($content->currentVersion?->meta) ? $content->currentVersion->meta : [];
+        $title = trim((string) data_get($versionMeta, 'title', '')) ?: (string) $content->title;
+        $slug = trim((string) ($content->publish_url_key
+            ?: $content->canonical_url_key
+            ?: $this->slugFromUrl((string) $content->published_url)
+            ?: data_get($versionMeta, 'slug', '')
+            ?: Str::slug($title)));
         $locale = $this->normalizeLocale($content->localeCode());
-        $publishedAt = $content->first_published_at;
+        $publishedAt = $this->localPublishedAt($content, $versionMeta);
         $hasManagedFeaturedImageHistory = (bool) $content->getAttribute('has_managed_featured_image_history');
         $activeFeaturedImageUrl = $content->featuredImage?->bestUrlForUsage(ContentImage::USAGE_WEBSITE) ?? '';
         $featuredImage = $this->normalizePublicImageUrl($hasManagedFeaturedImageHistory
@@ -558,10 +617,10 @@ class PublicBlogService
             'id' => (string) $content->id,
             'slug' => $slug,
             'url' => $this->canonicals->publicBlogCanonical($slug, $locale),
-            'title' => (string) $content->title,
-            'excerpt' => trim((string) ($content->public_blog_excerpt ?? '')),
+            'title' => $title,
+            'excerpt' => trim((string) ($content->public_blog_excerpt ?? '')) ?: trim((string) data_get($versionMeta, 'excerpt', '')),
             'featured_image' => $featuredImage,
-            'featured_image_alt' => trim((string) ($content->featuredImage?->alt_text ?? '')) ?: (string) $content->title,
+            'featured_image_alt' => trim((string) ($content->featuredImage?->alt_text ?? '')) ?: $title,
             'featured_image_width' => $content->public_blog_featured_image_width ?: $content->featuredImage?->width,
             'featured_image_height' => $content->public_blog_featured_image_height ?: $content->featuredImage?->height,
             'seo_og_image' => $this->normalizePublicImageUrl($this->firstNonEmpty([
@@ -582,6 +641,47 @@ class PublicBlogService
             'category' => trim((string) ($content->public_blog_category ?? '')),
             'locale' => $locale,
         ];
+    }
+
+    private function slugFromUrl(string $url): string
+    {
+        $path = trim((string) parse_url($url, PHP_URL_PATH), '/');
+        $slug = trim((string) basename($path), '/');
+
+        return $slug !== '' ? Str::slug($slug) : '';
+    }
+
+    /**
+     * @param array<string,mixed> $versionMeta
+     */
+    private function localPublishedAt(Content $content, array $versionMeta): ?Carbon
+    {
+        $candidates = [
+            $content->first_published_at,
+            data_get($versionMeta, 'published_at'),
+            data_get($versionMeta, 'publish_at'),
+            data_get($versionMeta, 'date_published'),
+            $content->updated_at,
+            $content->created_at,
+        ];
+
+        foreach ($candidates as $candidate) {
+            if ($candidate instanceof Carbon) {
+                return $candidate;
+            }
+
+            if (! is_string($candidate) || trim($candidate) === '') {
+                continue;
+            }
+
+            try {
+                return Carbon::parse($candidate);
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return null;
     }
 
     /**

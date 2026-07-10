@@ -957,6 +957,42 @@ it('publishes past-due laravel destination content on scheduler run', function (
         ->and((string) $publication->fresh()->delivery_status)->toBe('delivered');
 });
 
+it('does not retry scheduled content that already needs editorial review', function () {
+    [$user, $site, $content, $draft] = makeLaravelConnectorPublishContext();
+
+    $content->update([
+        'source' => 'generated',
+        'publish_status' => 'needs_editorial_review',
+        'scheduled_publish_at' => now()->subHour(),
+    ]);
+
+    $draft->update([
+        'meta' => [
+            'human_content_score_after' => 42,
+            'ai_fingerprint_score_after' => 78,
+            'human_content' => [
+                'after' => [
+                    'human_content_score' => 42,
+                    'editorial_quality_score' => 44,
+                    'originality_score' => 40,
+                    'ai_fingerprint_score' => 78,
+                ],
+            ],
+        ],
+    ]);
+
+    $publishingService = \Mockery::mock(LaravelConnectorPublishingService::class);
+    $publishingService->shouldNotReceive('publish');
+    $this->app->instance(LaravelConnectorPublishingService::class, $publishingService);
+
+    $this->artisan('content:dispatch-scheduled-publishes --limit=10 --stale-after-minutes=15')
+        ->expectsOutput('Processed 0 scheduled/stale items. Dispatched 0 publication flow(s), skipped 0.')
+        ->assertExitCode(0);
+
+    expect((string) $content->fresh()->publish_status)->toBe('needs_editorial_review')
+        ->and(ContentPublishTarget::query()->where('content_id', (string) $content->id)->exists())->toBeFalse();
+});
+
 it('recovers stale laravel publications that were stuck on delivering', function () {
     [$user, $site, $content, $draft] = makeLaravelConnectorPublishContext();
     $destination = createLaravelConnectorDestinationForSite($site);

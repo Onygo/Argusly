@@ -57,6 +57,9 @@ function makePublishedBlog(Workspace $workspace, array $attributes = []): Conten
         'translation_generated_at' => $attributes['translation_generated_at'] ?? null,
         'translation_source_updated_at' => $attributes['translation_source_updated_at'] ?? null,
         'publish_url_key' => $attributes['publish_url_key'] ?? null,
+        'canonical_url_key' => $attributes['canonical_url_key'] ?? null,
+        'published_url' => $attributes['published_url'] ?? null,
+        'first_published_at' => $attributes['first_published_at'] ?? null,
         'seo_title' => $attributes['seo_title'] ?? null,
         'seo_meta_description' => $attributes['seo_meta_description'] ?? null,
         'seo_og_title' => $attributes['seo_og_title'] ?? null,
@@ -140,6 +143,56 @@ it('renders blog indexes per locale without mixing variants', function () {
         ->assertOk()
         ->assertSee('English translation')
         ->assertDontSee('Nederlandse bron');
+});
+
+it('keeps older published local posts visible when newer public blog fields are missing', function () {
+    makePublishedBlog($this->workspace, [
+        'title' => 'New format public blog card',
+        'language' => 'en',
+        'publish_url_key' => 'new-format-public-blog-card',
+        'first_published_at' => now()->subHour(),
+        'updated_at' => now()->subHour(),
+        'published_at' => now()->subHour(),
+    ]);
+
+    makePublishedBlog($this->workspace, [
+        'title' => 'Older delivered article without performance fields',
+        'language' => 'en',
+        'publish_url_key' => null,
+        'first_published_at' => null,
+        'published_url' => url('/en/blog/older-delivered-article-without-performance-fields'),
+        'updated_at' => now()->subDay(),
+        'published_at' => now()->subDay(),
+    ]);
+
+    $this->get('/en/blog')
+        ->assertOk()
+        ->assertSee('New format public blog card')
+        ->assertSee('Older delivered article without performance fields')
+        ->assertSee('/en/blog/older-delivered-article-without-performance-fields', false);
+});
+
+it('keeps delivered legacy local posts visible when publication metadata exists but performance fields are missing', function () {
+    $legacy = makePublishedBlog($this->workspace, [
+        'title' => 'Legacy delivered article still visible',
+        'language' => 'en',
+        'publish_url_key' => null,
+        'first_published_at' => null,
+        'published_url' => url('/en/blog/legacy-delivered-article-still-visible'),
+        'updated_at' => now()->subDays(2),
+        'published_at' => now()->subDays(2),
+    ]);
+
+    markLaravelPublicationDelivered($legacy, 'legacy-delivered-article-still-visible');
+
+    $this->get('/en/blog')
+        ->assertOk()
+        ->assertSee('Legacy delivered article still visible')
+        ->assertSee('/en/blog/legacy-delivered-article-still-visible', false);
+
+    $this->get('/en/blog/legacy-delivered-article-still-visible')
+        ->assertOk()
+        ->assertSee('Legacy delivered article still visible');
 });
 
 it('loads local blog surfaces with featured images without ambiguous content image selects', function () {

@@ -18,6 +18,13 @@ class DispatchScheduledPublishesCommand extends Command
 
     protected $description = 'Dispatch due scheduled publishes and recover stale publication jobs.';
 
+    private const DISPATCHABLE_CONTENT_STATUSES = [
+        'scheduled',
+        'publishing',
+        'queued',
+        'processing',
+    ];
+
     public function handle(
         ContentPublicationService $publicationService,
         LaravelConnectorDestinationResolver $laravelDestinationResolver,
@@ -30,7 +37,7 @@ class DispatchScheduledPublishesCommand extends Command
         $dueContentIds = Content::query()
             ->whereNotNull('scheduled_publish_at')
             ->where('scheduled_publish_at', '<=', now())
-            ->where('publish_status', '!=', 'published')
+            ->whereIn('publish_status', self::DISPATCHABLE_CONTENT_STATUSES)
             ->orderBy('scheduled_publish_at')
             ->limit($limit)
             ->pluck('id')

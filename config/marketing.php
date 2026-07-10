@@ -24,19 +24,23 @@ $publicBlogWorkspaceId = $firstConfiguredEnv([
     'PUBLISHLAYER_PUBLIC_BLOG_WORKSPACE_ID',
 ], '');
 
+$sourceMode = $firstConfiguredEnv([
+    'ARGUSLY_MARKETING_BLOG_SOURCE_MODE',
+    'PL_MARKETING_BLOG_SOURCE_MODE',
+    'PUBLISHLAYER_MARKETING_BLOG_SOURCE_MODE',
+], $publicBlogClientSiteId !== '' ? 'site' : 'workspace');
+
 return [
     'blog_source' => [
         // Explicit source for public marketing blog content.
         // Allowed modes: workspace, site.
-        'mode' => $firstConfiguredEnv([
-            'ARGUSLY_MARKETING_BLOG_SOURCE_MODE',
-            'PL_MARKETING_BLOG_SOURCE_MODE',
-            'PUBLISHLAYER_MARKETING_BLOG_SOURCE_MODE',
-        ], $publicBlogClientSiteId !== '' ? 'site' : 'workspace'),
+        'mode' => $sourceMode,
         'id' => $firstConfiguredEnv([
             'ARGUSLY_MARKETING_BLOG_SOURCE_ID',
             'PL_MARKETING_BLOG_SOURCE_ID',
             'PUBLISHLAYER_MARKETING_BLOG_SOURCE_ID',
-        ], $publicBlogWorkspaceId !== '' ? $publicBlogWorkspaceId : $publicBlogClientSiteId),
+        ], $sourceMode === 'site'
+            ? ($publicBlogClientSiteId !== '' ? $publicBlogClientSiteId : $publicBlogWorkspaceId)
+            : ($publicBlogWorkspaceId !== '' ? $publicBlogWorkspaceId : $publicBlogClientSiteId)),
     ],
 ];

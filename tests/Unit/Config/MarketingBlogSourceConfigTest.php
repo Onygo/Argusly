@@ -46,6 +46,27 @@ it('derives a site source from legacy public blog site id when explicit source k
         ->and(data_get($config, 'blog_source.id'))->toBe('legacy-public-site');
 });
 
+it('keeps derived public blog mode and id aligned when both legacy ids exist', function () {
+    setMarketingBlogSourceEnvVar('PL_PUBLIC_BLOG_CLIENT_SITE_ID', 'legacy-public-site');
+    setMarketingBlogSourceEnvVar('PL_PUBLIC_BLOG_WORKSPACE_ID', 'legacy-public-workspace');
+
+    $config = require base_path('config/marketing.php');
+
+    expect(data_get($config, 'blog_source.mode'))->toBe('site')
+        ->and(data_get($config, 'blog_source.id'))->toBe('legacy-public-site');
+});
+
+it('uses the workspace public blog id when explicit source mode is workspace', function () {
+    setMarketingBlogSourceEnvVar('PL_MARKETING_BLOG_SOURCE_MODE', 'workspace');
+    setMarketingBlogSourceEnvVar('PL_PUBLIC_BLOG_CLIENT_SITE_ID', 'legacy-public-site');
+    setMarketingBlogSourceEnvVar('PL_PUBLIC_BLOG_WORKSPACE_ID', 'legacy-public-workspace');
+
+    $config = require base_path('config/marketing.php');
+
+    expect(data_get($config, 'blog_source.mode'))->toBe('workspace')
+        ->and(data_get($config, 'blog_source.id'))->toBe('legacy-public-workspace');
+});
+
 function marketingBlogSourceEnvKeys(): array
 {
     return [
