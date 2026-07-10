@@ -2,6 +2,7 @@
 
 namespace App\Services\PageIntelligence;
 
+use App\Enums\SupportedLanguage;
 use App\Models\MonitoredPage;
 use App\Models\PageContentExtraction;
 use App\Models\PageSnapshot;
@@ -27,8 +28,7 @@ class PageContentExtractor
         private readonly ArticleContentExtractor $articleExtractor,
         private readonly LanguageDetector $languageDetector,
         private readonly PageUrlNormalizer $normalizer,
-    ) {
-    }
+    ) {}
 
     public function extract(PageSnapshot $snapshot): PageExtractionResult
     {
@@ -65,6 +65,11 @@ class PageContentExtractor
         $canonical = $this->normalizeCanonical($canonicalUrl);
         $canonicalConflict = $canonical !== null && (string) $page->canonical_url_hash !== $canonical['hash'];
         $structuredData = $this->structuredData($xpath);
+        $schemaTypes = $this->schemaTypes($structuredData);
+        $openGraphImage = $this->openGraphImage($xpath, $baseUrl);
+        $metaRobots = $this->metaRobots($xpath);
+        $indexabilityStatus = $this->indexabilityStatus($metaRobots);
+        $externalModifiedAt = $this->externalModifiedAt($xpath, $structuredData);
         $images = $this->images($xpath, $baseUrl);
         $media = $this->media($xpath, $baseUrl);
         [$outboundLinks, $internalLinks] = $this->links($xpath, $baseUrl);
@@ -81,6 +86,11 @@ class PageContentExtractor
             $canonical,
             $canonicalUrl,
             $canonicalConflict,
+            $schemaTypes,
+            $openGraphImage,
+            $metaRobots,
+            $indexabilityStatus,
+            $externalModifiedAt,
             $title,
             $metaDescription,
             $h1,
@@ -107,7 +117,13 @@ class PageContentExtractor
             $existing = PageContentExtraction::query()
                 ->where('page_snapshot_id', $snapshot->id)
                 ->first();
+            $previousExtraction = PageContentExtraction::query()
+                ->where('monitored_page_id', $page->id)
+                ->where('page_snapshot_id', '!=', $snapshot->id)
+                ->latest('created_at')
+                ->first();
             $storedText = $this->storeMainText($snapshot, $mainText);
+            $changeKind = $this->changeKind($snapshot, $previousExtraction, $storedText['hash']);
 
             $extraction = PageContentExtraction::query()->updateOrCreate(
                 ['page_snapshot_id' => $snapshot->id],
@@ -141,8 +157,15 @@ class PageContentExtractor
                     'estimated_tokens' => $estimatedTokens,
                     'content_depth_score' => $contentDepthScore,
                     'quality_score' => $qualityScore,
+                    'open_graph_image_url' => $openGraphImage,
+                    'schema_types_json' => $schemaTypes,
+                    'meta_robots' => $metaRobots,
+                    'indexability_status' => $indexabilityStatus,
+                    'canonical_url' => $canonicalUrl,
+                    'content_fingerprint' => $storedText['hash'],
+                    'external_modified_at' => $externalModifiedAt,
                     'structured_data_json' => $structuredData,
-                    'images_json' => $images,
+                    'images_json' => $this->imagesWithOpenGraph($images, $openGraphImage),
                     'media_json' => $media,
                     'outbound_links_json' => $outboundLinks,
                     'internal_links_json' => $internalLinks,
@@ -151,18 +174,35 @@ class PageContentExtractor
                         'base_url' => $baseUrl,
                         'canonical_url' => $canonicalUrl,
                         'canonical_conflict' => $canonicalConflict,
+                        'open_graph' => [
+                            'image' => $openGraphImage,
+                        ],
+                        'schema_types' => $schemaTypes,
+                        'meta_robots' => $metaRobots,
+                        'indexability_status' => $indexabilityStatus,
+                        'external_modified_at' => $externalModifiedAt?->toISOString(),
                         'article_quality' => $article['quality'] ?? null,
                     ],
                 ],
             );
 
+            $snapshotMetadata = array_replace_recursive((array) ($snapshot->metadata_json ?? []), [
+                'inventory' => [
+                    'change_kind' => $changeKind,
+                    'content_fingerprint' => $storedText['hash'],
+                    'previous_content_fingerprint' => $previousExtraction?->content_fingerprint ?: $previousExtraction?->main_text_hash,
+                    'external_modified_at' => $externalModifiedAt?->toISOString(),
+                ],
+            ]);
+
             $snapshot->forceFill([
                 'canonical_url' => $canonicalUrl ?: $snapshot->canonical_url,
                 'text_hash' => $mainText !== '' ? hash('sha256', $mainText) : $snapshot->text_hash,
                 'canonical_conflict' => $canonicalConflict,
+                'metadata_json' => $snapshotMetadata,
             ])->save();
 
-            $this->updatePage($page, $title, $language, $publishedAt, $canonical, $canonicalConflict);
+            $this->updatePage($page, $title, $language, $publishedAt, $canonical, $canonicalConflict, $indexabilityStatus, $changeKind);
 
             return new PageExtractionResult($page->refresh(), $snapshot->refresh(), $extraction->refresh(), $existing === null);
         });
@@ -200,7 +240,7 @@ class PageContentExtractor
         }
 
         $path = trim((string) config('page_intelligence.storage.extracted_text_path', 'page-extractions'), '/')
-            . '/' . $snapshot->monitored_page_id . '/' . $snapshot->id . '.txt';
+            .'/'.$snapshot->monitored_page_id.'/'.$snapshot->id.'.txt';
 
         Storage::disk((string) config('page_intelligence.storage.extracted_text_disk', 'local'))->put($path, $mainText);
 
@@ -383,15 +423,138 @@ class PageContentExtractor
                 ->all();
         }
 
+        $items = [$decoded];
         $graph = $decoded['@graph'] ?? null;
         if (is_array($graph)) {
-            return collect($graph)
-                ->flatMap(fn (mixed $item): array => $this->flattenStructuredData($item))
-                ->values()
-                ->all();
+            unset($items[0]['@graph']);
+
+            foreach ($graph as $graphItem) {
+                foreach ($this->flattenStructuredData($graphItem) as $item) {
+                    $items[] = $item;
+                }
+            }
         }
 
-        return [$decoded];
+        return array_values(array_filter($items, fn (array $item): bool => $item !== []));
+    }
+
+    /**
+     * @param  array<int,array<string,mixed>>  $structuredData
+     * @return array<int,string>
+     */
+    private function schemaTypes(array $structuredData): array
+    {
+        $types = [];
+
+        foreach ($structuredData as $item) {
+            foreach ((array) data_get($item, '@type', []) as $type) {
+                $type = trim((string) $type);
+                if ($type !== '') {
+                    $types[] = $type;
+                }
+            }
+        }
+
+        return array_values(array_unique($types));
+    }
+
+    private function openGraphImage(DOMXPath $xpath, string $baseUrl): ?string
+    {
+        foreach ([
+            "//meta[@property='og:image']/@content",
+            "//meta[@name='og:image']/@content",
+            "//meta[@property='og:image:url']/@content",
+            "//meta[@name='twitter:image']/@content",
+            "//meta[@property='twitter:image']/@content",
+        ] as $query) {
+            $value = $this->meta($xpath, $query);
+            if ($value !== null) {
+                $resolved = $this->resolveUrl($baseUrl, $value);
+
+                return $resolved !== '' ? $resolved : $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function metaRobots(DOMXPath $xpath): ?string
+    {
+        $values = [];
+        foreach ([
+            "//meta[translate(@name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')='robots']/@content",
+            "//meta[translate(@name, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')='googlebot']/@content",
+        ] as $query) {
+            $value = $this->meta($xpath, $query);
+            if ($value !== null) {
+                $values[] = strtolower($value);
+            }
+        }
+
+        return $values === [] ? null : implode(', ', array_values(array_unique($values)));
+    }
+
+    private function indexabilityStatus(?string $metaRobots): ?string
+    {
+        $robots = strtolower(trim((string) $metaRobots));
+        if ($robots === '') {
+            return null;
+        }
+
+        return str_contains($robots, 'noindex') ? 'noindex' : 'indexable';
+    }
+
+    /**
+     * @param  array<int,array<string,mixed>>  $structuredData
+     */
+    private function externalModifiedAt(DOMXPath $xpath, array $structuredData): ?Carbon
+    {
+        $candidate = $this->firstString(
+            $this->meta($xpath, "//meta[@property='article:modified_time']/@content"),
+            $this->meta($xpath, "//meta[@property='og:updated_time']/@content"),
+            $this->meta($xpath, "//meta[@name='last-modified']/@content"),
+            $this->structuredDataDate($structuredData, 'dateModified'),
+            $this->structuredDataDate($structuredData, 'datePublished'),
+        );
+
+        return $this->parseDate($candidate);
+    }
+
+    /**
+     * @param  array<int,array<string,mixed>>  $structuredData
+     */
+    private function structuredDataDate(array $structuredData, string $key): ?string
+    {
+        foreach ($structuredData as $item) {
+            $value = data_get($item, $key);
+            if (is_string($value) && trim($value) !== '') {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<int,array<string,mixed>>  $images
+     * @return array<int,array<string,mixed>>
+     */
+    private function imagesWithOpenGraph(array $images, ?string $openGraphImage): array
+    {
+        if ($openGraphImage === null) {
+            return $images;
+        }
+
+        array_unshift($images, [
+            'src' => $openGraphImage,
+            'source' => 'open_graph',
+            'property' => 'og:image',
+            'alt' => null,
+            'width' => null,
+            'height' => null,
+        ]);
+
+        return array_values(array_unique($images, SORT_REGULAR));
     }
 
     /**
@@ -497,12 +660,18 @@ class PageContentExtractor
         ?Carbon $publishedAt,
         ?array $canonical,
         bool $canonicalConflict,
+        ?string $indexabilityStatus,
+        string $changeKind,
     ): void {
         $updates = [
             'title_current' => $title ?: $page->title_current,
             'language_current' => $language ?: $page->language_current,
             'published_at_current' => $publishedAt ?: $page->published_at_current,
         ];
+
+        if ($indexabilityStatus !== null) {
+            $updates['indexability_status'] = $indexabilityStatus;
+        }
 
         if ($canonical !== null) {
             $duplicate = MonitoredPage::query()
@@ -519,7 +688,32 @@ class PageContentExtractor
             }
         }
 
+        $metadata = array_replace_recursive((array) ($page->metadata_json ?? []), [
+            'inventory' => [
+                'last_extraction_change_kind' => $changeKind,
+            ],
+        ]);
+        $updates['metadata_json'] = $metadata;
+
         $page->forceFill($updates)->save();
+    }
+
+    private function changeKind(PageSnapshot $snapshot, ?PageContentExtraction $previousExtraction, ?string $contentFingerprint): string
+    {
+        if (! $previousExtraction instanceof PageContentExtraction) {
+            return 'first_successful_fetch';
+        }
+
+        $previousFingerprint = $previousExtraction->content_fingerprint ?: $previousExtraction->main_text_hash;
+        if ($contentFingerprint !== null && $previousFingerprint !== null && $contentFingerprint !== $previousFingerprint) {
+            return 'meaningful_content_change';
+        }
+
+        if ($snapshot->content_changed) {
+            return 'metadata_only_change';
+        }
+
+        return 'unchanged';
     }
 
     private function language(array $article, DOMXPath $xpath, string $mainText): ?string
@@ -530,7 +724,7 @@ class PageContentExtractor
             $this->meta($xpath, "//meta[@property='og:locale']/@content"),
         );
 
-        $normalized = \App\Enums\SupportedLanguage::tryFromString($explicit)?->value;
+        $normalized = SupportedLanguage::tryFromString($explicit)?->value;
         if ($normalized !== null) {
             return $normalized;
         }
@@ -667,7 +861,7 @@ class PageContentExtractor
     }
 
     /**
-     * @param array<int,string> $queries
+     * @param  array<int,string>  $queries
      */
     private function firstElement(DOMXPath $xpath, array $queries): ?DOMElement
     {
@@ -699,20 +893,20 @@ class PageContentExtractor
 
         $scheme = strtolower((string) ($base['scheme'] ?? 'https'));
         $host = strtolower((string) $base['host']);
-        $port = isset($base['port']) ? ':' . (int) $base['port'] : '';
+        $port = isset($base['port']) ? ':'.(int) $base['port'] : '';
 
         if (str_starts_with($url, '//')) {
-            return $scheme . ':' . $url;
+            return $scheme.':'.$url;
         }
 
         if (str_starts_with($url, '/')) {
-            return $scheme . '://' . $host . $port . $url;
+            return $scheme.'://'.$host.$port.$url;
         }
 
         $basePath = (string) ($base['path'] ?? '/');
         $directory = rtrim(str_ends_with($basePath, '/') ? $basePath : dirname($basePath), '/');
 
-        return $scheme . '://' . $host . $port . ($directory !== '' ? $directory : '') . '/' . $url;
+        return $scheme.'://'.$host.$port.($directory !== '' ? $directory : '').'/'.$url;
     }
 
     private function removeNoise(DOMXPath $xpath, DOMElement $node): void
@@ -732,7 +926,7 @@ class PageContentExtractor
             return $html;
         }
 
-        return '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . $html;
+        return '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'.$html;
     }
 
     private function normalizeWhitespace(string $value): string

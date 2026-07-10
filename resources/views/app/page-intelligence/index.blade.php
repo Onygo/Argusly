@@ -3,6 +3,7 @@
 @php
     $tabs = [
         'market-packs' => ['label' => 'Market Packs', 'route' => route('app.page-intelligence.index', array_merge(request()->except('page'), ['tab' => 'market-packs']))],
+        'content-inventory' => ['label' => 'Content Inventory', 'route' => route('app.page-intelligence.index', array_merge(request()->except('page'), ['tab' => 'content-inventory']))],
         'pages' => ['label' => 'Monitored Pages', 'route' => route('app.page-intelligence.index', array_merge(request()->except('page'), ['tab' => 'pages']))],
         'competitors' => ['label' => 'Competitors', 'route' => route('app.page-intelligence.index', array_merge(request()->except('page'), ['tab' => 'competitors']))],
         'themes' => ['label' => 'Themes', 'route' => route('app.page-intelligence.index', array_merge(request()->except('page'), ['tab' => 'themes']))],
@@ -126,6 +127,83 @@
                     <input name="date_to" type="date" value="{{ $filters['date_to'] }}" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
                 </label>
             </div>
+            @if ($activeTab === 'content-inventory')
+                <div class="mt-3 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Site</span>
+                        <select name="site" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            @foreach ($filterOptions['sites'] as $site)
+                                <option value="{{ $site->id }}" @selected($filters['site'] === (string) $site->id)>{{ $site->name ?: ($site->base_url ?: $site->site_url) }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Discovery source</span>
+                        <select name="inventory_source" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            @foreach ($filterOptions['sourceTypes'] as $sourceType)
+                                <option value="{{ $sourceType }}" @selected($filters['inventory_source'] === $sourceType)>{{ str($sourceType)->headline() }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Page type</span>
+                        <select name="page_type" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            @foreach ($filterOptions['pageTypes'] as $pageType)
+                                <option value="{{ $pageType }}" @selected($filters['page_type'] === $pageType)>{{ str($pageType)->headline() }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Eligibility</span>
+                        <select name="eligibility" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            <option value="eligible" @selected($filters['eligibility'] === 'eligible')>Eligible</option>
+                            <option value="ineligible" @selected($filters['eligibility'] === 'ineligible')>Ineligible</option>
+                            <option value="excluded" @selected($filters['eligibility'] === 'excluded')>Excluded</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Linked</span>
+                        <select name="linked" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            <option value="linked" @selected($filters['linked'] === 'linked')>Linked</option>
+                            <option value="unlinked" @selected($filters['linked'] === 'unlinked')>Unlinked</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Changed</span>
+                        <select name="changed" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            <option value="changed" @selected($filters['changed'] === 'changed')>Changed</option>
+                            <option value="unchanged" @selected($filters['changed'] === 'unchanged')>Unchanged</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Fetch</span>
+                        <select name="fetch_status" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            <option value="never_fetched" @selected($filters['fetch_status'] === 'never_fetched')>Never fetched</option>
+                            <option value="fetched" @selected($filters['fetch_status'] === 'fetched')>Fetched</option>
+                            <option value="failed" @selected($filters['fetch_status'] === 'failed')>Failed</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-textSecondary">Extraction</span>
+                        <select name="extraction_status" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                            <option value="">Any</option>
+                            <option value="extracted" @selected($filters['extraction_status'] === 'extracted')>Extracted</option>
+                            <option value="missing" @selected($filters['extraction_status'] === 'missing')>Missing</option>
+                        </select>
+                    </label>
+                    <label class="block md:col-span-2 xl:col-span-4">
+                        <span class="text-xs text-textSecondary">Search URL or title</span>
+                        <input name="search" value="{{ $filters['search'] }}" class="mt-1 w-full rounded border border-border bg-background px-2 py-2 text-sm">
+                    </label>
+                </div>
+            @endif
             <div class="mt-4 flex flex-wrap gap-2">
                 <button class="rounded-md border border-border px-3 py-2 text-sm text-textPrimary hover:bg-surfaceSubtle">Apply filters</button>
                 <a href="{{ route('app.page-intelligence.index', ['workspace' => $workspace->id, 'tab' => $activeTab]) }}" class="rounded-md border border-border px-3 py-2 text-sm text-textSecondary hover:bg-surfaceSubtle">Reset</a>
@@ -161,6 +239,7 @@
 
         @php
             $showMarketPacks = $activeTab === 'market-packs';
+            $showInventory = $activeTab === 'content-inventory';
             $showPages = $activeTab === 'pages';
             $showCompetitors = $activeTab === 'competitors';
             $showThemes = $activeTab === 'themes';
@@ -206,6 +285,8 @@
                 </tbody>
             </x-data-table>
         @endif
+
+        @includeWhen($showInventory, 'app.page-intelligence.partials.content-inventory-table')
 
         @includeWhen($showPages, 'app.page-intelligence.partials.monitored-pages-table')
 

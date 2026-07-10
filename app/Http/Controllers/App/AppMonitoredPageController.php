@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\App;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\PageIntelligence\FetchMonitoredPageJob;
 use App\Models\AlertRule;
 use App\Models\Campaign;
+use App\Models\ClientSite;
 use App\Models\MarketPackInstallation;
+use App\Models\MarketPackTheme;
 use App\Models\MonitoredPage;
 use App\Models\MonitoredSource;
 use App\Models\PageAlert;
@@ -15,12 +18,14 @@ use App\Models\PagePrValue;
 use App\Models\PageScore;
 use App\Models\PageSentiment;
 use App\Models\PageSerpObservation;
+use App\Models\PageTopic;
 use App\Models\SerpQuery;
 use App\Models\SerpQuerySet;
-use App\Models\PageTopic;
 use App\Models\SiteCompetitor;
 use App\Models\Workspace;
 use App\Services\PageIntelligence\PageIntelligenceScoreCalculator;
+use App\Services\WebsiteContentInventory\WebsiteContentActivationService;
+use App\Services\WebsiteContentInventory\WebsitePageEligibilityService;
 use App\Support\Interaction\Action;
 use App\Support\Interaction\AppInteractionRegistry;
 use App\Support\Interaction\DrawerMetadataBuilder;
@@ -33,6 +38,7 @@ use App\Support\Interaction\ResourceContext;
 use App\Support\Interaction\ResourceType;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -40,13 +46,25 @@ use Illuminate\View\View;
 
 class AppMonitoredPageController extends Controller
 {
-    public function index(Request $request, MonitoredPageDataTable $dataTable, MonitoredPageMetadataProvider $metadataProvider): View
-    {
+    public function index(
+        Request $request,
+        MonitoredPageDataTable $dataTable,
+        MonitoredPageMetadataProvider $metadataProvider,
+        WebsitePageEligibilityService $eligibility,
+    ): View {
         $workspace = $this->resolveWorkspace($request);
         $filters = $this->filters($request);
-        $pagesQuery = $this->applyPageFilters($dataTable->queryForWorkspace($workspace->id), $filters);
+        $basePagesQuery = $dataTable->queryForWorkspace($workspace->id);
+        $pagesQuery = $filters['tab'] === 'content-inventory'
+            ? $this->applyInventoryFilters($basePagesQuery, $filters)
+            : $this->applyPageFilters($basePagesQuery, $filters);
         $pages = $pagesQuery->paginate(15)->withQueryString();
         $pageIds = $pages->getCollection()->pluck('id')->all();
+        $inventoryEligibility = $filters['tab'] === 'content-inventory'
+            ? $pages->getCollection()
+                ->mapWithKeys(fn (MonitoredPage $page): array => [$page->id => $eligibility->evaluate($page->loadMissing(['latestSnapshot', 'latestContentExtraction']))])
+                ->all()
+            : [];
 
         [$interactionResourcesByKey, $interactionActionsByKey] = $this->resolvePageInteractionMetadata($pages->getCollection(), $workspace);
         $drawerPage = $this->drawerPage($request, $workspace);
@@ -60,6 +78,7 @@ class AppMonitoredPageController extends Controller
             'metrics' => $this->metrics($workspace),
             'pages' => $pages,
             'pageRows' => $dataTable->rows($pages->getCollection()),
+            'inventoryEligibility' => $inventoryEligibility,
             'pageInsights' => $this->pageInsights($pageIds),
             'interactionResourcesByKey' => $interactionResourcesByKey,
             'interactionActionsByKey' => $interactionActionsByKey,
@@ -111,6 +130,57 @@ class AppMonitoredPageController extends Controller
         ]);
     }
 
+    public function refresh(Request $request, MonitoredPage $monitoredPage): RedirectResponse
+    {
+        abort_unless($request->user()?->can('update', $monitoredPage), 403);
+
+        FetchMonitoredPageJob::dispatch((string) $monitoredPage->id, $monitoredPage->first_seen_url, true);
+
+        return back()->with('status', 'Page refresh queued.');
+    }
+
+    public function exclude(Request $request, MonitoredPage $monitoredPage): RedirectResponse
+    {
+        abort_unless($request->user()?->can('update', $monitoredPage), 403);
+
+        $metadata = (array) ($monitoredPage->metadata_json ?? []);
+        data_set($metadata, 'inventory.review_override', 'excluded');
+        data_set($metadata, 'inventory.reviewed_by_user_id', $request->user()?->id);
+        data_set($metadata, 'inventory.reviewed_at', now()->toISOString());
+
+        $monitoredPage->forceFill(['metadata_json' => $metadata])->save();
+
+        return back()->with('status', 'Page excluded from Content Inventory activation.');
+    }
+
+    public function include(Request $request, MonitoredPage $monitoredPage): RedirectResponse
+    {
+        abort_unless($request->user()?->can('update', $monitoredPage), 403);
+
+        $metadata = (array) ($monitoredPage->metadata_json ?? []);
+        data_set($metadata, 'inventory.review_override', 'included');
+        data_set($metadata, 'inventory.reviewed_by_user_id', $request->user()?->id);
+        data_set($metadata, 'inventory.reviewed_at', now()->toISOString());
+
+        $monitoredPage->forceFill(['metadata_json' => $metadata])->save();
+
+        return back()->with('status', 'Page included for Content Inventory review.');
+    }
+
+    public function activate(
+        Request $request,
+        MonitoredPage $monitoredPage,
+        WebsiteContentActivationService $activation,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('update', $monitoredPage), 403);
+
+        $result = $activation->promote($monitoredPage);
+
+        return redirect()
+            ->route('app.content.show', $result->content)
+            ->with('status', $result->contentCreated ? 'Content asset activated.' : 'Existing content asset refreshed from observed evidence.');
+    }
+
     private function applyPageFilters(Builder $query, array $filters): Builder
     {
         return $query
@@ -128,6 +198,55 @@ class AppMonitoredPageController extends Controller
             ->when($filters['campaign'] !== '', fn (Builder $query): Builder => $query->whereHas('campaignMatches', fn (Builder $match): Builder => $match->where('campaign_id', $filters['campaign'])))
             ->when($filters['date_from'] !== '', fn (Builder $query): Builder => $query->whereDate(DB::raw('COALESCE(last_seen_at, first_seen_at, created_at)'), '>=', $filters['date_from']))
             ->when($filters['date_to'] !== '', fn (Builder $query): Builder => $query->whereDate(DB::raw('COALESCE(last_seen_at, first_seen_at, created_at)'), '<=', $filters['date_to']));
+    }
+
+    private function applyInventoryFilters(Builder $query, array $filters): Builder
+    {
+        $query->with(['latestContentExtraction', 'contentPageLinks.content']);
+
+        return $query
+            ->when($filters['site'] !== '', fn (Builder $query): Builder => $query->where('client_site_id', $filters['site']))
+            ->when($filters['inventory_source'] !== '', fn (Builder $query): Builder => $query->where('source_type', $filters['inventory_source']))
+            ->when($filters['page_type'] !== '', fn (Builder $query): Builder => $query->where('page_type', $filters['page_type']))
+            ->when($filters['linked'] === 'linked', fn (Builder $query): Builder => $query->whereHas('contentPageLinks'))
+            ->when($filters['linked'] === 'unlinked', fn (Builder $query): Builder => $query->whereDoesntHave('contentPageLinks'))
+            ->when($filters['changed'] === 'changed', fn (Builder $query): Builder => $query->whereNotNull('last_changed_at'))
+            ->when($filters['changed'] === 'unchanged', fn (Builder $query): Builder => $query->whereNull('last_changed_at'))
+            ->when($filters['fetch_status'] === 'never_fetched', fn (Builder $query): Builder => $query->whereNull('last_fetched_at'))
+            ->when($filters['fetch_status'] === 'fetched', fn (Builder $query): Builder => $query->where('crawl_status', MonitoredPage::CRAWL_STATUS_FETCHED))
+            ->when($filters['fetch_status'] === 'failed', fn (Builder $query): Builder => $query->where('crawl_status', MonitoredPage::CRAWL_STATUS_FAILED))
+            ->when($filters['extraction_status'] === 'extracted', fn (Builder $query): Builder => $query->whereHas('contentExtractions'))
+            ->when($filters['extraction_status'] === 'missing', fn (Builder $query): Builder => $query->whereDoesntHave('contentExtractions'))
+            ->when($filters['eligibility'] === 'excluded', fn (Builder $query): Builder => $this->applyExcludedInventoryFilter($query))
+            ->when($filters['eligibility'] === 'ineligible', fn (Builder $query): Builder => $query->where(function (Builder $query): void {
+                $query->where('crawl_status', MonitoredPage::CRAWL_STATUS_FAILED)
+                    ->orWhereIn('indexability_status', (array) config('website_content_inventory.eligibility.ineligible_indexability_statuses', []));
+            }))
+            ->when($filters['eligibility'] === 'eligible', fn (Builder $query): Builder => $query->where(function (Builder $query): void {
+                $query->whereNull('indexability_status')
+                    ->orWhereNotIn('indexability_status', (array) config('website_content_inventory.eligibility.ineligible_indexability_statuses', []));
+            }))
+            ->when($filters['search'] !== '', fn (Builder $query): Builder => $query->where(function (Builder $query) use ($filters): void {
+                $like = '%'.str_replace(['%', '_'], ['\\%', '\\_'], $filters['search']).'%';
+                $query->where('canonical_url', 'like', $like)
+                    ->orWhere('first_seen_url', 'like', $like)
+                    ->orWhere('final_url', 'like', $like)
+                    ->orWhere('title_current', 'like', $like);
+            }));
+    }
+
+    private function applyExcludedInventoryFilter(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->where('metadata_json', 'like', '%"review_override":"excluded"%')
+                ->orWhere('metadata_json', 'like', '%"review_override": "excluded"%');
+
+            foreach ((array) config('website_content_inventory.excluded_paths', []) as $path) {
+                $path = '/'.ltrim((string) $path, '/');
+                $query->orWhere('path', $path)
+                    ->orWhere('path', 'like', rtrim($path, '/').'/%');
+            }
+        });
     }
 
     private function pageInsights(array $pageIds): array
@@ -283,7 +402,7 @@ class AppMonitoredPageController extends Controller
             ->values();
         $classifiedPageCounts = PageTopic::query()
             ->where('workspace_id', $workspace->id)
-            ->where('source_ref_type', \App\Models\MarketPackTheme::class)
+            ->where('source_ref_type', MarketPackTheme::class)
             ->whereIn('source_ref_id', $themeIds)
             ->selectRaw('source_ref_id, count(distinct monitored_page_id) as classified_pages_count')
             ->groupBy('source_ref_id')
@@ -532,7 +651,9 @@ class AppMonitoredPageController extends Controller
     {
         return [
             'sourceTypes' => MonitoredPage::query()->where('workspace_id', $workspace->id)->distinct()->orderBy('source_type')->pluck('source_type')->filter()->values(),
+            'pageTypes' => MonitoredPage::query()->where('workspace_id', $workspace->id)->distinct()->orderBy('page_type')->pluck('page_type')->filter()->values(),
             'domains' => MonitoredPage::query()->where('workspace_id', $workspace->id)->distinct()->orderBy('domain')->pluck('domain')->filter()->values(),
+            'sites' => ClientSite::query()->where('workspace_id', $workspace->id)->orderBy('name')->get(['id', 'name', 'base_url', 'site_url']),
             'marketPacks' => MarketPackInstallation::query()
                 ->where('workspace_id', $workspace->id)
                 ->with('marketPack:id,key,name')
@@ -561,7 +682,7 @@ class AppMonitoredPageController extends Controller
     }
 
     /**
-     * @param iterable<int, MonitoredPage> $pages
+     * @param  iterable<int, MonitoredPage>  $pages
      * @return array{0: array<string, array>, 1: array<string, array<string, array>>}
      */
     private function resolvePageInteractionMetadata(iterable $pages, Workspace $workspace): array
@@ -668,7 +789,16 @@ class AppMonitoredPageController extends Controller
     private function filters(Request $request): array
     {
         return [
-            'tab' => in_array($request->query('tab'), ['market-packs', 'pages', 'competitors', 'themes', 'sources', 'alerts', 'pr-value', 'intelligence', 'serp', 'geo'], true) ? (string) $request->query('tab') : 'pages',
+            'tab' => in_array($request->query('tab'), ['market-packs', 'content-inventory', 'pages', 'competitors', 'themes', 'sources', 'alerts', 'pr-value', 'intelligence', 'serp', 'geo'], true) ? (string) $request->query('tab') : 'pages',
+            'site' => trim((string) $request->query('site', '')),
+            'inventory_source' => trim((string) $request->query('inventory_source', '')),
+            'page_type' => trim((string) $request->query('page_type', '')),
+            'eligibility' => in_array($request->query('eligibility'), ['', 'eligible', 'ineligible', 'excluded'], true) ? (string) $request->query('eligibility', '') : '',
+            'linked' => in_array($request->query('linked'), ['', 'linked', 'unlinked'], true) ? (string) $request->query('linked', '') : '',
+            'changed' => in_array($request->query('changed'), ['', 'changed', 'unchanged'], true) ? (string) $request->query('changed', '') : '',
+            'fetch_status' => in_array($request->query('fetch_status'), ['', 'never_fetched', 'fetched', 'failed'], true) ? (string) $request->query('fetch_status', '') : '',
+            'extraction_status' => in_array($request->query('extraction_status'), ['', 'extracted', 'missing'], true) ? (string) $request->query('extraction_status', '') : '',
+            'search' => trim((string) $request->query('search', '')),
             'source_type' => trim((string) $request->query('source_type', '')),
             'domain' => trim((string) $request->query('domain', '')),
             'market_pack' => trim((string) $request->query('market_pack', '')),
@@ -709,5 +839,4 @@ class AppMonitoredPageController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'display_name']);
     }
-
 }

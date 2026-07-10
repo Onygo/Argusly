@@ -20,8 +20,7 @@ class PageFetcher
     public function __construct(
         private readonly PageUrlNormalizer $normalizer,
         private readonly PageCrawlerSafetyService $safety,
-    ) {
-    }
+    ) {}
 
     public function fetch(MonitoredPage $page, ?string $requestedUrl = null): PageFetchResult
     {
@@ -253,9 +252,10 @@ class PageFetcher
 
             $snapshotNumber = ((int) ($latestSnapshot?->snapshot_number ?? 0)) + 1;
             $contentChanged = $successful && $rawHtmlHash !== null
-                ? $latestSnapshot === null || (string) $latestSnapshot->raw_html_hash !== $rawHtmlHash
+                ? $latestSnapshot !== null && (string) $latestSnapshot->raw_html_hash !== $rawHtmlHash
                 : false;
             $storage = $this->storeRawHtml($page, $snapshotNumber, $rawHtml);
+            $availability = $this->availabilityMetadata($page, $latestSnapshot, $successful, $httpStatus, $errorCode, $redirectChain);
 
             $snapshot = PageSnapshot::query()->create([
                 'organization_id' => $page->organization_id,
@@ -283,13 +283,18 @@ class PageFetcher
                 'fetcher_version' => self::FETCHER_VERSION,
                 'error_code' => $errorCode,
                 'error_message' => $errorMessage,
-                'metadata_json' => array_filter(array_merge($metadata, [
+                'metadata_json' => array_filter(array_replace_recursive($metadata, [
                     'successful' => $successful,
+                    'inventory' => $availability,
                     'timeout_seconds' => $this->timeoutSeconds(),
                     'connect_timeout_seconds' => $this->connectTimeoutSeconds(),
                     'max_html_bytes' => $this->maxHtmlBytes(),
                     'redirect_limit' => $this->redirectLimit(),
                 ]), static fn (mixed $value): bool => $value !== null),
+            ]);
+
+            $pageMetadata = array_replace_recursive((array) ($page->metadata_json ?? []), [
+                'inventory' => $availability,
             ]);
 
             $page->forceFill([
@@ -300,6 +305,7 @@ class PageFetcher
                 'crawl_status' => $successful
                     ? MonitoredPage::CRAWL_STATUS_FETCHED
                     : MonitoredPage::CRAWL_STATUS_FAILED,
+                'metadata_json' => $pageMetadata,
             ])->save();
 
             return new PageFetchResult($page->refresh(), $snapshot, $successful);
@@ -320,7 +326,7 @@ class PageFetcher
         }
 
         $path = trim((string) config('page_intelligence.fetch.raw_html_path', 'page-snapshots'), '/')
-            . '/' . $page->id . '/' . $snapshotNumber . '.html';
+            .'/'.$page->id.'/'.$snapshotNumber.'.html';
 
         Storage::disk((string) config('page_intelligence.fetch.raw_html_disk', 'local'))->put($path, $rawHtml);
 
@@ -450,6 +456,45 @@ class PageFetcher
         }
 
         return 'PAGE_FETCH_FAILED';
+    }
+
+    /**
+     * @param  array<int,array<string,mixed>>  $redirectChain
+     * @return array<string,mixed>
+     */
+    private function availabilityMetadata(
+        MonitoredPage $page,
+        ?PageSnapshot $latestSnapshot,
+        bool $successful,
+        ?int $httpStatus,
+        ?string $errorCode,
+        array $redirectChain,
+    ): array {
+        if ($successful) {
+            return [
+                'availability_status' => 'available',
+                'consecutive_fetch_failures' => 0,
+                'last_fetch_error_code' => null,
+                'last_fetch_http_status' => $httpStatus,
+                'redirected' => $redirectChain !== [],
+                'redirect_count' => count($redirectChain),
+            ];
+        }
+
+        $previousFailures = (int) data_get($latestSnapshot?->metadata_json, 'inventory.consecutive_fetch_failures', data_get($page->metadata_json, 'inventory.consecutive_fetch_failures', 0));
+        $failures = $previousFailures + 1;
+        $threshold = max(1, (int) config('website_content_inventory.availability.persistent_failure_threshold', 3));
+        $notFound = in_array((int) $httpStatus, [404, 410], true);
+
+        return [
+            'availability_status' => $notFound && $failures >= $threshold ? 'persistent_not_found' : 'temporary_failure',
+            'consecutive_fetch_failures' => $failures,
+            'persistent_failure_threshold' => $threshold,
+            'last_fetch_error_code' => $errorCode,
+            'last_fetch_http_status' => $httpStatus,
+            'redirected' => $redirectChain !== [],
+            'redirect_count' => count($redirectChain),
+        ];
     }
 
     private function durationMs(float $startedAt): int

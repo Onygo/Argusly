@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,8 +22,11 @@ class MonitoredPage extends Model
     use SoftDeletes;
 
     public const CRAWL_STATUS_NEW = 'new';
+
     public const CRAWL_STATUS_DISCOVERED = 'discovered';
+
     public const CRAWL_STATUS_FETCHED = 'fetched';
+
     public const CRAWL_STATUS_FAILED = 'failed';
 
     protected $fillable = [
@@ -150,5 +154,18 @@ class MonitoredPage extends Model
     public function geoObservations(): HasMany
     {
         return $this->hasMany(PageGeoObservation::class);
+    }
+
+    public function contentPageLinks(): HasMany
+    {
+        return $this->hasMany(ContentPageLink::class);
+    }
+
+    public function linkedContents(): BelongsToMany
+    {
+        return $this->belongsToMany(Content::class, 'content_page_links')
+            ->withPivot(['id', 'workspace_id', 'client_site_id', 'link_type', 'is_primary', 'confidence_score', 'metadata'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
     }
 }

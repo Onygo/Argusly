@@ -9,9 +9,9 @@ use App\Models\Workspace;
 use App\Services\PageIntelligence\PageContentExtractor;
 use App\Services\PageIntelligence\PageFetcher;
 use App\Services\PageIntelligence\SubmitMonitoredPageAction;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 
@@ -432,7 +432,7 @@ it('fetches a monitored page and creates a versioned snapshot', function (): voi
     expect($snapshot->raw_html_path)->not->toBeNull();
     expect($snapshot->raw_html_preview)->toContain('Fetch evidence');
     expect($snapshot->raw_html_hash)->toBe(hash('sha256', $html));
-    expect($snapshot->content_changed)->toBeTrue();
+    expect($snapshot->content_changed)->toBeFalse();
     expect($snapshot->error_code)->toBeNull();
     expect($result->page->crawl_status)->toBe(MonitoredPage::CRAWL_STATUS_FETCHED);
     expect($result->page->last_fetched_at)->not->toBeNull();
@@ -460,7 +460,7 @@ it('marks repeated unchanged fetches as not changed', function (): void {
     $first = app(PageFetcher::class)->fetch($page);
     $second = app(PageFetcher::class)->fetch($page->refresh());
 
-    expect($first->snapshot->content_changed)->toBeTrue();
+    expect($first->snapshot->content_changed)->toBeFalse();
     expect($second->snapshot->snapshot_number)->toBe(2);
     expect($second->snapshot->raw_html_hash)->toBe($first->snapshot->raw_html_hash);
     expect($second->snapshot->content_changed)->toBeFalse();
@@ -634,9 +634,9 @@ it('fetches a monitored page from the artisan command synchronously', function (
         'monitoredPageId' => $page->id,
         '--sync' => true,
     ])
-        ->expectsOutput('Monitored page fetch changed.')
+        ->expectsOutput('Monitored page fetch unchanged.')
         ->expectsOutput('Snapshot number: 1')
-        ->expectsOutput('Content changed: yes')
+        ->expectsOutput('Content changed: no')
         ->assertExitCode(0);
 });
 

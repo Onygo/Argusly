@@ -1,9 +1,5 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Schedule;
 use App\Jobs\Analytics\BuildAnalyticsRollupsJob;
 use App\Jobs\Analytics\PurgeOldAnalyticsEventsJob;
 use App\Jobs\BillingBackfillMonthlyCreditsJob;
@@ -12,14 +8,18 @@ use App\Jobs\CreditResetJob;
 use App\Jobs\DetectDuplicateCanonicalIssuesJob;
 use App\Jobs\DetectRedirectChainsJob;
 use App\Jobs\DunningJob;
-use App\Jobs\MandateActivationRetryJob;
 use App\Jobs\LlmTracking\BuildLlmTrackingAggregatesJob;
-use App\Jobs\SyncSearchConsoleIndexationJob;
-use App\Jobs\Stats\RecalculateContentMetricsJob;
+use App\Jobs\MandateActivationRetryJob;
 use App\Jobs\Stats\RecalculateAiSeoScoresJob;
+use App\Jobs\Stats\RecalculateContentMetricsJob;
 use App\Jobs\Stats\UpdateContentAiVisibilityJob;
+use App\Jobs\SyncSearchConsoleIndexationJob;
 use App\Jobs\ValidateCanonicalIntegrityJob;
 use App\Jobs\ValidateSitemapEntriesJob;
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -38,17 +38,17 @@ File::ensureDirectoryExists($scheduleLogPath);
 Schedule::command('argusly:processBriefs')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/argusly-process-briefs.log');
+    ->appendOutputTo($scheduleLogPath.'/argusly-process-briefs.log');
 
 Schedule::command('argusly:generateDrafts')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/argusly-generate-drafts.log');
+    ->appendOutputTo($scheduleLogPath.'/argusly-generate-drafts.log');
 
 Schedule::command('argusly:deliverDrafts')
     ->everyMinute()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/argusly-deliver-drafts.log');
+    ->appendOutputTo($scheduleLogPath.'/argusly-deliver-drafts.log');
 
 Schedule::command('drafts:dispatch-deliveries --limit=25')
     ->everyMinute()
@@ -58,23 +58,23 @@ Schedule::command('queue:worker-heartbeat')
     ->everyMinute()
     ->withoutOverlapping();
 
-Schedule::job(new CreditResetJob())
+Schedule::job(new CreditResetJob)
     ->hourly()
     ->withoutOverlapping();
 
-Schedule::job(new CreditExpiryJob())
+Schedule::job(new CreditExpiryJob)
     ->dailyAt('01:00')
     ->withoutOverlapping();
 
-Schedule::job(new BillingBackfillMonthlyCreditsJob())
+Schedule::job(new BillingBackfillMonthlyCreditsJob)
     ->dailyAt('01:30')
     ->withoutOverlapping();
 
-Schedule::job(new MandateActivationRetryJob())
+Schedule::job(new MandateActivationRetryJob)
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 
-Schedule::job(new DunningJob())
+Schedule::job(new DunningJob)
     ->hourly()
     ->withoutOverlapping();
 
@@ -86,7 +86,7 @@ Schedule::command('llm-tracking:dispatch-daily --max-dispatch=120 --queue=defaul
     ->hourlyAt(7)
     ->withoutOverlapping();
 
-Schedule::job(new BuildLlmTrackingAggregatesJob())
+Schedule::job(new BuildLlmTrackingAggregatesJob)
     ->dailyAt('02:15')
     ->withoutOverlapping();
 
@@ -97,22 +97,22 @@ Schedule::command('content:dispatch-scheduled-publishes --limit=50')
 Schedule::command('social:dispatch-scheduled-publications --limit=50')
     ->everyMinute()
     ->withoutOverlapping()
-    ->appendOutputTo($scheduleLogPath . '/social-dispatch-scheduled-publications.log');
+    ->appendOutputTo($scheduleLogPath.'/social-dispatch-scheduled-publications.log');
 
 Schedule::command('connectors:dispatch-scheduled-syncs --limit=100 --queue=default')
     ->everyFiveMinutes()
     ->withoutOverlapping()
-    ->appendOutputTo($scheduleLogPath . '/connectors-dispatch-scheduled-syncs.log');
+    ->appendOutputTo($scheduleLogPath.'/connectors-dispatch-scheduled-syncs.log');
 
 Schedule::command('connectors:health-check --limit=100 --queue=default')
     ->everyFifteenMinutes()
     ->withoutOverlapping()
-    ->appendOutputTo($scheduleLogPath . '/connectors-health-check.log');
+    ->appendOutputTo($scheduleLogPath.'/connectors-health-check.log');
 
 Schedule::command('connectors:recover-stale-runs --limit=100')
     ->hourly()
     ->withoutOverlapping()
-    ->appendOutputTo($scheduleLogPath . '/connectors-recover-stale-runs.log');
+    ->appendOutputTo($scheduleLogPath.'/connectors-recover-stale-runs.log');
 
 Schedule::command('content:run-automations --limit=25')
     ->everyMinute()
@@ -129,7 +129,7 @@ Schedule::command('support:cleanup-snapshots --days=7')
 Schedule::command('page-intelligence:run-scheduled-briefings --limit=50')
     ->everyFifteenMinutes()
     ->withoutOverlapping(10)
-    ->appendOutputTo($scheduleLogPath . '/page-intelligence-run-scheduled-briefings.log');
+    ->appendOutputTo($scheduleLogPath.'/page-intelligence-run-scheduled-briefings.log');
 
 Schedule::command('billing:diagnose-mollie-webhook-gaps --hours=6 --limit=300 --notify-email=dev@argusly.com --alert-cooldown-minutes=120 --fail-on-issues')
     ->everyFifteenMinutes()
@@ -147,23 +147,54 @@ Schedule::command('access-overrides:expire')
     ->everyFiveMinutes()
     ->withoutOverlapping();
 
-Schedule::job(new BuildAnalyticsRollupsJob())
+Schedule::job(new BuildAnalyticsRollupsJob)
     ->hourly()
     ->withoutOverlapping();
 
-Schedule::job(new PurgeOldAnalyticsEventsJob())
+Schedule::job(new PurgeOldAnalyticsEventsJob)
     ->dailyAt('02:30')
     ->withoutOverlapping();
 
-Schedule::job(new RecalculateContentMetricsJob())
+Schedule::job(new RecalculateContentMetricsJob)
     ->dailyAt('02:40')
     ->withoutOverlapping();
 
-Schedule::job(new UpdateContentAiVisibilityJob())
+$observedInventoryDiscovery = Schedule::command('website-content:discover-observed-pages --limit='.(int) config('website_content_inventory.analytics_observed.max_urls_per_run', 500))
+    ->withoutOverlapping(60)
+    ->appendOutputTo($scheduleLogPath.'/website-content-discover-observed-pages.log');
+
+match ((string) config('website_content_inventory.schedules.analytics_observed', 'hourly')) {
+    'everyTwoHours' => $observedInventoryDiscovery->everyTwoHours(),
+    'everyThreeHours' => $observedInventoryDiscovery->cron('0 */3 * * *'),
+    'everyFourHours' => $observedInventoryDiscovery->everyFourHours(),
+    default => $observedInventoryDiscovery->hourly(),
+};
+
+$sitemapInventorySetup = Schedule::command('website-content:setup-sitemaps --discover')
+    ->withoutOverlapping(120)
+    ->appendOutputTo($scheduleLogPath.'/website-content-setup-sitemaps.log');
+
+match ((string) config('website_content_inventory.schedules.sitemap_setup', 'daily')) {
+    'hourly' => $sitemapInventorySetup->hourlyAt(15),
+    'everyFourHours' => $sitemapInventorySetup->everyFourHours(),
+    default => $sitemapInventorySetup->dailyAt('02:45'),
+};
+
+$inventoryRefresh = Schedule::command('website-content:refresh-pages --limit='.(int) config('website_content_inventory.refresh.limit', 100))
+    ->withoutOverlapping(60)
+    ->appendOutputTo($scheduleLogPath.'/website-content-refresh-pages.log');
+
+match ((string) config('website_content_inventory.schedules.stale_refresh', 'everyFourHours')) {
+    'hourly' => $inventoryRefresh->hourlyAt(25),
+    'everyTwoHours' => $inventoryRefresh->everyTwoHours(),
+    default => $inventoryRefresh->everyFourHours(),
+};
+
+Schedule::job(new UpdateContentAiVisibilityJob)
     ->dailyAt('02:50')
     ->withoutOverlapping();
 
-Schedule::job(new RecalculateAiSeoScoresJob())
+Schedule::job(new RecalculateAiSeoScoresJob)
     ->dailyAt('03:00')
     ->withoutOverlapping();
 
@@ -179,22 +210,22 @@ Schedule::command('agents:dispatch-scheduled-scans --site-limit=10 --content-lim
 //     ->withoutOverlapping()
 //     ->appendOutputTo($scheduleLogPath . '/agentic-run-autonomous.log');
 
-Schedule::job(new ValidateCanonicalIntegrityJob())
+Schedule::job(new ValidateCanonicalIntegrityJob)
     ->dailyAt('03:20')
     ->withoutOverlapping();
 
-Schedule::job(new DetectDuplicateCanonicalIssuesJob())
+Schedule::job(new DetectDuplicateCanonicalIssuesJob)
     ->dailyAt('03:25')
     ->withoutOverlapping();
 
-Schedule::job(new ValidateSitemapEntriesJob())
+Schedule::job(new ValidateSitemapEntriesJob)
     ->dailyAt('03:30')
     ->withoutOverlapping();
 
-Schedule::job(new DetectRedirectChainsJob())
+Schedule::job(new DetectRedirectChainsJob)
     ->dailyAt('03:35')
     ->withoutOverlapping();
 
-Schedule::job(new SyncSearchConsoleIndexationJob())
+Schedule::job(new SyncSearchConsoleIndexationJob)
     ->dailyAt('03:40')
     ->withoutOverlapping();

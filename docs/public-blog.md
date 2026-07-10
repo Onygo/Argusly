@@ -29,6 +29,7 @@ ARGUSLY_PUBLIC_BLOG_MAX_POSTS=300
 ```
 
 `ARGUSLY_MARKETING_BLOG_SOURCE_MODE` supports `workspace` or `site`.
+Legacy `PL_MARKETING_BLOG_SOURCE_*` and `PUBLISHLAYER_*` source env keys are still read as fallbacks, but new deployments should use the `ARGUSLY_` names.
 If mode/id are missing or invalid, the marketing blog returns no posts by default (safe no-leak behavior).
 `ARGUSLY_PUBLIC_BLOG_CONNECTOR_ENDPOINT` should point to an Argusly API endpoint returning a list of posts (`[]`, `{data: []}`, or `{posts: []}`).
 Source scope options are read from `config/marketing.php` (`blog_source` section).

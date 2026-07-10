@@ -9,6 +9,7 @@ use App\Jobs\Connectors\DiscoverConnectorDatasetsJob;
 use App\Jobs\Connectors\SyncConnectorDatasetJob;
 use App\Models\Connectors\ConnectorAccount;
 use App\Models\Connectors\ConnectorDataset;
+use App\Models\Connectors\ConnectorHealthEvent;
 use App\Models\Connectors\ConnectorProvider;
 use App\Models\Connectors\ConnectorSyncRun;
 use App\Models\Connectors\ConnectorToken;
@@ -553,7 +554,7 @@ class AppConnectorController extends Controller
             'rate_limit' => $account->rate_limit_json ?? [],
             'quota' => app(ConnectorRateLimitService::class)->snapshot($account),
             'last_api_call_at' => $account->last_api_call_at,
-            'last_error' => $account->last_error ?: $lastRun?->error_message,
+            'last_error' => $this->diagnosticLastError($account, $lastRun, $latestHealthEvent),
             'last_sync_duration_ms' => $lastRun?->duration_ms,
             'health_status' => $account->health_status,
             'health_severity' => $account->health_severity,
@@ -568,6 +569,38 @@ class AppConnectorController extends Controller
             'normalization' => $this->normalizationDiagnosticsFor($account),
             'currency' => $this->currencyDiagnosticsFor($account),
         ];
+    }
+
+    private function diagnosticLastError(
+        ConnectorAccount $account,
+        ?ConnectorSyncRun $lastRun,
+        ?ConnectorHealthEvent $latestHealthEvent,
+    ): ?string {
+        $lastError = trim((string) ($account->last_error ?: $lastRun?->error_message ?: ''));
+
+        if ($lastError === '') {
+            return null;
+        }
+
+        if ($account->health_status === ConnectorHealthEvent::STATUS_HEALTHY
+            && $latestHealthEvent instanceof ConnectorHealthEvent
+            && in_array($latestHealthEvent->event_type, [
+                ConnectorHealthEvent::EVENT_RESOLVED,
+                ConnectorHealthEvent::EVENT_RECOVERED,
+            ], true)
+        ) {
+            $healthyAt = $latestHealthEvent->occurred_at ?: $latestHealthEvent->created_at;
+            $lastErrorAt = $lastRun?->finished_at
+                ?: $lastRun?->updated_at
+                ?: $account->last_api_call_at
+                ?: $account->updated_at;
+
+            if ($healthyAt && (! $lastErrorAt || $healthyAt->gte($lastErrorAt))) {
+                return null;
+            }
+        }
+
+        return $lastError;
     }
 
     /**

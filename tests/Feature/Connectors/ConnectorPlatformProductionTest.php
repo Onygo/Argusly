@@ -20,6 +20,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorOAuthTokenClient;
 use App\Services\DataConnectors\ConnectorDriverManager;
+use App\Services\DataConnectors\ConnectorHealthService;
 use App\Services\DataConnectors\ConnectorSyncEngine;
 use App\Services\DataConnectors\ConnectorSyncPlan;
 use App\Services\DataConnectors\ConnectorSyncScheduler;
@@ -252,6 +253,45 @@ it('stores raw provider rows during sync alongside existing observations', funct
         ->and($raw->provider_key)->toBe('google_search_console')
         ->and($raw->record_type)->toBe('search_analytics')
         ->and($raw->payload_json['access_token'])->toBe('[redacted]');
+});
+
+it('does not show stale connector errors on diagnostics after health has recovered', function () {
+    $context = phase27ConnectedAccount('phase27-stale-diagnostics-error');
+    $failedAt = Carbon::parse('2026-07-10 10:00:00');
+    $message = 'Google Search Console Search Analytics request failed with status 400.';
+
+    Carbon::setTestNow($failedAt);
+
+    ConnectorSyncRun::query()->create([
+        'connector_account_id' => $context['account']->id,
+        'connector_dataset_id' => $context['dataset']->id,
+        'workspace_id' => $context['workspace']->id,
+        'client_site_id' => $context['site']->id,
+        'provider_key' => 'google_search_console',
+        'dataset_key' => $context['dataset']->dataset_key,
+        'status' => ConnectorSyncRun::STATUS_FAILED,
+        'run_type' => ConnectorSyncRun::TYPE_MANUAL,
+        'started_at' => $failedAt->copy()->subSecond(),
+        'finished_at' => $failedAt,
+        'error_message' => $message,
+    ]);
+
+    $context['account']->forceFill([
+        'last_api_call_at' => $failedAt,
+        'last_error' => $message,
+        'health_status' => ConnectorHealthEvent::STATUS_ERROR,
+        'health_severity' => ConnectorHealthEvent::SEVERITY_ERROR,
+    ])->save();
+
+    Carbon::setTestNow($failedAt->copy()->addMinutes(5));
+    app(ConnectorHealthService::class)->resolve($context['account']->fresh(), 'Connector health check passed.');
+    Carbon::setTestNow();
+
+    $this->actingAs($context['user'])
+        ->get(route('app.connectors.diagnostics', $context['account']->fresh()))
+        ->assertOk()
+        ->assertSee('Connector health check passed.')
+        ->assertDontSee($message);
 });
 
 it('queues manual syncs and scheduled syncs through generic jobs', function () {

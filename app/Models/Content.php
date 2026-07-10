@@ -6,22 +6,21 @@ use App\Agents\ContentRefresh\ContentRefreshAgent;
 use App\Agents\InternalLinking\InternalLinkingAgent;
 use App\Agents\Localization\LocalizationAgent;
 use App\Concerns\BelongsToOrganizationViaWorkspace;
-use App\Enums\ContentLifecycleStatus;
 use App\Enums\ContentDecayRiskLevel;
+use App\Enums\ContentDiscoveryMethod;
 use App\Enums\ContentIntelligenceStatus;
+use App\Enums\ContentInventorySourceType;
+use App\Enums\ContentLifecycleStatus;
+use App\Enums\ContentManagementType;
 use App\Enums\ContentOriginType;
+use App\Enums\ContentReviewStatus;
 use App\Enums\ContentSource;
 use App\Enums\ContentType;
 use App\Enums\SupportedLanguage;
 use App\Enums\WordPressPostType;
-use App\Models\ContentPublication;
-use App\Models\ContentImprovementRun;
-use App\Models\ContentAiVisibilitySnapshot;
-use App\Models\ContentIndexationHealth;
-use App\Models\ContentRecommendation;
-use App\Models\ContentTranslation;
-use App\Support\DescriptionSanitizer;
+use App\Services\Content\ContentSeriesArticleSyncService;
 use App\Support\ContentPersistencePayloadNormalizer;
+use App\Support\DescriptionSanitizer;
 use App\Support\KeywordSanitizer;
 use App\Support\SeoMetadata;
 use App\Support\TitleSanitizer;
@@ -30,6 +29,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -53,29 +53,26 @@ use Illuminate\Support\Facades\Schema;
  * Draft SEO fields are transitional (for editing) and sync to Content on approval.
  * ContentSeo is a legacy table maintained for backwards compatibility.
  *
- * @see \App\Support\SeoMetadata for resolution logic
- * @see \App\Models\ContentSeo (deprecated, legacy compatibility only)
+ * @see SeoMetadata for resolution logic
+ * @see ContentSeo (deprecated, legacy compatibility only)
  *
  * ### Remote ID - ContentPublication is the Single Source of Truth
  * For remote identifiers (WordPress post IDs, etc.), use ContentPublication.remote_id
  * instead of the legacy Content.wp_post_id field.
- *
- * @see \App\Models\ContentPublication for canonical publication tracking
+ * @see ContentPublication for canonical publication tracking
  * @see Content::getCanonicalRemoteId() for backwards-compatible resolution
  *
  * ### Delivery Status - ContentPublication is Authoritative
  * The Content.delivery_status field is a shadow/sync from ContentPublication for
  * backwards compatibility. Use ContentPublication.delivery_status for new code.
- *
- * @see \App\Models\ContentPublication::deliveryStatusEnum()
+ * @see ContentPublication::deliveryStatusEnum()
  * @see Content::resolveDeliveryStatus() for backwards-compatible resolution
  *
  * ### Versioning - Two Systems
  * ContentRevision: Numbered snapshots (R1, R2...) tied to specific Draft records (legacy)
  * ContentVersion: Hierarchical tree with parent-child lineage (preferred for new code)
- *
- * @see \App\Models\ContentRevision (legacy numbered snapshots)
- * @see \App\Models\ContentVersion (new hierarchical versioning)
+ * @see ContentRevision (legacy numbered snapshots)
+ * @see ContentVersion (new hierarchical versioning)
  */
 class Content extends Model
 {
@@ -181,6 +178,23 @@ class Content extends Model
         'published_url',
         'publish_url_key',
         'canonical_url_key',
+        'inventory_source_type',
+        'management_type',
+        'discovery_method',
+        'original_url',
+        'normalized_url',
+        'canonical_url',
+        'url_hash',
+        'content_fingerprint',
+        'http_status',
+        'first_seen_at',
+        'last_seen_at',
+        'last_fetched_at',
+        'external_modified_at',
+        'external_changed_at',
+        'review_status',
+        'campaign_eligible',
+        'inventory_metadata',
         'generation_mode',
         'brand_voice_id',
         'buyer_persona_id',
@@ -287,6 +301,18 @@ class Content extends Model
         'answer_block_generation_failed_at' => 'datetime',
         // Lifecycle management casts
         'lifecycle_stage' => ContentLifecycleStatus::class,
+        'inventory_source_type' => ContentInventorySourceType::class,
+        'management_type' => ContentManagementType::class,
+        'discovery_method' => ContentDiscoveryMethod::class,
+        'review_status' => ContentReviewStatus::class,
+        'campaign_eligible' => 'boolean',
+        'http_status' => 'integer',
+        'first_seen_at' => 'datetime',
+        'last_seen_at' => 'datetime',
+        'last_fetched_at' => 'datetime',
+        'external_modified_at' => 'datetime',
+        'external_changed_at' => 'datetime',
+        'inventory_metadata' => 'array',
         'due_at' => 'datetime',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
@@ -296,15 +322,16 @@ class Content extends Model
     {
         static::saved(function (self $content): void {
             if ($content->series_id) {
-                app(\App\Services\Content\ContentSeriesArticleSyncService::class)->syncContent($content);
+                app(ContentSeriesArticleSyncService::class)->syncContent($content);
+
                 return;
             }
 
-            app(\App\Services\Content\ContentSeriesArticleSyncService::class)->detachContent($content);
+            app(ContentSeriesArticleSyncService::class)->detachContent($content);
         });
 
         static::deleting(function (self $content): void {
-            app(\App\Services\Content\ContentSeriesArticleSyncService::class)->detachContent($content);
+            app(ContentSeriesArticleSyncService::class)->detachContent($content);
         });
     }
 
@@ -617,6 +644,24 @@ class Content extends Model
     public function campaignContents(): HasMany
     {
         return $this->hasMany(CampaignContent::class);
+    }
+
+    public function pageLinks(): HasMany
+    {
+        return $this->hasMany(ContentPageLink::class);
+    }
+
+    public function primaryPageLinks(): HasMany
+    {
+        return $this->pageLinks()->where('is_primary', true);
+    }
+
+    public function monitoredPages(): BelongsToMany
+    {
+        return $this->belongsToMany(MonitoredPage::class, 'content_page_links')
+            ->withPivot(['id', 'workspace_id', 'client_site_id', 'link_type', 'is_primary', 'confidence_score', 'metadata'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
     }
 
     public function socialPostVariants(): HasMany
@@ -1079,10 +1124,10 @@ class Content extends Model
 
     public static function supportsFamilyId(): bool
     {
-        $model = new static();
+        $model = new static;
         $connection = $model->getConnectionName() ?: config('database.default', 'default');
         $table = $model->getTable();
-        $cacheKey = $connection . ':' . $table . ':family_id';
+        $cacheKey = $connection.':'.$table.':family_id';
 
         return self::$familyIdColumnSupportCache[$cacheKey]
             ??= Schema::connection($model->getConnectionName())
@@ -1091,7 +1136,7 @@ class Content extends Model
 
     public static function localizationRootExpression(?string $table = null): string
     {
-        $table ??= (new static())->getTable();
+        $table ??= (new static)->getTable();
 
         $qualify = static fn (string $column) => sprintf('%s.%s', $table, $column);
 
@@ -1123,17 +1168,17 @@ class Content extends Model
 
     private static function contentTableName(): string
     {
-        return (new static())->getTable();
+        return (new static)->getTable();
     }
 
     private static function familyRootMatchRaw(string $outerTable): string
     {
-        return static::localizationRootExpression(static::familyAlias()) . ' = ' . static::localizationRootExpression($outerTable);
+        return static::localizationRootExpression(static::familyAlias()).' = '.static::localizationRootExpression($outerTable);
     }
 
     private static function expectedLocalesSubquery(string $outerTable): string
     {
-        $connection = app('db')->connection((new static())->getConnectionName());
+        $connection = app('db')->connection((new static)->getConnectionName());
         $jsonLength = $connection->getDriverName() === 'sqlite' ? 'json_array_length' : 'JSON_LENGTH';
         $workspaceCount = sprintf(
             '(SELECT %s(%s.enabled_content_languages) FROM workspaces %s WHERE %s.id = %s.workspace_id LIMIT 1)',
@@ -1178,7 +1223,7 @@ class Content extends Model
         return $query->whereExists(function ($subquery) use ($callback, $outerTable): void {
             $subquery
                 ->selectRaw('1')
-                ->from(static::contentTableName() . ' as ' . static::familyAlias())
+                ->from(static::contentTableName().' as '.static::familyAlias())
                 ->whereRaw(static::familyRootMatchRaw($outerTable));
 
             $callback($subquery, static::familyAlias());
@@ -1192,7 +1237,7 @@ class Content extends Model
         return $query->whereNotExists(function ($subquery) use ($callback, $outerTable): void {
             $subquery
                 ->selectRaw('1')
-                ->from(static::contentTableName() . ' as ' . static::familyAlias())
+                ->from(static::contentTableName().' as '.static::familyAlias())
                 ->whereRaw(static::familyRootMatchRaw($outerTable));
 
             $callback($subquery, static::familyAlias());
@@ -1448,7 +1493,7 @@ class Content extends Model
      * Returns the canonical SEO fields from Content, with fallback to legacy
      * ContentSeo and other sources for backwards compatibility.
      *
-     * @param array<string, mixed> $extraSources Additional fallback sources
+     * @param  array<string, mixed>  $extraSources  Additional fallback sources
      * @return array<string, mixed> Normalized SEO metadata
      */
     public function resolveSeoMetadata(array ...$extraSources): array
@@ -1473,8 +1518,8 @@ class Content extends Model
      *
      * This is the canonical write path for SEO - Draft edits flow to Content.
      *
-     * @param Draft $draft The draft to sync SEO fields from
-     * @param bool $overwriteExisting Whether to overwrite existing Content values
+     * @param  Draft  $draft  The draft to sync SEO fields from
+     * @param  bool  $overwriteExisting  Whether to overwrite existing Content values
      * @return bool True if any fields were updated
      */
     public function syncSeoFromDraft(Draft $draft, bool $overwriteExisting = true): bool
@@ -1530,8 +1575,8 @@ class Content extends Model
      * This is the preferred method for resolving remote identifiers.
      * Uses ContentPublication.remote_id as the single source of truth.
      *
-     * @param string|null $destinationId Specific destination, or null for primary
-     * @param string|null $clientSiteId Fallback to client site if no destination
+     * @param  string|null  $destinationId  Specific destination, or null for primary
+     * @param  string|null  $clientSiteId  Fallback to client site if no destination
      * @return string|null The remote ID (e.g., WordPress post ID)
      */
     public function getCanonicalRemoteId(?string $destinationId = null, ?string $clientSiteId = null): ?string
@@ -1606,8 +1651,8 @@ class Content extends Model
      * Uses ContentPublication.delivery_status as the authoritative source.
      * Falls back to Content.delivery_status for backwards compatibility.
      *
-     * @param string|null $destinationId Specific destination, or null for any
-     * @param string|null $clientSiteId Fallback to client site if no destination
+     * @param  string|null  $destinationId  Specific destination, or null for any
+     * @param  string|null  $clientSiteId  Fallback to client site if no destination
      * @return string The delivery status (pending, delivered, failed, etc.)
      */
     public function resolveDeliveryStatus(?string $destinationId = null, ?string $clientSiteId = null): string
@@ -1683,9 +1728,8 @@ class Content extends Model
     /**
      * Get the canonical ContentPublication for delivery operations.
      *
-     * @param string|null $destinationId Specific destination
-     * @param string|null $clientSiteId Fallback client site
-     * @return ContentPublication|null
+     * @param  string|null  $destinationId  Specific destination
+     * @param  string|null  $clientSiteId  Fallback client site
      */
     public function getPrimaryPublication(?string $destinationId = null, ?string $clientSiteId = null): ?ContentPublication
     {
@@ -1866,8 +1910,8 @@ class Content extends Model
         $table = $query->getModel()->getTable();
 
         return $query
-            ->whereRaw(static::publishedVariantsSubquery($table) . ' > 0')
-            ->whereRaw(static::publishedVariantsSubquery($table) . ' < ' . static::expectedLocalesSubquery($table));
+            ->whereRaw(static::publishedVariantsSubquery($table).' > 0')
+            ->whereRaw(static::publishedVariantsSubquery($table).' < '.static::expectedLocalesSubquery($table));
     }
 
     public function scopeFullyPublished(Builder $query): Builder
@@ -1875,9 +1919,9 @@ class Content extends Model
         $table = $query->getModel()->getTable();
 
         return $query
-            ->whereRaw(static::availableLocalesSubquery($table) . ' > 0')
-            ->whereRaw(static::availableLocalesSubquery($table) . ' >= ' . static::expectedLocalesSubquery($table))
-            ->whereRaw(static::publishedVariantsSubquery($table) . ' >= ' . static::expectedLocalesSubquery($table));
+            ->whereRaw(static::availableLocalesSubquery($table).' > 0')
+            ->whereRaw(static::availableLocalesSubquery($table).' >= '.static::expectedLocalesSubquery($table))
+            ->whereRaw(static::publishedVariantsSubquery($table).' >= '.static::expectedLocalesSubquery($table));
     }
 
     public function scopeFailedPublication(Builder $query): Builder
@@ -1908,23 +1952,23 @@ class Content extends Model
     {
         $table = $query->getModel()->getTable();
 
-        return $query->whereRaw(static::availableLocalesSubquery($table) . ' = 1')
-            ->whereRaw(static::availableLocalesSubquery($table) . ' < ' . static::expectedLocalesSubquery($table));
+        return $query->whereRaw(static::availableLocalesSubquery($table).' = 1')
+            ->whereRaw(static::availableLocalesSubquery($table).' < '.static::expectedLocalesSubquery($table));
     }
 
     public function scopePartiallyTranslated(Builder $query): Builder
     {
         $table = $query->getModel()->getTable();
 
-        return $query->whereRaw(static::availableLocalesSubquery($table) . ' > 1')
-            ->whereRaw(static::availableLocalesSubquery($table) . ' < ' . static::expectedLocalesSubquery($table));
+        return $query->whereRaw(static::availableLocalesSubquery($table).' > 1')
+            ->whereRaw(static::availableLocalesSubquery($table).' < '.static::expectedLocalesSubquery($table));
     }
 
     public function scopeFullyTranslated(Builder $query): Builder
     {
         $table = $query->getModel()->getTable();
 
-        return $query->whereRaw(static::availableLocalesSubquery($table) . ' >= ' . static::expectedLocalesSubquery($table));
+        return $query->whereRaw(static::availableLocalesSubquery($table).' >= '.static::expectedLocalesSubquery($table));
     }
 
     public function scopeTranslationFailed(Builder $query): Builder
@@ -1999,7 +2043,7 @@ class Content extends Model
                     $runQuery
                         ->selectRaw('1')
                         ->from('agent_runs')
-                        ->whereColumn('agent_runs.content_id', $this->getTable() . '.id')
+                        ->whereColumn('agent_runs.content_id', $this->getTable().'.id')
                         ->where('agent_runs.agent_key', ContentRefreshAgent::KEY)
                         ->whereIn('agent_runs.status', ['success', 'warning'])
                         ->whereRaw('COALESCE(JSON_EXTRACT(agent_runs.output_payload, "$.raw_payload.refresh_score"), JSON_EXTRACT(agent_runs.output_payload, "$.metrics.refresh_score"), 0) >= 35');
@@ -2011,13 +2055,13 @@ class Content extends Model
     {
         return $query->where(function (Builder $nested): void {
             $nested->needsRefresh()
-                ->orWhereDate($this->getTable() . '.updated_at', '<=', now()->subDays((int) config('content_refresh.thresholds.aging_days', 90)));
+                ->orWhereDate($this->getTable().'.updated_at', '<=', now()->subDays((int) config('content_refresh.thresholds.aging_days', 90)));
         });
     }
 
     public function scopeRecentlyUpdated(Builder $query): Builder
     {
-        return $query->where($this->getTable() . '.updated_at', '>=', now()->subDays(7));
+        return $query->where($this->getTable().'.updated_at', '>=', now()->subDays(7));
     }
 
     public function scopeLocaleOnly(Builder $query, string $locale): Builder
@@ -2025,7 +2069,7 @@ class Content extends Model
         $resolvedLocale = SupportedLanguage::fromStringOrDefault($locale)->value;
         $table = $query->getModel()->getTable();
 
-        $query->whereRaw(static::availableLocalesSubquery($table) . ' = 1');
+        $query->whereRaw(static::availableLocalesSubquery($table).' = 1');
 
         return $this->scopeWhereFamilyExists($query, fn ($subquery, string $alias) => $subquery->where("$alias.language", $resolvedLocale));
     }
@@ -2039,8 +2083,7 @@ class Content extends Model
                 $workspaceQuery
                     ->where('default_content_language', $resolvedLocale)
                     ->orWhereJsonContains('enabled_content_languages', $resolvedLocale);
-            })
-            ;
+            });
 
         return $this->scopeWhereFamilyNotExists($query, fn ($subquery, string $alias) => $subquery->where("$alias.language", $resolvedLocale));
     }
@@ -2049,7 +2092,7 @@ class Content extends Model
     {
         $table = $query->getModel()->getTable();
 
-        return $query->whereRaw(static::availableLocalesSubquery($table) . ' > 1');
+        return $query->whereRaw(static::availableLocalesSubquery($table).' > 1');
     }
 
     // =========================================================================

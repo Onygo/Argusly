@@ -186,6 +186,10 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
         Route::get('/insights/human-content', [AppHumanContentDashboardController::class, 'index'])->name('app.insights.human-content.index');
         Route::get('/page-intelligence', [AppMonitoredPageController::class, 'index'])->name('app.page-intelligence.index');
         Route::get('/page-intelligence/monitored-pages', [AppMonitoredPageController::class, 'index'])->name('app.page-intelligence.monitored-pages.index');
+        Route::post('/page-intelligence/content-inventory/{monitoredPage}/refresh', [AppMonitoredPageController::class, 'refresh'])->name('app.page-intelligence.content-inventory.refresh');
+        Route::post('/page-intelligence/content-inventory/{monitoredPage}/exclude', [AppMonitoredPageController::class, 'exclude'])->name('app.page-intelligence.content-inventory.exclude');
+        Route::post('/page-intelligence/content-inventory/{monitoredPage}/include', [AppMonitoredPageController::class, 'include'])->name('app.page-intelligence.content-inventory.include');
+        Route::post('/page-intelligence/content-inventory/{monitoredPage}/activate', [AppMonitoredPageController::class, 'activate'])->name('app.page-intelligence.content-inventory.activate');
         Route::get('/page-intelligence/monitored-pages/{monitoredPage}', [AppMonitoredPageController::class, 'show'])->name('app.page-intelligence.monitored-pages.show');
         Route::get('/page-intelligence/scheduled-briefings', [AppScheduledPageIntelligenceBriefingController::class, 'index'])->name('app.page-intelligence.scheduled-briefings.index');
         Route::post('/page-intelligence/scheduled-briefings', [AppScheduledPageIntelligenceBriefingController::class, 'store'])->name('app.page-intelligence.scheduled-briefings.store');
