@@ -1,0 +1,130 @@
+{
+  "provider": "google_ads",
+  "account_discovery": [
+    {
+      "customer": {
+        "id": "1234567890",
+        "descriptive_name": "Example EU Ads",
+        "currency_code": "EUR",
+        "time_zone": "Europe/Amsterdam",
+        "status": "ENABLED"
+      }
+    },
+    {
+      "customer": {
+        "id": "2345678901",
+        "descriptive_name": "Example US Ads",
+        "currency_code": "USD",
+        "time_zone": "America/New_York",
+        "status": "ENABLED"
+      }
+    }
+  ],
+  "campaign_hierarchy": [
+    {
+      "campaign": {
+        "id": "ga-campaign-001",
+        "name": "Brand Search NL",
+        "status": "ENABLED",
+        "advertising_channel_type": "SEARCH",
+        "start_date": "2026-07-01"
+      },
+      "campaign_budget": {
+        "amount_micros": 250000000
+      },
+      "ad_group": {
+        "id": "ga-adgroup-001",
+        "name": "Brand exact",
+        "status": "ENABLED",
+        "type": "SEARCH_STANDARD"
+      },
+      "ad": {
+        "id": "ga-ad-001",
+        "name": "Brand platform RSA",
+        "status": "ENABLED",
+        "type": "RESPONSIVE_SEARCH_AD",
+        "final_urls": [
+          "https://example.test/platform?utm_source=google&utm_medium=cpc&utm_campaign=brand"
+        ]
+      }
+    },
+    {
+      "campaign": {
+        "id": "ga-campaign-archived",
+        "name": "Legacy Search",
+        "status": "REMOVED",
+        "advertising_channel_type": "SEARCH"
+      }
+    }
+  ],
+  "performance_pages": [
+    {
+      "next_page_token": "page-2",
+      "results": [
+        {
+          "segments": {
+            "date": "2026-07-08"
+          },
+          "campaign": {
+            "id": "ga-campaign-001",
+            "name": "Brand Search NL",
+            "status": "ENABLED",
+            "advertising_channel_type": "SEARCH"
+          },
+          "ad_group": {
+            "id": "ga-adgroup-001",
+            "name": "Brand exact",
+            "status": "ENABLED"
+          },
+          "ad": {
+            "id": "ga-ad-001",
+            "status": "ENABLED",
+            "final_urls": [
+              "https://example.test/platform?utm_source=google&utm_medium=cpc&utm_campaign=brand"
+            ]
+          },
+          "metrics": {
+            "impressions": 1840,
+            "clicks": 221,
+            "cost_micros": 48300000,
+            "conversions": 17,
+            "ctr": 0.1201,
+            "average_cpc": 218552,
+            "average_cpm": 26250000
+          },
+          "currency": "EUR"
+        }
+      ]
+    },
+    {
+      "next_page_token": null,
+      "results": [
+        {
+          "segments": {
+            "date": "2026-07-09"
+          },
+          "campaign": {
+            "id": "ga-campaign-001"
+          },
+          "metrics": {
+            "impressions": 0,
+            "clicks": 0,
+            "cost_micros": 0
+          },
+          "currency": "EUR"
+        }
+      ]
+    }
+  ],
+  "partial_response": {
+    "segments": {
+      "date": "2026-07-10"
+    },
+    "campaign": {
+      "id": "ga-campaign-001"
+    },
+    "metrics": {
+      "impressions": 42
+    }
+  }
+}

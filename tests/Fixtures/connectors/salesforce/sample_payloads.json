@@ -1,0 +1,73 @@
+{
+  "provider": "salesforce",
+  "account_discovery": [
+    {
+      "organizationId": "00Dxx0000000001",
+      "name": "Example Salesforce Org",
+      "timeZoneSidKey": "America/New_York",
+      "defaultCurrencyIsoCode": "USD"
+    }
+  ],
+  "pagination": {
+    "nextRecordsUrl": "/services/data/v61.0/query/01gxx0000000001-2000",
+    "done": false
+  },
+  "accounts": [
+    {
+      "Id": "sf-account-001",
+      "Name": "Example Inc",
+      "Website": "https://example.test",
+      "Industry": "Technology",
+      "NumberOfEmployees": 125,
+      "LifecycleStage": "Customer",
+      "Custom_Region__c": "NA"
+    }
+  ],
+  "contacts": [
+    {
+      "Id": "sf-contact-001",
+      "Email": "lead.salesforce@example.test",
+      "FirstName": "Sample",
+      "LastName": "Buyer",
+      "Title": "VP Growth",
+      "AccountId": "sf-account-001",
+      "LeadSource": "Paid Search",
+      "Custom_Score__c": 87
+    }
+  ],
+  "opportunities": [
+    {
+      "Id": "sf-opportunity-001",
+      "AccountId": "sf-account-001",
+      "ContactId": "sf-contact-001",
+      "StageName": "Closed Won",
+      "PipelineId": "enterprise",
+      "Amount": 42000,
+      "CurrencyIsoCode": "USD",
+      "Probability": 100,
+      "CloseDate": "2026-07-09",
+      "IsClosed": true,
+      "Custom_Channel__c": "google_ads"
+    }
+  ],
+  "tasks": [
+    {
+      "Id": "sf-task-001",
+      "Subject": "Demo completed",
+      "TaskSubtype": "Call",
+      "ActivityDate": "2026-07-08",
+      "WhoId": "sf-contact-001",
+      "WhatId": "sf-opportunity-001"
+    }
+  ],
+  "deleted_entities": [
+    {
+      "Id": "sf-contact-deleted",
+      "IsDeleted": true
+    }
+  ],
+  "partial_response": {
+    "Id": "sf-contact-partial",
+    "FirstName": "Partial"
+  }
+}

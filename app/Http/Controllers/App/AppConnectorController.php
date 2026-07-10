@@ -8,6 +8,7 @@ use App\Jobs\Connectors\DiscoverConnectorDatasetsJob;
 use App\Jobs\Connectors\SyncConnectorDatasetJob;
 use App\Models\Connectors\ConnectorAccount;
 use App\Models\Connectors\ConnectorDataset;
+use App\Models\Connectors\NormalizationRun;
 use App\Models\Connectors\ConnectorSyncRun;
 use App\Models\Connectors\ConnectorProvider;
 use App\Models\Workspace;
@@ -19,6 +20,7 @@ use App\Services\DataConnectors\ConnectorProviderManifestService;
 use App\Services\DataConnectors\ConnectorProviderKeyResolver;
 use App\Services\DataConnectors\ConnectorRateLimitService;
 use App\Services\DataConnectors\ConnectorSyncScheduler;
+use App\Services\DataConnectors\Normalization\ConnectorNormalizationService;
 use App\Services\DataConnectors\DataConnectorRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -130,6 +132,7 @@ class AppConnectorController extends Controller
             'backfillRanges' => fn ($query) => $query->latest('created_at')->limit(10),
             'fieldMappingPreparations' => fn ($query) => $query->orderBy('object_key'),
             'webhookRegistration',
+            'normalizationRuns' => fn ($query) => $query->latest('created_at')->limit(10),
         ]);
 
         $manifest = app(ConnectorProviderManifestService::class)->manifest($connectorAccount);
@@ -158,6 +161,7 @@ class AppConnectorController extends Controller
             'healthEvents' => fn ($query) => $query->latest('occurred_at')->limit(25),
             'quotaBudgets' => fn ($query) => $query->orderBy('budget_type')->orderBy('connector_account_id'),
             'asyncReportJobs' => fn ($query) => $query->latest('created_at')->limit(25),
+            'normalizationRuns' => fn ($query) => $query->with(['items' => fn ($items) => $items->latest('created_at')->limit(25)])->latest('created_at')->limit(25),
             'webhookRegistration',
         ]);
 
@@ -262,6 +266,49 @@ class AppConnectorController extends Controller
         CheckConnectorHealthJob::dispatch((string) $connectorAccount->id);
 
         return back()->with('status', 'Health check queued.');
+    }
+
+    public function normalize(
+        Request $request,
+        ConnectorAccount $connectorAccount,
+        ConnectorNormalizationService $normalization,
+        ConnectorAuditLogger $audit,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $connectorAccount->workspace_id === (string) $workspace->id, 404);
+
+        $this->authorize('update', $connectorAccount);
+
+        $run = $normalization->enqueueForAccount($connectorAccount, 'manual');
+
+        $audit->record($connectorAccount, 'connector.normalization_requested', null, [
+            'workspace_id' => $connectorAccount->workspace_id,
+            'provider_key' => $connectorAccount->provider_key,
+            'normalization_run_id' => $run->id,
+        ], $request->user(), $request);
+
+        return back()->with('status', 'Normalization queued.');
+    }
+
+    public function retryNormalization(
+        Request $request,
+        NormalizationRun $normalizationRun,
+        ConnectorNormalizationService $normalization,
+    ): RedirectResponse {
+        $workspace = $this->resolveWorkspace($request);
+        abort_unless($workspace, 404);
+        abort_unless((string) $normalizationRun->workspace_id === (string) $workspace->id, 404);
+
+        $normalizationRun->loadMissing('account');
+        abort_unless($normalizationRun->account instanceof ConnectorAccount, 404);
+
+        $this->authorize('update', $normalizationRun->account);
+        abort_unless($normalizationRun->status === NormalizationRun::STATUS_FAILED, 404);
+
+        $normalization->retry($normalizationRun);
+
+        return back()->with('status', 'Normalization retry queued.');
     }
 
     public function backfill(
@@ -462,6 +509,75 @@ class AppConnectorController extends Controller
             'async_report_jobs' => DB::table('connector_async_report_jobs')->where('connector_account_id', $account->id)->count(),
             'backfill_ranges' => DB::table('connector_backfill_ranges')->where('connector_account_id', $account->id)->count(),
             'webhook_status' => $account->webhookRegistration?->status,
+            'normalization' => $this->normalizationDiagnosticsFor($account),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizationDiagnosticsFor(ConnectorAccount $account): array
+    {
+        $lastRun = $account->normalizationRuns()
+            ->latest('created_at')
+            ->first();
+
+        $runIds = $account->normalizationRuns()->pluck('id');
+
+        $normalizedCounts = [
+            'marketing_accounts' => DB::table('connector_normalized_marketing_accounts')->where('connector_account_id', $account->id)->count(),
+            'campaigns' => DB::table('connector_normalized_campaigns')->where('connector_account_id', $account->id)->count(),
+            'ad_groups' => DB::table('connector_normalized_ad_groups')->where('connector_account_id', $account->id)->count(),
+            'ads' => DB::table('connector_normalized_ads')->where('connector_account_id', $account->id)->count(),
+            'daily_performance' => DB::table('connector_normalized_daily_performances')->where('connector_account_id', $account->id)->count(),
+            'crm_companies' => DB::table('connector_normalized_crm_companies')->where('connector_account_id', $account->id)->count(),
+            'crm_contacts' => DB::table('connector_normalized_crm_contacts')->where('connector_account_id', $account->id)->count(),
+            'crm_deals' => DB::table('connector_normalized_crm_deals')->where('connector_account_id', $account->id)->count(),
+            'crm_activities' => DB::table('connector_normalized_crm_activities')->where('connector_account_id', $account->id)->count(),
+        ];
+
+        $failedItems = $runIds->isEmpty()
+            ? 0
+            : DB::table('connector_normalization_run_items')
+                ->whereIn('connector_normalization_run_id', $runIds)
+                ->where('status', 'failed')
+                ->count();
+
+        $skippedItems = $runIds->isEmpty()
+            ? 0
+            : DB::table('connector_normalization_run_items')
+                ->whereIn('connector_normalization_run_id', $runIds)
+                ->where('status', 'skipped')
+                ->count();
+
+        $datasetCoverage = $account->datasets()
+            ->orderBy('display_name')
+            ->get()
+            ->map(fn (ConnectorDataset $dataset): array => [
+                'dataset_key' => $dataset->dataset_key,
+                'display_name' => $dataset->display_name,
+                'raw_records' => DB::table('connector_raw_records')->where('connector_dataset_id', $dataset->id)->count(),
+                'normalization_runs' => DB::table('connector_normalization_runs')->where('connector_dataset_id', $dataset->id)->count(),
+                'last_normalized_at' => DB::table('connector_normalization_runs')
+                    ->where('connector_dataset_id', $dataset->id)
+                    ->whereIn('status', [NormalizationRun::STATUS_COMPLETED, NormalizationRun::STATUS_FAILED, NormalizationRun::STATUS_SKIPPED])
+                    ->latest('finished_at')
+                    ->value('finished_at'),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'last_run' => $lastRun,
+            'last_normalization_at' => $lastRun?->finished_at,
+            'records_processed' => (int) ($lastRun?->records_processed ?? 0),
+            'records_written' => (int) ($lastRun?->records_written ?? 0),
+            'records_failed' => (int) ($lastRun?->records_failed ?? 0),
+            'latest_error' => $lastRun?->latest_error,
+            'normalized_counts' => $normalizedCounts,
+            'failed_mapper_items' => $failedItems,
+            'skipped_items' => $skippedItems,
+            'provider_dataset_coverage' => $datasetCoverage,
         ];
     }
 

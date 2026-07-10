@@ -1,0 +1,84 @@
+{
+  "provider": "pipedrive",
+  "account_discovery": [
+    {
+      "company_id": "pd-company-tenant-001",
+      "name": "Example Pipedrive",
+      "timezone": "Europe/Berlin",
+      "currency": "EUR"
+    }
+  ],
+  "pagination": {
+    "start": 0,
+    "limit": 100,
+    "more_items_in_collection": true,
+    "next_start": 100
+  },
+  "organizations": [
+    {
+      "id": "pd-org-001",
+      "name": "Example GmbH",
+      "domain": "example.test",
+      "industry": "B2B SaaS",
+      "owner_id": {
+        "id": "pd-user-001"
+      },
+      "custom_segment": "mid-market"
+    }
+  ],
+  "persons": [
+    {
+      "id": "pd-person-001",
+      "name": "Sample Buyer",
+      "email": [
+        {
+          "value": "lead.pipedrive@example.test",
+          "primary": true
+        }
+      ],
+      "primary_email": "lead.pipedrive@example.test",
+      "org_id": {
+        "value": "pd-org-001"
+      },
+      "job_title": "Revenue Ops",
+      "custom_persona": "operator"
+    }
+  ],
+  "deals": [
+    {
+      "id": "pd-deal-001",
+      "person_id": {
+        "value": "pd-person-001"
+      },
+      "org_id": {
+        "value": "pd-org-001"
+      },
+      "pipeline_id": "pd-pipeline-001",
+      "stage_id": "pd-stage-won",
+      "status": "won",
+      "value": 9500,
+      "currency": "EUR",
+      "expected_close_date": "2026-07-09",
+      "probability": 100,
+      "custom_source": "meta_ads"
+    },
+    {
+      "id": "pd-deal-deleted",
+      "status": "deleted"
+    }
+  ],
+  "activities": [
+    {
+      "id": "pd-activity-001",
+      "type": "meeting",
+      "subject": "Implementation plan",
+      "due_date": "2026-07-08",
+      "person_id": "pd-person-001",
+      "deal_id": "pd-deal-001"
+    }
+  ],
+  "partial_response": {
+    "id": "pd-person-partial",
+    "name": "Partial Person"
+  }
+}

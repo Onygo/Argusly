@@ -158,4 +158,9 @@ class ConnectorSyncRun extends Model
     {
         return $this->hasMany(ConnectorRawRecord::class, 'connector_sync_run_id');
     }
+
+    public function normalizationRuns(): HasMany
+    {
+        return $this->hasMany(NormalizationRun::class, 'connector_sync_run_id');
+    }
 }

@@ -1,0 +1,80 @@
+{
+  "provider": "meta_ads",
+  "account_discovery": [
+    {
+      "account_id": "act_1000000001",
+      "account_name": "Example Meta Ads",
+      "currency": "GBP",
+      "timezone_name": "Europe/London",
+      "account_status": "ACTIVE"
+    }
+  ],
+  "campaign_hierarchy": [
+    {
+      "account_id": "act_1000000001",
+      "campaign_id": "meta-campaign-001",
+      "campaign_name": "Paid Social Demo",
+      "campaign_status": "ACTIVE",
+      "objective": "OUTCOME_LEADS",
+      "adset_id": "meta-adset-001",
+      "adset_name": "Founders UK",
+      "adset_status": "ACTIVE",
+      "ad_id": "meta-ad-001",
+      "ad_name": "Lead form video",
+      "ad_status": "ACTIVE",
+      "creative_type": "VIDEO",
+      "destination_url": "https://example.test/demo?utm_source=meta&utm_medium=paid_social&utm_campaign=demo"
+    },
+    {
+      "account_id": "act_1000000001",
+      "campaign_id": "meta-campaign-archived",
+      "campaign_name": "Archived Q2 Test",
+      "campaign_status": "ARCHIVED"
+    }
+  ],
+  "performance_pages": [
+    {
+      "paging": {
+        "cursors": {
+          "after": "QVFI"
+        }
+      },
+      "data": [
+        {
+          "date_start": "2026-07-08",
+          "account_id": "act_1000000001",
+          "campaign_id": "meta-campaign-001",
+          "campaign_name": "Paid Social Demo",
+          "adset_id": "meta-adset-001",
+          "ad_id": "meta-ad-001",
+          "impressions": "4300",
+          "clicks": "301",
+          "spend": "612.45",
+          "conversions": "19",
+          "ctr": "7.0",
+          "cpc": "2.034718",
+          "cpm": "142.430233",
+          "currency": "GBP"
+        }
+      ]
+    },
+    {
+      "paging": {},
+      "data": [
+        {
+          "date_start": "2026-07-09",
+          "account_id": "act_1000000001",
+          "campaign_id": "meta-campaign-001",
+          "impressions": "1100",
+          "spend": "0",
+          "currency": "GBP"
+        }
+      ]
+    }
+  ],
+  "partial_response": {
+    "date_start": "2026-07-10",
+    "campaign_id": "meta-campaign-001",
+    "impressions": "50"
+  }
+}

@@ -5,6 +5,10 @@ namespace App\Providers;
 use App\Billing\Providers\MolliePaymentProvider;
 use App\Billing\Providers\PaymentProviderRegistry;
 use App\Contracts\ConnectorPublicBlogSource;
+use App\Contracts\Connectors\Intelligence\CampaignIntelligenceFeed;
+use App\Contracts\Connectors\Intelligence\LeadIntelligenceFeed;
+use App\Contracts\Connectors\Intelligence\MarketingIntelligenceFeed;
+use App\Contracts\Connectors\Intelligence\SalesIntelligenceFeed;
 use App\Contracts\LinkIntelligence\AnchorTextService;
 use App\Contracts\LinkIntelligence\EmbeddingService;
 use App\Contracts\LinkIntelligence\EntityExtractionService;
@@ -17,6 +21,8 @@ use App\Contracts\PublicBlogSource;
 use App\Domain\AccessOverrides\AccessOverrideResolver;
 use App\Events\Agents\ContentPublished;
 use App\Events\Agents\TranslationCompleted;
+use App\Events\Connectors\ConnectorRawRecordsWritten;
+use App\Events\Connectors\ConnectorSyncCompletedForTransformation;
 use App\Events\LinkIntelligence\ArticleSignalsRequested;
 use App\Events\Notifications\DraftDeliveryFailed;
 use App\Events\Notifications\SiteVerified;
@@ -31,6 +37,8 @@ use App\Listeners\Agents\RunLocalizationChecksAfterTranslation;
 use App\Listeners\Agents\RunRefreshAnalysisAfterPublish;
 use App\Listeners\Content\SyncLinkedLocalePublishingAfterTranslation;
 use App\Listeners\ContentAutomation\SyncAutomationTranslationResult;
+use App\Listeners\Connectors\QueueConnectorRawRecordNormalization;
+use App\Listeners\Connectors\QueueConnectorSyncNormalization;
 use App\Listeners\LinkIntelligence\QueueBuildArticleSignals;
 use App\Listeners\Marketing\InvalidateCrossLocaleRedirectsOnPublish;
 use App\Listeners\Notifications\SendDraftDeliveredNotification;
@@ -171,6 +179,10 @@ use App\Services\Credits\CreditWarningService;
 use App\Services\DataConnectors\ConnectorOAuthTokenClient;
 use App\Services\DataConnectors\DataConnectorRegistry;
 use App\Services\DataConnectors\HttpConnectorOAuthTokenClient;
+use App\Services\DataConnectors\Intelligence\NormalizedCampaignIntelligenceFeed;
+use App\Services\DataConnectors\Intelligence\NormalizedLeadIntelligenceFeed;
+use App\Services\DataConnectors\Intelligence\NormalizedMarketingIntelligenceFeed;
+use App\Services\DataConnectors\Intelligence\NormalizedSalesIntelligenceFeed;
 use App\Services\DompdfInvoicePdfRenderer;
 use App\Services\FakeInvoicePdfRenderer;
 use App\Services\Integrations\ApiCapabilityService;
@@ -267,6 +279,11 @@ class AppServiceProvider extends ServiceProvider
             (array) config('data_connectors.providers', []),
             $app
         ));
+
+        $this->app->bind(MarketingIntelligenceFeed::class, NormalizedMarketingIntelligenceFeed::class);
+        $this->app->bind(CampaignIntelligenceFeed::class, NormalizedCampaignIntelligenceFeed::class);
+        $this->app->bind(LeadIntelligenceFeed::class, NormalizedLeadIntelligenceFeed::class);
+        $this->app->bind(SalesIntelligenceFeed::class, NormalizedSalesIntelligenceFeed::class);
 
         $this->app->bind(ConnectorOAuthTokenClient::class, HttpConnectorOAuthTokenClient::class);
 
@@ -544,6 +561,8 @@ class AppServiceProvider extends ServiceProvider
             Event::listen(ContentPublished::class, InvalidateCrossLocaleRedirectsOnPublish::class);
             Event::listen(DraftDeliveryFailed::class, SendDraftDeliveryFailedNotification::class);
             Event::listen(SiteVerified::class, SendSiteVerifiedNotification::class);
+            Event::listen(ConnectorRawRecordsWritten::class, QueueConnectorRawRecordNormalization::class);
+            Event::listen(ConnectorSyncCompletedForTransformation::class, QueueConnectorSyncNormalization::class);
 
             self::$eventListenersRegistered = true;
         }

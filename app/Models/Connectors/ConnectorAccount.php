@@ -3,6 +3,15 @@
 namespace App\Models\Connectors;
 
 use App\Models\ClientSite;
+use App\Models\Connectors\Normalized\NormalizedAd;
+use App\Models\Connectors\Normalized\NormalizedAdGroup;
+use App\Models\Connectors\Normalized\NormalizedCampaign;
+use App\Models\Connectors\Normalized\NormalizedCrmActivity;
+use App\Models\Connectors\Normalized\NormalizedCrmCompany;
+use App\Models\Connectors\Normalized\NormalizedCrmContact;
+use App\Models\Connectors\Normalized\NormalizedCrmDeal;
+use App\Models\Connectors\Normalized\NormalizedDailyPerformance;
+use App\Models\Connectors\Normalized\NormalizedMarketingAccount;
 use App\Models\MarketingObservation;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Builder;
@@ -154,5 +163,55 @@ class ConnectorAccount extends Model
     public function webhookRegistration(): HasOne
     {
         return $this->hasOne(ConnectorWebhookRegistration::class, 'connector_account_id');
+    }
+
+    public function normalizationRuns(): HasMany
+    {
+        return $this->hasMany(NormalizationRun::class, 'connector_account_id');
+    }
+
+    public function normalizedMarketingAccounts(): HasMany
+    {
+        return $this->hasMany(NormalizedMarketingAccount::class, 'connector_account_id');
+    }
+
+    public function normalizedCampaigns(): HasMany
+    {
+        return $this->hasMany(NormalizedCampaign::class, 'connector_account_id');
+    }
+
+    public function normalizedAdGroups(): HasMany
+    {
+        return $this->hasMany(NormalizedAdGroup::class, 'connector_account_id');
+    }
+
+    public function normalizedAds(): HasMany
+    {
+        return $this->hasMany(NormalizedAd::class, 'connector_account_id');
+    }
+
+    public function normalizedDailyPerformances(): HasMany
+    {
+        return $this->hasMany(NormalizedDailyPerformance::class, 'connector_account_id');
+    }
+
+    public function normalizedCrmCompanies(): HasMany
+    {
+        return $this->hasMany(NormalizedCrmCompany::class, 'connector_account_id');
+    }
+
+    public function normalizedCrmContacts(): HasMany
+    {
+        return $this->hasMany(NormalizedCrmContact::class, 'connector_account_id');
+    }
+
+    public function normalizedCrmDeals(): HasMany
+    {
+        return $this->hasMany(NormalizedCrmDeal::class, 'connector_account_id');
+    }
+
+    public function normalizedCrmActivities(): HasMany
+    {
+        return $this->hasMany(NormalizedCrmActivity::class, 'connector_account_id');
     }
 }

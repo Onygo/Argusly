@@ -15,6 +15,7 @@
         <x-metric-card label="Datasets" :value="$account->datasets->count()" />
         <x-metric-card label="Sync runs" :value="$account->syncRuns->count()" />
         <x-metric-card label="Raw records" :value="$diagnostics['raw_records']" />
+        <x-metric-card label="Normalized" :value="collect(data_get($diagnostics, 'normalization.normalized_counts', []))->sum()" />
     </x-metric-section>
 @endsection
 
@@ -91,6 +92,13 @@
                             <span>Health</span>
                         </button>
                     </form>
+                    <form method="POST" action="{{ route('app.connectors.normalize', $account) }}">
+                        @csrf
+                        <button type="submit" class="pl-btn-secondary">
+                            <i data-lucide="shuffle" class="h-4 w-4"></i>
+                            <span>Normalize</span>
+                        </button>
+                    </form>
                     <form method="POST" action="{{ route('app.connectors.reconnect', $account) }}">
                         @csrf
                         <button type="submit" class="pl-btn-secondary">
@@ -115,6 +123,101 @@
                     </form>
                 </div>
             </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-surface">
+            <div class="flex flex-col gap-4 border-b border-border px-5 py-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                    <h2 class="text-base font-semibold text-textPrimary">Normalization health</h2>
+                    <p class="mt-1 text-sm text-textSecondary">Canonical entity output from raw provider records.</p>
+                </div>
+                @if (data_get($diagnostics, 'normalization.last_run'))
+                    @include('app.connectors.partials.status-badge', ['status' => data_get($diagnostics, 'normalization.last_run.status')])
+                @endif
+            </div>
+            <div class="grid gap-5 p-5 lg:grid-cols-3">
+                <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:col-span-1">
+                    <div>
+                        <dt class="text-xs text-textFaint">Last normalization</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.last_normalization_at')?->diffForHumans() ?? 'Never' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Processed</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.records_processed', 0) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Written</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.records_written', 0) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Failed</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.records_failed', 0) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Failed items</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.failed_mapper_items', 0) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Skipped items</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.skipped_items', 0) }}</dd>
+                    </div>
+                </dl>
+                <div class="lg:col-span-2">
+                    <div class="grid gap-2 sm:grid-cols-3">
+                        @foreach ((array) data_get($diagnostics, 'normalization.normalized_counts', []) as $label => $count)
+                            <div class="rounded-md border border-border bg-background px-3 py-2">
+                                <p class="text-xs text-textFaint">{{ \Illuminate\Support\Str::headline((string) $label) }}</p>
+                                <p class="mt-1 text-sm font-semibold text-textPrimary">{{ $count }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if (data_get($diagnostics, 'normalization.latest_error'))
+                        <div class="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                            {{ data_get($diagnostics, 'normalization.latest_error') }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @if ($account->normalizationRuns->isNotEmpty())
+                <div class="border-t border-border">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-border text-sm">
+                            <thead class="bg-surfaceSubtle text-left text-xs uppercase tracking-wide text-textFaint">
+                                <tr>
+                                    <th class="px-5 py-3 font-medium">Trigger</th>
+                                    <th class="px-5 py-3 font-medium">Status</th>
+                                    <th class="px-5 py-3 font-medium">Records</th>
+                                    <th class="px-5 py-3 font-medium">Duration</th>
+                                    <th class="px-5 py-3 font-medium">Finished</th>
+                                    <th class="px-5 py-3 font-medium"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                @foreach ($account->normalizationRuns as $run)
+                                    <tr>
+                                        <td class="px-5 py-4 text-textSecondary">{{ \Illuminate\Support\Str::headline($run->trigger) }}</td>
+                                        <td class="px-5 py-4">@include('app.connectors.partials.status-badge', ['status' => $run->status])</td>
+                                        <td class="px-5 py-4 text-textSecondary">{{ $run->records_processed }} processed, {{ $run->records_written }} written</td>
+                                        <td class="px-5 py-4 text-textSecondary">{{ $run->duration_ms !== null ? round($run->duration_ms / 1000, 2).'s' : 'Pending' }}</td>
+                                        <td class="px-5 py-4 text-textSecondary">{{ $run->finished_at?->diffForHumans() ?? 'Running' }}</td>
+                                        <td class="px-5 py-4 text-right">
+                                            @if ($run->status === \App\Models\Connectors\NormalizationRun::STATUS_FAILED)
+                                                <form method="POST" action="{{ route('app.connectors.normalization-runs.retry', $run) }}">
+                                                    @csrf
+                                                    <button type="submit" class="pl-btn-secondary">
+                                                        <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                                                        <span>Retry</span>
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="grid gap-6 lg:grid-cols-3">

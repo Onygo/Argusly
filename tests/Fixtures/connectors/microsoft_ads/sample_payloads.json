@@ -1,0 +1,80 @@
+{
+  "provider": "microsoft_ads",
+  "account_discovery": [
+    {
+      "AccountId": "ms-account-001",
+      "Name": "Example Microsoft Ads",
+      "CurrencyCode": "USD",
+      "TimeZone": "PacificTimeUSCanadaTijuana",
+      "AccountLifeCycleStatus": "Active"
+    }
+  ],
+  "campaign_hierarchy": [
+    {
+      "AccountId": "ms-account-001",
+      "CampaignId": "ms-campaign-001",
+      "CampaignName": "Competitor Search",
+      "CampaignStatus": "Active",
+      "CampaignType": "Search",
+      "Budget": 1200.5,
+      "CurrencyCode": "USD",
+      "AdGroupId": "ms-adgroup-001",
+      "AdGroupName": "Alternative terms",
+      "AdGroupStatus": "Active",
+      "AdId": "ms-ad-001",
+      "AdName": "Comparison ad",
+      "AdStatus": "Active",
+      "FinalUrl": "https://example.test/compare?utm_source=bing&utm_medium=cpc&utm_campaign=competitor"
+    },
+    {
+      "AccountId": "ms-account-001",
+      "CampaignId": "ms-campaign-deleted",
+      "CampaignName": "Old remarketing",
+      "CampaignStatus": "Deleted",
+      "CampaignType": "Audience"
+    }
+  ],
+  "performance_pages": [
+    {
+      "continuationToken": "2",
+      "rows": [
+        {
+          "TimePeriod": "2026-07-08",
+          "date": "2026-07-08",
+          "CampaignId": "ms-campaign-001",
+          "CampaignName": "Competitor Search",
+          "AdGroupId": "ms-adgroup-001",
+          "AdId": "ms-ad-001",
+          "Impressions": 920,
+          "Clicks": 64,
+          "Cost": 152.78,
+          "Conversions": 6,
+          "Ctr": 0.069565,
+          "AverageCpc": 2.387188,
+          "AverageCpm": 166.065217,
+          "CurrencyCode": "USD"
+        }
+      ]
+    },
+    {
+      "continuationToken": null,
+      "rows": [
+        {
+          "TimePeriod": "2026-07-09",
+          "date": "2026-07-09",
+          "CampaignId": "ms-campaign-001",
+          "Impressions": 300,
+          "Clicks": 0,
+          "Cost": 0,
+          "CurrencyCode": "USD"
+        }
+      ]
+    }
+  ],
+  "partial_response": {
+    "TimePeriod": "2026-07-10",
+    "date": "2026-07-10",
+    "CampaignId": "ms-campaign-001",
+    "Impressions": 10
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "provider": "hubspot",
+  "account_discovery": [
+    {
+      "portalId": "44000001",
+      "name": "Example HubSpot Portal",
+      "timeZone": "Europe/Amsterdam",
+      "currency": "EUR"
+    }
+  ],
+  "pagination": {
+    "after": "51",
+    "has_more": true
+  },
+  "companies": [
+    {
+      "id": "hs-company-001",
+      "properties": {
+        "name": "Example SaaS BV",
+        "domain": "example.test",
+        "industry": "Software",
+        "numberofemployees": "42",
+        "lifecyclestage": "customer",
+        "custom_health_score": "green"
+      }
+    }
+  ],
+  "contacts": [
+    {
+      "id": "hs-contact-001",
+      "properties": {
+        "email": "lead.hubspot@example.test",
+        "firstname": "Sample",
+        "lastname": "Contact",
+        "jobtitle": "Marketing Lead",
+        "associatedcompanyid": "hs-company-001",
+        "lifecyclestage": "marketingqualifiedlead",
+        "custom_source_quality": "high"
+      },
+      "archived": false
+    },
+    {
+      "id": "hs-contact-archived",
+      "properties": {
+        "email": "archived.hubspot@example.test"
+      },
+      "archived": true
+    }
+  ],
+  "deals": [
+    {
+      "id": "hs-deal-001",
+      "properties": {
+        "dealstage": "closedwon",
+        "pipeline": "default",
+        "amount": "18000.00",
+        "currency": "EUR",
+        "closedate": "2026-07-09",
+        "associatedcompanyid": "hs-company-001",
+        "contact_id": "hs-contact-001",
+        "custom_contract_term": "annual"
+      }
+    }
+  ],
+  "activities": [
+    {
+      "id": "hs-activity-001",
+      "properties": {
+        "type": "call",
+        "subject": "Discovery call",
+        "occurred_at": "2026-07-08T09:30:00Z",
+        "contact_id": "hs-contact-001",
+        "deal_id": "hs-deal-001"
+      }
+    }
+  ],
+  "partial_response": {
+    "id": "hs-contact-partial",
+    "properties": {
+      "firstname": "NoEmail"
+    }
+  }
+}

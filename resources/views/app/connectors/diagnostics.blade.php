@@ -14,6 +14,7 @@
         <x-metric-card label="Token" :value="$diagnostics['token_valid'] ? 'Valid' : 'Invalid'" />
         <x-metric-card label="Health score" :value="$diagnostics['health_score'] !== null ? $diagnostics['health_score'].'/100' : 'Pending'" />
         <x-metric-card label="Raw records" :value="$diagnostics['raw_records']" />
+        <x-metric-card label="Normalized" :value="collect(data_get($diagnostics, 'normalization.normalized_counts', []))->sum()" />
     </x-metric-section>
 @endsection
 
@@ -29,6 +30,13 @@
                 <button type="submit" class="pl-btn-secondary">
                     <i data-lucide="activity" class="h-4 w-4"></i>
                     <span>Run Health</span>
+                </button>
+            </form>
+            <form method="POST" action="{{ route('app.connectors.normalize', $account) }}">
+                @csrf
+                <button type="submit" class="pl-btn-secondary">
+                    <i data-lucide="shuffle" class="h-4 w-4"></i>
+                    <span>Normalize</span>
                 </button>
             </form>
         </div>
@@ -102,6 +110,125 @@
                         {{ $diagnostics['last_error'] }}
                     </div>
                 @endif
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-surface">
+            <div class="border-b border-border px-5 py-4">
+                <h2 class="text-base font-semibold text-textPrimary">Normalization diagnostics</h2>
+            </div>
+            <div class="grid gap-5 p-5 lg:grid-cols-3">
+                <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                    <div>
+                        <dt class="text-xs text-textFaint">Last run</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.last_normalization_at')?->diffForHumans() ?? 'Never' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Failed mapper items</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.failed_mapper_items', 0) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Skipped items</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.skipped_items', 0) }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-xs text-textFaint">Latest error</dt>
+                        <dd class="mt-1 font-medium text-textPrimary">{{ data_get($diagnostics, 'normalization.latest_error') ?: 'None' }}</dd>
+                    </div>
+                </dl>
+                <div class="lg:col-span-2">
+                    <div class="grid gap-2 sm:grid-cols-3">
+                        @foreach ((array) data_get($diagnostics, 'normalization.normalized_counts', []) as $label => $count)
+                            <div class="rounded-md border border-border bg-background px-3 py-2">
+                                <p class="text-xs text-textFaint">{{ \Illuminate\Support\Str::headline((string) $label) }}</p>
+                                <p class="mt-1 text-sm font-semibold text-textPrimary">{{ $count }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto border-t border-border">
+                <table class="min-w-full divide-y divide-border text-sm">
+                    <thead class="bg-surfaceSubtle text-left text-xs uppercase tracking-wide text-textFaint">
+                        <tr>
+                            <th class="px-5 py-3 font-medium">Run</th>
+                            <th class="px-5 py-3 font-medium">Status</th>
+                            <th class="px-5 py-3 font-medium">Processed</th>
+                            <th class="px-5 py-3 font-medium">Written</th>
+                            <th class="px-5 py-3 font-medium">Failed</th>
+                            <th class="px-5 py-3 font-medium">Latest error</th>
+                            <th class="px-5 py-3 font-medium"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        @forelse ($account->normalizationRuns as $run)
+                            <tr>
+                                <td class="px-5 py-4">
+                                    <p class="font-medium text-textPrimary">{{ \Illuminate\Support\Str::headline($run->trigger) }}</p>
+                                    <p class="mt-1 text-xs text-textSecondary">{{ $run->created_at?->diffForHumans() }}</p>
+                                </td>
+                                <td class="px-5 py-4">@include('app.connectors.partials.status-badge', ['status' => $run->status])</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $run->records_processed }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $run->records_written }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $run->records_failed }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $run->latest_error ?: 'None' }}</td>
+                                <td class="px-5 py-4 text-right">
+                                    @if ($run->status === \App\Models\Connectors\NormalizationRun::STATUS_FAILED)
+                                        <form method="POST" action="{{ route('app.connectors.normalization-runs.retry', $run) }}">
+                                            @csrf
+                                            <button type="submit" class="pl-btn-secondary">
+                                                <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+                                                <span>Retry</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </td>
+                            </tr>
+                            @foreach ($run->items->whereIn('status', ['failed', 'skipped'])->take(5) as $item)
+                                <tr>
+                                    <td class="px-5 py-3 text-xs text-textSecondary" colspan="2">{{ $item->entity_type ?? 'raw record' }}</td>
+                                    <td class="px-5 py-3 text-xs text-textSecondary" colspan="4">{{ $item->error_message ?: data_get($item->metadata_json, 'reason', 'Skipped') }}</td>
+                                    <td class="px-5 py-3">@include('app.connectors.partials.status-badge', ['status' => $item->status])</td>
+                                </tr>
+                            @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="7" class="px-5 py-6 text-textSecondary">No normalization runs recorded.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="rounded-lg border border-border bg-surface">
+            <div class="border-b border-border px-5 py-4">
+                <h2 class="text-base font-semibold text-textPrimary">Provider dataset coverage</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-border text-sm">
+                    <thead class="bg-surfaceSubtle text-left text-xs uppercase tracking-wide text-textFaint">
+                        <tr>
+                            <th class="px-5 py-3 font-medium">Dataset</th>
+                            <th class="px-5 py-3 font-medium">Raw records</th>
+                            <th class="px-5 py-3 font-medium">Normalization runs</th>
+                            <th class="px-5 py-3 font-medium">Last normalized</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        @foreach ((array) data_get($diagnostics, 'normalization.provider_dataset_coverage', []) as $coverage)
+                            <tr>
+                                <td class="px-5 py-4">
+                                    <p class="font-medium text-textPrimary">{{ $coverage['display_name'] }}</p>
+                                    <p class="mt-1 text-xs text-textSecondary">{{ $coverage['dataset_key'] }}</p>
+                                </td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $coverage['raw_records'] }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $coverage['normalization_runs'] }}</td>
+                                <td class="px-5 py-4 text-textSecondary">{{ $coverage['last_normalized_at'] ? \Illuminate\Support\Carbon::parse($coverage['last_normalized_at'])->diffForHumans() : 'Never' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
 

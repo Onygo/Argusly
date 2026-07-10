@@ -2,7 +2,7 @@
     $statusValue = strtolower(trim((string) ($status ?? 'unknown')));
     $label = $label ?? \Illuminate\Support\Str::headline($statusValue);
     $classes = match ($statusValue) {
-        'active', 'connected', 'succeeded', 'healthy', 'info', 'ok', 'prepared', 'ready', 'registered' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
+        'active', 'connected', 'succeeded', 'completed', 'healthy', 'info', 'ok', 'prepared', 'ready', 'registered' => 'border-emerald-200 bg-emerald-50 text-emerald-800',
         'draft', 'pending', 'running', 'warning', 'degraded', 'soft_warning' => 'border-amber-200 bg-amber-50 text-amber-800',
         'inactive', 'skipped', 'cancelled', 'disabled', 'not_supported' => 'border-slate-200 bg-slate-50 text-slate-700',
         'expired', 'expired_token', 'needs_reconnect', 'rate_limited', 'revoked', 'error', 'failed', 'critical', 'hard_stop' => 'border-rose-200 bg-rose-50 text-rose-800',

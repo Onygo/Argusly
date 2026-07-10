@@ -167,4 +167,9 @@ class ConnectorDataset extends Model
     {
         return $this->hasMany(ConnectorFieldMappingPreparation::class, 'connector_dataset_id');
     }
+
+    public function normalizationRuns(): HasMany
+    {
+        return $this->hasMany(NormalizationRun::class, 'connector_dataset_id');
+    }
 }

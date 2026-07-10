@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ConnectorBackfillRange extends Model
 {
@@ -75,5 +76,10 @@ class ConnectorBackfillRange extends Model
     public function syncRun(): BelongsTo
     {
         return $this->belongsTo(ConnectorSyncRun::class, 'connector_sync_run_id');
+    }
+
+    public function normalizationRuns(): HasMany
+    {
+        return $this->hasMany(NormalizationRun::class, 'connector_backfill_range_id');
     }
 }

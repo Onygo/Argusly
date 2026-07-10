@@ -8,6 +8,7 @@ use App\Services\DataConnectors\ConnectorAuditLogger;
 use App\Services\DataConnectors\ConnectorSyncCursor;
 use App\Services\DataConnectors\ConnectorSyncEngine;
 use App\Services\DataConnectors\ConnectorSyncPlan;
+use App\Services\DataConnectors\Normalization\ConnectorNormalizationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,8 +27,11 @@ class RunConnectorBackfillRangeJob implements ShouldQueue
     {
     }
 
-    public function handle(ConnectorSyncEngine $engine, ConnectorAuditLogger $audit): void
-    {
+    public function handle(
+        ConnectorSyncEngine $engine,
+        ConnectorAuditLogger $audit,
+        ConnectorNormalizationService $normalization,
+    ): void {
         $range = ConnectorBackfillRange::query()
             ->with(['account', 'dataset.workspace', 'dataset.clientSite'])
             ->find($this->connectorBackfillRangeId);
@@ -82,5 +86,9 @@ class RunConnectorBackfillRangeJob implements ShouldQueue
             'sync_run_id' => $result->run->id,
             'status' => $result->run->status,
         ]);
+
+        if ($result->succeeded()) {
+            $normalization->enqueueForBackfillRange($range->fresh());
+        }
     }
 }
