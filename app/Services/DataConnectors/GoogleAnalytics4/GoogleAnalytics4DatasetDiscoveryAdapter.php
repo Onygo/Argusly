@@ -4,10 +4,10 @@ namespace App\Services\DataConnectors\GoogleAnalytics4;
 
 use App\Models\Connectors\ConnectorAccount;
 use App\Services\DataConnectors\ConnectorDatasetDiscoveryAdapter;
+use App\Services\DataConnectors\ConnectorProviderActionRequiredException;
 use App\Services\DataConnectors\ConnectorProviderHttpClient;
 use App\Support\MarketingMetadataRedactor;
 use Illuminate\Http\Client\Response;
-use RuntimeException;
 
 class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscoveryAdapter
 {
@@ -23,8 +23,15 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
     public function discoverDatasets(ConnectorAccount $account): array
     {
         $datasets = [];
+        $accountSummaries = $this->accountSummaries($account);
 
-        foreach ($this->accountSummaries($account) as $summary) {
+        if ($accountSummaries === []) {
+            throw new ConnectorProviderActionRequiredException(
+                'Google Analytics 4 returned 0 account summaries for this OAuth token. Reconnect and make sure you choose a Google account that has access to GA4 properties.'
+            );
+        }
+
+        foreach ($accountSummaries as $summary) {
             if ($this->supportsDataset('accounts')) {
                 $datasets[] = $this->mapAccountSummary($summary);
             }
@@ -233,7 +240,9 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
             return;
         }
 
-        throw new RuntimeException('Google Analytics 4 '.$operation.' failed with status '.$response->status().'.');
+        throw new ConnectorProviderActionRequiredException(
+            'Google Analytics 4 '.$operation.' failed with HTTP '.$response->status().$this->providerErrorMessage($response->json()).'.'
+        );
     }
 
     /**
@@ -289,5 +298,15 @@ class GoogleAnalytics4DatasetDiscoveryAdapter implements ConnectorDatasetDiscove
     private function adminPageSize(): int
     {
         return max(1, min(200, (int) config('data_connectors.providers.google_analytics_4.config_json.api.admin_page_size', 200)));
+    }
+
+    /**
+     * @param mixed $payload
+     */
+    private function providerErrorMessage(mixed $payload): string
+    {
+        $message = is_array($payload) ? trim((string) data_get($payload, 'error.message', '')) : '';
+
+        return $message === '' ? '' : ': '.$message;
     }
 }

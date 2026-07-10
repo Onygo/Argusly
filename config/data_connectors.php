@@ -108,8 +108,8 @@ return [
                     'authorization_url' => env('GOOGLE_ANALYTICS_4_AUTHORIZATION_URL', 'https://accounts.google.com/o/oauth2/v2/auth'),
                     'token_url' => env('GOOGLE_ANALYTICS_4_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
                     'revoke_url' => env('GOOGLE_ANALYTICS_4_REVOKE_URL', 'https://oauth2.googleapis.com/revoke'),
-                    'client_id' => env('GOOGLE_ANALYTICS_4_CLIENT_ID'),
-                    'client_secret' => env('GOOGLE_ANALYTICS_4_CLIENT_SECRET'),
+                    'client_id' => env('GOOGLE_ANALYTICS_4_CLIENT_ID', env('GOOGLE_SEARCH_CONSOLE_CLIENT_ID')),
+                    'client_secret' => env('GOOGLE_ANALYTICS_4_CLIENT_SECRET', env('GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET')),
                     'redirect_uri' => env('GOOGLE_ANALYTICS_4_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/google-analytics-4/callback'),
                     'scopes' => [
                         'https://www.googleapis.com/auth/analytics.readonly',

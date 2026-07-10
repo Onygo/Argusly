@@ -35,21 +35,33 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
         $dimensions = $this->dimensions($context);
         $rowLimit = $this->rowLimit($context);
         $startRow = $this->startRow($cursor, $dateRange);
+        $siteUrl = $this->siteUrl($context);
+
+        $this->guardDateRange($dateRange);
 
         $response = $this->http->post(
             $context->plan->account,
-            $this->searchAnalyticsUrl($context),
-            [
-                'startDate' => $dateRange['start'],
-                'endDate' => $dateRange['end'],
-                'dimensions' => $dimensions,
-                'rowLimit' => $rowLimit,
-                'startRow' => $startRow,
-            ],
+            $this->searchAnalyticsUrl($siteUrl),
+            $this->payload($dateRange, $dimensions, $rowLimit, $startRow),
             timeout: $this->timeoutSeconds(),
         );
 
-        $this->throwIfFailed($response);
+        $fallbackDimensions = $this->fallbackDimensions($dimensions);
+        if ($response->status() === 400 && $fallbackDimensions !== $dimensions) {
+            $fallbackResponse = $this->http->post(
+                $context->plan->account,
+                $this->searchAnalyticsUrl($siteUrl),
+                $this->payload($dateRange, $fallbackDimensions, $rowLimit, $startRow),
+                timeout: $this->timeoutSeconds(),
+            );
+
+            if ($fallbackResponse->successful()) {
+                $dimensions = $fallbackDimensions;
+                $response = $fallbackResponse;
+            }
+        }
+
+        $this->throwIfFailed($response, $siteUrl, $dateRange, $dimensions);
 
         $rows = array_values(array_filter(
             (array) $response->json('rows', []),
@@ -74,6 +86,9 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
             hasMore: $hasMore,
             metadata: [
                 'provider' => 'google_search_console',
+                'site_url' => $siteUrl,
+                'dimensions' => $dimensions,
+                'date_range' => $dateRange,
                 'start_row' => $startRow,
                 'row_count' => count($rows),
             ],
@@ -128,7 +143,7 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
         return max(0, (int) $cursor->get('start_row', 0));
     }
 
-    private function searchAnalyticsUrl(ConnectorSyncContext $context): string
+    private function siteUrl(ConnectorSyncContext $context): string
     {
         $siteUrl = trim((string) (
             data_get($context->plan->dataset->config_json, 'site_url')
@@ -139,7 +154,28 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
             throw new ConnectorFatalSyncException('Google Search Console dataset is missing a site URL.');
         }
 
+        return $siteUrl;
+    }
+
+    private function searchAnalyticsUrl(string $siteUrl): string
+    {
         return $this->apiBaseUrl().'/sites/'.rawurlencode($siteUrl).'/searchAnalytics/query';
+    }
+
+    /**
+     * @param array{start: string, end: string} $dateRange
+     * @param list<string> $dimensions
+     * @return array<string, mixed>
+     */
+    private function payload(array $dateRange, array $dimensions, int $rowLimit, int $startRow): array
+    {
+        return [
+            'startDate' => $dateRange['start'],
+            'endDate' => $dateRange['end'],
+            'dimensions' => $dimensions,
+            'rowLimit' => $rowLimit,
+            'startRow' => $startRow,
+        ];
     }
 
     /**
@@ -254,19 +290,66 @@ class GoogleSearchConsoleSearchAnalyticsSyncAdapter implements ConnectorSyncAdap
         ], JSON_THROW_ON_ERROR));
     }
 
-    private function throwIfFailed(Response $response): void
+    /**
+     * @param array{start: string, end: string} $dateRange
+     */
+    private function throwIfFailed(Response $response, string $siteUrl, array $dateRange, array $dimensions): void
     {
         if ($response->successful()) {
             return;
         }
 
-        $message = 'Google Search Console Search Analytics request failed with status '.$response->status().'.';
+        $message = 'Google Search Console Search Analytics request failed with HTTP '
+            .$response->status()
+            .$this->providerErrorMessage($response->json())
+            .' (site: '.$siteUrl.', dates: '.$dateRange['start'].'..'.$dateRange['end'].', dimensions: '.implode(',', $dimensions).').';
 
         if ($response->status() === 429 || $response->status() >= 500) {
             throw new ConnectorRecoverableSyncException($message);
         }
 
         throw new ConnectorFatalSyncException($message);
+    }
+
+    /**
+     * @param array{start: string, end: string} $dateRange
+     */
+    private function guardDateRange(array $dateRange): void
+    {
+        $start = Carbon::parse($dateRange['start'])->startOfDay();
+        $end = Carbon::parse($dateRange['end'])->startOfDay();
+
+        if ($start->gt($end)) {
+            throw new ConnectorFatalSyncException(
+                'Google Search Console Search Analytics date range is invalid: start date '.$dateRange['start'].' is after end date '.$dateRange['end'].'.'
+            );
+        }
+    }
+
+    /**
+     * @param list<string> $dimensions
+     * @return list<string>
+     */
+    private function fallbackDimensions(array $dimensions): array
+    {
+        if (! in_array('searchAppearance', $dimensions, true)) {
+            return $dimensions;
+        }
+
+        return array_values(array_filter(
+            $dimensions,
+            fn (string $dimension): bool => $dimension !== 'searchAppearance'
+        ));
+    }
+
+    /**
+     * @param mixed $payload
+     */
+    private function providerErrorMessage(mixed $payload): string
+    {
+        $message = is_array($payload) ? trim((string) data_get($payload, 'error.message', '')) : '';
+
+        return $message === '' ? '' : ': '.$message;
     }
 
     /**

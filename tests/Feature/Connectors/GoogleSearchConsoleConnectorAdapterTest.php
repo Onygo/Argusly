@@ -248,10 +248,54 @@ it('routes failed Search Analytics API responses through generic sync run and he
     $event = ConnectorHealthEvent::query()->firstOrFail();
 
     expect($run->status)->toBe(ConnectorSyncRun::STATUS_FAILED)
-        ->and($run->error_message)->toBe('Google Search Console Search Analytics request failed with status 500.')
+        ->and($run->error_message)->toContain('Google Search Console Search Analytics request failed with HTTP 500: backend error')
+        ->and($run->error_message)->toContain('dimensions: date,query,page,country,device,searchAppearance')
         ->and($run->retry_json['recoverable'])->toBeTrue()
         ->and($event->event_type)->toBe('sync.recoverable_failed')
         ->and($context['dataset']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_WARNING);
+});
+
+it('retries Search Analytics without search appearance when Google rejects that dimension', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://www.googleapis.com/webmasters/v3/sites/*/searchAnalytics/query' => Http::sequence()
+            ->push(['error' => ['message' => 'Invalid dimension searchAppearance']], 400)
+            ->push(['rows' => [[
+                'keys' => ['2026-07-01', 'brand query', 'https://example.com/page-a', 'nld', 'DESKTOP'],
+                'clicks' => 4,
+                'impressions' => 20,
+                'ctr' => 0.2,
+                'position' => 2.5,
+            ]]]),
+    ]);
+
+    $context = phase32GscContext();
+    phase32CreateCanonicalDefinitions();
+
+    $result = app(ConnectorSyncEngine::class)->sync(new ConnectorSyncPlan(
+        workspace: $context['workspace'],
+        clientSite: $context['site'],
+        provider: 'google_search_console',
+        account: $context['account'],
+        dataset: $context['dataset'],
+        dateRangeStart: Carbon::parse('2026-07-01'),
+        dateRangeEnd: Carbon::parse('2026-07-01'),
+    ));
+
+    $firstObservation = MarketingObservation::query()->with('dimensions')->firstOrFail();
+
+    expect($result->succeeded())->toBeTrue()
+        ->and(MarketingObservation::query()->count())->toBe(4)
+        ->and($firstObservation->dimensions->pluck('dimension_key')->all())->not->toContain('searchAppearance')
+        ->and($context['account']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_HEALTHY);
+
+    Http::assertSentCount(2);
+    Http::assertSent(function ($request): bool {
+        return $request->data()['dimensions'] === ['date', 'query', 'page', 'country', 'device', 'searchAppearance'];
+    });
+    Http::assertSent(function ($request): bool {
+        return $request->data()['dimensions'] === ['date', 'query', 'page', 'country', 'device'];
+    });
 });
 
 it('does not introduce Google Search Console specific tables or models', function () {

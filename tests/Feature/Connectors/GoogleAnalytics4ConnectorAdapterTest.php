@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorDatasetDiscoveryService;
 use App\Services\DataConnectors\ConnectorOAuthAuthorizationUrlGenerator;
+use App\Services\DataConnectors\ConnectorProviderActionRequiredException;
 use App\Services\DataConnectors\ConnectorProviderConfigValidator;
 use App\Services\DataConnectors\ConnectorSyncEngine;
 use App\Services\DataConnectors\ConnectorSyncPlan;
@@ -127,6 +128,31 @@ it('discovers Google Analytics 4 accounts properties and data streams idempotent
         ->and($streamDataset->config_json['measurement_id'])->toBe('G-EXAMPLE')
         ->and($streamDataset->metadata_json['raw_stream']['client_secret'])->toBe('[redacted]')
         ->and($first['sync_run']->status)->toBe(ConnectorSyncRun::STATUS_SUCCEEDED);
+});
+
+it('surfaces action required when Google Analytics 4 discovery is blocked by Google', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://analyticsadmin.googleapis.com/v1beta/accountSummaries*' => Http::response([
+            'error' => [
+                'message' => 'Google Analytics Admin API has not been used in this project before or it is disabled.',
+            ],
+        ], 403),
+    ]);
+
+    $context = phase33Ga4Context(withDataset: false);
+
+    expect(fn () => app(ConnectorDatasetDiscoveryService::class)->discover($context['account']))
+        ->toThrow(ConnectorProviderActionRequiredException::class);
+
+    $run = ConnectorSyncRun::query()->firstOrFail();
+    $event = ConnectorHealthEvent::query()->firstOrFail();
+
+    expect($run->status)->toBe(ConnectorSyncRun::STATUS_FAILED)
+        ->and($run->error_message)->toContain('Google Analytics 4 account summary discovery failed with HTTP 403')
+        ->and($run->error_message)->toContain('Google Analytics Admin API has not been used')
+        ->and($event->message)->toContain('Google Analytics 4 account summary discovery failed with HTTP 403')
+        ->and($context['account']->fresh()->health_status)->toBe(ConnectorHealthEvent::STATUS_ERROR);
 });
 
 it('syncs Google Analytics 4 report rows into canonical observations with dimensions and checkpoint advancement', function () {
