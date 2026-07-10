@@ -23,6 +23,7 @@ class Workspace extends Model
         'display_name',
         'organization_id',
         'visual_settings',
+        'reporting_timezone',
         'default_content_language',
         'enabled_content_languages',
         'low_credit_warning_state',
@@ -33,6 +34,7 @@ class Workspace extends Model
     protected $casts = [
         'organization_id' => 'integer',
         'visual_settings' => 'array',
+        'reporting_timezone' => 'string',
         'enabled_content_languages' => 'array',
         'default_content_language' => SupportedLanguage::class,
         'low_credit_warning_sent_at' => 'datetime',
@@ -47,6 +49,22 @@ class Workspace extends Model
         }
 
         return (string) ($this->attributes['name'] ?? '');
+    }
+
+    public static function defaultReportingTimezone(): string
+    {
+        $timezone = trim((string) config('app.timezone', 'UTC'));
+
+        return in_array($timezone, timezone_identifiers_list(), true) ? $timezone : 'UTC';
+    }
+
+    public function reportingTimezone(): string
+    {
+        $timezone = trim((string) ($this->attributes['reporting_timezone'] ?? ''));
+
+        return in_array($timezone, timezone_identifiers_list(), true)
+            ? $timezone
+            : self::defaultReportingTimezone();
     }
 
     public function organization()

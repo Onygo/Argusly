@@ -52,12 +52,19 @@ abstract class AbstractNormalizedConnectorIntelligenceFeed implements ConnectorI
         return [
             'key' => $this->key(),
             'workspace_id' => $workspace instanceof Workspace ? (string) $workspace->id : (string) $workspace,
+            'reporting_timezone' => $current['reporting_timezone'],
             'period' => $current['period'],
             'summary' => $this->summaryForFeed($current['metrics']),
+            'monetary' => $this->monetaryForFeed($current['monetary']),
+            'monetary_comparability' => data_get($current, 'currency.status'),
+            'currencies_represented' => data_get($current, 'currency.currencies_represented', []),
+            'conversion_coverage' => data_get($current, 'currency.conversion_coverage', []),
+            'warnings' => data_get($current, 'currency.warnings', []),
             'comparison' => [
                 'period' => $previous['period'],
                 'metrics' => $this->summaryForFeed($previous['metrics']),
                 'deltas' => $this->deltas($current['metrics'], $previous['metrics']),
+                'monetary_comparability' => data_get($previous, 'currency.status'),
             ],
             'top_movers' => $this->topMovers($current['metrics'], $previous['metrics']),
             'anomalies' => $this->anomalies($current['metrics'], $coverage),
@@ -81,6 +88,18 @@ abstract class AbstractNormalizedConnectorIntelligenceFeed implements ConnectorI
     {
         return collect($this->metricKeys())
             ->mapWithKeys(fn (string $key): array => [$key => $metrics[$key] ?? null])
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $monetary
+     * @return array<string, mixed>
+     */
+    protected function monetaryForFeed(array $monetary): array
+    {
+        return collect($this->metricKeys())
+            ->filter(fn (string $key): bool => array_key_exists($key, $monetary))
+            ->mapWithKeys(fn (string $key): array => [$key => $monetary[$key]])
             ->all();
     }
 

@@ -5,8 +5,8 @@ namespace App\Data\Reporting;
 class MetricDefinition
 {
     /**
-     * @param array<int, string> $requiredInputs
-     * @param array<int, string> $supportedDimensions
+     * @param  array<int, string>  $requiredInputs
+     * @param  array<int, string>  $supportedDimensions
      */
     public function __construct(
         public readonly string $key,
@@ -19,8 +19,11 @@ class MetricDefinition
         public readonly string $nullZeroBehavior,
         public readonly bool $requiresAttribution,
         public readonly string $freshnessRequirement,
-    ) {
-    }
+        public readonly string $currencyDependency = 'none',
+        public readonly string $aggregationRule = 'sum',
+        public readonly string $mixedCurrencyBehavior = 'not_applicable',
+        public readonly string $reportingCurrencyRequirement = 'not_required',
+    ) {}
 
     /**
      * @return array<string, mixed>
@@ -38,6 +41,10 @@ class MetricDefinition
             'null_zero_behavior' => $this->nullZeroBehavior,
             'requires_attribution' => $this->requiresAttribution,
             'freshness_requirement' => $this->freshnessRequirement,
+            'currency_dependency' => $this->currencyDependency,
+            'aggregation_rule' => $this->aggregationRule,
+            'mixed_currency_behavior' => $this->mixedCurrencyBehavior,
+            'reporting_currency_requirement' => $this->reportingCurrencyRequirement,
         ];
     }
 }

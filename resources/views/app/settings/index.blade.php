@@ -140,6 +140,39 @@
                 </div>
 
                 <div class="rounded-lg border border-border bg-background p-4">
+                    <h3 class="text-sm font-semibold text-textPrimary">Reporting timezone</h3>
+                    <p class="mt-1 text-xs text-textSecondary">Used for connector reporting periods, attribution windows, and local date grouping.</p>
+
+                    @if ($canEditWorkspaceName && $workspace)
+                        <form method="POST" action="{{ route('app.settings.workspace-timezone.update') }}" class="mt-4 space-y-3">
+                            @csrf
+                            <div>
+                                <label class="mb-1 block text-xs text-textSecondary" for="reporting_timezone">Workspace reporting timezone</label>
+                                <select id="reporting_timezone" name="reporting_timezone" class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm">
+                                    <option value="">Use app default ({{ $defaultReportingTimezone ?? 'UTC' }})</option>
+                                    @foreach (($timezoneOptions ?? []) as $timezoneOption)
+                                        <option value="{{ $timezoneOption }}" @selected(old('reporting_timezone', $workspace->reporting_timezone) === $timezoneOption)>
+                                            {{ $timezoneOption }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('reporting_timezone')<p class="mt-1 text-xs text-rose-700">{{ $message }}</p>@enderror
+                            </div>
+                            <x-settings.form-actions>
+                                <button class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-textInverse">Save reporting timezone</button>
+                            </x-settings.form-actions>
+                        </form>
+                    @elseif($workspace)
+                        <div class="mt-4 rounded-md border border-border bg-surfaceSubtle px-3 py-2 text-sm text-textPrimary">
+                            {{ $workspace->reportingTimezone() }}
+                        </div>
+                        <p class="mt-2 text-xs text-textSecondary">Only users with workspace naming permission can edit this value.</p>
+                    @else
+                        <p class="mt-4 text-sm text-textSecondary">No workspace found for this organization.</p>
+                    @endif
+                </div>
+
+                <div class="rounded-lg border border-border bg-background p-4">
                     <h3 class="text-sm font-semibold text-textPrimary">Organization and domain</h3>
                     <p class="mt-1 text-xs text-textSecondary">Set the company identity and optional custom domain.</p>
 

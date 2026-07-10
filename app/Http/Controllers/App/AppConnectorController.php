@@ -2,28 +2,29 @@
 
 namespace App\Http\Controllers\App;
 
+use App\Data\Reporting\MonetaryAggregate;
 use App\Http\Controllers\Controller;
 use App\Jobs\Connectors\CheckConnectorHealthJob;
 use App\Jobs\Connectors\DiscoverConnectorDatasetsJob;
 use App\Jobs\Connectors\SyncConnectorDatasetJob;
 use App\Models\Connectors\ConnectorAccount;
 use App\Models\Connectors\ConnectorDataset;
-use App\Models\Connectors\NormalizationRun;
-use App\Models\Connectors\ConnectorSyncRun;
 use App\Models\Connectors\ConnectorProvider;
+use App\Models\Connectors\ConnectorSyncRun;
+use App\Models\Connectors\NormalizationRun;
 use App\Models\Workspace;
 use App\Services\DataConnectors\ConnectorAuditLogger;
 use App\Services\DataConnectors\ConnectorBackfillService;
 use App\Services\DataConnectors\ConnectorDriverManager;
 use App\Services\DataConnectors\ConnectorFieldMappingPreparationService;
-use App\Services\DataConnectors\ConnectorProviderManifestService;
 use App\Services\DataConnectors\ConnectorProviderKeyResolver;
+use App\Services\DataConnectors\ConnectorProviderManifestService;
 use App\Services\DataConnectors\ConnectorRateLimitService;
 use App\Services\DataConnectors\ConnectorSyncScheduler;
-use App\Services\DataConnectors\Normalization\ConnectorNormalizationService;
 use App\Services\DataConnectors\DataConnectorRegistry;
-use Illuminate\Http\Request;
+use App\Services\DataConnectors\Normalization\ConnectorNormalizationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -504,12 +505,14 @@ class AppConnectorController extends Controller
             'last_error' => $account->last_error ?: $lastRun?->error_message,
             'last_sync_duration_ms' => $lastRun?->duration_ms,
             'health_score' => $account->health_score,
+            'workspace_reporting_timezone' => $this->workspaceReportingTimezone($account),
             'raw_records' => DB::table('connector_raw_records')->where('connector_account_id', $account->id)->count(),
             'observations' => DB::table('marketing_observations')->where('connector_account_id', $account->id)->count(),
             'async_report_jobs' => DB::table('connector_async_report_jobs')->where('connector_account_id', $account->id)->count(),
             'backfill_ranges' => DB::table('connector_backfill_ranges')->where('connector_account_id', $account->id)->count(),
             'webhook_status' => $account->webhookRegistration?->status,
             'normalization' => $this->normalizationDiagnosticsFor($account),
+            'currency' => $this->currencyDiagnosticsFor($account),
         ];
     }
 
@@ -579,6 +582,48 @@ class AppConnectorController extends Controller
             'skipped_items' => $skippedItems,
             'provider_dataset_coverage' => $datasetCoverage,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function currencyDiagnosticsFor(ConnectorAccount $account): array
+    {
+        $rows = DB::table('connector_normalized_daily_performances')
+            ->where('connector_account_id', $account->id)
+            ->get([
+                'cost',
+                'original_cost',
+                'original_currency',
+                'reporting_cost',
+                'reporting_currency',
+            ])
+            ->map(fn (object $row): array => [
+                'amount' => is_numeric($row->original_cost) ? (float) $row->original_cost : (is_numeric($row->cost) ? (float) $row->cost : null),
+                'currency' => $row->original_currency,
+                'reporting_amount' => is_numeric($row->reporting_cost) ? (float) $row->reporting_cost : null,
+                'reporting_currency' => $row->reporting_currency,
+            ])
+            ->all();
+
+        $spend = MonetaryAggregate::fromRows($rows);
+
+        return [
+            'status' => $spend->status,
+            'currencies_represented' => $spend->currenciesRepresented(),
+            'conversion_coverage' => $spend->conversionCoverage,
+            'spend' => $spend->toArray(),
+            'warnings' => $spend->warnings,
+        ];
+    }
+
+    private function workspaceReportingTimezone(ConnectorAccount $account): string
+    {
+        $workspace = $account->relationLoaded('workspace')
+            ? $account->workspace
+            : Workspace::query()->find((string) $account->workspace_id);
+
+        return $workspace?->reportingTimezone() ?? Workspace::defaultReportingTimezone();
     }
 
     /**

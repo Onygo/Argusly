@@ -16,6 +16,8 @@
         <x-metric-card label="Sync runs" :value="$account->syncRuns->count()" />
         <x-metric-card label="Raw records" :value="$diagnostics['raw_records']" />
         <x-metric-card label="Normalized" :value="collect(data_get($diagnostics, 'normalization.normalized_counts', []))->sum()" />
+        <x-metric-card label="Timezone" :value="$diagnostics['workspace_reporting_timezone']" />
+        <x-metric-card label="Money" :value="\Illuminate\Support\Str::headline(data_get($diagnostics, 'currency.status', 'unavailable'))" />
     </x-metric-section>
 @endsection
 
@@ -38,6 +40,10 @@
                         <div>
                             <dt class="text-xs text-textFaint">Workspace</dt>
                             <dd class="mt-1 font-medium text-textPrimary">{{ $workspace->display_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs text-textFaint">Reporting timezone</dt>
+                            <dd class="mt-1 font-medium text-textPrimary">{{ $diagnostics['workspace_reporting_timezone'] }}</dd>
                         </div>
                         <div>
                             <dt class="text-xs text-textFaint">Site</dt>
@@ -133,6 +139,38 @@
                 </div>
                 @if (data_get($diagnostics, 'normalization.last_run'))
                     @include('app.connectors.partials.status-badge', ['status' => data_get($diagnostics, 'normalization.last_run.status')])
+                @endif
+            </div>
+            <div class="border-b border-border px-5 py-4">
+                <div class="grid gap-4 lg:grid-cols-3">
+                    <div>
+                        <p class="text-xs text-textFaint">Monetary comparability</p>
+                        <p class="mt-1 text-sm font-semibold text-textPrimary">{{ \Illuminate\Support\Str::headline(data_get($diagnostics, 'currency.status', 'unavailable')) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-textFaint">Currencies represented</p>
+                        <p class="mt-1 text-sm font-semibold text-textPrimary">{{ collect(data_get($diagnostics, 'currency.currencies_represented', []))->join(', ') ?: 'Unknown' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-textFaint">Conversion coverage</p>
+                        <p class="mt-1 text-sm font-semibold text-textPrimary">{{ (int) data_get($diagnostics, 'currency.conversion_coverage.converted_rows', 0) }} / {{ (int) data_get($diagnostics, 'currency.conversion_coverage.total_rows', 0) }}</p>
+                    </div>
+                </div>
+                @if (data_get($diagnostics, 'currency.status') === 'mixed_currency')
+                    <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        Monetary totals are not combined because multiple currencies are represented.
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        @foreach ((array) data_get($diagnostics, 'currency.spend.totals_by_currency', []) as $currency => $amount)
+                            <span class="inline-flex rounded-full border border-border bg-background px-3 py-1 text-xs text-textSecondary">
+                                {{ strtoupper((string) $currency) }} {{ number_format((float) $amount, 2) }}
+                            </span>
+                        @endforeach
+                    </div>
+                @elseif (data_get($diagnostics, 'currency.warnings'))
+                    <div class="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        {{ collect(data_get($diagnostics, 'currency.warnings', []))->join(' ') }}
+                    </div>
                 @endif
             </div>
             <div class="grid gap-5 p-5 lg:grid-cols-3">

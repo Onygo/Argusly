@@ -214,6 +214,8 @@ it('runs deterministic attribution models and reports from normalized read layer
         'impressions' => 1000,
         'clicks' => 100,
         'cost' => 250,
+        'original_cost' => 250,
+        'original_currency' => 'EUR',
         'conversions' => 0,
         'raw_reference' => [],
     ]);
@@ -225,6 +227,7 @@ it('runs deterministic attribution models and reports from normalized read layer
         'provider_campaign_id' => 'phase30-campaign',
         'name' => 'Phase 30 Campaign',
         'status' => 'ENABLED',
+        'currency' => 'EUR',
         'raw_reference' => [],
     ]);
 

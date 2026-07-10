@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\App;
 
+use App\Enums\SupportedLanguage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\App\AcceptInviteRequest;
 use App\Http\Requests\App\InviteMemberRequest;
 use App\Http\Requests\App\StoreBrandVoiceRequest;
+use App\Http\Requests\App\UpdateAgenticMarketingExecutionSettingsRequest;
 use App\Http\Requests\App\UpdateBrandVoiceRequest;
 use App\Http\Requests\App\UpdateNotificationSettingsRequest;
 use App\Http\Requests\App\UpdateOrganizationRequest;
-use App\Http\Requests\App\UpdateAgenticMarketingExecutionSettingsRequest;
-use App\Http\Requests\App\UpdateWorkspaceLanguageSettingsRequest;
 use App\Http\Requests\App\UpdateWorkspaceDisplayNameRequest;
+use App\Http\Requests\App\UpdateWorkspaceLanguageSettingsRequest;
+use App\Http\Requests\App\UpdateWorkspaceTimezoneRequest;
 use App\Http\Requests\App\UpsertCompanyProfileRequest;
 use App\Models\AgenticMarketingExecutionSetting;
 use App\Models\BrandVoice;
@@ -21,18 +23,17 @@ use App\Models\ContentDestination;
 use App\Models\Invite;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Enums\SupportedLanguage;
-use App\Services\AuditLogService;
-use App\Services\Agents\AgentAutomationSettingsResolver;
 use App\Services\AgenticMarketing\AutonomyPresetService;
+use App\Services\Agents\AgentAutomationSettingsResolver;
+use App\Services\AuditLogService;
 use App\Services\BrandVoiceService;
 use App\Services\SubscriptionService;
 use App\Support\AdvancedMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -78,6 +79,8 @@ class AppSettingsController extends Controller
             'agenticExecutionDestinations' => $workspace ? $this->agenticExecutionDestinationsFor($workspace) : collect(),
             'autonomyPresets' => app(AutonomyPresetService::class)->presets(),
             'contentLanguageOptions' => SupportedLanguage::options(),
+            'timezoneOptions' => timezone_identifiers_list(),
+            'defaultReportingTimezone' => Workspace::defaultReportingTimezone(),
             'users' => $users,
             'invites' => $invites,
         ]);
@@ -128,6 +131,22 @@ class AppSettingsController extends Controller
         );
 
         return back()->with('status', 'Workspace name updated.');
+    }
+
+    public function updateWorkspaceTimezone(UpdateWorkspaceTimezoneRequest $request): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request);
+        if (! $workspace) {
+            return back()->withErrors(['reporting_timezone' => 'No workspace found for this organization.']);
+        }
+
+        $this->authorize('updateName', $workspace);
+
+        $workspace->forceFill([
+            'reporting_timezone' => $request->validated('reporting_timezone'),
+        ])->save();
+
+        return back()->with('status', 'Workspace reporting timezone updated.');
     }
 
     public function updateWorkspaceLanguages(UpdateWorkspaceLanguageSettingsRequest $request): RedirectResponse

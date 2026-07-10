@@ -48,7 +48,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function isAccountRecord(ConnectorRawRecord $rawRecord, array $payload): bool
     {
@@ -60,7 +60,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function marketingAccount(ConnectorRawRecord $rawRecord, array $payload): ?NormalizedRecord
     {
@@ -74,13 +74,13 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
             'provider_account_id' => $providerAccountId,
             'name' => $this->string($payload, ['account.name', 'customer.descriptive_name', 'customer.descriptiveName', 'descriptive_name', 'name', 'account_name']),
             'status' => $this->string($payload, ['account.status', 'customer.status', 'status', 'account_status']),
-            'currency' => $this->string($payload, ['account.currency', 'customer.currency_code', 'currency_code', 'currency', 'currencyCode']),
+            'currency' => $this->currency($payload, $rawRecord),
             'timezone' => $this->string($payload, ['account.time_zone', 'account.timezone', 'timezone', 'time_zone']),
         ], $this->rawReference($rawRecord));
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function campaign(ConnectorRawRecord $rawRecord, array $payload): ?NormalizedRecord
     {
@@ -99,12 +99,12 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
             'start_date' => $this->date($payload, ['campaign.start_date', 'campaign.startDate', 'start_date', 'StartDate']),
             'end_date' => $this->date($payload, ['campaign.end_date', 'campaign.endDate', 'end_date', 'EndDate']),
             'budget' => $this->money($payload, ['campaign_budget.amount_micros', 'campaign.budget_micros', 'budget_micros', 'budget', 'Budget']),
-            'currency' => $this->string($payload, ['currency', 'currency_code', 'CurrencyCode']),
+            'currency' => $this->currency($payload, $rawRecord),
         ], $this->rawReference($rawRecord));
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function adGroup(ConnectorRawRecord $rawRecord, array $payload): ?NormalizedRecord
     {
@@ -125,7 +125,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function ad(ConnectorRawRecord $rawRecord, array $payload): ?NormalizedRecord
     {
@@ -147,7 +147,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function dailyPerformance(ConnectorRawRecord $rawRecord, array $payload): ?NormalizedRecord
     {
@@ -167,23 +167,30 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
             return null;
         }
 
+        $cost = $this->money($payload, ['metrics.cost_micros', 'metrics.costMicros', 'cost_micros', 'spend', 'cost', 'Cost']) ?? 0.0;
+        $revenue = $this->money($payload, ['revenue', 'Revenue', 'metrics.revenue_micros', 'metrics.revenueMicros']);
+        $currency = $this->currency($payload, $rawRecord);
+
         return NormalizedRecord::make(NormalizedRecord::DAILY_PERFORMANCE, [
             'entity_type' => $entityType,
             'entity_id' => $entityId,
             'date' => $date,
+            'original_currency' => $currency,
             'impressions' => $this->integer($payload, ['metrics.impressions', 'impressions', 'Impressions']),
             'clicks' => $this->integer($payload, ['metrics.clicks', 'clicks', 'Clicks']),
-            'cost' => $this->money($payload, ['metrics.cost_micros', 'metrics.costMicros', 'cost_micros', 'spend', 'cost', 'Cost']) ?? 0.0,
+            'cost' => $cost,
+            'original_cost' => $cost,
             'conversions' => $this->conversions($payload),
             'ctr' => $this->decimal($payload, ['metrics.ctr', 'ctr', 'Ctr']),
             'cpc' => $this->money($payload, ['metrics.average_cpc', 'metrics.averageCpc', 'average_cpc', 'cpc', 'AverageCpc']),
             'cpm' => $this->money($payload, ['metrics.average_cpm', 'metrics.averageCpm', 'average_cpm', 'cpm', 'AverageCpm']),
-            'revenue' => $this->money($payload, ['revenue', 'Revenue', 'metrics.revenue_micros', 'metrics.revenueMicros']),
+            'revenue' => $revenue,
+            'original_revenue' => $revenue,
         ], $this->rawReference($rawRecord));
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function providerAccountId(ConnectorRawRecord $rawRecord, array $payload): ?string
     {
@@ -215,7 +222,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function campaignId(array $payload): ?string
     {
@@ -223,7 +230,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function adGroupId(array $payload): ?string
     {
@@ -231,7 +238,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function adId(array $payload): ?string
     {
@@ -239,7 +246,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      * @return array{0: string, 1: string|null}
      */
     protected function performanceEntity(ConnectorRawRecord $rawRecord, array $payload): array
@@ -260,7 +267,7 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     protected function hasPerformanceMetric(array $payload): bool
     {
@@ -278,8 +285,8 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
-     * @param array<int, string> $paths
+     * @param  array<string, mixed>  $payload
+     * @param  array<int, string>  $paths
      */
     protected function money(array $payload, array $paths): ?float
     {
@@ -307,7 +314,32 @@ abstract class AbstractAdsNormalizedRecordMapper extends AbstractNormalizedRecor
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
+     */
+    protected function currency(array $payload, ConnectorRawRecord $rawRecord): ?string
+    {
+        $currency = $this->string($payload, [
+            'account.currency',
+            'customer.currency_code',
+            'customer.currencyCode',
+            'campaign.currency',
+            'currency_code',
+            'currencyCode',
+            'CurrencyCode',
+            'currency',
+        ]) ?: $this->string((array) ($rawRecord->dataset?->config_json ?? []), [
+            'currency',
+            'currency_code',
+            'account_currency',
+        ]);
+
+        $currency = strtoupper(trim((string) $currency));
+
+        return preg_match('/^[A-Z]{3}$/', $currency) === 1 ? $currency : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
      */
     protected function conversions(array $payload): float
     {
