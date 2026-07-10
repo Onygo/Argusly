@@ -67,7 +67,7 @@ return [
                     'authorization_url' => env('GOOGLE_SEARCH_CONSOLE_AUTHORIZATION_URL', 'https://accounts.google.com/o/oauth2/v2/auth'),
                     'token_url' => env('GOOGLE_SEARCH_CONSOLE_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
                     'revoke_url' => env('GOOGLE_SEARCH_CONSOLE_REVOKE_URL', 'https://oauth2.googleapis.com/revoke'),
-                    'client_id' => env('GOOGLE_SEARCH_CONSOLE_CLIENT_ID', 'google-search-console-client-id'),
+                    'client_id' => env('GOOGLE_SEARCH_CONSOLE_CLIENT_ID'),
                     'client_secret' => env('GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET'),
                     'redirect_uri' => env('GOOGLE_SEARCH_CONSOLE_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/google-search-console/callback'),
                     'scopes' => [
@@ -108,7 +108,7 @@ return [
                     'authorization_url' => env('GOOGLE_ANALYTICS_4_AUTHORIZATION_URL', 'https://accounts.google.com/o/oauth2/v2/auth'),
                     'token_url' => env('GOOGLE_ANALYTICS_4_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
                     'revoke_url' => env('GOOGLE_ANALYTICS_4_REVOKE_URL', 'https://oauth2.googleapis.com/revoke'),
-                    'client_id' => env('GOOGLE_ANALYTICS_4_CLIENT_ID', 'google-analytics-4-client-id'),
+                    'client_id' => env('GOOGLE_ANALYTICS_4_CLIENT_ID'),
                     'client_secret' => env('GOOGLE_ANALYTICS_4_CLIENT_SECRET'),
                     'redirect_uri' => env('GOOGLE_ANALYTICS_4_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/google-analytics-4/callback'),
                     'scopes' => [
@@ -179,7 +179,7 @@ return [
                 'oauth' => [
                     'authorization_url' => env('LINKEDIN_ANALYTICS_AUTHORIZATION_URL', 'https://www.linkedin.com/oauth/v2/authorization'),
                     'token_url' => env('LINKEDIN_ANALYTICS_TOKEN_URL', 'https://www.linkedin.com/oauth/v2/accessToken'),
-                    'client_id' => env('LINKEDIN_ANALYTICS_CLIENT_ID', env('LINKEDIN_CLIENT_ID', 'linkedin-analytics-client-id')),
+                    'client_id' => env('LINKEDIN_ANALYTICS_CLIENT_ID', env('LINKEDIN_CLIENT_ID')),
                     'client_secret' => env('LINKEDIN_ANALYTICS_CLIENT_SECRET', env('LINKEDIN_CLIENT_SECRET')),
                     'redirect_uri' => env('LINKEDIN_ANALYTICS_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/linkedin/callback'),
                     'scopes' => [
@@ -259,7 +259,7 @@ return [
                     'authorization_url' => env('GOOGLE_ADS_AUTHORIZATION_URL', 'https://accounts.google.com/o/oauth2/v2/auth'),
                     'token_url' => env('GOOGLE_ADS_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
                     'revoke_url' => env('GOOGLE_ADS_REVOKE_URL', 'https://oauth2.googleapis.com/revoke'),
-                    'client_id' => env('GOOGLE_ADS_CLIENT_ID', 'google-ads-client-id'),
+                    'client_id' => env('GOOGLE_ADS_CLIENT_ID'),
                     'client_secret' => env('GOOGLE_ADS_CLIENT_SECRET'),
                     'redirect_uri' => env('GOOGLE_ADS_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/google-ads/callback'),
                     'scopes' => ['https://www.googleapis.com/auth/adwords'],
@@ -312,7 +312,7 @@ return [
                 'oauth' => [
                     'authorization_url' => env('MICROSOFT_ADS_AUTHORIZATION_URL', 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'),
                     'token_url' => env('MICROSOFT_ADS_TOKEN_URL', 'https://login.microsoftonline.com/common/oauth2/v2.0/token'),
-                    'client_id' => env('MICROSOFT_ADS_CLIENT_ID', 'microsoft-ads-client-id'),
+                    'client_id' => env('MICROSOFT_ADS_CLIENT_ID'),
                     'client_secret' => env('MICROSOFT_ADS_CLIENT_SECRET'),
                     'redirect_uri' => env('MICROSOFT_ADS_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/microsoft-ads/callback'),
                     'scopes' => ['https://ads.microsoft.com/msads.manage', 'offline_access'],
@@ -360,7 +360,7 @@ return [
                 'oauth' => [
                     'authorization_url' => env('META_ADS_AUTHORIZATION_URL', 'https://www.facebook.com/v20.0/dialog/oauth'),
                     'token_url' => env('META_ADS_TOKEN_URL', 'https://graph.facebook.com/v20.0/oauth/access_token'),
-                    'client_id' => env('META_ADS_CLIENT_ID', 'meta-ads-client-id'),
+                    'client_id' => env('META_ADS_CLIENT_ID'),
                     'client_secret' => env('META_ADS_CLIENT_SECRET'),
                     'redirect_uri' => env('META_ADS_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/meta-ads/callback'),
                     'scopes' => ['ads_read', 'business_management'],
@@ -417,7 +417,7 @@ return [
                 'oauth' => [
                     'authorization_url' => env('HUBSPOT_AUTHORIZATION_URL', 'https://app.hubspot.com/oauth/authorize'),
                     'token_url' => env('HUBSPOT_TOKEN_URL', 'https://api.hubapi.com/oauth/v1/token'),
-                    'client_id' => env('HUBSPOT_CLIENT_ID', 'hubspot-client-id'),
+                    'client_id' => env('HUBSPOT_CLIENT_ID'),
                     'client_secret' => env('HUBSPOT_CLIENT_SECRET'),
                     'redirect_uri' => env('HUBSPOT_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/hubspot/callback'),
                     'scopes' => ['crm.objects.contacts.read', 'crm.objects.companies.read', 'crm.objects.deals.read', 'crm.schemas.contacts.read', 'crm.schemas.companies.read', 'crm.schemas.deals.read', 'oauth'],
@@ -478,7 +478,7 @@ return [
                     'authorization_url' => env('SALESFORCE_AUTHORIZATION_URL', 'https://login.salesforce.com/services/oauth2/authorize'),
                     'token_url' => env('SALESFORCE_TOKEN_URL', 'https://login.salesforce.com/services/oauth2/token'),
                     'revoke_url' => env('SALESFORCE_REVOKE_URL', 'https://login.salesforce.com/services/oauth2/revoke'),
-                    'client_id' => env('SALESFORCE_CLIENT_ID', 'salesforce-client-id'),
+                    'client_id' => env('SALESFORCE_CLIENT_ID'),
                     'client_secret' => env('SALESFORCE_CLIENT_SECRET'),
                     'redirect_uri' => env('SALESFORCE_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/salesforce/callback'),
                     'scopes' => ['api', 'refresh_token', 'offline_access'],
@@ -538,7 +538,7 @@ return [
                 'oauth' => [
                     'authorization_url' => env('PIPEDRIVE_AUTHORIZATION_URL', 'https://oauth.pipedrive.com/oauth/authorize'),
                     'token_url' => env('PIPEDRIVE_TOKEN_URL', 'https://oauth.pipedrive.com/oauth/token'),
-                    'client_id' => env('PIPEDRIVE_CLIENT_ID', 'pipedrive-client-id'),
+                    'client_id' => env('PIPEDRIVE_CLIENT_ID'),
                     'client_secret' => env('PIPEDRIVE_CLIENT_SECRET'),
                     'redirect_uri' => env('PIPEDRIVE_REDIRECT_URI', env('APP_URL', 'http://localhost').'/connectors/oauth/pipedrive/callback'),
                     'scopes' => ['contacts:read', 'deals:read', 'activities:read', 'users:read'],

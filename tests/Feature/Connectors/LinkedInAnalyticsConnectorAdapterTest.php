@@ -23,6 +23,7 @@ use App\Services\DataConnectors\LinkedIn\LinkedInDatasetDiscoveryAdapter;
 use App\Services\Social\LinkedIn\LinkedInClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -47,6 +48,9 @@ it('validates the LinkedIn analytics provider config and adapters', function () 
 });
 
 it('generates a LinkedIn OAuth URL with analytics scopes', function () {
+    Config::set('data_connectors.providers.linkedin.config_json.oauth.client_id', 'linkedin-test-oauth-client');
+    app()->forgetInstance(DataConnectorRegistry::class);
+
     $context = phase34LinkedInContext();
 
     $authorization = app(ConnectorOAuthAuthorizationUrlGenerator::class)
@@ -63,7 +67,8 @@ it('generates a LinkedIn OAuth URL with analytics scopes', function () {
         ->and($query['scope'])->toContain('profile')
         ->and($query['scope'])->toContain('r_organization_social')
         ->and($query['scope'])->toContain('rw_organization_admin')
-        ->and($query['scope'])->not->toContain('w_member_social');
+        ->and($query['scope'])->not->toContain('w_member_social')
+        ->and($query['nonce'])->toBe($authorization->state->nonce);
 });
 
 it('discovers LinkedIn organization pages into connector datasets idempotently', function () {

@@ -63,16 +63,24 @@ class AppConnectorController extends Controller
     public function connect(
         Request $request,
         string $provider,
-        ConnectorDriverManager $drivers,
-        ConnectorProviderKeyResolver $keys,
     ): RedirectResponse {
         $workspace = $this->resolveWorkspace($request);
         abort_unless($workspace, 404);
 
         $this->authorize('create', ConnectorAccount::class);
 
-        $providerKey = $keys->resolve($provider);
-        $authorization = $drivers->driver($providerKey)->authorize($workspace, $request->user());
+        try {
+            $keys = app(ConnectorProviderKeyResolver::class);
+            $drivers = app(ConnectorDriverManager::class);
+            $providerKey = $keys->resolve($provider);
+            $authorization = $drivers->driver($providerKey)->authorize($workspace, $request->user());
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
+                ->withErrors(['connector' => 'Connector authorization could not start: '.$exception->getMessage()]);
+        }
 
         return redirect()->away($authorization->url);
     }
@@ -80,8 +88,6 @@ class AppConnectorController extends Controller
     public function callback(
         Request $request,
         string $provider,
-        ConnectorDriverManager $drivers,
-        ConnectorProviderKeyResolver $keys,
     ): RedirectResponse {
         $workspace = $this->resolveWorkspace($request);
         abort_unless($workspace, 404);
@@ -102,9 +108,13 @@ class AppConnectorController extends Controller
         }
 
         try {
+            $keys = app(ConnectorProviderKeyResolver::class);
+            $drivers = app(ConnectorDriverManager::class);
             $providerKey = $keys->resolve($provider);
             $result = $drivers->driver($providerKey)->callback($state, $code, $request->user());
         } catch (\Throwable $exception) {
+            report($exception);
+
             return redirect()
                 ->route('app.connectors.index', $this->workspaceRouteParams($workspace))
                 ->withErrors(['connector' => 'Connector authorization failed: '.$exception->getMessage()]);

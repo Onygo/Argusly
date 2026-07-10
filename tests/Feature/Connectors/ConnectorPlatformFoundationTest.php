@@ -808,6 +808,7 @@ function genericOAuthProviderDefinition(string $providerKey): array
                 'redirect_uri' => 'https://app.example.test/connectors/oauth/callback',
                 'scopes' => ['content.read', 'content.write'],
                 'scope_separator' => ' ',
+                'include_nonce' => true,
                 'authorization_params' => [
                     'access_type' => 'offline',
                 ],

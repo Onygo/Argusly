@@ -34,7 +34,7 @@ class ConnectorOAuthAuthorizationUrlGenerator
             'redirect_uri' => (string) $oauth['redirect_uri'],
             'scope' => implode((string) ($oauth['scope_separator'] ?? ' '), $scopes),
             'state' => $issued->state,
-            'nonce' => $issued->nonce,
+            'nonce' => $this->shouldIncludeNonce($oauth, $scopes) ? $issued->nonce : '',
             'code_challenge' => $issued->codeChallenge,
             'code_challenge_method' => 'S256',
         ], fn ($value): bool => $value !== '');
@@ -79,5 +79,18 @@ class ConnectorOAuthAuthorizationUrlGenerator
             ?? data_get($definition, 'config_json.required_scopes', []);
 
         return array_values(array_filter((array) $scopes, fn ($scope): bool => is_string($scope) && trim($scope) !== ''));
+    }
+
+    /**
+     * @param array<string, mixed> $oauth
+     * @param list<string> $scopes
+     */
+    private function shouldIncludeNonce(array $oauth, array $scopes): bool
+    {
+        if (array_key_exists('include_nonce', $oauth)) {
+            return (bool) $oauth['include_nonce'];
+        }
+
+        return in_array('openid', $scopes, true);
     }
 }

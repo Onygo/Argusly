@@ -48,6 +48,8 @@ use Illuminate\Support\Str;
 uses(RefreshDatabase::class);
 
 it('connects Google Ads through OAuth and discovers account hierarchy datasets', function () {
+    phase28ConfigureConnectorOAuth('google_ads');
+
     $this->seed(ConnectorProviderSeeder::class);
     $context = phase28ConnectorContext('phase28-google-ads');
     app()->instance(ConnectorOAuthTokenClient::class, new Phase28OAuthTokenClient);
@@ -143,6 +145,8 @@ it('records quota soft warnings and hard stops', function () {
 });
 
 it('connects HubSpot, discovers CRM schemas, prepares webhooks and syncs by cursor', function () {
+    phase28ConfigureConnectorOAuth('hubspot');
+
     $this->seed(ConnectorProviderSeeder::class);
     $context = phase28ConnectorContext('phase28-hubspot');
     app()->instance(ConnectorOAuthTokenClient::class, new Phase28OAuthTokenClient);
@@ -447,6 +451,16 @@ function phase28ConnectedConnector(string $slug, string $providerKey, string $da
     ]);
 
     return array_merge($context, compact('provider', 'account', 'dataset'));
+}
+
+function phase28ConfigureConnectorOAuth(string $providerKey, ?string $clientId = null): void
+{
+    Config::set(
+        'data_connectors.providers.'.$providerKey.'.config_json.oauth.client_id',
+        $clientId ?? str_replace('_', '-', $providerKey).'-test-oauth-client',
+    );
+
+    app()->forgetInstance(DataConnectorRegistry::class);
 }
 
 final class Phase28OAuthTokenClient implements ConnectorOAuthTokenClient

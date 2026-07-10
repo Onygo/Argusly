@@ -85,7 +85,7 @@ return new class extends Migration
             Schema::create('marketing_observation_dimensions', function (Blueprint $table): void {
                 $table->uuid('id')->primary();
                 $table->uuid('marketing_observation_id')->index();
-                $table->uuid('marketing_dimension_definition_id')->nullable()->index();
+                $table->uuid('marketing_dimension_definition_id')->nullable()->index('mk_obs_dim_definition_idx');
                 $table->string('dimension_key', 160)->index();
                 $table->text('dimension_value')->nullable();
                 $table->string('dimension_value_normalized', 500)->nullable();
@@ -177,6 +177,14 @@ return new class extends Migration
 
     private function addObservationDimensionIndexes(): void
     {
+        $this->addIndexIfMissing(
+            'marketing_observation_dimensions',
+            'mk_obs_dim_definition_idx',
+            function (Blueprint $table): void {
+                $table->index('marketing_dimension_definition_id', 'mk_obs_dim_definition_idx');
+            }
+        );
+
         $this->addIndexIfMissing(
             'marketing_observation_dimensions',
             'marketing_observation_dimensions_unique',

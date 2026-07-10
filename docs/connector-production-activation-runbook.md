@@ -32,6 +32,12 @@ Complete this checklist per provider before enabling production OAuth:
 - API quota model and warning thresholds are documented.
 - Privacy, disconnect, deletion, and export procedures are documented.
 
+For the Google Search Console pilot, set:
+
+- `GOOGLE_SEARCH_CONSOLE_CLIENT_ID`
+- `GOOGLE_SEARCH_CONSOLE_CLIENT_SECRET`
+- `GOOGLE_SEARCH_CONSOLE_REDIRECT_URI=https://app.argusly.com/connectors/oauth/google-search-console/callback`
+
 Configured callback paths:
 
 | Provider | Callback path |

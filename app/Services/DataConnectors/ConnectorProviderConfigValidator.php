@@ -64,7 +64,7 @@ class ConnectorProviderConfigValidator
 
         $oauth = data_get($definition, 'config_json.oauth');
         if (is_array($oauth)) {
-            $this->validateOAuthConfig($providerKey, $oauth);
+            $this->validateOAuthConfig($providerKey, $oauth, requireClientId: false);
         }
     }
 
@@ -76,11 +76,17 @@ class ConnectorProviderConfigValidator
         array $oauth,
         bool $requireTokenUrl = true,
         bool $requireRevokeUrl = false,
+        bool $requireClientId = true,
     ): void {
-        foreach (['authorization_url', 'client_id', 'redirect_uri'] as $key) {
+        foreach (['authorization_url', 'redirect_uri'] as $key) {
             if (trim((string) ($oauth[$key] ?? '')) === '') {
                 throw new InvalidArgumentException("OAuth configuration for [{$providerKey}] requires [{$key}].");
             }
+        }
+
+        $clientId = trim((string) ($oauth['client_id'] ?? ''));
+        if ($requireClientId && ($clientId === '' || $this->isPlaceholderClientId($providerKey, $clientId))) {
+            throw new InvalidArgumentException("OAuth configuration for [{$providerKey}] requires a real [client_id].");
         }
 
         if ($requireTokenUrl && trim((string) ($oauth['token_url'] ?? '')) === '') {
@@ -124,5 +130,18 @@ class ConnectorProviderConfigValidator
 
             throw new InvalidArgumentException("Data connector provider [{$providerKey}] {$label} [{$class}] must implement {$contractName}.");
         }
+    }
+
+    private function isPlaceholderClientId(string $providerKey, string $clientId): bool
+    {
+        $value = strtolower(trim($clientId));
+        $providerSlug = str_replace('_', '-', strtolower($providerKey));
+        $knownPlaceholders = [
+            $providerSlug.'-client-id',
+            'linkedin-analytics-client-id',
+        ];
+
+        return in_array($value, $knownPlaceholders, true)
+            || str_contains($value, 'placeholder');
     }
 }

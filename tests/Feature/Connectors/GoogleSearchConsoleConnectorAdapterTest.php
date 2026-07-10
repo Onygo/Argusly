@@ -22,6 +22,7 @@ use App\Services\DataConnectors\GoogleSearchConsole\GoogleSearchConsoleDatasetDi
 use App\Services\DataConnectors\GoogleSearchConsole\GoogleSearchConsoleSearchAnalyticsSyncAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -45,6 +46,9 @@ it('validates the Google Search Console provider config and adapters', function 
 });
 
 it('generates a Google Search Console OAuth URL with the Search Console scope', function () {
+    Config::set('data_connectors.providers.google_search_console.config_json.oauth.client_id', 'gsc-test-oauth-client');
+    app()->forgetInstance(DataConnectorRegistry::class);
+
     $context = phase32GscContext();
 
     $authorization = app(ConnectorOAuthAuthorizationUrlGenerator::class)
@@ -59,7 +63,8 @@ it('generates a Google Search Console OAuth URL with the Search Console scope', 
     expect($authorization->url)->toStartWith('https://accounts.google.com/o/oauth2/v2/auth?')
         ->and($query['scope'])->toContain('https://www.googleapis.com/auth/webmasters.readonly')
         ->and($query['access_type'])->toBe('offline')
-        ->and($query['include_granted_scopes'])->toBe('true');
+        ->and($query['include_granted_scopes'])->toBe('true')
+        ->and($query)->not->toHaveKey('nonce');
 });
 
 it('discovers verified Google Search Console sites into connector datasets idempotently', function () {

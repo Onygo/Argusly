@@ -23,10 +23,12 @@ use App\Services\DataConnectors\ConnectorSyncEngine;
 use App\Services\DataConnectors\ConnectorSyncPlan;
 use App\Services\DataConnectors\ConnectorSyncScheduler;
 use App\Services\DataConnectors\ConnectorTokenVault;
+use App\Services\DataConnectors\DataConnectorRegistry;
 use Database\Seeders\ConnectorProviderSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -80,6 +82,23 @@ it('connects a workspace-owned Google Search Console account through generic OAu
         ->and($rawToken->access_token)->not->toBe('phase27-access-one')
         ->and(AuditLog::query()->where('action', 'connector.connected')->exists())->toBeTrue()
         ->and($client->exchangedCode)->toBe('phase27-auth-code');
+});
+
+it('redirects admins back when Google Search Console OAuth setup still contains a placeholder client id', function () {
+    $context = phase27ConnectorContext('phase27-gsc-setup');
+    $definition = config('data_connectors.providers.google_search_console');
+    data_set($definition, 'config_json.oauth.client_id', 'google-search-console-client-id');
+
+    Config::set('data_connectors.providers.google_search_console', $definition);
+    app()->forgetInstance(DataConnectorRegistry::class);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.connectors.connect', [
+            'provider' => 'google-search-console',
+            'workspace_id' => $context['workspace']->id,
+        ]))
+        ->assertRedirect(route('app.connectors.index', ['workspace_id' => $context['workspace']->id]))
+        ->assertSessionHasErrors('connector');
 });
 
 it('automatically refreshes expired tokens before provider API calls', function () {
@@ -223,6 +242,8 @@ it('disconnects connectors without exposing or deleting credentials', function (
 
 function phase27ConnectorContext(string $slug): array
 {
+    phase27ConfigureConnectorOAuth('google_search_console');
+
     $unique = $slug.'-'.Str::lower(Str::random(8));
 
     $organization = Organization::query()->create([
@@ -290,6 +311,16 @@ function phase27ConnectorContext(string $slug): array
     ]);
 
     return compact('organization', 'workspace', 'site', 'user');
+}
+
+function phase27ConfigureConnectorOAuth(string $providerKey, ?string $clientId = null): void
+{
+    Config::set(
+        'data_connectors.providers.'.$providerKey.'.config_json.oauth.client_id',
+        $clientId ?? str_replace('_', '-', $providerKey).'-test-oauth-client',
+    );
+
+    app()->forgetInstance(DataConnectorRegistry::class);
 }
 
 function phase27ConnectedAccount(string $slug): array

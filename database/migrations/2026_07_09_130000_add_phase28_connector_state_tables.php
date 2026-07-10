@@ -8,6 +8,38 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('connector_quota_budgets')) {
+            $this->createConnectorQuotaBudgetsTable();
+        }
+
+        if (! Schema::hasTable('connector_backfill_ranges')) {
+            $this->createConnectorBackfillRangesTable();
+        }
+
+        if (! Schema::hasTable('connector_async_report_jobs')) {
+            $this->createConnectorAsyncReportJobsTable();
+        }
+
+        if (! Schema::hasTable('connector_field_mapping_preparations')) {
+            $this->createConnectorFieldMappingPreparationsTable();
+        }
+
+        if (! Schema::hasTable('connector_webhook_registrations')) {
+            $this->createConnectorWebhookRegistrationsTable();
+        }
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('connector_webhook_registrations');
+        Schema::dropIfExists('connector_field_mapping_preparations');
+        Schema::dropIfExists('connector_async_report_jobs');
+        Schema::dropIfExists('connector_backfill_ranges');
+        Schema::dropIfExists('connector_quota_budgets');
+    }
+
+    private function createConnectorQuotaBudgetsTable(): void
+    {
         Schema::create('connector_quota_budgets', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('workspace_id')->index();
@@ -24,11 +56,14 @@ return new class extends Migration
             $table->json('metadata_json')->nullable();
             $table->timestamps();
 
-            $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreign('connector_account_id')->references('id')->on('connector_accounts')->cascadeOnDelete();
+            $table->foreign('workspace_id', 'connector_quota_workspace_fk')->references('id')->on('workspaces')->cascadeOnDelete();
+            $table->foreign('connector_account_id', 'connector_quota_account_fk')->references('id')->on('connector_accounts')->cascadeOnDelete();
             $table->index(['workspace_id', 'provider_key', 'budget_type', 'status'], 'connector_quota_workspace_provider_type_status_idx');
         });
+    }
 
+    private function createConnectorBackfillRangesTable(): void
+    {
         Schema::create('connector_backfill_ranges', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('workspace_id')->index();
@@ -47,14 +82,17 @@ return new class extends Migration
             $table->json('metadata_json')->nullable();
             $table->timestamps();
 
-            $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreign('connector_account_id')->references('id')->on('connector_accounts')->cascadeOnDelete();
-            $table->foreign('connector_dataset_id')->references('id')->on('connector_datasets')->cascadeOnDelete();
-            $table->foreign('requested_by_user_id')->references('id')->on('users')->nullOnDelete();
-            $table->foreign('connector_sync_run_id')->references('id')->on('connector_sync_runs')->nullOnDelete();
+            $table->foreign('workspace_id', 'connector_backfills_workspace_fk')->references('id')->on('workspaces')->cascadeOnDelete();
+            $table->foreign('connector_account_id', 'connector_backfills_account_fk')->references('id')->on('connector_accounts')->cascadeOnDelete();
+            $table->foreign('connector_dataset_id', 'connector_backfills_dataset_fk')->references('id')->on('connector_datasets')->cascadeOnDelete();
+            $table->foreign('requested_by_user_id', 'connector_backfills_requested_by_fk')->references('id')->on('users')->nullOnDelete();
+            $table->foreign('connector_sync_run_id', 'connector_backfills_sync_run_fk')->references('id')->on('connector_sync_runs')->nullOnDelete();
             $table->index(['workspace_id', 'provider_key', 'status'], 'connector_backfills_workspace_provider_status_idx');
         });
+    }
 
+    private function createConnectorAsyncReportJobsTable(): void
+    {
         Schema::create('connector_async_report_jobs', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('workspace_id')->index();
@@ -74,12 +112,15 @@ return new class extends Migration
             $table->json('metadata_json')->nullable();
             $table->timestamps();
 
-            $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreign('connector_account_id')->references('id')->on('connector_accounts')->cascadeOnDelete();
-            $table->foreign('connector_dataset_id')->references('id')->on('connector_datasets')->nullOnDelete();
+            $table->foreign('workspace_id', 'connector_reports_workspace_fk')->references('id')->on('workspaces')->cascadeOnDelete();
+            $table->foreign('connector_account_id', 'connector_reports_account_fk')->references('id')->on('connector_accounts')->cascadeOnDelete();
+            $table->foreign('connector_dataset_id', 'connector_reports_dataset_fk')->references('id')->on('connector_datasets')->nullOnDelete();
             $table->index(['workspace_id', 'provider_key', 'status'], 'connector_report_jobs_workspace_provider_status_idx');
         });
+    }
 
+    private function createConnectorFieldMappingPreparationsTable(): void
+    {
         Schema::create('connector_field_mapping_preparations', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('workspace_id')->index();
@@ -94,12 +135,15 @@ return new class extends Migration
             $table->timestamp('prepared_at')->nullable()->index();
             $table->timestamps();
 
-            $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreign('connector_account_id')->references('id')->on('connector_accounts')->cascadeOnDelete();
-            $table->foreign('connector_dataset_id')->references('id')->on('connector_datasets')->nullOnDelete();
+            $table->foreign('workspace_id', 'connector_field_maps_workspace_fk')->references('id')->on('workspaces')->cascadeOnDelete();
+            $table->foreign('connector_account_id', 'connector_field_maps_account_fk')->references('id')->on('connector_accounts')->cascadeOnDelete();
+            $table->foreign('connector_dataset_id', 'connector_field_maps_dataset_fk')->references('id')->on('connector_datasets')->nullOnDelete();
             $table->unique(['connector_account_id', 'object_key'], 'connector_field_mapping_account_object_unique');
         });
+    }
 
+    private function createConnectorWebhookRegistrationsTable(): void
+    {
         Schema::create('connector_webhook_registrations', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('workspace_id')->index();
@@ -113,18 +157,9 @@ return new class extends Migration
             $table->json('metadata_json')->nullable();
             $table->timestamps();
 
-            $table->foreign('workspace_id')->references('id')->on('workspaces')->cascadeOnDelete();
-            $table->foreign('connector_account_id')->references('id')->on('connector_accounts')->cascadeOnDelete();
+            $table->foreign('workspace_id', 'connector_webhooks_workspace_fk')->references('id')->on('workspaces')->cascadeOnDelete();
+            $table->foreign('connector_account_id', 'connector_webhooks_account_fk')->references('id')->on('connector_accounts')->cascadeOnDelete();
             $table->unique(['connector_account_id', 'provider_key'], 'connector_webhook_account_provider_unique');
         });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('connector_webhook_registrations');
-        Schema::dropIfExists('connector_field_mapping_preparations');
-        Schema::dropIfExists('connector_async_report_jobs');
-        Schema::dropIfExists('connector_backfill_ranges');
-        Schema::dropIfExists('connector_quota_budgets');
     }
 };

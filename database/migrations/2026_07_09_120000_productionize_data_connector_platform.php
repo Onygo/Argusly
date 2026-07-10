@@ -8,19 +8,119 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('connector_accounts', function (Blueprint $table): void {
-            $table->string('sync_frequency', 80)->nullable()->after('last_synced_at');
-            $table->timestamp('next_sync_at')->nullable()->index()->after('sync_frequency');
-            $table->timestamp('last_api_call_at')->nullable()->index()->after('health_checked_at');
-            $table->text('last_error')->nullable()->after('last_api_call_at');
-            $table->json('rate_limit_json')->nullable()->after('last_error');
-            $table->unsignedTinyInteger('health_score')->nullable()->after('rate_limit_json');
-        });
+        $this->ensureConnectorAccountHealthColumns();
+        $this->ensureConnectorAccountProductionColumns();
+        $this->ensureConnectorSyncRunProductionColumns();
+        $this->ensureConnectorRawRecordsTable();
+    }
 
-        Schema::table('connector_sync_runs', function (Blueprint $table): void {
-            $table->unsignedInteger('duration_ms')->nullable()->after('finished_at');
-            $table->unsignedInteger('records_processed')->default(0)->after('duration_ms');
-        });
+    public function down(): void
+    {
+        if (Schema::hasTable('connector_raw_records')) {
+            Schema::dropIfExists('connector_raw_records');
+        }
+
+        $this->dropColumnsIfPresent('connector_sync_runs', [
+            'duration_ms',
+            'records_processed',
+        ]);
+
+        $this->dropColumnsIfPresent('connector_accounts', [
+            'sync_frequency',
+            'next_sync_at',
+            'last_api_call_at',
+            'last_error',
+            'rate_limit_json',
+            'health_score',
+        ]);
+    }
+
+    private function ensureConnectorAccountHealthColumns(): void
+    {
+        if (! Schema::hasColumn('connector_accounts', 'health_status')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->string('health_status', 40)->nullable()->index()->after('last_synced_at');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'health_severity')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->string('health_severity', 40)->nullable()->index()->after('health_status');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'latest_health_event_id')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->uuid('latest_health_event_id')->nullable()->index()->after('health_severity');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'health_checked_at')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->timestamp('health_checked_at')->nullable()->index()->after('latest_health_event_id');
+            });
+        }
+    }
+
+    private function ensureConnectorAccountProductionColumns(): void
+    {
+        if (! Schema::hasColumn('connector_accounts', 'sync_frequency')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->string('sync_frequency', 80)->nullable()->after('last_synced_at');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'next_sync_at')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->timestamp('next_sync_at')->nullable()->index()->after('sync_frequency');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'last_api_call_at')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->timestamp('last_api_call_at')->nullable()->index()->after('health_checked_at');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'last_error')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->text('last_error')->nullable()->after('last_api_call_at');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'rate_limit_json')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->json('rate_limit_json')->nullable()->after('last_error');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_accounts', 'health_score')) {
+            Schema::table('connector_accounts', function (Blueprint $table): void {
+                $table->unsignedTinyInteger('health_score')->nullable()->after('rate_limit_json');
+            });
+        }
+    }
+
+    private function ensureConnectorSyncRunProductionColumns(): void
+    {
+        if (! Schema::hasColumn('connector_sync_runs', 'duration_ms')) {
+            Schema::table('connector_sync_runs', function (Blueprint $table): void {
+                $table->unsignedInteger('duration_ms')->nullable()->after('finished_at');
+            });
+        }
+
+        if (! Schema::hasColumn('connector_sync_runs', 'records_processed')) {
+            Schema::table('connector_sync_runs', function (Blueprint $table): void {
+                $table->unsignedInteger('records_processed')->default(0)->after('duration_ms');
+            });
+        }
+    }
+
+    private function ensureConnectorRawRecordsTable(): void
+    {
+        if (Schema::hasTable('connector_raw_records')) {
+            return;
+        }
 
         Schema::create('connector_raw_records', function (Blueprint $table): void {
             $table->uuid('id')->primary();
@@ -54,23 +154,22 @@ return new class extends Migration
         });
     }
 
-    public function down(): void
+    /**
+     * @param  array<int, string>  $columns
+     */
+    private function dropColumnsIfPresent(string $table, array $columns): void
     {
-        Schema::dropIfExists('connector_raw_records');
+        $existingColumns = array_values(array_filter(
+            $columns,
+            fn (string $column): bool => Schema::hasColumn($table, $column),
+        ));
 
-        Schema::table('connector_sync_runs', function (Blueprint $table): void {
-            $table->dropColumn(['duration_ms', 'records_processed']);
-        });
+        if ($existingColumns === []) {
+            return;
+        }
 
-        Schema::table('connector_accounts', function (Blueprint $table): void {
-            $table->dropColumn([
-                'sync_frequency',
-                'next_sync_at',
-                'last_api_call_at',
-                'last_error',
-                'rate_limit_json',
-                'health_score',
-            ]);
+        Schema::table($table, function (Blueprint $table) use ($existingColumns): void {
+            $table->dropColumn($existingColumns);
         });
     }
 };

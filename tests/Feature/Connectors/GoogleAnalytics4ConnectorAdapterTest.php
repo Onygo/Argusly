@@ -22,6 +22,7 @@ use App\Services\DataConnectors\GoogleAnalytics4\GoogleAnalytics4DatasetDiscover
 use App\Services\DataConnectors\GoogleAnalytics4\GoogleAnalytics4ReportingSyncAdapter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -45,6 +46,9 @@ it('validates the Google Analytics 4 provider config and adapters', function () 
 });
 
 it('generates a Google Analytics 4 OAuth URL with the Analytics readonly scope', function () {
+    Config::set('data_connectors.providers.google_analytics_4.config_json.oauth.client_id', 'ga4-test-oauth-client');
+    app()->forgetInstance(DataConnectorRegistry::class);
+
     $context = phase33Ga4Context();
 
     $authorization = app(ConnectorOAuthAuthorizationUrlGenerator::class)
@@ -59,7 +63,8 @@ it('generates a Google Analytics 4 OAuth URL with the Analytics readonly scope',
     expect($authorization->url)->toStartWith('https://accounts.google.com/o/oauth2/v2/auth?')
         ->and($query['scope'])->toContain('https://www.googleapis.com/auth/analytics.readonly')
         ->and($query['access_type'])->toBe('offline')
-        ->and($query['include_granted_scopes'])->toBe('true');
+        ->and($query['include_granted_scopes'])->toBe('true')
+        ->and($query)->not->toHaveKey('nonce');
 });
 
 it('discovers Google Analytics 4 accounts properties and data streams idempotently', function () {
