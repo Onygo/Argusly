@@ -26,6 +26,11 @@
             ->filter()
             ->implode("\n");
     };
+    $planDiff = $planDiff ?? [];
+    $baselineDiffPlan = data_get($planDiff, 'baseline');
+    $findingChangeStates = collect(data_get($planDiff, 'findings.states', []));
+    $audienceChangeStates = collect(data_get($planDiff, 'audiences.states', []));
+    $versionChangeSummary = data_get($planDiff, 'summary', []);
 @endphp
 
 @section('pageHeader')
@@ -41,6 +46,15 @@
         <i data-lucide="arrow-left" class="h-4 w-4"></i>
         <span>Plan history</span>
     </a>
+    @can('create', \App\Models\BrandGrowthPlan::class)
+        <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.regenerate', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
+            @csrf
+            <button class="pl-btn-ghost" type="submit">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                <span>Regenerate draft</span>
+            </button>
+        </form>
+    @endcan
     @if ($status !== 'approved')
         <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.approve', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
             @csrf
@@ -94,6 +108,143 @@
             </div>
         </section>
 
+        @if ($baselineDiffPlan)
+            <section class="rounded-lg border border-border bg-surface p-5">
+                <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <h2 class="text-sm font-semibold text-textPrimary">Version Changes</h2>
+                        <p class="mt-1 text-sm text-textSecondary">
+                            Compared with v{{ data_get($baselineDiffPlan, 'version') }}{{ data_get($baselineDiffPlan, 'generated_at') ? ' from '.data_get($baselineDiffPlan, 'generated_at')->toFormattedDateString() : '' }}.
+                        </p>
+                    </div>
+                    <div class="text-sm font-semibold {{ (float) data_get($planDiff, 'confidence.delta', 0) >= 0 ? 'text-emerald-700' : 'text-rose-700' }}">
+                        {{ (float) data_get($planDiff, 'confidence.delta', 0) >= 0 ? '+' : '' }}{{ number_format((float) data_get($planDiff, 'confidence.delta', 0), 1) }} confidence
+                    </div>
+                </div>
+
+                <div class="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+                    @foreach ([
+                        'Added findings' => $versionChangeSummary['added_findings'] ?? 0,
+                        'Updated findings' => $versionChangeSummary['updated_findings'] ?? 0,
+                        'Removed findings' => $versionChangeSummary['removed_findings'] ?? 0,
+                        'Added audiences' => $versionChangeSummary['added_audiences'] ?? 0,
+                        'Updated audiences' => $versionChangeSummary['updated_audiences'] ?? 0,
+                        'Changed sections' => $versionChangeSummary['changed_sections'] ?? 0,
+                    ] as $label => $value)
+                        <div class="rounded-md border border-border bg-background px-3 py-2 text-xs text-textSecondary">
+                            {{ $label }}
+                            <span class="block text-base font-semibold text-textPrimary">{{ $value }}</span>
+                        </div>
+                    @endforeach
+                </div>
+
+                @if (! data_get($planDiff, 'has_changes'))
+                    <div class="mt-4 rounded-md border border-border bg-background px-3 py-2 text-sm text-textSecondary">
+                        No material changes were detected against the prior version.
+                    </div>
+                @else
+                    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+                        <div class="rounded-md border border-border bg-background p-3">
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Changed sections</h3>
+                            <div class="mt-2 space-y-2">
+                                @forelse (collect(data_get($planDiff, 'sections.changed', []))->take(8) as $section)
+                                    <div class="text-sm text-textPrimary">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <span class="font-medium">{{ data_get($section, 'label') }}</span>
+                                            <span class="text-xs text-textSecondary">{{ data_get($section, 'previous_count') }} to {{ data_get($section, 'current_count') }}</span>
+                                        </div>
+                                        @if (data_get($section, 'current_preview'))
+                                            <p class="mt-1 text-xs text-textSecondary">{{ data_get($section, 'current_preview') }}</p>
+                                        @endif
+                                    </div>
+                                @empty
+                                    <p class="text-sm text-textSecondary">No strategic sections changed.</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <div class="rounded-md border border-border bg-background p-3">
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Finding movement</h3>
+                            <div class="mt-2 grid gap-3 md:grid-cols-2">
+                                <div>
+                                    <p class="text-xs font-medium text-emerald-700">Added</p>
+                                    <div class="mt-1 space-y-1">
+                                        @forelse (collect(data_get($planDiff, 'findings.added', []))->take(4) as $item)
+                                            <p class="text-sm text-textPrimary">{{ data_get($item, 'title') }}</p>
+                                        @empty
+                                            <p class="text-sm text-textSecondary">None</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-rose-700">Removed</p>
+                                    <div class="mt-1 space-y-1">
+                                        @forelse (collect(data_get($planDiff, 'findings.removed', []))->take(4) as $item)
+                                            <p class="text-sm text-textPrimary">{{ data_get($item, 'title') }}</p>
+                                        @empty
+                                            <p class="text-sm text-textSecondary">None</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-md border border-border bg-background p-3">
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Audience movement</h3>
+                            <div class="mt-2 grid gap-3 md:grid-cols-2">
+                                <div>
+                                    <p class="text-xs font-medium text-emerald-700">Added</p>
+                                    <div class="mt-1 space-y-1">
+                                        @forelse (collect(data_get($planDiff, 'audiences.added', []))->take(4) as $item)
+                                            <p class="text-sm text-textPrimary">{{ data_get($item, 'title') }}</p>
+                                        @empty
+                                            <p class="text-sm text-textSecondary">None</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-rose-700">Removed</p>
+                                    <div class="mt-1 space-y-1">
+                                        @forelse (collect(data_get($planDiff, 'audiences.removed', []))->take(4) as $item)
+                                            <p class="text-sm text-textPrimary">{{ data_get($item, 'title') }}</p>
+                                        @empty
+                                            <p class="text-sm text-textSecondary">None</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-md border border-border bg-background p-3">
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-textSecondary">Missing data</h3>
+                            <div class="mt-2 grid gap-3 md:grid-cols-2">
+                                <div>
+                                    <p class="text-xs font-medium text-amber-700">New gaps</p>
+                                    <div class="mt-1 space-y-1">
+                                        @forelse (collect(data_get($planDiff, 'missing_information.added', []))->take(4) as $item)
+                                            <p class="text-sm text-textPrimary">{{ $item }}</p>
+                                        @empty
+                                            <p class="text-sm text-textSecondary">None</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-emerald-700">Resolved</p>
+                                    <div class="mt-1 space-y-1">
+                                        @forelse (collect(data_get($planDiff, 'missing_information.resolved', []))->take(4) as $item)
+                                            <p class="text-sm text-textPrimary">{{ $item }}</p>
+                                        @empty
+                                            <p class="text-sm text-textSecondary">None</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </section>
+        @endif
+
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
             <main class="space-y-6">
                 <section class="rounded-lg border border-border bg-surface p-5">
@@ -141,6 +292,7 @@
                             @php
                                 $reviewState = $finding->review_state?->value ?? $finding->review_state;
                                 $findingType = $finding->type?->value ?? $finding->type;
+                                $findingChangeState = $findingChangeStates->get((string) $finding->dedupe_hash);
                             @endphp
                             <article class="p-5">
                                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -149,6 +301,11 @@
                                             <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', $findingType) }}</span>
                                             <span class="rounded-full border px-2.5 py-1 text-xs {{ $stateClass[$reviewState] ?? 'border-border bg-background text-textSecondary' }}">{{ str_replace('_', ' ', $reviewState) }}</span>
                                             <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">inferred conclusion</span>
+                                            @if ($findingChangeState === 'added')
+                                                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">new in v{{ $plan->version }}</span>
+                                            @elseif ($findingChangeState === 'changed')
+                                                <span class="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs text-sky-800">updated in v{{ $plan->version }}</span>
+                                            @endif
                                             @if ($finding->promoted_at)
                                                 <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">promoted</span>
                                             @endif
@@ -215,6 +372,7 @@
                         @forelse ($plan->audienceProposals as $proposal)
                             @php
                                 $proposalState = $proposal->review_state?->value ?? $proposal->review_state;
+                                $audienceChangeState = $audienceChangeStates->get((string) $proposal->dedupe_hash);
                             @endphp
                             <article class="p-5">
                                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -223,6 +381,11 @@
                                             <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', $proposal->proposal_type?->value ?? $proposal->proposal_type) }}</span>
                                             <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', $proposal->source_type?->value ?? $proposal->source_type) }}</span>
                                             <span class="rounded-full border px-2.5 py-1 text-xs {{ $stateClass[$proposalState] ?? 'border-border bg-background text-textSecondary' }}">{{ str_replace('_', ' ', $proposalState) }}</span>
+                                            @if ($audienceChangeState === 'added')
+                                                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">new in v{{ $plan->version }}</span>
+                                            @elseif ($audienceChangeState === 'changed')
+                                                <span class="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs text-sky-800">updated in v{{ $plan->version }}</span>
+                                            @endif
                                             @if ($proposal->persona)
                                                 <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">persona</span>
                                             @endif

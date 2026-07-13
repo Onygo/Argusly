@@ -62,7 +62,7 @@ return new class extends Migration
             $table->uuid('brand_growth_plan_id')->index();
             $table->uuid('content_id')->nullable()->index();
             $table->uuid('monitored_page_id')->nullable()->index();
-            $table->uuid('site_competitor_id')->nullable()->index();
+            $table->foreignId('site_competitor_id')->nullable()->constrained('site_competitors')->nullOnDelete();
             $table->uuid('opportunity_id')->nullable()->index();
             $table->string('type', 80)->index();
             $table->string('status', 40)->default('active')->index();
@@ -91,7 +91,6 @@ return new class extends Migration
             $table->foreign('brand_growth_plan_id')->references('id')->on('brand_growth_plans')->cascadeOnDelete();
             $table->foreign('content_id')->references('id')->on('contents')->nullOnDelete();
             $table->foreign('monitored_page_id')->references('id')->on('monitored_pages')->nullOnDelete();
-            $table->foreign('site_competitor_id')->references('id')->on('site_competitors')->nullOnDelete();
             $table->foreign('opportunity_id')->references('id')->on('opportunities')->nullOnDelete();
             $table->unique(['brand_growth_plan_id', 'dedupe_hash'], 'brand_growth_findings_plan_dedupe_unique');
             $table->index(['workspace_id', 'type', 'review_state'], 'brand_growth_findings_workspace_type_review_idx');

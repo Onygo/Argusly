@@ -3,7 +3,9 @@
 use App\Enums\BrandGrowthPlanReviewState;
 use App\Enums\OpportunitySignalSource;
 use App\Http\Middleware\EnsureBillingOnboardingCompleted;
+use App\Models\BrandGrowthAudienceProposal;
 use App\Models\BrandGrowthPlan;
+use App\Models\BrandGrowthPlanFinding;
 use App\Models\ClientSite;
 use App\Models\CompanyIntelligenceProfile;
 use App\Models\Content;
@@ -233,6 +235,135 @@ it('promotes approved inferred audiences into canonical personas without duplica
     expect($persona->status)->toBe(Persona::STATUS_APPROVED)
         ->and($persona->source_type)->toBe('brand_growth_plan')
         ->and(data_get($persona->profile_data, 'brand_growth.audience_proposal_id'))->toBe((string) $proposal->id);
+});
+
+it('shows version changes against the superseded plan', function (): void {
+    $context = brandGrowthContext('version-diff');
+
+    $baseline = BrandGrowthPlan::factory()->forWorkspace($context['workspace'])->create([
+        'version' => 1,
+        'business_objective' => 'Baseline objective',
+        'messaging_priorities' => ['Keep proof assets'],
+        'missing_information' => ['No CRM data'],
+    ]);
+
+    $current = BrandGrowthPlan::factory()->forWorkspace($context['workspace'])->create([
+        'version' => 2,
+        'supersedes_plan_id' => $baseline->id,
+        'business_objective' => 'Updated objective',
+        'messaging_priorities' => ['Keep proof assets', 'Add executive narrative'],
+        'missing_information' => ['No AI overview samples'],
+        'confidence_score' => 76,
+    ]);
+
+    $createFinding = function (BrandGrowthPlan $plan, array $attributes = []): BrandGrowthPlanFinding {
+        return BrandGrowthPlanFinding::query()->create(array_merge([
+            'organization_id' => $plan->organization_id,
+            'workspace_id' => $plan->workspace_id,
+            'brand_growth_plan_id' => $plan->id,
+            'type' => 'content_gap',
+            'status' => BrandGrowthPlanFinding::STATUS_ACTIVE,
+            'review_state' => 'pending',
+            'title' => 'Proof-led content is missing',
+            'description' => 'Owned content does not show enough evidence-led assets.',
+            'rationale' => 'Credibility improves when buyers can inspect proof.',
+            'impact_score' => 80,
+            'urgency_score' => 64,
+            'confidence_score' => 72,
+            'recommended_action' => 'Create one proof-led decision-stage asset.',
+            'source_references' => [],
+            'source_summary' => [],
+            'metadata_json' => ['test' => true],
+            'dedupe_hash' => hash('sha256', (string) Str::uuid()),
+        ], $attributes));
+    };
+
+    $createAudience = function (BrandGrowthPlan $plan, array $attributes = []): BrandGrowthAudienceProposal {
+        return BrandGrowthAudienceProposal::query()->create(array_merge([
+            'organization_id' => $plan->organization_id,
+            'workspace_id' => $plan->workspace_id,
+            'brand_growth_plan_id' => $plan->id,
+            'proposal_type' => 'audience',
+            'source_type' => 'inferred',
+            'review_state' => 'pending',
+            'name' => 'B2B SaaS marketing leaders',
+            'role' => 'Head of Marketing',
+            'industry' => 'B2B SaaS',
+            'goals' => ['Increase qualified demand'],
+            'pain_points' => ['Weak AI visibility'],
+            'kpis' => ['Pipeline influenced'],
+            'buying_committee_role' => 'Economic buyer',
+            'confidence_score' => 72,
+            'source_references' => [],
+            'metadata_json' => ['test' => true],
+            'dedupe_hash' => hash('sha256', (string) Str::uuid()),
+        ], $attributes));
+    };
+
+    $createFinding($baseline, [
+        'title' => 'Legacy channel gap',
+        'impact_score' => 58,
+        'dedupe_hash' => 'removed-channel-gap',
+    ]);
+    $createFinding($baseline, [
+        'title' => 'Proof-led content is missing',
+        'impact_score' => 60,
+        'dedupe_hash' => 'shared-proof-gap',
+    ]);
+    $createFinding($current, [
+        'title' => 'Proof-led content is missing',
+        'impact_score' => 90,
+        'dedupe_hash' => 'shared-proof-gap',
+    ]);
+    $createFinding($current, [
+        'title' => 'Executive narrative is missing',
+        'impact_score' => 92,
+        'dedupe_hash' => 'new-executive-narrative',
+    ]);
+
+    $createAudience($baseline, [
+        'name' => 'Legacy newsletter audience',
+        'dedupe_hash' => 'removed-newsletter-audience',
+    ]);
+    $createAudience($current, [
+        'name' => 'Enterprise AI visibility buyers',
+        'dedupe_hash' => 'new-ai-visibility-buyers',
+    ]);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.agentic-marketing.brand-growth-plans.show', ['plan' => $current->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertOk()
+        ->assertSee('Version Changes')
+        ->assertSee('Compared with v1')
+        ->assertSee('Business objective')
+        ->assertSee('Executive narrative is missing')
+        ->assertSee('Legacy channel gap')
+        ->assertSee('Enterprise AI visibility buyers')
+        ->assertSee('new in v2')
+        ->assertSee('updated in v2');
+});
+
+it('regenerates a draft from an existing brand growth plan', function (): void {
+    $context = brandGrowthContext('regenerate');
+    $plan = app(BrandGrowthPlanGenerator::class)->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'Regenerate this strategic objective',
+        'brand_objective' => 'Refresh the governed brand growth snapshot',
+        'client_site_id' => $context['site']->id,
+    ]);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.regenerate', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect();
+
+    $regenerated = BrandGrowthPlan::query()
+        ->where('workspace_id', $context['workspace']->id)
+        ->orderByDesc('version')
+        ->firstOrFail();
+
+    expect($regenerated->version)->toBe(2)
+        ->and($regenerated->supersedes_plan_id)->toBe($plan->id)
+        ->and($regenerated->business_objective)->toBe('Regenerate this strategic objective')
+        ->and($plan->refresh()->status->value)->toBe('superseded');
 });
 
 it('includes Brand Growth Planning rows in diagnostics', function (): void {

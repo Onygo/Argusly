@@ -11,6 +11,7 @@ use App\Models\BrandGrowthPlanFinding;
 use App\Models\Workspace;
 use App\Services\BrandGrowthPlanning\BrandGrowthAudiencePromotionService;
 use App\Services\BrandGrowthPlanning\BrandGrowthFindingPromotionService;
+use App\Services\BrandGrowthPlanning\BrandGrowthPlanDiffService;
 use App\Services\BrandGrowthPlanning\BrandGrowthPlanGenerator;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -71,7 +72,7 @@ class AppBrandGrowthPlanController extends Controller
             ->with('status', 'Draft Brand Growth Plan generated.');
     }
 
-    public function show(Request $request, BrandGrowthPlan $plan): View
+    public function show(Request $request, BrandGrowthPlan $plan, BrandGrowthPlanDiffService $diffService): View
     {
         $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
         $this->assertPlanWorkspace($plan, $workspace);
@@ -88,6 +89,7 @@ class AppBrandGrowthPlanController extends Controller
             'title' => 'Brand Growth Plan',
             'workspace' => $workspace,
             'plan' => $plan,
+            'planDiff' => $diffService->diff($plan),
             'planHistory' => BrandGrowthPlan::query()
                 ->where('workspace_id', $workspace->id)
                 ->whereKeyNot($plan->id)
@@ -95,6 +97,25 @@ class AppBrandGrowthPlanController extends Controller
                 ->limit(8)
                 ->get(),
         ]);
+    }
+
+    public function regenerate(Request $request, BrandGrowthPlan $plan, BrandGrowthPlanGenerator $generator): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
+        $this->assertPlanWorkspace($plan, $workspace);
+        $this->authorize('view', $plan);
+        $this->authorize('create', BrandGrowthPlan::class);
+
+        $regeneratedPlan = $generator->generate($workspace, $request->user(), [
+            'client_site_id' => $plan->client_site_id,
+            'planning_horizon' => $plan->planning_horizon ?: 'next_90_days',
+            'business_objective' => $plan->business_objective,
+            'brand_objective' => $plan->brand_objective,
+        ]);
+
+        return redirect()
+            ->route('app.agentic-marketing.brand-growth-plans.show', ['plan' => $regeneratedPlan, 'workspace_id' => $workspace->id])
+            ->with('status', 'Draft Brand Growth Plan regenerated. Review the version changes before approval.');
     }
 
     public function update(Request $request, BrandGrowthPlan $plan): RedirectResponse

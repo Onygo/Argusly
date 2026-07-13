@@ -244,6 +244,7 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
             Route::post('/agentic-marketing/content-opportunities/{opportunity}/brief', [AppContentOpportunityController::class, 'createBrief'])->name('app.agentic-marketing.content-opportunities.brief.create');
             Route::get('/agentic-marketing/brand-growth-plans', [AppBrandGrowthPlanController::class, 'index'])->name('app.agentic-marketing.brand-growth-plans.index');
             Route::post('/agentic-marketing/brand-growth-plans/generate', [AppBrandGrowthPlanController::class, 'generate'])->middleware('protect.heavy:report')->name('app.agentic-marketing.brand-growth-plans.generate');
+            Route::post('/agentic-marketing/brand-growth-plans/{plan}/regenerate', [AppBrandGrowthPlanController::class, 'regenerate'])->middleware('protect.heavy:report')->name('app.agentic-marketing.brand-growth-plans.regenerate');
             Route::get('/agentic-marketing/brand-growth-plans/{plan}', [AppBrandGrowthPlanController::class, 'show'])->name('app.agentic-marketing.brand-growth-plans.show');
             Route::put('/agentic-marketing/brand-growth-plans/{plan}', [AppBrandGrowthPlanController::class, 'update'])->name('app.agentic-marketing.brand-growth-plans.update');
             Route::post('/agentic-marketing/brand-growth-plans/{plan}/approve', [AppBrandGrowthPlanController::class, 'approvePlan'])->name('app.agentic-marketing.brand-growth-plans.approve');
