@@ -219,6 +219,7 @@ class OpportunityIntelligenceEngine
             'content_decay' => OpportunityCategory::REFRESH_OPPORTUNITY,
             'engagement_analytics' => OpportunityCategory::ENGAGEMENT_OPPORTUNITY,
             'competitor_intelligence' => OpportunityCategory::COMPETITOR_MOVEMENT,
+            'brand_growth_plan' => OpportunityCategory::CONTENT_GAP,
             'internal_analytics', 'content_cluster' => OpportunityCategory::CONTENT_GAP,
             'signal_intelligence' => OpportunityCategory::CONTENT_GAP,
             default => OpportunityCategory::CONTENT_GAP,

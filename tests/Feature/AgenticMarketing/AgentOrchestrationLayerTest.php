@@ -180,6 +180,9 @@ it('adds canonical opportunity ids to shared agentic context while preserving le
         'title' => 'Canonical agentic opportunity',
         'priority_score' => 97.0,
     ])
+        ->and(data_get($context, 'brand_intelligence.available'))->toBeTrue()
+        ->and(data_get($context, 'brand_intelligence.company.name'))->toBe('Argusly')
+        ->and(data_get($context, 'company.company_name'))->toBe('Argusly')
         ->and($opportunity['provenance'])->toMatchArray([
             'title' => 'canonical',
             'type' => 'legacy',

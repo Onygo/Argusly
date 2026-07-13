@@ -15,9 +15,16 @@ class CompanyIntelligenceContextService
 
     public function forWorkspace(Workspace|string $workspace, ?string $brandKey = null): ?CompanyIntelligenceProfileData
     {
+        $profile = $this->profileForWorkspace($workspace, $brandKey);
+
+        return $profile ? $this->normalizer->normalize($profile) : null;
+    }
+
+    public function profileForWorkspace(Workspace|string $workspace, ?string $brandKey = null): ?CompanyIntelligenceProfile
+    {
         $workspaceId = $workspace instanceof Workspace ? (string) $workspace->id : (string) $workspace;
 
-        $profile = CompanyIntelligenceProfile::query()
+        return CompanyIntelligenceProfile::query()
             ->where('workspace_id', $workspaceId)
             ->where('status', CompanyIntelligenceProfile::STATUS_ACTIVE)
             ->when(
@@ -26,8 +33,6 @@ class CompanyIntelligenceContextService
                 fn ($query) => $query->orderByDesc('is_default')->orderByDesc('completeness_score'),
             )
             ->first();
-
-        return $profile ? $this->normalizer->normalize($profile) : null;
     }
 
     /**

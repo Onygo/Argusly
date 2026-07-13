@@ -39,6 +39,10 @@
   php artisan test
   ```
 - [ ] Fix any failing tests
+- [ ] Triage intentional skipped tests and record owner/decision:
+  - [ ] `tests/Feature/UI/ContentDeliveryUITest.php` WordPressConnector HTTP verification skip
+  - [ ] `tests/Feature/Status/ContentStatusSeparationTest.php` publish status mapping skip
+  - [ ] `tests/Feature/Public/CrossLocaleRedirectTest.php` full auth context skip
 
 ### Environment Configuration
 
@@ -46,8 +50,14 @@
   - [ ] `OPENAI_API_KEY`
   - [ ] `ANTHROPIC_API_KEY`
   - [ ] `GEMINI_API_KEY`
+  - [ ] `MISTRAL_API_KEY`
   - [ ] `MAILGUN_SECRET`
+  - [ ] `MAILGUN_DOMAIN`
+  - [ ] `MAIL_FROM_ADDRESS`
   - [ ] `MOLLIE_KEY`
+  - [ ] `SENTRY_LARAVEL_DSN`
+  - [ ] `RECAPTCHA_SITE_KEY`
+  - [ ] `RECAPTCHA_SECRET_KEY`
   - [ ] `ARGUSLY_ADMIN_KEY`
 - [ ] Verify database credentials
 - [ ] Verify Redis/cache configuration
@@ -60,11 +70,49 @@
 - [ ] Configure supervisor/systemd for queue workers
 - [ ] Set up workers for all queues:
   - [ ] `default`
+  - [ ] `emails`
+  - [ ] `markdown`
+  - [ ] `generation`
   - [ ] `ai-low`
+  - [ ] `brief-intelligence`
+  - [ ] `research`
   - [ ] `deliveries`
   - [ ] `billing`
+  - [ ] `agentic-marketing`
+  - [ ] `intelligence`
+  - [ ] `content-network`
+  - [ ] `page_intelligence_discover`
+  - [ ] `page_intelligence_fetch`
+  - [ ] `page_intelligence_extract`
+  - [ ] `page_intelligence_analyze`
+  - [ ] `page_intelligence_score`
+  - [ ] `page_intelligence_signal`
+  - [ ] `page_intelligence_alert`
+  - [ ] `page_intelligence_reports`
 - [ ] Configure failed job notifications
+- [ ] Configure queue depth alerts
+- [ ] Verify `queue:worker-heartbeat` updates cache at least every 120 seconds
 - [ ] Test job processing end-to-end
+
+### Feature Flag Matrix
+
+Record the production decision before launch. Default-off flags should remain off unless a named owner signs off on pilot scope, rollback and monitoring.
+
+| Feature flag | Env var | Default | Launch decision |
+| --- | --- | --- | --- |
+| `agentic_marketing` | `ARGUSLY_FEATURE_AGENTIC_MARKETING` | On | Controlled beta/GA candidate. Keep approval gates and autonomy policies enforced. |
+| `signal_intelligence` | `ARGUSLY_SIGNAL_INTELLIGENCE_ENABLED` | On | Controlled beta/GA candidate. Keep source and alert policy scoped per pilot market. |
+| `network_linking` | `ARGUSLY_FEATURE_NETWORK_LINKING` | Off | Keep off; product/spec/QA required before reactivation. |
+| `draft_link_suggestions` | `ARGUSLY_FEATURE_DRAFT_LINK_SUGGESTIONS` | Off | Keep off unless link-intelligence pilot is explicitly selected. |
+| `link_intelligence_jobs` | `ARGUSLY_FEATURE_LINK_INTELLIGENCE_JOBS` | Off | Keep off until worker load, idempotency and review UX are approved. |
+| `research_layer` | `ARGUSLY_FEATURE_RESEARCH_LAYER` | Off | Internal/beta only; enable only with provider cost model. |
+| `brief_intelligence` | `ARGUSLY_FEATURE_BRIEF_INTELLIGENCE` | Off | Beta only; enable after LLM cost and quality gates. |
+| `brief_templates` | `ARGUSLY_FEATURE_BRIEF_TEMPLATES` | Off | Product decision needed. |
+| `content_network_analysis` | `ARGUSLY_FEATURE_CONTENT_NETWORK_ANALYSIS` | Off | Internal/beta only; depends on content network UX and worker capacity. |
+| MOS canonical content opportunity flags | `ARGUSLY_FEATURE_MOS_CANONICAL_CONTENT_OPPORTUNITY_*` | Off | Keep off for production runtime unless MOS migration sign-off exists. |
+| MOS agentic opportunity flags | `ARGUSLY_FEATURE_MOS_AGENTIC_MARKETING_OPPORTUNITY_*` | Off | Keep off except approved dry-run/apply commands. |
+| MOS agentic planner flags | `ARGUSLY_FEATURE_MOS_AGENTIC_PLANNER_*` | Off | Keep off; preview/shadow/apply flows require explicit operator command and audit review. |
+| MOS execution metadata writer | `ARGUSLY_FEATURE_MOS_AGENTIC_EXECUTION_CANONICAL_METADATA_WRITER` | Off | Keep off unless canonical metadata rollout is approved. |
 
 ### WordPress Plugin
 

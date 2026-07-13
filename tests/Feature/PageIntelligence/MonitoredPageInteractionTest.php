@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\App\AppMonitoredPageController;
+use App\Models\Content;
+use App\Models\ContentPageLink;
 use App\Models\MonitoredPage;
 use App\Models\Organization;
+use App\Models\PageAlert;
 use App\Models\PageContentExtraction;
 use App\Models\PageEntity;
 use App\Models\PageMention;
@@ -10,6 +13,7 @@ use App\Models\PagePrValue;
 use App\Models\PageSentiment;
 use App\Models\PageSnapshot;
 use App\Models\PageTopic;
+use App\Models\RecommendedAction;
 use App\Models\SignalEvent;
 use App\Models\User;
 use App\Support\Interaction\AppInteractionRegistry;
@@ -46,6 +50,45 @@ it('resolves monitored page as a universal resource', function (): void {
 
 it('generates monitored page drawer metadata for inspection', function (): void {
     [$page, $snapshot] = monitoredPageInteractionPageWithEvidence();
+    $content = Content::factory()->create([
+        'workspace_id' => $page->workspace_id,
+        'client_site_id' => $page->client_site_id,
+        'title' => 'Memory linked content',
+        'published_url' => $page->canonical_url,
+    ]);
+    ContentPageLink::factory()
+        ->forContentAndPage($content, $page)
+        ->create(['confidence_score' => 94.0]);
+    $alert = PageAlert::factory()->create([
+        'organization_id' => $page->organization_id,
+        'workspace_id' => $page->workspace_id,
+        'client_site_id' => $page->client_site_id,
+        'monitored_page_id' => $page->id,
+        'title' => 'Memory alert evidence',
+        'severity' => 'high',
+    ]);
+    $action = RecommendedAction::query()->create([
+        'workspace_id' => $page->workspace_id,
+        'organization_id' => $page->organization_id,
+        'source_type' => PageAlert::class,
+        'source_id' => $alert->id,
+        'source_signature' => 'page_alert:'.$alert->id.':recommended_action',
+        'source_group' => RecommendedAction::SOURCE_AI_VISIBILITY,
+        'action_type' => 'prepare_reputation_response',
+        'status' => RecommendedAction::STATUS_OPEN,
+        'title' => 'Memory recommended action',
+        'summary' => 'Use memory evidence.',
+        'estimated_effort' => RecommendedAction::EFFORT_MEDIUM,
+        'priority_score' => 90,
+        'confidence_score' => 88,
+        'expected_impact_score' => 90,
+        'priority_label' => 'high',
+        'confidence_label' => 'high',
+        'expected_impact_label' => 'high',
+        'metadata' => ['recommended_next_step' => 'Inspect evidence and prepare guidance.'],
+        'visible_at' => now(),
+    ]);
+    $alert->forceFill(['recommended_action_id' => $action->id])->save();
 
     $drawer = app(MonitoredPageMetadataProvider::class)->forPage($page);
     $sections = collect($drawer['sections'])->keyBy('key');
@@ -54,6 +97,7 @@ it('generates monitored page drawer metadata for inspection', function (): void 
         ->and($drawer['title'])->toBe('Argusly market mention')
         ->and($sections)->toHaveKeys([
             'page',
+            'marketing_memory',
             'latest_snapshot',
             'summary',
             'entities_mentions',
@@ -68,6 +112,9 @@ it('generates monitored page drawer metadata for inspection', function (): void 
         ->and($sections['sentiment']['items'][0]['value'])->toContain('positive')
         ->and($sections['topics']['items'][0]['value'])->toContain('AI visibility')
         ->and($sections['pr_value']['items'][0]['value'])->toContain('Source Authority')
+        ->and($sections['marketing_memory']['items'][0]['value'])->toContain('Memory linked content')
+        ->and($sections['marketing_memory']['items'][1]['value'])->toContain('Memory recommended action')
+        ->and($sections['marketing_memory']['items'][3]['value'])->toContain('Acts On')
         ->and($sections['latest_snapshot']['items'][0]['value'])->toBe((string) $snapshot->http_status)
         ->and($drawer['metadata']['snapshot_internal'])->toBeTrue();
 });

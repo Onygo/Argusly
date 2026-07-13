@@ -16,6 +16,7 @@ use App\Services\SignalIntelligence\CompetitorMonitoringDetectionService;
 use App\Services\SignalIntelligence\LlmTrackingSignalAdapter;
 use App\Services\SignalIntelligence\RiskDetectionService;
 use App\Services\SignalIntelligence\SignalDashboardQueryService;
+use App\Services\SignalIntelligence\SignalDetectionImpactAnalyzer;
 use App\Services\SignalIntelligence\SignalDetectionPromotionService;
 use App\Services\SignalIntelligence\SignalProcessingRunService;
 use App\Services\SignalIntelligence\TrendDetectionService;
@@ -64,6 +65,7 @@ class SignalIntelligenceController extends Controller
         SignalDetection $detection,
         FeatureGate $featureGate,
         FirstValueExperienceService $firstValue,
+        SignalDetectionImpactAnalyzer $impactAnalyzer,
     ): View
     {
         $this->authorize('view', $detection);
@@ -81,6 +83,11 @@ class SignalIntelligenceController extends Controller
             'title' => 'Signal Intelligence',
             'workspace' => $workspace,
             'detection' => $detection,
+            'impactAnalysis' => $impactAnalyzer->analyze(
+                $detection,
+                null,
+                $detection->events->pluck('id')->map(fn ($id): string => (string) $id)->values()->all(),
+            ),
             'firstDetectionCard' => $firstValue->detectionCard($detection),
             'firstValueCelebrations' => $firstValue->celebrations($workspace),
         ]);

@@ -51,6 +51,7 @@
         || request()->routeIs('app.opportunity-review.*')
         || request()->routeIs('app.agentic-marketing.content-opportunities.*')
         || request()->routeIs('app.agentic-marketing.approvals.*')
+        || request()->routeIs('app.agentic-marketing.brand-growth-plans.*')
         || request()->routeIs('app.agentic-marketing.actions.*')
         || request()->routeIs('app.agentic-marketing.objectives.*');
     $intelligenceNavActive = request()->routeIs('app.marketing-intelligence.*');
@@ -160,6 +161,7 @@
                                 <div class="ml-8 mt-1 space-y-1 border-l border-border pl-2 text-xs">
                                     <a href="{{ route('app.agentic-marketing.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.agentic-marketing.index') || request()->routeIs('app.agentic-marketing.objectives.*') || request()->routeIs('app.agentic-marketing.actions.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Objectives and action queue</a>
                                     <a href="{{ route('app.agentic-marketing.approvals.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.agentic-marketing.approvals.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Approvals</a>
+                                    <a href="{{ route('app.agentic-marketing.brand-growth-plans.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.agentic-marketing.brand-growth-plans.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Brand growth plans</a>
                                     <a href="{{ route('app.agentic-marketing.campaign-planner.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.agentic-marketing.campaign-planner.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Campaign planner</a>
                                     <a href="{{ route('app.agentic-marketing.distribution.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.agentic-marketing.distribution.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Distribution</a>
                                     <a href="{{ route('app.agentic-marketing.learning.index') }}" class="block rounded px-2 py-1 {{ request()->routeIs('app.agentic-marketing.learning.*') ? 'text-primary' : 'text-textSecondary hover:text-textPrimary' }}">Learning</a>

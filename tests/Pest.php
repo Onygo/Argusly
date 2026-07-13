@@ -3,6 +3,8 @@
 use App\Services\Llm\Data\LlmResponse;
 use App\Services\Llm\Data\LlmUsage;
 
+require_once __DIR__ . '/Support/DraftIntelligenceTestHelpers.php';
+
 /*
 |--------------------------------------------------------------------------
 | Test Case

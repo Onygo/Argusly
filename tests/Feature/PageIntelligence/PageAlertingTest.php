@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\AlertRule;
+use App\Models\CompanyIntelligenceProfile;
 use App\Models\MonitoredPage;
 use App\Models\Notification;
 use App\Models\PageAlert;
@@ -48,13 +49,31 @@ it('creates a notification for fired page alerts', function (): void {
 });
 
 it('creates a recommended action for high severity page alerts', function (): void {
-    [, $rule] = pageAlertHighPrValueScenario(minScore: 75, severity: 'high');
+    [$page, $rule] = pageAlertHighPrValueScenario(minScore: 75, severity: 'high');
+
+    CompanyIntelligenceProfile::factory()->default()->create([
+        'organization_id' => $page->organization_id,
+        'workspace_id' => $page->workspace_id,
+        'brand_key' => 'primary',
+        'company_name' => 'Argusly',
+        'positioning' => 'Governed agentic marketing for B2B teams.',
+        'proof_points' => ['Approved customer evidence'],
+        'icps' => ['B2B SaaS marketing teams'],
+        'status' => CompanyIntelligenceProfile::STATUS_ACTIVE,
+    ]);
 
     $alert = app(PageAlertRuleEvaluator::class)->evaluateRule($rule)->first();
+    $action = RecommendedAction::query()->whereKey($alert->recommended_action_id)->first();
 
     expect($alert->recommended_action_id)->not->toBeNull()
         ->and(RecommendedAction::query()->whereKey($alert->recommended_action_id)->exists())->toBeTrue()
-        ->and(RecommendedAction::query()->whereKey($alert->recommended_action_id)->first()->source_group)->toBe(RecommendedAction::SOURCE_AI_VISIBILITY);
+        ->and($action?->source_group)->toBe(RecommendedAction::SOURCE_AI_VISIBILITY)
+        ->and($action?->action_type)->toBe('amplify_page_opportunity')
+        ->and(data_get($action?->metadata, 'action_category'))->toBe('opportunity_activation')
+        ->and(data_get($action?->metadata, 'brand_intelligence.available'))->toBeTrue()
+        ->and(data_get($action?->metadata, 'brand_intelligence.company.name'))->toBe('Argusly')
+        ->and(data_get($action?->metadata, 'brand_intelligence.proof.proof_points'))->toContain('Approved customer evidence')
+        ->and(data_get($action?->metadata, 'evidence_package.metrics.score'))->toBe(88);
 });
 
 it('supports dismissed and resolved alert states', function (): void {
@@ -146,10 +165,14 @@ it('fires a high-risk negative page alert for negative sentiment on high authori
     ]);
 
     $alerts = app(PageAlertRuleEvaluator::class)->evaluateRule($rule);
+    $action = RecommendedAction::query()->whereKey($alerts->first()?->recommended_action_id)->first();
 
     expect($alerts)->toHaveCount(1)
         ->and($alerts->first()->trigger)->toBe(AlertRule::TRIGGER_HIGH_RISK_NEGATIVE_PAGE)
-        ->and($alerts->first()->title)->toBe('High-risk negative page detected');
+        ->and($alerts->first()->title)->toBe('High-risk negative page detected')
+        ->and($action?->action_type)->toBe('prepare_reputation_response')
+        ->and(data_get($action?->metadata, 'action_category'))->toBe('risk_response')
+        ->and(data_get($action?->metadata, 'recommended_next_step'))->toContain('Inspect the page evidence');
 });
 
 /**

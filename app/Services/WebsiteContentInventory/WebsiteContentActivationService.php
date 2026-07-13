@@ -104,6 +104,68 @@ class WebsiteContentActivationService
         });
     }
 
+    /**
+     * @param  array<string,mixed>  $options
+     */
+    public function linkExistingContent(MonitoredPage $page, Content $content, array $options = []): WebsiteContentActivationResult
+    {
+        $page->loadMissing(['latestContentExtraction', 'latestSnapshot']);
+
+        if ((string) $content->workspace_id !== (string) $page->workspace_id) {
+            throw new InvalidArgumentException('Content inventory links cannot cross workspace boundaries.');
+        }
+
+        if ($content->client_site_id && $page->client_site_id && (string) $content->client_site_id !== (string) $page->client_site_id) {
+            throw new InvalidArgumentException('Content inventory links cannot cross client site boundaries.');
+        }
+
+        $eligibility = $this->eligibility->evaluate($page);
+        $force = (bool) ($options['force'] ?? false);
+
+        if (! $force && ! $eligibility->eligible) {
+            throw new InvalidArgumentException('The monitored page is not eligible for content linking: '.implode(', ', $eligibility->reasons));
+        }
+
+        return DB::transaction(function () use ($page, $content, $eligibility): WebsiteContentActivationResult {
+            ContentPageLink::query()
+                ->where('content_id', $content->id)
+                ->where('link_type', ContentPageLinkType::OBSERVED_SOURCE->value)
+                ->where('is_primary', true)
+                ->where('monitored_page_id', '!=', $page->id)
+                ->update(['is_primary' => false]);
+
+            $link = ContentPageLink::query()->updateOrCreate(
+                [
+                    'workspace_id' => $page->workspace_id,
+                    'content_id' => $content->id,
+                    'monitored_page_id' => $page->id,
+                    'link_type' => ContentPageLinkType::OBSERVED_SOURCE->value,
+                ],
+                [
+                    'client_site_id' => $page->client_site_id ?: $content->client_site_id,
+                    'is_primary' => true,
+                    'confidence_score' => $this->confidenceScore($page),
+                    'metadata' => [
+                        'linked_from' => 'content_inventory',
+                        'operator_selected' => true,
+                        'eligibility' => $eligibility->toArray(),
+                        'latest_snapshot_id' => $page->latestSnapshot?->id,
+                        'latest_extraction_id' => $page->latestContentExtraction?->id,
+                        'linked_at' => now()->toISOString(),
+                    ],
+                ]
+            );
+
+            return new WebsiteContentActivationResult(
+                content: $content->refresh(),
+                link: $link->refresh(),
+                contentCreated: false,
+                linkCreated: $link->wasRecentlyCreated,
+                eligibility: $eligibility,
+            );
+        });
+    }
+
     private function resolveContent(MonitoredPage $page, WebsitePageEligibilityResult $eligibility): ?Content
     {
         $linkedContentId = ContentPageLink::query()

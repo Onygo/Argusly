@@ -48,8 +48,8 @@ class ContentSeriesArticleSyncService
 
                 $payload = [
                     'content_id' => $content?->id ?: $existing?->content_id,
-                    'title' => $this->nullableString(data_get($strategy, 'title'))
-                        ?: $this->nullableString($content?->title)
+                    'title' => $this->nullableString($content?->title)
+                        ?: $this->nullableString(data_get($strategy, 'title'))
                         ?: $existing?->title,
                     'primary_keyword' => $this->nullableString(data_get($strategy, 'primary_keyword'))
                         ?: $this->nullableString($content?->primary_keyword)

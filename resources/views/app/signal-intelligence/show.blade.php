@@ -49,6 +49,8 @@
 
         return $items ? [$items] : [];
     };
+    $impactAnalysis = $impactAnalysis ?? [];
+    $impactActions = $renderList(data_get($impactAnalysis, 'suggested_actions', []));
 @endphp
 
 <div class="space-y-6">
@@ -106,6 +108,43 @@
             <x-llm-tracking.metric-card :label="$label" :value="number_format((float) $score, 1)" />
         @endforeach
     </section>
+
+    @if (! empty($impactAnalysis))
+        <section class="rounded-md border border-border bg-surface p-5">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-semibold text-textPrimary">Impact Analysis</h2>
+                    <p class="mt-2 max-w-4xl text-sm leading-6 text-textSecondary">{{ data_get($impactAnalysis, 'why_this_matters') }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <span class="inline-flex items-center rounded-md border border-border bg-surfaceSubtle px-2.5 py-1 text-xs text-textSecondary">Urgency: {{ $formatLabel(data_get($impactAnalysis, 'urgency.label')) }}</span>
+                    <span class="inline-flex items-center rounded-md border border-border bg-surfaceSubtle px-2.5 py-1 text-xs text-textSecondary">Confidence: {{ $formatLabel(data_get($impactAnalysis, 'confidence.label')) }}</span>
+                </div>
+            </div>
+            <div class="mt-4 grid gap-4 lg:grid-cols-3">
+                <div class="rounded-md border border-border bg-surfaceSubtle p-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-textMuted">Business impact</p>
+                    <p class="mt-2 text-sm leading-6 text-textSecondary">{{ data_get($impactAnalysis, 'business_impact.summary') }}</p>
+                </div>
+                <div class="rounded-md border border-border bg-surfaceSubtle p-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-textMuted">Recommended next step</p>
+                    <p class="mt-2 text-sm leading-6 text-textSecondary">{{ data_get($impactAnalysis, 'recommended_next_step') }}</p>
+                </div>
+                <div class="rounded-md border border-border bg-surfaceSubtle p-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-textMuted">Affected scope</p>
+                    <p class="mt-2 text-sm text-textSecondary">{{ data_get($impactAnalysis, 'affected_scope.topic', 'n/a') }} · {{ data_get($impactAnalysis, 'affected_scope.entity', 'n/a') }}</p>
+                    <p class="mt-1 text-xs text-textMuted">{{ (int) data_get($impactAnalysis, 'affected_scope.event_count', 0) }} linked events</p>
+                </div>
+            </div>
+            @if ($impactActions !== [])
+                <div class="mt-4 flex flex-wrap gap-2">
+                    @foreach ($impactActions as $action)
+                        <span class="inline-flex items-center rounded-md border border-border bg-surface px-2.5 py-1 text-xs text-textSecondary">{{ data_get($action, 'label') }}</span>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+    @endif
 
     <section class="grid gap-6 lg:grid-cols-3">
         <div class="space-y-6 lg:col-span-2">

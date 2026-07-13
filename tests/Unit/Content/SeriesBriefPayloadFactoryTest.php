@@ -122,3 +122,33 @@ it('uses default intent keys when the user did not configure series content inte
     expect(data_get($payload, 'brief.intent.keys'))->toBe(['convert', 'persuade', 'explain'])
         ->and(data_get($payload, 'brief.audience_keys'))->toBe(['operations']);
 });
+
+it('uses the chain settings language for generated series briefs', function () {
+    [$series, $site] = makeSeriesBriefPayloadFactoryContext([
+        'strategy_json' => [
+            'meta' => [
+                'chain_settings' => [
+                    'language' => 'nl',
+                ],
+            ],
+        ],
+    ]);
+
+    $payload = app(SeriesBriefPayloadFactory::class)->build(
+        series: $series,
+        site: $site,
+        article: [
+            'title' => 'GEO visibility framework',
+        ],
+        articleNumber: 1,
+        title: 'GEO visibility framework',
+        primaryKeyword: 'geo zichtbaarheid',
+        secondaryKeywords: ['ai vindbaarheid'],
+        slug: 'geo-zichtbaarheid',
+        plannedUrl: 'https://series-payload.example.com/blog/geo-zichtbaarheid',
+        internalLinksTo: [],
+    );
+
+    expect(data_get($payload, 'brief.language'))->toBe('nl')
+        ->and((string) data_get($payload, 'brief.notes'))->toContain('Target language: Dutch (nl)');
+});

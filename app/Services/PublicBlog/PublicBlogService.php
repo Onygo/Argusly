@@ -9,10 +9,13 @@ use App\Models\Content;
 use App\Models\ContentImage;
 use App\Models\ContentPublication;
 use App\Models\MarketingBlogRedirect;
+use App\Services\Content\AnswerBlockInjectorService;
+use App\Services\Content\AnswerBlockSchemaService;
 use App\Services\Content\ContentCacheInvalidationService;
 use App\Services\Publication\ContentPublicationStateService;
 use App\Services\Seo\CanonicalUrlService;
 use App\Support\LocalizedMarketingUrl;
+use App\Support\SeoMetadata;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Cache\TaggableStore;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -29,13 +32,15 @@ use Throwable;
 class PublicBlogService
 {
     private const CACHE_TTL_MINUTES = 15;
-    private const CACHE_VERSION = 'v4';
+    private const CACHE_VERSION = 'v5';
 
     public function __construct(
         private readonly PublicBlogSource $source,
         private readonly MarketingBlogSourceScope $sourceScope,
         private readonly CanonicalUrlService $canonicals,
         private readonly SafeMarkdownRenderer $markdownRenderer,
+        private readonly AnswerBlockInjectorService $answerBlockInjector,
+        private readonly AnswerBlockSchemaService $answerBlockSchema,
     ) {
     }
 
@@ -91,6 +96,11 @@ class PublicBlogService
             $this->postCacheKey($locale, $slug),
             $this->localeCacheTags($locale),
             function () use ($locale, $slug): ?array {
+                $localPost = $this->getPostBySlugFromLocal($slug, $locale);
+                if (is_array($localPost)) {
+                    return $localPost;
+                }
+
                 return $this->postsCollection($locale)
                     ->first(function (array $post) use ($slug): bool {
                         return (string) ($post['slug'] ?? '') === $slug;
@@ -455,8 +465,9 @@ class PublicBlogService
             ->with(['currentVersion' => fn ($versionQuery) => $versionQuery->select([
                 'content_versions.id',
                 'content_versions.content_id',
+                'content_versions.body',
                 'content_versions.meta',
-            ]), 'featuredImage' => fn ($imageQuery) => $imageQuery->select([
+            ]), 'seo', 'answerBlocks', 'featuredImage' => fn ($imageQuery) => $imageQuery->select([
                 'content_images.id',
                 'content_images.workspace_id',
                 'content_images.content_id',
@@ -505,10 +516,26 @@ class PublicBlogService
                 'current_version_id',
                 'title',
                 'language',
+                'family_id',
+                'translation_source_content_id',
+                'translation_source_version_id',
+                'translation_source_locale',
+                'is_source_locale',
+                'translation_generated_at',
+                'translation_source_updated_at',
                 'publish_url_key',
                 'canonical_url_key',
                 'published_url',
                 'first_published_at',
+                'seo_canonical',
+                'seo_title',
+                'seo_meta_description',
+                'seo_og_title',
+                'seo_og_description',
+                'seo_twitter_title',
+                'seo_twitter_description',
+                'robots_index',
+                'robots_follow',
                 'public_blog_excerpt',
                 'public_blog_reading_time_minutes',
                 'public_blog_author',
@@ -518,6 +545,10 @@ class PublicBlogService
                 'public_blog_featured_image_width',
                 'public_blog_featured_image_height',
                 'seo_og_image',
+                'status',
+                'publish_status',
+                'answer_block_render_mode',
+                'answer_block_max_visible',
                 'created_at',
                 'updated_at',
             ])
@@ -573,6 +604,66 @@ class PublicBlogService
             })
             ->orderByRaw('COALESCE(first_published_at, updated_at, created_at) DESC')
             ->orderByDesc('id');
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function getPostBySlugFromLocal(string $slug, string $locale): ?array
+    {
+        $query = $this->baseLocalPublishedQuery($locale);
+        if (! $query instanceof Builder) {
+            return null;
+        }
+
+        if (! (clone $query)->limit(1)->exists()) {
+            return null;
+        }
+
+        $posts = $this->localPostsCollection();
+        if (! $posts instanceof Collection || $posts->isEmpty()) {
+            return null;
+        }
+
+        return $posts
+            ->filter(fn (array $post): bool => (string) ($post['locale'] ?? '') === $locale)
+            ->first(fn (array $post): bool => (string) ($post['slug'] ?? '') === $slug);
+    }
+
+    /**
+     * @return Collection<int,array<string,mixed>>|null
+     */
+    private function localPostsCollection(?string $locale = null): ?Collection
+    {
+        if (! $this->supportsLocalPerformancePath()) {
+            return null;
+        }
+
+        $locales = $locale !== null ? [$this->normalizeLocale($locale)] : SupportedLanguage::values();
+        $posts = collect();
+
+        foreach ($locales as $candidateLocale) {
+            $query = $this->baseLocalPublishedQuery((string) $candidateLocale);
+            if (! $query instanceof Builder) {
+                continue;
+            }
+
+            $posts = $posts->concat((clone $query)
+                ->get()
+                ->map(fn (Content $content): array => $this->mapLocalPost($content)));
+        }
+
+        if ($posts->isEmpty()) {
+            return collect();
+        }
+
+        $posts = $posts
+            ->filter(fn (array $post): bool => $this->isEligiblePublicPost($post))
+            ->values();
+
+        return $this->attachLocalizedVariants($this->deduplicateLocalizedPosts($posts))
+            ->sortByDesc(fn (array $post): int => (int) ($post['published_at_ts'] ?? 0))
+            ->values();
     }
 
     private function supportsLocalPerformancePath(): bool
@@ -641,6 +732,145 @@ class PublicBlogService
             'category' => trim((string) ($content->public_blog_category ?? '')),
             'locale' => $locale,
         ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function mapLocalPost(Content $content): array
+    {
+        $post = $this->mapLocalCard($content);
+        $versionMeta = is_array($content->currentVersion?->meta) ? $content->currentVersion->meta : [];
+        $seo = $this->resolveLocalSeo($content);
+        $body = (string) ($content->currentVersion?->body ?? '');
+        $bodyHtml = $this->looksLikeHtml($body) ? $body : $this->safeMarkdown($body, $post);
+        $bodyHtml = $this->injectAnswerBlocks($bodyHtml, $content);
+
+        return array_merge($post, [
+            'content_raw' => $body,
+            'content_format' => 'html',
+            'content_html' => $this->sanitizeHtml($bodyHtml),
+            'meta_description' => $this->firstNonEmpty([
+                (string) ($seo['seo_meta_description'] ?? ''),
+                (string) data_get($versionMeta, 'meta_description', ''),
+                (string) data_get($versionMeta, 'description', ''),
+                (string) ($post['excerpt'] ?? ''),
+            ]),
+            'seo_title' => trim((string) ($seo['seo_title'] ?? '')),
+            'seo_meta_description' => trim((string) ($seo['seo_meta_description'] ?? '')),
+            'seo_og_title' => trim((string) ($seo['seo_og_title'] ?? '')),
+            'seo_og_description' => trim((string) ($seo['seo_og_description'] ?? '')),
+            'seo_twitter_title' => trim((string) ($seo['seo_twitter_title'] ?? '')),
+            'seo_twitter_description' => trim((string) ($seo['seo_twitter_description'] ?? '')),
+            'status' => (string) ($content->status ?? 'published'),
+            'publish_status' => (string) ($content->publish_status ?? 'published'),
+            'translation_group' => $content->localizationRootId(),
+            'translation_source_content_id' => $content->translation_source_content_id ? (string) $content->translation_source_content_id : null,
+            'is_source_locale' => (bool) ($content->is_source_locale ?? false),
+            'translation_source_locale' => trim((string) ($content->translation_source_locale ?? '')),
+            'translation_generated_at' => $content->translation_generated_at?->toIso8601String(),
+            'translation_source_updated_at' => $content->translation_source_updated_at?->toIso8601String(),
+            'robots_index' => $seo['robots_index'] ?? true,
+            'robots_follow' => $seo['robots_follow'] ?? true,
+            'canonical_url' => $this->firstNonEmpty([
+                (string) ($content->seo_canonical ?? ''),
+                (string) ($post['url'] ?? ''),
+                $this->canonicals->publicBlogCanonical((string) ($post['slug'] ?? ''), (string) ($post['locale'] ?? 'en')),
+            ]),
+            'updated_at' => $content->updated_at?->toIso8601String(),
+            'updated_at_ts' => $content->updated_at?->timestamp ?? 0,
+            'answer_blocks' => $this->safeAnswerBlocks($content),
+            'faq_schema' => $this->safeFaqSchema($content),
+        ]);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function resolveLocalSeo(Content $content): array
+    {
+        try {
+            return SeoMetadata::resolveForContentContext($content);
+        } catch (Throwable $exception) {
+            Log::warning('public_blog.local_seo_resolution_failed', [
+                'content_id' => (string) ($content->id ?? ''),
+                'slug' => (string) ($content->publish_url_key ?? $content->canonical_url_key ?? ''),
+                'locale' => method_exists($content, 'localeCode') ? $content->localeCode() : (string) ($content->language ?? ''),
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [
+                'seo_title' => '',
+                'seo_meta_description' => '',
+                'seo_og_title' => '',
+                'seo_og_description' => '',
+                'seo_twitter_title' => '',
+                'seo_twitter_description' => '',
+                'robots_index' => true,
+                'robots_follow' => true,
+            ];
+        }
+    }
+
+    private function injectAnswerBlocks(string $html, Content $content): string
+    {
+        try {
+            return $this->answerBlockInjector->inject($html, $content);
+        } catch (Throwable $exception) {
+            Log::warning('public_blog.local_answer_blocks.inject_failed', [
+                'content_id' => (string) ($content->id ?? ''),
+                'slug' => (string) ($content->publish_url_key ?? $content->canonical_url_key ?? ''),
+                'locale' => method_exists($content, 'localeCode') ? $content->localeCode() : (string) ($content->language ?? ''),
+                'message' => $exception->getMessage(),
+            ]);
+
+            return $html;
+        }
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function safeAnswerBlocks(Content $content): array
+    {
+        try {
+            return $this->answerBlockSchema->exportableBlocks($content);
+        } catch (Throwable $exception) {
+            Log::warning('public_blog.local_answer_blocks.export_failed', [
+                'content_id' => (string) ($content->id ?? ''),
+                'slug' => (string) ($content->publish_url_key ?? $content->canonical_url_key ?? ''),
+                'locale' => method_exists($content, 'localeCode') ? $content->localeCode() : (string) ($content->language ?? ''),
+                'message' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function safeFaqSchema(Content $content): ?array
+    {
+        try {
+            $schema = $this->answerBlockSchema->forContent($content);
+
+            return is_array($schema) && $schema !== [] ? $schema : null;
+        } catch (Throwable $exception) {
+            Log::warning('public_blog.local_answer_blocks.schema_failed', [
+                'content_id' => (string) ($content->id ?? ''),
+                'slug' => (string) ($content->publish_url_key ?? $content->canonical_url_key ?? ''),
+                'locale' => method_exists($content, 'localeCode') ? $content->localeCode() : (string) ($content->language ?? ''),
+                'message' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    private function looksLikeHtml(string $body): bool
+    {
+        return preg_match('/<\s*(p|h[1-6]|ul|ol|li|section|article|div|blockquote|table|figure|strong|em|a)\b/i', $body) === 1;
     }
 
     private function slugFromUrl(string $url): string

@@ -7,6 +7,7 @@ use App\Jobs\PageIntelligence\FetchMonitoredPageJob;
 use App\Models\AlertRule;
 use App\Models\Campaign;
 use App\Models\ClientSite;
+use App\Models\Content;
 use App\Models\MarketPackInstallation;
 use App\Models\MarketPackTheme;
 use App\Models\MonitoredPage;
@@ -85,6 +86,7 @@ class AppMonitoredPageController extends Controller
             'drawerDescriptorsByKey' => $this->drawerDescriptors($pages->getCollection(), $interactionResourcesByKey, $interactionActionsByKey, $request),
             'drawerPage' => $drawerPage,
             'selectedDrawer' => $selectedDrawer,
+            'linkableContents' => $filters['tab'] === 'content-inventory' ? $this->linkableContents($workspace) : collect(),
             'sources' => $this->sources($workspace, $filters),
             'alerts' => $this->alerts($workspace, $filters),
             'prValues' => $this->prValues($workspace),
@@ -179,6 +181,29 @@ class AppMonitoredPageController extends Controller
         return redirect()
             ->route('app.content.show', $result->content)
             ->with('status', $result->contentCreated ? 'Content asset activated.' : 'Existing content asset refreshed from observed evidence.');
+    }
+
+    public function linkContent(
+        Request $request,
+        MonitoredPage $monitoredPage,
+        WebsiteContentActivationService $activation,
+    ): RedirectResponse {
+        abort_unless($request->user()?->can('update', $monitoredPage), 403);
+
+        $validated = $request->validate([
+            'content_id' => ['required', 'string'],
+        ]);
+
+        $content = Content::query()
+            ->where('workspace_id', $monitoredPage->workspace_id)
+            ->whereKey((string) $validated['content_id'])
+            ->firstOrFail();
+
+        abort_unless($request->user()?->can('update', $content), 403);
+
+        $activation->linkExistingContent($monitoredPage, $content);
+
+        return back()->with('status', 'Observed page linked to existing content.');
     }
 
     private function applyPageFilters(Builder $query, array $filters): Builder
@@ -666,6 +691,15 @@ class AppMonitoredPageController extends Controller
             'competitors' => SiteCompetitor::query()->where('workspace_id', $workspace->id)->orderBy('name')->get(['id', 'name']),
             'campaigns' => Campaign::query()->where('workspace_id', $workspace->id)->orderBy('name')->get(['id', 'name']),
         ];
+    }
+
+    private function linkableContents(Workspace $workspace): Collection
+    {
+        return Content::query()
+            ->where('workspace_id', $workspace->id)
+            ->orderByDesc('updated_at')
+            ->limit(75)
+            ->get(['id', 'title', 'published_url', 'normalized_url', 'canonical_url', 'client_site_id', 'updated_at']);
     }
 
     private function metrics(Workspace $workspace): array

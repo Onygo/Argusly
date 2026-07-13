@@ -267,6 +267,21 @@ class Workspace extends Model
         return $this->hasMany(Opportunity::class);
     }
 
+    public function brandGrowthPlans()
+    {
+        return $this->hasMany(BrandGrowthPlan::class);
+    }
+
+    public function brandGrowthPlanFindings()
+    {
+        return $this->hasMany(BrandGrowthPlanFinding::class);
+    }
+
+    public function brandGrowthAudienceProposals()
+    {
+        return $this->hasMany(BrandGrowthAudienceProposal::class);
+    }
+
     public function opportunitySignals()
     {
         return $this->hasMany(OpportunitySignal::class);

@@ -44,6 +44,7 @@ class SeriesArticleGenerationService
         private readonly ContentDeduplicationService $contentDeduplicationService,
         private readonly SeriesBriefPayloadFactory $seriesBriefPayloadFactory,
         private readonly ContentSeriesArticleSyncService $seriesArticleSyncService,
+        private readonly SeriesLocaleResolver $seriesLocaleResolver,
         private readonly InternalLinkPlacementService $internalLinkPlacement,
         private readonly EditorialPlanningService $editorialPlanning,
     ) {
@@ -405,8 +406,24 @@ class SeriesArticleGenerationService
                 ])->save();
             }
 
+            $requestedLocale = $this->seriesLocaleResolver->resolveCode($series, $site, $article, $content);
+            $briefPayload = $this->seriesBriefPayloadFactory->build(
+                series: $series,
+                site: $site,
+                article: $article,
+                articleNumber: $articleNumber,
+                title: $title,
+                primaryKeyword: $primaryKeyword,
+                secondaryKeywords: $secondaryKeywords,
+                slug: $slug,
+                plannedUrl: $plannedUrl,
+                internalLinksTo: $internalLinksTo,
+                language: $requestedLocale,
+            );
+
+            $this->validateGeneratedBriefPayload($briefPayload, (int) $series->organization_id);
+
             if (! $content) {
-                $requestedLocale = (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en');
                 $contentPayload = [
                     'id' => (string) Str::uuid(),
                     'workspace_id' => (string) $site->workspace_id,
@@ -453,21 +470,6 @@ class SeriesArticleGenerationService
             }
 
             if (! $brief) {
-                $briefPayload = $this->seriesBriefPayloadFactory->build(
-                    series: $series,
-                    site: $site,
-                    article: $article,
-                    articleNumber: $articleNumber,
-                    title: $title,
-                    primaryKeyword: $primaryKeyword,
-                    secondaryKeywords: $secondaryKeywords,
-                    slug: $slug,
-                    plannedUrl: $plannedUrl,
-                    internalLinksTo: $internalLinksTo,
-                );
-
-                $this->validateGeneratedBriefPayload($briefPayload, (int) $series->organization_id);
-
                 $brief = Brief::query()->create(
                     $this->briefAttributesFromPayload(
                         payload: $briefPayload,
@@ -482,21 +484,6 @@ class SeriesArticleGenerationService
                     )
                 );
             } else {
-                $briefPayload = $this->seriesBriefPayloadFactory->build(
-                    series: $series,
-                    site: $site,
-                    article: $article,
-                    articleNumber: $articleNumber,
-                    title: $title,
-                    primaryKeyword: $primaryKeyword,
-                    secondaryKeywords: $secondaryKeywords,
-                    slug: $slug,
-                    plannedUrl: $plannedUrl,
-                    internalLinksTo: $internalLinksTo,
-                );
-
-                $this->validateGeneratedBriefPayload($briefPayload, (int) $series->organization_id);
-
                 $brief->update($this->briefAttributesFromPayload(
                     payload: $briefPayload,
                     site: $site,
@@ -524,6 +511,7 @@ class SeriesArticleGenerationService
             if ($this->isArticleAlreadyGenerated($content, $draft)) {
                 $runArticle->update([
                     'status' => ContentSeriesGenerationRunArticle::STATUS_DRAFT,
+                    'title' => (string) ($content->title ?: $draft?->title ?: $title),
                     'content_id' => (string) $content->id,
                     'brief_id' => (string) $brief->id,
                     'draft_id' => $draft?->id,
@@ -551,7 +539,7 @@ class SeriesArticleGenerationService
 
             if (! $draft) {
                 $draftMeta = [
-                    'language' => (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en'),
+                    'language' => $requestedLocale,
                     'tone' => (string) data_get($briefPayload, 'brief.tone_of_voice', (string) ($series->tone ?? '')),
                     'audience' => (string) data_get($briefPayload, 'brief.target_audience', (string) ($series->audience ?? '')),
                     'preferred_length' => (string) data_get($briefPayload, 'brief.preferred_length', 'medium'),
@@ -577,7 +565,7 @@ class SeriesArticleGenerationService
                     'delivery_status' => 'pending',
                     'title' => $title,
                     'output_type' => (string) data_get($briefPayload, 'brief.output_type', 'kb_article'),
-                    'language' => (string) data_get($briefPayload, 'brief.language', $site->workspace?->defaultContentLanguageCode() ?? 'en'),
+                    'language' => $requestedLocale,
                     'content_html' => '',
                     'meta' => $draftMeta,
                     'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber, [$plannedUrl]),
@@ -597,6 +585,12 @@ class SeriesArticleGenerationService
                 ]);
 
                 $existingMeta = array_replace_recursive($existingMeta, [
+                    'language' => $requestedLocale,
+                    'tone' => (string) data_get($briefPayload, 'brief.tone_of_voice', (string) ($series->tone ?? '')),
+                    'audience' => (string) data_get($briefPayload, 'brief.target_audience', (string) ($series->audience ?? '')),
+                    'preferred_length' => (string) data_get($briefPayload, 'brief.preferred_length', 'medium'),
+                    'intent_keys' => (array) data_get($briefPayload, 'brief.intent.keys', []),
+                    'audience_tags' => (array) data_get($briefPayload, 'brief.audience_keys', []),
                     'primary_keyword' => $primaryKeyword,
                     'secondary_keywords' => $secondaryKeywords,
                     'series_context' => $seriesContext,
@@ -611,6 +605,7 @@ class SeriesArticleGenerationService
                     'delivery_status' => 'pending',
                     'delivery_last_error' => null,
                     'title' => $title,
+                    'language' => $requestedLocale,
                     'last_error' => null,
                     'meta' => $existingMeta,
                     'links' => $this->seriesLinkHints($internalLinksTo, $plannedUrlMap, $strategyByNumber, [$plannedUrl]),
@@ -764,6 +759,7 @@ class SeriesArticleGenerationService
 
             $runArticle->update([
                 'status' => ContentSeriesGenerationRunArticle::STATUS_DRAFT,
+                'title' => $generatedTitle,
                 'content_id' => (string) $content->id,
                 'brief_id' => (string) $brief->id,
                 'draft_id' => (string) $draft->id,

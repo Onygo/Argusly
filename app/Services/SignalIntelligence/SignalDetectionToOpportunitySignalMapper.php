@@ -9,12 +9,19 @@ use App\Services\OpportunityIntelligence\OpportunitySignalPayload;
 
 class SignalDetectionToOpportunitySignalMapper
 {
+    public function __construct(
+        private readonly SignalDetectionImpactAnalyzer $impactAnalyzer,
+    ) {
+    }
+
     public function map(SignalDetection $detection): OpportunitySignalPayload
     {
         [$source, $category] = $this->sourceAndCategory($detection);
         $eventIds = $detection->relationLoaded('events')
             ? $detection->events->pluck('id')->map(fn ($id): string => (string) $id)->values()->all()
             : $detection->events()->pluck('signal_events.id')->map(fn ($id): string => (string) $id)->values()->all();
+        $impactAnalysis = $this->impactAnalyzer->analyze($detection, $category, $eventIds);
+        $evidencePackage = $this->impactAnalyzer->evidencePackage($detection, $eventIds);
 
         return new OpportunitySignalPayload(
             source: $source,
@@ -37,6 +44,8 @@ class SignalDetectionToOpportunitySignalMapper
                 'score_breakdown' => $detection->score_breakdown ?? [],
                 'evidence_summary' => $detection->evidence_summary ?? [],
                 'recommended_actions' => $detection->recommended_actions ?? [],
+                'impact_analysis' => $impactAnalysis,
+                'evidence_package' => $evidencePackage,
             ],
             metadata: [
                 'title' => $detection->title,
@@ -46,6 +55,9 @@ class SignalDetectionToOpportunitySignalMapper
                 'signal_detection_type' => (string) $detection->type,
                 'signal_priority_score' => (float) ($detection->priority_score ?? 0),
                 'linked_signal_event_ids' => $eventIds,
+                'recommended_next_step' => data_get($impactAnalysis, 'recommended_next_step'),
+                'suggested_action_routes' => data_get($impactAnalysis, 'suggested_actions', []),
+                'impact_analysis' => $impactAnalysis,
                 'source_context' => 'signal_intelligence_promotion',
             ],
             clientSiteId: $detection->client_site_id ? (string) $detection->client_site_id : null,

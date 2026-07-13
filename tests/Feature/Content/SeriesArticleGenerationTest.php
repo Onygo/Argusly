@@ -16,6 +16,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Content\SeriesArticleGenerationService;
+use App\Services\Content\SeriesStrategyService;
 use App\Services\CreditWalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -222,6 +223,85 @@ it('queues series generation from controller and completes through queued jobs',
     expect((string) $run->fresh()->status)->toBe('completed')
         ->and((int) $run->fresh()->completed_articles)->toBe(2)
         ->and((int) $run->fresh()->failed_articles)->toBe(0);
+});
+
+it('instructs strategy generation to write article titles in the target series language', function () {
+    config([
+        'llm.providers.openai.api_key' => 'test-api-key',
+        'llm.providers.openai.default_model' => 'gpt-4.1-mini',
+        'llm.providers.openai.reasoning_model' => 'gpt-4.1-mini',
+    ]);
+
+    Http::fake([
+        '*/v1/responses' => Http::response([
+            'output_text' => json_encode([
+                'angle' => 'Nederlandstalige GEO contentketen.',
+                'articles' => [
+                    [
+                        'title' => 'GEO en SEO strategisch vergelijken',
+                        'primary_keyword' => 'geo versus seo',
+                        'secondary_keywords' => ['ai vindbaarheid'],
+                        'editorial_angle' => 'Leg de strategische keuze uit.',
+                        'internal_links_to' => [],
+                    ],
+                ],
+            ]),
+            'model' => 'gpt-4.1-mini',
+            'usage' => [
+                'input_tokens' => 10,
+                'output_tokens' => 20,
+                'total_tokens' => 30,
+            ],
+        ]),
+    ]);
+
+    $organization = Organization::query()->create([
+        'name' => 'Series Strategy Locale Org',
+        'slug' => 'series-strategy-locale-org-' . Str::random(6),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'name' => 'Series Strategy Locale Workspace',
+        'organization_id' => $organization->id,
+        'default_content_language' => 'nl',
+        'enabled_content_languages' => ['nl', 'en'],
+    ]);
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'Series Strategy Locale Site',
+        'site_url' => 'https://series-strategy-locale.example.com',
+        'base_url' => 'https://series-strategy-locale.example.com',
+        'allowed_domains' => ['series-strategy-locale.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $series = ContentSeries::query()->create([
+        'id' => (string) Str::uuid(),
+        'organization_id' => $organization->id,
+        'site_id' => $site->id,
+        'name' => 'GEO versus SEO',
+        'main_topic' => 'GEO versus SEO',
+        'primary_keyword' => 'geo versus seo',
+        'articles_count' => 1,
+        'status' => ContentSeries::STATUS_DRAFT,
+    ]);
+
+    app(SeriesStrategyService::class)->generateStrategy($series);
+
+    Http::assertSent(function ($request): bool {
+        $input = $request->data()['input'] ?? [];
+        $prompt = collect($input)->pluck('content')->implode("\n");
+
+        return str_contains($prompt, 'Target language: Dutch (nl)')
+            && str_contains($prompt, 'article titles, primary keywords, secondary keywords, and editorial angles');
+    });
+
+    expect(data_get($series->fresh()->strategy_json, 'meta.language'))->toBe('nl');
 });
 
 it('redispatches open articles for an active series generation run', function () {
@@ -628,6 +708,171 @@ it('reuses a series article content link during retry when external key is missi
     expect(Content::query()->where('series_id', (string) $series->id)->count())->toBe(1)
         ->and((string) $runArticle->fresh()->content_id)->toBe((string) $content->id)
         ->and((string) $content->fresh()->external_key)->toBe('series-' . $series->id . '-article-1');
+});
+
+it('keeps source brief chain generation in the existing content locale', function () {
+    config(['features.draft_link_suggestions' => false]);
+    config(['llm.providers.openai.api_key' => 'test-api-key']);
+    config(['llm.providers.openai.default_model' => 'gpt-4.1-mini']);
+
+    Http::fake([
+        '*/v1/responses' => Http::response([
+            'output_text' => json_encode([
+                'title' => 'Nederlandse GEO gids',
+                'meta' => [
+                    'description' => 'Een praktische gids voor GEO zichtbaarheid.',
+                    'keywords' => ['geo', 'ai vindbaarheid'],
+                ],
+                'sections' => [
+                    [
+                        'heading' => 'Hoe GEO zichtbaarheid verandert',
+                        'html' => '<p>' . str_repeat('Deze alinea legt uit hoe Nederlandse teams AI vindbaarheid praktisch verbeteren. ', 24) . '</p>',
+                    ],
+                    [
+                        'heading' => 'Welke keuzes nu belangrijk zijn',
+                        'html' => '<p>' . str_repeat('De aanpak verbindt strategie, content en meetbare uitvoering voor betere zichtbaarheid. ', 24) . '</p>',
+                    ],
+                ],
+                'links' => [],
+            ]),
+            'model' => 'gpt-4.1-mini',
+            'usage' => [
+                'input_tokens' => 10,
+                'output_tokens' => 20,
+                'total_tokens' => 30,
+            ],
+        ]),
+    ]);
+
+    $organization = Organization::query()->create([
+        'name' => 'Series Existing Locale Org',
+        'slug' => 'series-existing-locale-org-' . Str::random(6),
+        'status' => 'active',
+        'approved_at' => now(),
+    ]);
+
+    $workspace = Workspace::query()->create([
+        'name' => 'Series Existing Locale Workspace',
+        'organization_id' => $organization->id,
+        'default_content_language' => 'en',
+        'enabled_content_languages' => ['en', 'nl'],
+    ]);
+
+    $site = ClientSite::query()->create([
+        'workspace_id' => $workspace->id,
+        'type' => 'wordpress',
+        'name' => 'Series Existing Locale Site',
+        'site_url' => 'https://series-existing-locale.example.com',
+        'base_url' => 'https://series-existing-locale.example.com',
+        'allowed_domains' => ['series-existing-locale.example.com'],
+        'is_active' => true,
+        'status' => 'connected',
+    ]);
+
+    $user = User::query()->create([
+        'name' => 'Series Existing Locale Owner',
+        'email' => 'series-existing-locale-owner+' . Str::random(6) . '@example.com',
+        'password' => bcrypt('password'),
+        'organization_id' => $organization->id,
+        'role' => 'owner',
+        'is_admin' => true,
+        'approved_at' => now(),
+        'active' => true,
+    ]);
+
+    $series = ContentSeries::query()->create([
+        'id' => (string) Str::uuid(),
+        'organization_id' => $organization->id,
+        'site_id' => $site->id,
+        'name' => 'GEO chain',
+        'main_topic' => 'GEO versus SEO',
+        'primary_keyword' => 'geo versus seo',
+        'articles_count' => 1,
+        'status' => ContentSeries::STATUS_GENERATING,
+        'strategy_json' => [
+            'articles' => [
+                [
+                    'article_number' => 1,
+                    'title' => 'GEO visibility guide',
+                    'primary_keyword' => 'geo visibility',
+                    'secondary_keywords' => ['ai visibility'],
+                    'internal_links_to' => [],
+                ],
+            ],
+            'meta' => [
+                'chain_settings' => [
+                    'language' => 'nl',
+                ],
+            ],
+        ],
+        'created_by' => $user->id,
+    ]);
+
+    $content = Content::query()->create([
+        'id' => (string) Str::uuid(),
+        'workspace_id' => (string) $workspace->id,
+        'client_site_id' => (string) $site->id,
+        'series_id' => (string) $series->id,
+        'title' => 'GEO visibility guide',
+        'language' => 'nl',
+        'type' => 'article',
+        'status' => 'brief',
+        'source' => 'manual',
+        'origin_type' => 'series_generated',
+        'external_key' => 'series-' . $series->id . '-article-1',
+        'publish_status' => 'draft',
+        'delivery_status' => 'pending',
+    ]);
+
+    ContentSeriesArticle::query()
+        ->where('series_id', (string) $series->id)
+        ->where('content_id', (string) $content->id)
+        ->update([
+            'title' => 'GEO visibility guide',
+            'primary_keyword' => 'geo visibility',
+            'secondary_keywords' => ['ai visibility'],
+            'internal_links_to' => [],
+            'is_pillar' => true,
+            'meta' => [],
+        ]);
+
+    $run = ContentSeriesGenerationRun::query()->create([
+        'id' => (string) Str::uuid(),
+        'series_id' => (string) $series->id,
+        'organization_id' => (int) $organization->id,
+        'requested_by' => (int) $user->id,
+        'total_articles' => 1,
+        'completed_articles' => 0,
+        'failed_articles' => 0,
+        'status' => ContentSeriesGenerationRun::STATUS_RUNNING,
+        'meta' => [
+            'pricing' => ['cost' => 4],
+        ],
+    ]);
+
+    $runArticle = ContentSeriesGenerationRunArticle::query()->create([
+        'id' => (string) Str::uuid(),
+        'run_id' => (string) $run->id,
+        'series_id' => (string) $series->id,
+        'article_number' => 1,
+        'title' => 'GEO visibility guide',
+        'status' => ContentSeriesGenerationRunArticle::STATUS_PENDING,
+        'content_id' => (string) $content->id,
+        'attempts' => 1,
+    ]);
+
+    app(SeriesArticleGenerationService::class)->generateRunArticle($runArticle, 1, 3);
+
+    $brief = Brief::query()->where('content_id', (string) $content->id)->latest('created_at')->firstOrFail();
+    $draft = Draft::query()->where('content_id', (string) $content->id)->latest('created_at')->firstOrFail();
+
+    expect((string) $brief->language)->toBe('nl')
+        ->and((string) $draft->getRawOriginal('language'))->toBe('nl')
+        ->and((string) data_get($draft->meta, 'language'))->toBe('nl')
+        ->and((string) $content->fresh()->getRawOriginal('language'))->toBe('nl')
+        ->and((string) $content->fresh()->title)->toBe('Nederlandse GEO gids')
+        ->and((string) $runArticle->fresh()->title)->toBe('Nederlandse GEO gids')
+        ->and((string) ContentSeriesArticle::query()->where('series_id', (string) $series->id)->where('article_number', 1)->value('title'))->toBe('Nederlandse GEO gids');
 });
 
 it('counts existing ready drafts as generated during a partial retry run', function () {

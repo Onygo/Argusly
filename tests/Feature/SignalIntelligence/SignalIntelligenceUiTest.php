@@ -219,6 +219,9 @@ it('shows a detection detail page', function (): void {
         ->get(route('app.signal-intelligence.detections.show', $detection))
         ->assertOk()
         ->assertSee('Detail signal')
+        ->assertSee('Impact Analysis')
+        ->assertSee('This signal indicates brand visibility movement')
+        ->assertSee('Recommended next step')
         ->assertSee('Score Breakdown')
         ->assertSee('Linked Signal Events');
 });
@@ -430,6 +433,11 @@ it('promotes a qualified detection to an opportunity signal', function (): void 
         ->and($signal->metadata['signal_detection_id'])->toBe((string) $detection->id)
         ->and($signal->metadata['signal_detection_category'])->toBe(SignalDetection::CATEGORY_TREND_DETECTION)
         ->and($signal->metadata['linked_signal_event_ids'])->not->toBeEmpty()
+        ->and(data_get($signal->metadata, 'impact_analysis.schema_version'))->toBe('signal_impact.v1')
+        ->and(data_get($signal->metadata, 'recommended_next_step'))->toContain('Validate the trend evidence')
+        ->and(data_get($signal->evidence, 'impact_analysis.business_impact.opportunity_category'))->toBe('trend_opportunity')
+        ->and(data_get($signal->evidence, 'evidence_package.schema_version'))->toBe('signal_evidence_package.v1')
+        ->and(data_get($signal->evidence, 'evidence_package.linked_signal_event_ids'))->not->toBeEmpty()
         ->and($detection->refresh()->status)->toBe(SignalStatus::PUBLISHED)
         ->and($detection->metadata['opportunity_signal_id'])->toBe((string) $signal->id)
         ->and($detection->metadata['promoted_by'])->toBe((string) $context['user']->id);

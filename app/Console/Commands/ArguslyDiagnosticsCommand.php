@@ -3,6 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\AnalyticsSite;
+use App\Models\BrandGrowthAudienceProposal;
+use App\Models\BrandGrowthPlan;
+use App\Models\BrandGrowthPlanFinding;
 use App\Models\ClientSite;
 use App\Models\Content;
 use App\Models\ContentImage;
@@ -56,7 +59,11 @@ class ArguslyDiagnosticsCommand extends Command
             ['connector.api.api_key', $connectorApiKey !== '' ? 'set' : 'missing'],
         ];
 
-        $this->table(['setting', 'value'], array_merge($rows, $this->inventoryDiagnosticsRows()));
+        $this->table(['setting', 'value'], array_merge(
+            $rows,
+            $this->inventoryDiagnosticsRows(),
+            $this->brandGrowthPlanningDiagnosticsRows(),
+        ));
 
         return self::SUCCESS;
     }
@@ -127,6 +134,57 @@ class ArguslyDiagnosticsCommand extends Command
             ['inventory.eligibility.excluded', (string) $excluded],
             ['inventory.warning.auto_fetch_after_analytics_discovery', (bool) config('website_content_inventory.analytics_observed.automatic_fetch_after_discovery', true) ? 'ok' : 'disabled'],
             ['inventory.warning.auto_extraction_after_refresh', (bool) config('website_content_inventory.refresh.automatic_extraction_after_fetch', true) ? 'ok' : 'disabled'],
+        ];
+    }
+
+    /**
+     * @return array<int,array{0:string,1:string}>
+     */
+    private function brandGrowthPlanningDiagnosticsRows(): array
+    {
+        if (! Schema::hasTable('brand_growth_plans')
+            || ! Schema::hasTable('brand_growth_plan_findings')
+            || ! Schema::hasTable('brand_growth_audience_proposals')) {
+            return [
+                ['brand_growth_planning.status', 'schema missing'],
+            ];
+        }
+
+        $workspaceId = trim((string) $this->option('workspace'));
+        $siteId = trim((string) $this->option('site'));
+        $plans = BrandGrowthPlan::query()
+            ->when($workspaceId !== '', fn ($query) => $query->where('workspace_id', $workspaceId))
+            ->when($siteId !== '', fn ($query) => $query->where('client_site_id', $siteId));
+        $findings = BrandGrowthPlanFinding::query()
+            ->when($workspaceId !== '', fn ($query) => $query->where('workspace_id', $workspaceId))
+            ->when($siteId !== '', fn ($query) => $query->whereHas('plan', fn ($plan) => $plan->where('client_site_id', $siteId)));
+        $audiences = BrandGrowthAudienceProposal::query()
+            ->when($workspaceId !== '', fn ($query) => $query->where('workspace_id', $workspaceId))
+            ->when($siteId !== '', fn ($query) => $query->whereHas('plan', fn ($plan) => $plan->where('client_site_id', $siteId)));
+
+        return [
+            ['brand_growth_planning.scope.workspace', $workspaceId !== '' ? $workspaceId : 'all'],
+            ['brand_growth_planning.scope.site', $siteId !== '' ? $siteId : 'all'],
+            ['brand_growth_planning.plans.total', (string) (clone $plans)->count()],
+            ['brand_growth_planning.plans.draft', (string) (clone $plans)->where('status', 'draft')->count()],
+            ['brand_growth_planning.plans.approved', (string) (clone $plans)->where('status', 'approved')->count()],
+            ['brand_growth_planning.plans.stale_source_data', (string) (clone $plans)->where('source_data_cutoff_at', '<', now()->subDays(30))->count()],
+            ['brand_growth_planning.plans.with_missing_information', (string) (clone $plans)->whereNotNull('missing_information')->count()],
+            ['brand_growth_planning.findings.total', (string) (clone $findings)->count()],
+            ['brand_growth_planning.findings.pending_review', (string) (clone $findings)->where('review_state', 'pending')->count()],
+            ['brand_growth_planning.findings.approved', (string) (clone $findings)->where('review_state', 'approved')->count()],
+            ['brand_growth_planning.findings.without_source_references', (string) (clone $findings)->where(function ($query): void {
+                $query->whereNull('source_references')
+                    ->orWhere('source_references', '[]')
+                    ->orWhere('source_references', '{}');
+            })->count()],
+            ['brand_growth_planning.findings.promoted_orphaned', (string) (clone $findings)->whereNotNull('opportunity_id')->whereDoesntHave('opportunity')->count()],
+            ['brand_growth_planning.findings.by_type', json_encode((clone $findings)->selectRaw('type, count(*) as aggregate')->groupBy('type')->pluck('aggregate', 'type')->all(), JSON_UNESCAPED_SLASHES)],
+            ['brand_growth_planning.audiences.pending_review', (string) (clone $audiences)->where('review_state', 'pending')->count()],
+            ['brand_growth_planning.audiences.approved', (string) (clone $audiences)->where('review_state', 'approved')->count()],
+            ['brand_growth_planning.audiences.approved_unpromoted', (string) (clone $audiences)->where('review_state', 'approved')->whereNull('persona_id')->count()],
+            ['brand_growth_planning.audiences.promoted_personas', (string) (clone $audiences)->whereNotNull('persona_id')->count()],
+            ['brand_growth_planning.audiences.rejected', (string) (clone $audiences)->where('review_state', 'rejected')->count()],
         ];
     }
 

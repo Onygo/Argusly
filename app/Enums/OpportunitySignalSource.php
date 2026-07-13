@@ -11,6 +11,7 @@ enum OpportunitySignalSource: string
     case ENGAGEMENT_ANALYTICS = 'engagement_analytics';
     case COMPETITOR_INTELLIGENCE = 'competitor_intelligence';
     case SIGNAL_INTELLIGENCE = 'signal_intelligence';
+    case BRAND_GROWTH_PLAN = 'brand_growth_plan';
     case CONTENT_CLUSTER = 'content_cluster';
     case MANUAL = 'manual';
 

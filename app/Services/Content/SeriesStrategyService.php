@@ -15,6 +15,7 @@ class SeriesStrategyService
         private readonly ContentSeriesArticleSyncService $seriesArticleSyncService,
         private readonly SeriesStructureService $seriesStructureService,
         private readonly IntentDetectionService $intentDetectionService,
+        private readonly SeriesLocaleResolver $seriesLocaleResolver,
     ) {
     }
 
@@ -51,9 +52,13 @@ class SeriesStrategyService
         }
         $strategicPositioning = trim((string) ($existingMeta['strategic_positioning'] ?? ''));
         $completeBriefing = trim((string) data_get($existingMeta, 'complete_briefing.raw', ''));
+        $targetLanguage = $this->seriesLocaleResolver->resolve($series);
+        $targetLanguageLabel = $this->seriesLocaleResolver->promptLabel($targetLanguage);
 
         $prompt = implode("\n", [
             'Create a chained SEO content strategy as strict JSON.',
+            'Target language: ' . $targetLanguageLabel . '. Write the strategy angle, article titles, primary keywords, secondary keywords, and editorial angles in this language.',
+            'Keep brand names, product names, acronyms, and source titles unchanged.',
             'Main topic: ' . (string) $series->main_topic,
             'Primary keyword: ' . (string) $series->primary_keyword,
             'Supporting keywords: ' . (! empty($supportingKeywords) ? implode(', ', $supportingKeywords) : 'none'),
@@ -122,6 +127,7 @@ class SeriesStrategyService
                     'request_id' => (string) $response->requestId,
                     'usage' => $response->usage->toArray(),
                     'intent_keys' => $intentKeys,
+                    'language' => $targetLanguage->value,
                 ]),
             ]),
         ]);

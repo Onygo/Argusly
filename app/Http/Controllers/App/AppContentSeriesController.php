@@ -801,7 +801,8 @@ class AppContentSeriesController extends Controller
 
             return [
                 'article_number' => $articleNumber,
-                'title' => trim((string) ($runArticle?->title ?? data_get($strategyArticle, 'title', ''))) ?: (string) ($content?->title ?? ('Series article ' . $articleNumber)),
+                'title' => trim((string) ($content?->title ?? ''))
+                    ?: (trim((string) ($runArticle?->title ?? data_get($strategyArticle, 'title', ''))) ?: ('Series article ' . $articleNumber)),
                 'primary_keyword' => trim((string) ($seriesArticle?->primary_keyword ?? data_get($strategyArticle, 'primary_keyword', ''))),
                 'status' => $status,
                 'publish_status' => (string) ($content?->publish_status ?? 'draft'),

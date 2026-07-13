@@ -25,6 +25,9 @@
                 $linkedContent = $page->contentPageLinks->first()?->content;
                 $excluded = $eligibility && (in_array('review_excluded', $eligibility->reasons, true) || in_array('excluded_path', $eligibility->reasons, true));
                 $url = $page->canonical_url ?: ($page->final_url ?: $page->first_seen_url);
+                $rowLinkableContents = $linkableContents
+                    ->filter(fn ($content) => ! $page->client_site_id || ! $content->client_site_id || (string) $content->client_site_id === (string) $page->client_site_id)
+                    ->values();
             @endphp
             <x-data-table.row>
                 <x-data-table.cell label="Page">
@@ -82,6 +85,18 @@
                                 </form>
                             @endif
                             @if (! $linkedContent && $eligibility?->eligible)
+                                @if ($rowLinkableContents->isNotEmpty())
+                                    <form method="POST" action="{{ route('app.page-intelligence.content-inventory.link-content', $page) }}" class="flex max-w-64 items-center gap-1">
+                                        @csrf
+                                        <select name="content_id" class="min-w-0 rounded border border-border bg-background px-2 py-1 text-xs">
+                                            @foreach ($rowLinkableContents as $content)
+                                                @php($contentLabel = $content->title ?: ($content->published_url ?: ($content->normalized_url ?: 'Untitled content')))
+                                                <option value="{{ $content->id }}">{{ str($contentLabel)->limit(48) }}</option>
+                                            @endforeach
+                                        </select>
+                                        <button class="rounded border border-border px-2 py-1 text-xs">Link</button>
+                                    </form>
+                                @endif
                                 <form method="POST" action="{{ route('app.page-intelligence.content-inventory.activate', $page) }}">
                                     @csrf
                                     <button class="rounded border border-border px-2 py-1 text-xs">Activate</button>

@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureBillingOnboardingCompleted;
 use App\Jobs\PageIntelligence\FetchMonitoredPageJob;
 use App\Models\ClientSite;
+use App\Models\Content;
 use App\Models\ContentPageLink;
 use App\Models\MonitoredPage;
 use App\Models\MonitoredSource;
@@ -20,12 +21,19 @@ it('shows content inventory and supports refresh exclude and activation actions'
     Queue::fake();
     $this->withoutMiddleware(EnsureBillingOnboardingCompleted::class);
     [$workspace, $user, $page] = contentInventoryUiContext();
+    $content = Content::factory()->create([
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $page->client_site_id,
+        'title' => 'Existing inventory asset',
+        'published_url' => 'https://example.com/inventory-ui',
+    ]);
 
     $this->actingAs($user)
         ->get(route('app.page-intelligence.index', ['workspace' => $workspace->id, 'tab' => 'content-inventory']))
         ->assertOk()
         ->assertSee('Content Inventory')
         ->assertSee('Inventory UI Page')
+        ->assertSee('Existing inventory asset')
         ->assertSee('Activate');
 
     $this->actingAs($user)
@@ -43,6 +51,24 @@ it('shows content inventory and supports refresh exclude and activation actions'
     $this->actingAs($user)
         ->post(route('app.page-intelligence.content-inventory.include', $page))
         ->assertSessionHas('status');
+
+    $this->actingAs($user)
+        ->post(route('app.page-intelligence.content-inventory.link-content', $page), ['content_id' => $content->id])
+        ->assertSessionHas('status');
+
+    $link = ContentPageLink::query()
+        ->where('monitored_page_id', $page->id)
+        ->where('content_id', $content->id)
+        ->first();
+
+    expect($link)->not->toBeNull()
+        ->and(data_get($link?->metadata, 'linked_from'))->toBe('content_inventory');
+
+    $this->actingAs($user)
+        ->post(route('app.page-intelligence.content-inventory.link-content', $page), ['content_id' => $content->id])
+        ->assertSessionHas('status');
+
+    expect(ContentPageLink::query()->where('monitored_page_id', $page->id)->count())->toBe(1);
 
     $this->actingAs($user)
         ->post(route('app.page-intelligence.content-inventory.activate', $page))

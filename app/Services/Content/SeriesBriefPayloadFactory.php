@@ -13,6 +13,7 @@ class SeriesBriefPayloadFactory
     public function __construct(
         private readonly EditorialTaxonomyService $taxonomyService,
         private readonly IntentDetectionService $intentDetectionService,
+        private readonly SeriesLocaleResolver $seriesLocaleResolver,
     ) {
     }
 
@@ -33,11 +34,13 @@ class SeriesBriefPayloadFactory
         string $slug,
         string $plannedUrl,
         array $internalLinksTo,
+        ?string $language = null,
     ): array {
         $outputType = $this->resolveOutputType($article);
         $roleContext = $this->resolveRoleContext($series, $article, $articleNumber);
         $intentKeys = $this->resolveIntentKeys($series, $article, $articleNumber, $outputType, $title, $primaryKeyword, $roleContext['is_pillar']);
         $audienceKeys = $this->resolveAudienceKeys($series, $article);
+        $resolvedLanguage = $this->seriesLocaleResolver->resolve($series, $site, $article, explicitLocale: $language);
         $targetAudience = trim((string) data_get($article, 'target_audience', ''))
             ?: trim((string) ($series->audience ?? ''));
 
@@ -48,7 +51,7 @@ class SeriesBriefPayloadFactory
             ],
             'brief' => [
                 'title' => $title,
-                'language' => $site->workspace?->defaultContentLanguageCode() ?? 'en',
+                'language' => $resolvedLanguage->value,
                 'intent' => [
                     'keys' => $intentKeys,
                 ],
@@ -61,7 +64,7 @@ class SeriesBriefPayloadFactory
                 'output_type' => $outputType,
                 'content_type' => $this->mapOutputTypeToBriefContentType($outputType),
                 'preferred_length' => $this->resolvePreferredLength($article, $articleNumber, $roleContext['is_pillar']),
-                'notes' => $this->buildNotes($series, $article, $articleNumber, $slug, $plannedUrl, $internalLinksTo, $roleContext),
+                'notes' => $this->buildNotes($series, $article, $articleNumber, $slug, $plannedUrl, $internalLinksTo, $roleContext, $resolvedLanguage->value),
             ],
         ];
     }
@@ -227,11 +230,12 @@ class SeriesBriefPayloadFactory
     /**
      * @param  array<int, int>  $internalLinksTo
      */
-    private function buildNotes(ContentSeries $series, array $article, int $articleNumber, string $slug, string $plannedUrl, array $internalLinksTo, array $roleContext): string
+    private function buildNotes(ContentSeries $series, array $article, int $articleNumber, string $slug, string $plannedUrl, array $internalLinksTo, array $roleContext, string $language): string
     {
         $lines = array_filter([
             'Series: ' . (string) $series->name,
             'Article number: ' . $articleNumber,
+            'Target language: ' . $this->seriesLocaleResolver->promptLabel($language) . '. Write the final title, SEO fields, headings, and body copy in this language.',
             ! empty($series->intent_keys) ? 'Series intents: ' . implode(', ', (array) $series->intent_keys) : null,
             'Chain role: ' . ($roleContext['is_pillar'] ? 'pillar' : 'supporting'),
             $roleContext['is_pillar']

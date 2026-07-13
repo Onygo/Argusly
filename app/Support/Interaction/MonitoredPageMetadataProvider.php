@@ -15,12 +15,17 @@ use App\Models\PageSentiment;
 use App\Models\PageSerpObservation;
 use App\Models\PageTopic;
 use App\Models\SignalEvent;
+use App\Services\MarketingMemory\ContentInventoryGraphContextBuilder;
 use App\Services\PageIntelligence\PageIntelligenceScoreCalculator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 final class MonitoredPageMetadataProvider
 {
+    public function __construct(private readonly ContentInventoryGraphContextBuilder $memoryGraph)
+    {
+    }
+
     public function forPage(MonitoredPage $page): array
     {
         $page->loadMissing(['source:id,name,source_type,domain']);
@@ -84,6 +89,7 @@ final class MonitoredPageMetadataProvider
             ->limit(6)
             ->get();
         $signalEvents = $this->linkedSignalEvents($page);
+        $memoryGraph = $this->memoryGraph->graphForPage($page);
 
         return [
             'key' => 'monitored-page.inspect',
@@ -98,9 +104,11 @@ final class MonitoredPageMetadataProvider
                 ['key' => 'overview', 'label' => 'Overview'],
                 ['key' => 'evidence', 'label' => 'Evidence'],
                 ['key' => 'signals', 'label' => 'Signals'],
+                ['key' => 'memory', 'label' => 'Memory'],
             ],
             'sections' => [
                 $this->pageSection($page),
+                $this->marketingMemorySection($memoryGraph),
                 $this->snapshotSection($snapshot),
                 $this->latestExtractionSection($extraction),
                 $this->summarySection($extraction),
@@ -391,6 +399,43 @@ final class MonitoredPageMetadataProvider
                     'value' => (string) $action->title,
                 ])->values()->all(),
         ];
+    }
+
+    /**
+     * @param  array{nodes:array<int,array<string,mixed>>,edges:array<int,array<string,mixed>>}  $graph
+     */
+    private function marketingMemorySection(array $graph): array
+    {
+        $nodes = collect($graph['nodes'] ?? []);
+        $edges = collect($graph['edges'] ?? []);
+        $contentNodes = $nodes->where('type', 'content')->values();
+        $alertNodes = $nodes->where('type', 'page_alert')->values();
+        $actionNodes = $nodes->where('type', 'action')->values();
+        $edgeSummary = $edges
+            ->countBy('type')
+            ->map(fn (int $count, string $type): string => Str::headline($type).' '.$count)
+            ->values()
+            ->implode(', ');
+
+        return [
+            'key' => 'marketing_memory',
+            'title' => 'Marketing Memory',
+            'items' => [
+                ['label' => 'Linked content', 'value' => $this->nodeLabelList($contentNodes, 'No linked content yet')],
+                ['label' => 'Actions', 'value' => $this->nodeLabelList($actionNodes, 'No linked actions yet')],
+                ['label' => 'Evidence', 'value' => trim((string) $alertNodes->count().' alerts, '.(string) $edges->count().' graph edges')],
+                ['label' => 'Relationships', 'value' => $edgeSummary !== '' ? $edgeSummary : 'No graph relationships yet'],
+            ],
+        ];
+    }
+
+    private function nodeLabelList(Collection $nodes, string $empty): string
+    {
+        return $nodes
+            ->map(fn (array $node): string => trim((string) ($node['label'] ?? $node['key'] ?? '')))
+            ->filter()
+            ->take(6)
+            ->implode(', ') ?: $empty;
     }
 
     private function linkedSignalEvents(MonitoredPage $page): Collection

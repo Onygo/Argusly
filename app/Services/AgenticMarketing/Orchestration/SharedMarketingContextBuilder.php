@@ -5,11 +5,11 @@ namespace App\Services\AgenticMarketing\Orchestration;
 use App\Models\AgenticMarketingAgentMemory;
 use App\Models\AgenticMarketingObjective;
 use App\Models\CampaignCluster;
-use App\Models\CompanyIntelligenceProfile;
 use App\Models\CompetitorContentOpportunity;
 use App\Models\Content;
 use App\Models\ContentOpportunity;
 use App\Models\Workspace;
+use App\Services\BrandIntelligence\BrandIntelligenceContextService;
 use App\Services\Mos\Opportunity\ContentOpportunityCanonicalReadModel;
 use App\Services\Mos\Opportunity\ContentOpportunityCanonicalReadService;
 
@@ -17,14 +17,12 @@ class SharedMarketingContextBuilder
 {
     public function __construct(
         private readonly ContentOpportunityCanonicalReadService $contentOpportunityReadService,
+        private readonly BrandIntelligenceContextService $brandIntelligence,
     ) {}
 
     public function build(Workspace $workspace, ?string $clientSiteId = null, ?AgenticMarketingObjective $objective = null, array $input = []): array
     {
-        $company = CompanyIntelligenceProfile::query()
-            ->where('workspace_id', $workspace->id)
-            ->latest()
-            ->first();
+        $brandContext = $this->brandIntelligence->snapshotForWorkspace($workspace);
 
         $opportunities = ContentOpportunity::query()
             ->where('workspace_id', $workspace->id)
@@ -66,7 +64,7 @@ class SharedMarketingContextBuilder
             ->limit(40)
             ->get();
 
-        $focusTopic = $input['focus_topic'] ?? $objective?->name ?? data_get($company?->primary_topics, 0);
+        $focusTopic = $input['focus_topic'] ?? $objective?->name ?? data_get($brandContext, 'entities.primary_topics.0');
 
         return [
             'schema' => 'agentic_marketing.shared_context.v1',
@@ -87,17 +85,18 @@ class SharedMarketingContextBuilder
                 'topic' => $focusTopic,
                 'input' => $input,
             ],
-            'company' => $company ? [
-                'company_name' => $company->company_name,
-                'market_category' => $company->market_category,
-                'positioning' => $company->positioning,
-                'uvp' => $company->uvp,
-                'primary_topics' => (array) $company->primary_topics,
-                'authority_areas' => (array) $company->authority_areas,
-                'target_entities' => (array) $company->target_entities,
-                'buyer_roles' => (array) $company->buyer_roles,
-                'locales' => (array) $company->locales,
+            'company' => data_get($brandContext, 'available') ? [
+                'company_name' => data_get($brandContext, 'company.name'),
+                'market_category' => data_get($brandContext, 'company.market_category'),
+                'positioning' => data_get($brandContext, 'company.positioning'),
+                'uvp' => data_get($brandContext, 'company.uvp'),
+                'primary_topics' => (array) data_get($brandContext, 'entities.primary_topics', []),
+                'authority_areas' => (array) data_get($brandContext, 'entities.authority_areas', []),
+                'target_entities' => (array) data_get($brandContext, 'entities.target_entities', []),
+                'buyer_roles' => (array) data_get($brandContext, 'audience.buyer_roles', []),
+                'locales' => (array) data_get($brandContext, 'company.locales', []),
             ] : null,
+            'brand_intelligence' => $brandContext,
             'opportunities' => $this->contentOpportunityReadService->readMany($opportunities)->map(fn (ContentOpportunityCanonicalReadModel $opportunity): array => [
                 'id' => $opportunity->legacyContentOpportunityId,
                 'canonical_opportunity_id' => $opportunity->canonicalOpportunityId,
