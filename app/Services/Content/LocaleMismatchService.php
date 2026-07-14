@@ -72,8 +72,13 @@ class LocaleMismatchService
                 $conflictingContentId = $fixDetails['conflicting_content_id'];
                 $fixAction = $this->determineFixAction($content, $suggestedLanguage);
 
-                // If blocked due to existing variant, check if we can swap locales
-                if (! $canAutoFix && $conflictingContentId !== null && $content->is_source_locale) {
+                // If blocked due to an existing variant, only offer a swap when the
+                // conflicting row appears to contain the source row's declared language.
+                if (! $canAutoFix
+                    && $conflictingContentId !== null
+                    && $content->is_source_locale
+                    && $this->canSwapInvertedLocales($content, $conflictingContentId, $declaredLocale)
+                ) {
                     $canSwapLocales = true;
                     $fixAction = 'swap_inverted_locales';
                 }
@@ -549,6 +554,7 @@ class LocaleMismatchService
     {
         $sourceLocale = $sourceContent->localeCode();
         $variantLocale = $variantContent->localeCode();
+        $oldFamilyId = trim((string) ($sourceContent->family_id ?: $sourceContent->id));
 
         if ($sourceLocale === $variantLocale) {
             return [
@@ -558,22 +564,26 @@ class LocaleMismatchService
             ];
         }
 
-        return DB::transaction(function () use ($sourceContent, $variantContent, $sourceLocale, $variantLocale): array {
+        return DB::transaction(function () use ($sourceContent, $variantContent, $sourceLocale, $variantLocale, $oldFamilyId): array {
             $changes = [];
+            $newSourceLanguage = SupportedLanguage::from($sourceLocale);
+            $newVariantLanguage = SupportedLanguage::from($variantLocale);
 
             // Swap the locales
-            $sourceContent->language = SupportedLanguage::from($variantLocale);
-            $variantContent->language = SupportedLanguage::from($sourceLocale);
+            $sourceContent->language = $newVariantLanguage;
+            $variantContent->language = $newSourceLanguage;
 
             // Update source/translation relationships
             // The old source becomes a translation of the old variant
             $sourceContent->is_source_locale = false;
             $sourceContent->translation_source_content_id = $variantContent->id;
+            $sourceContent->translation_source_version_id = $variantContent->current_version_id;
             $sourceContent->translation_source_locale = $variantLocale;
 
             // The old variant becomes the source
             $variantContent->is_source_locale = true;
             $variantContent->translation_source_content_id = null;
+            $variantContent->translation_source_version_id = null;
             $variantContent->translation_source_locale = null;
 
             // Update family_id to point to the new source
@@ -583,15 +593,23 @@ class LocaleMismatchService
             $sourceContent->saveQuietly();
             $variantContent->saveQuietly();
 
+            $this->syncLinkedLocales($sourceContent, $newVariantLanguage);
+            $this->syncLinkedLocales($variantContent, $newSourceLanguage);
+
             // Update any other family members to point to the new source
             Content::query()
-                ->where('family_id', $sourceContent->id)
+                ->where(function ($query) use ($sourceContent, $oldFamilyId): void {
+                    $query->where('family_id', $oldFamilyId)
+                        ->orWhere('translation_source_content_id', $sourceContent->id);
+                })
                 ->where('id', '!=', $sourceContent->id)
                 ->where('id', '!=', $variantContent->id)
                 ->update([
                     'family_id' => $variantContent->id,
                     'translation_source_content_id' => $variantContent->id,
+                    'translation_source_version_id' => $variantContent->current_version_id,
                     'translation_source_locale' => $variantLocale,
+                    'is_source_locale' => false,
                 ]);
 
             $changes['swapped'] = [
@@ -607,10 +625,40 @@ class LocaleMismatchService
 
             return [
                 'success' => true,
-                'message' => "Locales swapped: source is now {$sourceLocale}, variant is now {$variantLocale}",
+                'message' => "Locales swapped: old source is now {$variantLocale}, new source is now {$sourceLocale}",
                 'changes' => $changes,
             ];
         });
+    }
+
+    private function canSwapInvertedLocales(Content $content, string $conflictingContentId, string $declaredLocale): bool
+    {
+        $conflictingContent = Content::query()
+            ->with('currentVersion')
+            ->find($conflictingContentId);
+
+        if (! $conflictingContent instanceof Content) {
+            return false;
+        }
+
+        if ((bool) $conflictingContent->is_source_locale) {
+            return false;
+        }
+
+        if ($conflictingContent->localeCode() === $content->localeCode()) {
+            return false;
+        }
+
+        $text = $this->extractTextForAnalysis($conflictingContent);
+        if (mb_strlen($text) < 100) {
+            return false;
+        }
+
+        $detection = $this->detector->detect($text);
+
+        return $detection['language'] instanceof SupportedLanguage
+            && $detection['language']->value === $declaredLocale
+            && (float) $detection['confidence'] >= self::DUTCH_AUTO_FIX_CONFIDENCE;
     }
 
     /**
