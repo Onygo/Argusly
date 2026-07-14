@@ -8,11 +8,17 @@ use App\Http\Controllers\Controller;
 use App\Models\BrandGrowthAudienceProposal;
 use App\Models\BrandGrowthPlan;
 use App\Models\BrandGrowthPlanFinding;
+use App\Models\Brief;
 use App\Models\Workspace;
 use App\Services\BrandGrowthPlanning\BrandGrowthAudiencePromotionService;
+use App\Services\BrandGrowthPlanning\BrandGrowthBriefCreationService;
+use App\Services\BrandGrowthPlanning\BrandGrowthDraftCreationService;
+use App\Services\BrandGrowthPlanning\BrandGrowthExecutionRecommendationService;
 use App\Services\BrandGrowthPlanning\BrandGrowthFindingPromotionService;
+use App\Services\BrandGrowthPlanning\BrandGrowthPlanApprovalService;
 use App\Services\BrandGrowthPlanning\BrandGrowthPlanDiffService;
 use App\Services\BrandGrowthPlanning\BrandGrowthPlanGenerator;
+use App\Services\BrandGrowthPlanning\BrandGrowthPlanPromotionService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -81,15 +87,34 @@ class AppBrandGrowthPlanController extends Controller
         $plan->load([
             'clientSite',
             'supersedesPlan',
-            'findings' => fn ($query) => $query->with('opportunity')->orderByDesc('impact_score')->orderByDesc('urgency_score'),
+            'findings' => fn ($query) => $query->with('opportunity.activeExecutionPlans')->orderByDesc('impact_score')->orderByDesc('urgency_score'),
             'audienceProposals' => fn ($query) => $query->with('persona')->orderByDesc('confidence_score')->orderBy('name'),
         ]);
+        $brandGrowthBriefIds = $plan->findings
+            ->flatMap(fn (BrandGrowthPlanFinding $finding) => $finding->opportunity?->activeExecutionPlans ?? collect())
+            ->map(fn ($executionPlan): string => (string) data_get($executionPlan->metadata, 'brief_id', ''))
+            ->filter()
+            ->unique()
+            ->values();
 
         return view('app.brand-growth-plans.show', [
             'title' => 'Brand Growth Plan',
             'workspace' => $workspace,
             'plan' => $plan,
             'planDiff' => $diffService->diff($plan),
+            'brandGrowthBriefs' => $brandGrowthBriefIds->isEmpty()
+                ? collect()
+                : Brief::query()
+                    ->whereIn('id', $brandGrowthBriefIds)
+                    ->whereHas('clientSite', fn ($query) => $query->where('workspace_id', $workspace->id))
+                    ->get()
+                    ->keyBy(fn (Brief $brief): string => (string) $brief->id),
+            'currentApprovedPlanId' => BrandGrowthPlan::query()
+                ->where('workspace_id', $workspace->id)
+                ->where('status', BrandGrowthPlanStatus::APPROVED->value)
+                ->orderByDesc('approved_at')
+                ->orderByDesc('version')
+                ->value('id'),
             'planHistory' => BrandGrowthPlan::query()
                 ->where('workspace_id', $workspace->id)
                 ->whereKeyNot($plan->id)
@@ -148,21 +173,133 @@ class AppBrandGrowthPlanController extends Controller
         return back()->with('status', 'Brand Growth Plan priorities updated.');
     }
 
-    public function approvePlan(Request $request, BrandGrowthPlan $plan): RedirectResponse
+    public function approvePlan(Request $request, BrandGrowthPlan $plan, BrandGrowthPlanApprovalService $service): RedirectResponse
     {
         $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
         $this->assertPlanWorkspace($plan, $workspace);
         $this->authorize('approve', $plan);
 
-        $plan->forceFill([
-            'status' => BrandGrowthPlanStatus::APPROVED->value,
-            'reviewed_by' => $request->user()->id,
-            'reviewed_at' => now(),
-            'approved_by' => $request->user()->id,
-            'approved_at' => now(),
-        ])->save();
+        $result = $service->approve($plan, $request->user());
+        $message = 'Brand Growth Plan approved as the current workspace baseline.';
 
-        return back()->with('status', 'Brand Growth Plan approved.');
+        if (($result['superseded_approved_plans'] ?? 0) > 0) {
+            $message .= sprintf(' Superseded %d older approved plan%s.',
+                $result['superseded_approved_plans'],
+                $result['superseded_approved_plans'] === 1 ? '' : 's'
+            );
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function promoteApprovedItems(Request $request, BrandGrowthPlan $plan, BrandGrowthPlanPromotionService $service): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
+        $this->assertPlanWorkspace($plan, $workspace);
+        $this->authorize('promote', $plan);
+
+        $result = $service->promoteApprovedItems($plan, $request->user());
+
+        return back()->with('status', sprintf(
+            'Promoted %d findings into Opportunities and %d audiences into Personas. %d findings and %d audiences were already promoted.',
+            $result['findings_promoted'],
+            $result['audiences_promoted'],
+            $result['findings_already_promoted'],
+            $result['audiences_already_promoted'],
+        ));
+    }
+
+    public function createExecutionRecommendations(Request $request, BrandGrowthPlan $plan, BrandGrowthExecutionRecommendationService $service): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
+        $this->assertPlanWorkspace($plan, $workspace);
+        $this->authorize('planExecution', $plan);
+
+        $result = $service->createForApprovedPromotedFindings($plan, $request->user());
+        $message = sprintf(
+            'Created %d execution recommendation%s. %d already existed.',
+            $result['execution_recommendations_created'],
+            $result['execution_recommendations_created'] === 1 ? '' : 's',
+            $result['execution_recommendations_existing'],
+        );
+
+        if (($result['opportunities_marked_reviewing'] ?? 0) > 0) {
+            $message .= sprintf(' Moved %d promoted opportunit%s into review.',
+                $result['opportunities_marked_reviewing'],
+                $result['opportunities_marked_reviewing'] === 1 ? 'y' : 'ies'
+            );
+        }
+
+        if (($result['missing_promoted_findings'] ?? 0) > 0) {
+            $message .= sprintf(' %d approved finding%s still need promotion first.',
+                $result['missing_promoted_findings'],
+                $result['missing_promoted_findings'] === 1 ? '' : 's'
+            );
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function createContentBriefs(Request $request, BrandGrowthPlan $plan, BrandGrowthBriefCreationService $service): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
+        $this->assertPlanWorkspace($plan, $workspace);
+        $this->authorize('createBriefs', $plan);
+
+        $result = $service->createForApprovedExecutionRecommendations($plan, $request->user());
+        $message = sprintf(
+            'Created %d content brief%s from Brand Growth execution recommendations. %d already existed.',
+            $result['briefs_created'],
+            $result['briefs_created'] === 1 ? '' : 's',
+            $result['briefs_existing'],
+        );
+
+        if (($result['execution_recommendations_needing_approval'] ?? 0) > 0) {
+            $message .= sprintf(' %d execution recommendation%s need approval or planning first.',
+                $result['execution_recommendations_needing_approval'],
+                $result['execution_recommendations_needing_approval'] === 1 ? '' : 's'
+            );
+        }
+
+        if (($result['skipped_execution_recommendations'] ?? 0) > 0) {
+            $message .= sprintf(' %d recommendation%s could not create a brief yet.',
+                $result['skipped_execution_recommendations'],
+                $result['skipped_execution_recommendations'] === 1 ? '' : 's'
+            );
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function createDrafts(Request $request, BrandGrowthPlan $plan, BrandGrowthDraftCreationService $service): RedirectResponse
+    {
+        $workspace = $this->resolveWorkspace($request, $plan->workspace_id);
+        $this->assertPlanWorkspace($plan, $workspace);
+        $this->authorize('createDrafts', $plan);
+
+        $result = $service->createForBrandGrowthBriefs($plan, $request->user());
+        $message = sprintf(
+            'Created %d first draft%s from Brand Growth briefs. %d already existed.',
+            $result['drafts_created'],
+            $result['drafts_created'] === 1 ? '' : 's',
+            $result['drafts_existing'],
+        );
+
+        if (($result['briefs_needing_approval'] ?? 0) > 0) {
+            $message .= sprintf(' %d brief%s need draft or approved status first.',
+                $result['briefs_needing_approval'],
+                $result['briefs_needing_approval'] === 1 ? '' : 's'
+            );
+        }
+
+        if (($result['skipped_briefs'] ?? 0) > 0) {
+            $message .= sprintf(' %d brief%s could not create a draft yet.',
+                $result['skipped_briefs'],
+                $result['skipped_briefs'] === 1 ? '' : 's'
+            );
+        }
+
+        return back()->with('status', $message);
     }
 
     public function approveFinding(Request $request, BrandGrowthPlanFinding $finding): RedirectResponse

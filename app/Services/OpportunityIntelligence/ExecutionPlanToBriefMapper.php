@@ -123,6 +123,14 @@ class ExecutionPlanToBriefMapper
             ->unique()
             ->values()
             ->all();
+        $brandGrowthPlan = Arr::wrap(data_get($plan->source_evidence, 'brand_growth_plan', []));
+        $brandGrowthFindingIds = collect(data_get($brandGrowthPlan, 'findings', []))
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id): string => (string) $id)
+            ->unique()
+            ->values()
+            ->all();
 
         return [
             'client_type' => 'opportunity_execution_plan',
@@ -131,6 +139,9 @@ class ExecutionPlanToBriefMapper
             'opportunity_execution_plan_id' => (string) $plan->id,
             'opportunity_id' => (string) $plan->opportunity_id,
             'workspace_id' => (string) $plan->workspace_id,
+            'brand_growth_plan_id' => (string) data_get($brandGrowthPlan, 'id', ''),
+            'brand_growth_plan_finding_ids' => $brandGrowthFindingIds,
+            'brand_growth_plan' => $brandGrowthPlan,
             'signal_detection_ids' => $signalDetectionIds,
             'signal_event_ids' => $signalEventIds,
             'evidence_summary' => data_get($plan->source_evidence, 'summary', []),

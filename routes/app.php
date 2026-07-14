@@ -248,6 +248,10 @@ Route::middleware(['auth', 'app.locale', 'support.context:app', 'support.readonl
             Route::get('/agentic-marketing/brand-growth-plans/{plan}', [AppBrandGrowthPlanController::class, 'show'])->name('app.agentic-marketing.brand-growth-plans.show');
             Route::put('/agentic-marketing/brand-growth-plans/{plan}', [AppBrandGrowthPlanController::class, 'update'])->name('app.agentic-marketing.brand-growth-plans.update');
             Route::post('/agentic-marketing/brand-growth-plans/{plan}/approve', [AppBrandGrowthPlanController::class, 'approvePlan'])->name('app.agentic-marketing.brand-growth-plans.approve');
+            Route::post('/agentic-marketing/brand-growth-plans/{plan}/promote-approved', [AppBrandGrowthPlanController::class, 'promoteApprovedItems'])->name('app.agentic-marketing.brand-growth-plans.promote-approved');
+            Route::post('/agentic-marketing/brand-growth-plans/{plan}/execution-recommendations', [AppBrandGrowthPlanController::class, 'createExecutionRecommendations'])->name('app.agentic-marketing.brand-growth-plans.execution-recommendations.create');
+            Route::post('/agentic-marketing/brand-growth-plans/{plan}/content-briefs', [AppBrandGrowthPlanController::class, 'createContentBriefs'])->name('app.agentic-marketing.brand-growth-plans.content-briefs.create');
+            Route::post('/agentic-marketing/brand-growth-plans/{plan}/drafts', [AppBrandGrowthPlanController::class, 'createDrafts'])->name('app.agentic-marketing.brand-growth-plans.drafts.create');
             Route::post('/agentic-marketing/brand-growth-findings/{finding}/approve', [AppBrandGrowthPlanController::class, 'approveFinding'])->name('app.agentic-marketing.brand-growth-findings.approve');
             Route::post('/agentic-marketing/brand-growth-findings/{finding}/reject', [AppBrandGrowthPlanController::class, 'rejectFinding'])->name('app.agentic-marketing.brand-growth-findings.reject');
             Route::post('/agentic-marketing/brand-growth-findings/{finding}/promote', [AppBrandGrowthPlanController::class, 'promoteFinding'])->name('app.agentic-marketing.brand-growth-findings.promote');

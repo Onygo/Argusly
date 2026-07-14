@@ -35,4 +35,24 @@ class BrandGrowthPlanPolicy
     {
         return $this->update($user, $plan);
     }
+
+    public function promote(User $user, BrandGrowthPlan $plan): bool
+    {
+        return $this->update($user, $plan);
+    }
+
+    public function planExecution(User $user, BrandGrowthPlan $plan): bool
+    {
+        return $this->update($user, $plan);
+    }
+
+    public function createBriefs(User $user, BrandGrowthPlan $plan): bool
+    {
+        return $this->update($user, $plan);
+    }
+
+    public function createDrafts(User $user, BrandGrowthPlan $plan): bool
+    {
+        return $this->update($user, $plan);
+    }
 }

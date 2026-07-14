@@ -15,6 +15,8 @@ class CompetitorIntelligenceAnalyzer implements BrandGrowthAnalyzer
         $contentItems = (int) $competitors->sum('content_items_count');
         $topicSignals = (int) $competitors->sum('topic_signals_count');
         $opportunities = (int) $competitors->sum('content_opportunities_count');
+        $pageCompetitorMatches = collect(data_get($context, 'page_intelligence.relationships.competitor_matches', []));
+        $highPageCompetitorMatches = (int) data_get($context, 'page_intelligence.relationships.high_competitor_match_count', 0);
         $findings = [];
         $missing = [];
 
@@ -64,6 +66,37 @@ class CompetitorIntelligenceAnalyzer implements BrandGrowthAnalyzer
             ];
         }
 
+        if ($activeCount > 0 && $highPageCompetitorMatches > 0) {
+            $topMatch = $pageCompetitorMatches
+                ->sortByDesc(fn (array $match): float => (float) ($match['match_score'] ?? 0))
+                ->first();
+
+            $findings[] = [
+                'type' => BrandGrowthFindingType::COMPETITOR_THREAT->value,
+                'title' => 'Observed pages overlap strongly with competitor themes',
+                'description' => 'Page Intelligence relationship matching found high-scoring competitor overlap on monitored pages.',
+                'rationale' => 'High competitor overlap can indicate positioning sameness, content commoditization, or an opportunity to sharpen the brand narrative.',
+                'impact_score' => 80,
+                'urgency_score' => 70,
+                'confidence_score' => 76,
+                'affected_industry' => data_get($context, 'company_profile.industry'),
+                'site_competitor_id' => data_get($topMatch, 'site_competitor_id'),
+                'monitored_page_id' => data_get($topMatch, 'monitored_page_id'),
+                'recommended_action' => 'Audit the highest-overlap page against the matched competitor and rewrite the positioning angle around proof, specificity, or a sharper audience promise.',
+                'source_references' => [
+                    'page_competitor_match_ids' => $pageCompetitorMatches->pluck('id')->filter()->take(10)->values()->all(),
+                    'site_competitor_ids' => $pageCompetitorMatches->pluck('site_competitor_id')->filter()->take(10)->values()->all(),
+                    'monitored_page_ids' => $pageCompetitorMatches->pluck('monitored_page_id')->filter()->take(10)->values()->all(),
+                ],
+                'source_summary' => [
+                    'high_competitor_page_matches' => $highPageCompetitorMatches,
+                    'top_competitor' => data_get($topMatch, 'competitor_name') ?: data_get($topMatch, 'competitor_domain'),
+                    'top_match_type' => data_get($topMatch, 'match_type'),
+                    'top_match_score' => data_get($topMatch, 'match_score'),
+                ],
+            ];
+        }
+
         if ($activeCount > 0 && (int) data_get($context, 'content.comparison_count', 0) === 0) {
             $findings[] = [
                 'type' => BrandGrowthFindingType::COMPETITOR_OPPORTUNITY->value,
@@ -86,11 +119,11 @@ class CompetitorIntelligenceAnalyzer implements BrandGrowthAnalyzer
         }
 
         return new BrandGrowthAnalyzerResult(
-            summary: 'Competitor Intelligence reviewed configured competitors and available competitor evidence.',
+            summary: 'Competitor Intelligence reviewed configured competitors, competitor content evidence, and Page Intelligence relationship matches.',
             findings: $findings,
-            confidence: $activeCount > 0 ? 66 : 42,
+            confidence: $activeCount > 0 && $highPageCompetitorMatches > 0 ? 74 : ($activeCount > 0 ? 66 : 42),
             missingData: $missing,
-            sourcesUsed: ['site_competitors', 'competitor_intelligence'],
+            sourcesUsed: ['site_competitors', 'competitor_intelligence', 'page_intelligence_relationships'],
             sourcesNotAvailable: $missing,
             recommendedActions: ['Use competitor evidence as strategy input, then promote selected responses through Opportunities.'],
         );

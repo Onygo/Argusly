@@ -14,6 +14,13 @@ class VisibilityAnalyzer implements BrandGrowthAnalyzer
         $signals = collect(data_get($context, 'signals.items', []));
         $highPrioritySignalCount = (int) data_get($context, 'signals.high_priority_count', 0);
         $observationCount = (int) data_get($context, 'marketing_observations.total', 0);
+        $serpItems = collect(data_get($context, 'page_intelligence.serp.items', []));
+        $geoItems = collect(data_get($context, 'page_intelligence.geo.items', []));
+        $serpTotal = (int) data_get($context, 'page_intelligence.serp.total', 0);
+        $geoTotal = (int) data_get($context, 'page_intelligence.geo.total', 0);
+        $lowSerpVisibility = (int) data_get($context, 'page_intelligence.serp.low_visibility_count', 0);
+        $geoCompetitorCitations = (int) data_get($context, 'page_intelligence.geo.competitors_cited_count', 0);
+        $geoClientCitations = (int) data_get($context, 'page_intelligence.geo.client_cited_count', 0);
         $findings = [];
         $missing = [];
 
@@ -81,6 +88,67 @@ class VisibilityAnalyzer implements BrandGrowthAnalyzer
             ];
         }
 
+        if ($serpTotal > 0 && $lowSerpVisibility > 0) {
+            $weakSerp = $serpItems
+                ->sortBy(fn (array $item): float => (float) ($item['visibility_score'] ?? 100))
+                ->first();
+
+            $findings[] = [
+                'type' => BrandGrowthFindingType::SERP_OPPORTUNITY->value,
+                'title' => 'Observed SERP visibility is weak for priority page queries',
+                'description' => 'Page Intelligence contains SERP observations with low visibility scores, indicating owned pages may not be prominent enough for tracked queries.',
+                'rationale' => 'Weak SERP visibility limits discoverability before buyers reach AI or owned-site experiences.',
+                'impact_score' => 78,
+                'urgency_score' => 68,
+                'confidence_score' => 74,
+                'affected_funnel_stage' => 'discovery',
+                'monitored_page_id' => data_get($weakSerp, 'monitored_page_id'),
+                'recommended_action' => 'Review low-visibility SERP observations and prioritize authority, relevance, and internal-link improvements for the weakest query/page pairs.',
+                'source_references' => [
+                    'page_serp_observation_ids' => $serpItems->pluck('id')->filter()->take(10)->values()->all(),
+                    'monitored_page_ids' => $serpItems->pluck('monitored_page_id')->filter()->take(10)->values()->all(),
+                ],
+                'source_summary' => [
+                    'serp_observations' => $serpTotal,
+                    'low_visibility_count' => $lowSerpVisibility,
+                    'weakest_query' => data_get($weakSerp, 'query'),
+                    'weakest_visibility_score' => data_get($weakSerp, 'visibility_score'),
+                ],
+            ];
+        }
+
+        if ($geoTotal > 0 && $geoCompetitorCitations > 0 && $geoClientCitations === 0) {
+            $competitiveGeo = $geoItems
+                ->filter(fn (array $item): bool => (bool) ($item['competitors_cited'] ?? false))
+                ->sortBy(fn (array $item): float => (float) ($item['geo_visibility_score'] ?? 100))
+                ->first();
+
+            $findings[] = [
+                'type' => BrandGrowthFindingType::AI_VISIBILITY_GAP->value,
+                'title' => 'AI answers cite competitors without citing the brand',
+                'description' => 'GEO observations show competitor citations while the client brand is not cited in sampled answer-engine results.',
+                'rationale' => 'Competitor citations without brand citations point to an authority and evidence gap in AI-mediated discovery.',
+                'impact_score' => 86,
+                'urgency_score' => 78,
+                'confidence_score' => 78,
+                'affected_funnel_stage' => 'discovery',
+                'recommended_action' => 'Create or strengthen cited proof assets for the affected AI visibility query, then monitor whether client citations appear in subsequent answer-engine observations.',
+                'source_references' => [
+                    'page_geo_observation_ids' => $geoItems->pluck('id')->filter()->take(10)->values()->all(),
+                    'llm_tracking_query_ids' => $geoItems->pluck('llm_tracking_query_id')->filter()->take(10)->values()->all(),
+                    'monitored_page_ids' => $geoItems->pluck('monitored_page_id')->filter()->take(10)->values()->all(),
+                ],
+                'source_summary' => [
+                    'geo_observations' => $geoTotal,
+                    'competitor_citations' => $geoCompetitorCitations,
+                    'client_citations' => $geoClientCitations,
+                    'example_query' => data_get($competitiveGeo, 'query'),
+                    'answer_engine' => data_get($competitiveGeo, 'answer_engine'),
+                    'visibility_score' => data_get($competitiveGeo, 'geo_visibility_score'),
+                ],
+            ];
+        }
+
         if ($observationCount === 0) {
             $missing[] = 'No connector-backed marketing observations are available.';
             $findings[] = [
@@ -98,11 +166,11 @@ class VisibilityAnalyzer implements BrandGrowthAnalyzer
         }
 
         return new BrandGrowthAnalyzerResult(
-            summary: 'Visibility reviewed LLM tracking, Signal Intelligence, and connector-backed observations.',
+            summary: 'Visibility reviewed LLM tracking, Signal Intelligence, Page Intelligence observations, and connector-backed observations.',
             findings: $findings,
-            confidence: $queryCount > 0 || $highPrioritySignalCount > 0 ? 66 : 44,
+            confidence: $queryCount > 0 || $highPrioritySignalCount > 0 || $serpTotal > 0 || $geoTotal > 0 ? 70 : 44,
             missingData: $missing,
-            sourcesUsed: ['llm_tracking_queries', 'signal_intelligence', 'marketing_observations'],
+            sourcesUsed: ['llm_tracking_queries', 'signal_intelligence', 'page_intelligence', 'marketing_observations'],
             sourcesNotAvailable: $missing,
             recommendedActions: ['Use visibility and performance signals as strategic inputs, not autonomous execution triggers.'],
         );

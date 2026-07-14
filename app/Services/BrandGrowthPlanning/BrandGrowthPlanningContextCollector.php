@@ -8,7 +8,12 @@ use App\Models\LlmTrackingQuery;
 use App\Models\MarketingObservation;
 use App\Models\MonitoredPage;
 use App\Models\Opportunity;
+use App\Models\PageBrandMatch;
+use App\Models\PageCompetitorMatch;
 use App\Models\PageContentExtraction;
+use App\Models\PageGeoObservation;
+use App\Models\PageIntelligenceReport;
+use App\Models\PageSerpObservation;
 use App\Models\Persona;
 use App\Models\SignalDetection;
 use App\Models\SiteCompetitor;
@@ -34,13 +39,14 @@ class BrandGrowthPlanningContextCollector
         $brandSnapshot = $this->brandIntelligence->snapshotForWorkspace($workspace);
         $content = $this->contentContext($workspace);
         $pages = $this->pageContext($workspace);
+        $pageIntelligence = $this->pageIntelligenceContext($workspace);
         $competitors = $this->competitorContext($workspace);
         $signals = $this->signalContext($workspace);
         $visibility = $this->visibilityContext($workspace);
         $observations = $this->observationContext($workspace);
         $personas = $this->personaContext($workspace);
 
-        $missing = $this->missingContext($brandSnapshot, $personas, $content, $pages, $competitors, $signals, $visibility, $observations);
+        $missing = $this->missingContext($brandSnapshot, $personas, $content, $pages, $pageIntelligence, $competitors, $signals, $visibility, $observations);
 
         return [
             'schema_version' => 'brand_growth_planning.context.v1',
@@ -54,6 +60,7 @@ class BrandGrowthPlanningContextCollector
             'personas' => $personas,
             'content' => $content,
             'pages' => $pages,
+            'page_intelligence' => $pageIntelligence,
             'competitors' => $competitors,
             'signals' => $signals,
             'visibility' => $visibility,
@@ -63,13 +70,18 @@ class BrandGrowthPlanningContextCollector
                 'company_profile' => $workspace->companyProfile instanceof CompanyProfile,
                 'approved_personas' => (int) $personas['approved_count'] > 0,
                 'content_inventory' => (int) $content['total'] > 0 || (int) $pages['total'] > 0,
+                'page_intelligence' => (int) data_get($pageIntelligence, 'reports.total', 0) > 0
+                    || (int) data_get($pageIntelligence, 'serp.total', 0) > 0
+                    || (int) data_get($pageIntelligence, 'geo.total', 0) > 0
+                    || (int) data_get($pageIntelligence, 'relationships.competitor_matches_total', 0) > 0
+                    || (int) data_get($pageIntelligence, 'relationships.brand_matches_total', 0) > 0,
                 'competitors' => (int) $competitors['active_count'] > 0,
                 'signal_intelligence' => (int) $signals['total'] > 0,
                 'ai_visibility' => (int) $visibility['llm_tracking_queries'] > 0,
                 'marketing_observations' => (int) $observations['total'] > 0,
             ],
             'missing_information' => $missing,
-            'source_reference_index' => $this->sourceReferenceIndex($brandSnapshot, $content, $pages, $competitors, $signals, $visibility, $observations),
+            'source_reference_index' => $this->sourceReferenceIndex($brandSnapshot, $content, $pages, $pageIntelligence, $competitors, $signals, $visibility, $observations),
             'source_data_cutoff_at' => now()->toIso8601String(),
         ];
     }
@@ -184,6 +196,161 @@ class BrandGrowthPlanningContextCollector
                 'page_type' => $page->page_type,
                 'word_count' => $page->latestContentExtraction?->word_count,
             ])->values()->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageIntelligenceContext(Workspace $workspace): array
+    {
+        $reports = Schema::hasTable('page_intelligence_reports')
+            ? PageIntelligenceReport::query()
+                ->where('workspace_id', $workspace->id)
+                ->latest('generated_at')
+                ->limit(8)
+                ->get(['id', 'title', 'report_type', 'status', 'summary', 'generated_at'])
+            : collect();
+
+        $serpObservations = Schema::hasTable('page_serp_observations')
+            ? PageSerpObservation::query()
+                ->where('workspace_id', $workspace->id)
+                ->latest('observed_at')
+                ->limit(25)
+                ->get(['id', 'monitored_page_id', 'query', 'result_type', 'position', 'domain', 'title', 'keyword_intent', 'search_volume', 'click_potential', 'visibility_score', 'observed_at'])
+            : collect();
+
+        $geoObservations = Schema::hasTable('page_geo_observations')
+            ? PageGeoObservation::query()
+                ->where('workspace_id', $workspace->id)
+                ->latest('observed_at')
+                ->limit(25)
+                ->get(['id', 'monitored_page_id', 'llm_tracking_query_id', 'query', 'answer_engine', 'provider', 'cited_domain', 'citation_count', 'client_cited', 'competitors_cited', 'brand_mentioned', 'sentiment', 'topic_ownership_score', 'consistency_score', 'geo_visibility_score', 'observed_at'])
+            : collect();
+
+        $competitorMatches = Schema::hasTable('page_competitor_matches')
+            ? PageCompetitorMatch::query()
+                ->where('workspace_id', $workspace->id)
+                ->with('competitor:id,name,domain')
+                ->orderByDesc('match_score')
+                ->latest('observed_at')
+                ->limit(25)
+                ->get(['id', 'monitored_page_id', 'site_competitor_id', 'match_type', 'match_score', 'evidence_json', 'observed_at'])
+            : collect();
+
+        $brandMatches = Schema::hasTable('page_brand_matches')
+            ? PageBrandMatch::query()
+                ->where('workspace_id', $workspace->id)
+                ->orderBy('match_score')
+                ->latest('observed_at')
+                ->limit(25)
+                ->get(['id', 'monitored_page_id', 'brand_name', 'match_type', 'match_score', 'evidence_json', 'observed_at'])
+            : collect();
+
+        $serpTotal = Schema::hasTable('page_serp_observations')
+            ? PageSerpObservation::query()->where('workspace_id', $workspace->id)->count()
+            : 0;
+        $geoTotal = Schema::hasTable('page_geo_observations')
+            ? PageGeoObservation::query()->where('workspace_id', $workspace->id)->count()
+            : 0;
+        $competitorMatchTotal = Schema::hasTable('page_competitor_matches')
+            ? PageCompetitorMatch::query()->where('workspace_id', $workspace->id)->count()
+            : 0;
+        $brandMatchTotal = Schema::hasTable('page_brand_matches')
+            ? PageBrandMatch::query()->where('workspace_id', $workspace->id)->count()
+            : 0;
+
+        return [
+            'reports' => [
+                'total' => Schema::hasTable('page_intelligence_reports')
+                    ? PageIntelligenceReport::query()->where('workspace_id', $workspace->id)->count()
+                    : 0,
+                'generated_count' => Schema::hasTable('page_intelligence_reports')
+                    ? PageIntelligenceReport::query()->where('workspace_id', $workspace->id)->where('status', PageIntelligenceReport::STATUS_GENERATED)->count()
+                    : 0,
+                'items' => $reports->map(fn (PageIntelligenceReport $report): array => [
+                    'id' => (string) $report->id,
+                    'title' => $report->title,
+                    'report_type' => $report->report_type,
+                    'status' => $report->status,
+                    'summary' => $report->summary,
+                    'generated_at' => $report->generated_at?->toIso8601String(),
+                ])->values()->all(),
+            ],
+            'serp' => [
+                'total' => $serpTotal,
+                'sampled' => $serpObservations->count(),
+                'average_visibility_score' => $serpObservations->avg(fn (PageSerpObservation $observation): float => (float) $observation->visibility_score),
+                'low_visibility_count' => $serpObservations->filter(fn (PageSerpObservation $observation): bool => (float) $observation->visibility_score < 40)->count(),
+                'high_intent_count' => $serpObservations->filter(fn (PageSerpObservation $observation): bool => in_array((string) $observation->keyword_intent, ['commercial', 'transactional', 'comparison'], true))->count(),
+                'items' => $serpObservations->map(fn (PageSerpObservation $observation): array => [
+                    'id' => (string) $observation->id,
+                    'monitored_page_id' => $observation->monitored_page_id ? (string) $observation->monitored_page_id : null,
+                    'query' => $observation->query,
+                    'result_type' => $observation->result_type,
+                    'position' => $observation->position,
+                    'domain' => $observation->domain,
+                    'title' => $observation->title,
+                    'keyword_intent' => $observation->keyword_intent,
+                    'search_volume' => $observation->search_volume,
+                    'click_potential' => $observation->click_potential !== null ? (float) $observation->click_potential : null,
+                    'visibility_score' => (float) $observation->visibility_score,
+                    'observed_at' => $observation->observed_at?->toIso8601String(),
+                ])->values()->all(),
+            ],
+            'geo' => [
+                'total' => $geoTotal,
+                'sampled' => $geoObservations->count(),
+                'average_visibility_score' => $geoObservations->avg(fn (PageGeoObservation $observation): float => (float) $observation->geo_visibility_score),
+                'client_cited_count' => $geoObservations->where('client_cited', true)->count(),
+                'competitors_cited_count' => $geoObservations->where('competitors_cited', true)->count(),
+                'brand_mentioned_count' => $geoObservations->where('brand_mentioned', true)->count(),
+                'negative_or_neutral_count' => $geoObservations->filter(fn (PageGeoObservation $observation): bool => in_array((string) $observation->sentiment, ['negative', 'neutral'], true))->count(),
+                'items' => $geoObservations->map(fn (PageGeoObservation $observation): array => [
+                    'id' => (string) $observation->id,
+                    'monitored_page_id' => $observation->monitored_page_id ? (string) $observation->monitored_page_id : null,
+                    'llm_tracking_query_id' => $observation->llm_tracking_query_id ? (string) $observation->llm_tracking_query_id : null,
+                    'query' => $observation->query,
+                    'answer_engine' => $observation->answer_engine,
+                    'provider' => $observation->provider,
+                    'cited_domain' => $observation->cited_domain,
+                    'citation_count' => (int) $observation->citation_count,
+                    'client_cited' => (bool) $observation->client_cited,
+                    'competitors_cited' => (bool) $observation->competitors_cited,
+                    'brand_mentioned' => (bool) $observation->brand_mentioned,
+                    'sentiment' => $observation->sentiment,
+                    'topic_ownership_score' => $observation->topic_ownership_score !== null ? (float) $observation->topic_ownership_score : null,
+                    'consistency_score' => $observation->consistency_score !== null ? (float) $observation->consistency_score : null,
+                    'geo_visibility_score' => (float) $observation->geo_visibility_score,
+                    'observed_at' => $observation->observed_at?->toIso8601String(),
+                ])->values()->all(),
+            ],
+            'relationships' => [
+                'competitor_matches_total' => $competitorMatchTotal,
+                'brand_matches_total' => $brandMatchTotal,
+                'high_competitor_match_count' => $competitorMatches->filter(fn (PageCompetitorMatch $match): bool => (float) $match->match_score >= 0.75)->count(),
+                'weak_brand_match_count' => $brandMatches->filter(fn (PageBrandMatch $match): bool => (float) $match->match_score < 0.45)->count(),
+                'competitor_matches' => $competitorMatches->map(fn (PageCompetitorMatch $match): array => [
+                    'id' => (string) $match->id,
+                    'monitored_page_id' => (string) $match->monitored_page_id,
+                    'site_competitor_id' => (string) $match->site_competitor_id,
+                    'competitor_name' => $match->competitor?->name,
+                    'competitor_domain' => $match->competitor?->domain,
+                    'match_type' => $match->match_type,
+                    'match_score' => (float) $match->match_score,
+                    'evidence' => $match->evidence_json,
+                    'observed_at' => $match->observed_at?->toIso8601String(),
+                ])->values()->all(),
+                'brand_matches' => $brandMatches->map(fn (PageBrandMatch $match): array => [
+                    'id' => (string) $match->id,
+                    'monitored_page_id' => (string) $match->monitored_page_id,
+                    'brand_name' => $match->brand_name,
+                    'match_type' => $match->match_type,
+                    'match_score' => (float) $match->match_score,
+                    'evidence' => $match->evidence_json,
+                    'observed_at' => $match->observed_at?->toIso8601String(),
+                ])->values()->all(),
+            ],
         ];
     }
 
@@ -315,6 +482,7 @@ class BrandGrowthPlanningContextCollector
         array $personas,
         array $content,
         array $pages,
+        array $pageIntelligence,
         array $competitors,
         array $signals,
         array $visibility,
@@ -327,7 +495,7 @@ class BrandGrowthPlanningContextCollector
             $missing[] = 'No approved Brand Intelligence snapshot is available.';
         }
 
-        foreach ([$personas, $content, $pages, $competitors, $signals, $visibility, $observations] as $context) {
+        foreach ([$personas, $content, $pages, $pageIntelligence, $competitors, $signals, $visibility, $observations] as $context) {
             $missing = array_merge($missing, Arr::wrap($context['missing_information'] ?? []));
         }
 
@@ -337,6 +505,14 @@ class BrandGrowthPlanningContextCollector
 
         if ((int) ($content['total'] ?? 0) === 0 && (int) ($pages['total'] ?? 0) === 0) {
             $missing[] = 'No owned content or observed website pages are available.';
+        }
+
+        if ((int) ($pages['total'] ?? 0) > 0
+            && (int) data_get($pageIntelligence, 'serp.total', 0) === 0
+            && (int) data_get($pageIntelligence, 'geo.total', 0) === 0
+            && (int) data_get($pageIntelligence, 'relationships.competitor_matches_total', 0) === 0
+            && (int) data_get($pageIntelligence, 'relationships.brand_matches_total', 0) === 0) {
+            $missing[] = 'Page Intelligence observations are not yet available for observed pages.';
         }
 
         if ((int) ($competitors['active_count'] ?? 0) === 0) {
@@ -361,7 +537,7 @@ class BrandGrowthPlanningContextCollector
     /**
      * @return array<string, array<int, string>>
      */
-    private function sourceReferenceIndex(array $brandSnapshot, array $content, array $pages, array $competitors, array $signals, array $visibility, array $observations): array
+    private function sourceReferenceIndex(array $brandSnapshot, array $content, array $pages, array $pageIntelligence, array $competitors, array $signals, array $visibility, array $observations): array
     {
         return [
             'company_intelligence_profile_ids' => collect([data_get($brandSnapshot, 'sources.company_intelligence_profile_id')])->filter()->map(fn (mixed $id): string => (string) $id)->values()->all(),
@@ -369,6 +545,11 @@ class BrandGrowthPlanningContextCollector
             'brand_context_ids' => collect([data_get($brandSnapshot, 'sources.brand_context_id')])->filter()->map(fn (mixed $id): string => (string) $id)->values()->all(),
             'content_ids' => collect($content['items'] ?? [])->pluck('id')->filter()->values()->all(),
             'monitored_page_ids' => collect($pages['items'] ?? [])->pluck('id')->filter()->values()->all(),
+            'page_intelligence_report_ids' => collect(data_get($pageIntelligence, 'reports.items', []))->pluck('id')->filter()->values()->all(),
+            'page_serp_observation_ids' => collect(data_get($pageIntelligence, 'serp.items', []))->pluck('id')->filter()->values()->all(),
+            'page_geo_observation_ids' => collect(data_get($pageIntelligence, 'geo.items', []))->pluck('id')->filter()->values()->all(),
+            'page_competitor_match_ids' => collect(data_get($pageIntelligence, 'relationships.competitor_matches', []))->pluck('id')->filter()->values()->all(),
+            'page_brand_match_ids' => collect(data_get($pageIntelligence, 'relationships.brand_matches', []))->pluck('id')->filter()->values()->all(),
             'site_competitor_ids' => collect($competitors['items'] ?? [])->pluck('id')->filter()->values()->all(),
             'signal_detection_ids' => collect($signals['items'] ?? [])->pluck('id')->filter()->values()->all(),
             'llm_tracking_query_ids' => collect($visibility['items'] ?? [])->pluck('id')->filter()->values()->all(),

@@ -18,6 +18,8 @@ class ContentAuthorityAnalyzer implements BrandGrowthAnalyzer
         $withPersona = (int) data_get($context, 'content.with_persona', 0);
         $contentIds = collect(data_get($context, 'content.items', []))->pluck('id')->filter()->take(20)->values()->all();
         $pageIds = collect(data_get($context, 'pages.items', []))->pluck('id')->filter()->take(20)->values()->all();
+        $brandMatches = collect(data_get($context, 'page_intelligence.relationships.brand_matches', []));
+        $weakBrandMatches = (int) data_get($context, 'page_intelligence.relationships.weak_brand_match_count', 0);
         $findings = [];
         $missing = [];
 
@@ -104,16 +106,44 @@ class ContentAuthorityAnalyzer implements BrandGrowthAnalyzer
             ];
         }
 
+        if ((int) data_get($context, 'pages.total', 0) > 0 && $weakBrandMatches > 0) {
+            $weakestMatch = $brandMatches
+                ->sortBy(fn (array $match): float => (float) ($match['match_score'] ?? 1))
+                ->first();
+
+            $findings[] = [
+                'type' => BrandGrowthFindingType::POSITIONING_GAP->value,
+                'title' => 'Observed pages show weak brand-to-page alignment',
+                'description' => 'Page Intelligence brand matching found monitored pages with weak brand match scores.',
+                'rationale' => 'Weak brand alignment makes it harder for buyers and answer engines to associate the page with the intended brand promise.',
+                'impact_score' => 74,
+                'urgency_score' => 60,
+                'confidence_score' => 74,
+                'monitored_page_id' => data_get($weakestMatch, 'monitored_page_id'),
+                'recommended_action' => 'Review the weakest brand-match pages and reinforce naming, proof points, positioning language, and internal context.',
+                'source_references' => [
+                    'page_brand_match_ids' => $brandMatches->pluck('id')->filter()->take(10)->values()->all(),
+                    'monitored_page_ids' => $brandMatches->pluck('monitored_page_id')->filter()->take(10)->values()->all(),
+                ],
+                'source_summary' => [
+                    'weak_brand_match_count' => $weakBrandMatches,
+                    'weakest_brand_name' => data_get($weakestMatch, 'brand_name'),
+                    'weakest_match_type' => data_get($weakestMatch, 'match_type'),
+                    'weakest_match_score' => data_get($weakestMatch, 'match_score'),
+                ],
+            ];
+        }
+
         if ((int) data_get($context, 'pages.extracted_total', 0) === 0) {
             $missing[] = 'Observed pages have not been extracted for Page Intelligence content analysis.';
         }
 
         return new BrandGrowthAnalyzerResult(
-            summary: 'Content and Authority reviewed inventory, proof assets, comparison coverage, and decision-stage signals.',
+            summary: 'Content and Authority reviewed inventory, proof assets, comparison coverage, brand-page alignment, and decision-stage signals.',
             findings: $findings,
-            confidence: $contentTotal > 0 ? 70 : 45,
+            confidence: $contentTotal > 0 || $brandMatches->isNotEmpty() ? 72 : 45,
             missingData: $missing,
-            sourcesUsed: ['content_inventory', 'page_intelligence'],
+            sourcesUsed: ['content_inventory', 'page_intelligence', 'page_brand_matches'],
             sourcesNotAvailable: $missing,
             recommendedActions: ['Prioritize evidence-led and decision-stage assets before scaling content volume.'],
         );

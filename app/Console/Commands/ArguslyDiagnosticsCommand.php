@@ -168,6 +168,7 @@ class ArguslyDiagnosticsCommand extends Command
             ['brand_growth_planning.plans.total', (string) (clone $plans)->count()],
             ['brand_growth_planning.plans.draft', (string) (clone $plans)->where('status', 'draft')->count()],
             ['brand_growth_planning.plans.approved', (string) (clone $plans)->where('status', 'approved')->count()],
+            ['brand_growth_planning.plans.approved_conflicts', (string) $this->brandGrowthApprovedConflictCount(clone $plans)],
             ['brand_growth_planning.plans.stale_source_data', (string) (clone $plans)->where('source_data_cutoff_at', '<', now()->subDays(30))->count()],
             ['brand_growth_planning.plans.with_missing_information', (string) (clone $plans)->whereNotNull('missing_information')->count()],
             ['brand_growth_planning.findings.total', (string) (clone $findings)->count()],
@@ -186,6 +187,17 @@ class ArguslyDiagnosticsCommand extends Command
             ['brand_growth_planning.audiences.promoted_personas', (string) (clone $audiences)->whereNotNull('persona_id')->count()],
             ['brand_growth_planning.audiences.rejected', (string) (clone $audiences)->where('review_state', 'rejected')->count()],
         ];
+    }
+
+    private function brandGrowthApprovedConflictCount($plans): int
+    {
+        return $plans
+            ->where('status', 'approved')
+            ->selectRaw('workspace_id, count(*) as aggregate')
+            ->groupBy('workspace_id')
+            ->havingRaw('count(*) > 1')
+            ->get()
+            ->count();
     }
 
     /**

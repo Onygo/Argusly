@@ -2,11 +2,49 @@
 
 @php
     $status = $plan->status?->value ?? $plan->status;
+    $brandGrowthBriefs = collect($brandGrowthBriefs ?? []);
     $approvedFindingCount = $plan->findings
         ->filter(fn ($finding): bool => ($finding->review_state?->value ?? $finding->review_state) === 'approved')
         ->count();
     $approvedAudienceCount = $plan->audienceProposals
         ->filter(fn ($proposal): bool => ($proposal->review_state?->value ?? $proposal->review_state) === 'approved')
+        ->count();
+    $approvedUnpromotedFindingCount = $plan->findings
+        ->filter(fn ($finding): bool => ($finding->review_state?->value ?? $finding->review_state) === 'approved' && blank($finding->opportunity_id))
+        ->count();
+    $approvedUnpromotedAudienceCount = $plan->audienceProposals
+        ->filter(fn ($proposal): bool => ($proposal->review_state?->value ?? $proposal->review_state) === 'approved' && blank($proposal->persona_id))
+        ->count();
+    $promotablePlanItemCount = $approvedUnpromotedFindingCount + $approvedUnpromotedAudienceCount;
+    $promotedAudienceCount = max(0, $approvedAudienceCount - $approvedUnpromotedAudienceCount);
+    $promotedFindingOpportunities = $plan->findings
+        ->filter(fn ($finding): bool => ($finding->review_state?->value ?? $finding->review_state) === 'approved' && filled($finding->opportunity_id) && $finding->opportunity)
+        ->map(fn ($finding) => $finding->opportunity)
+        ->unique(fn ($opportunity): string => (string) $opportunity->id)
+        ->values();
+    $promotedOpportunityCount = $promotedFindingOpportunities->count();
+    $brandGrowthExecutionRecommendations = $promotedFindingOpportunities
+        ->flatMap(fn ($opportunity) => collect($opportunity->activeExecutionPlans ?? []))
+        ->unique(fn ($executionPlan): string => (string) $executionPlan->id)
+        ->values();
+    $executionRecommendationCount = $brandGrowthExecutionRecommendations->count();
+    $briefableExecutionRecommendationCount = $brandGrowthExecutionRecommendations
+        ->filter(fn ($executionPlan): bool => in_array((string) $executionPlan->status, ['approved', 'planned'], true) && blank(data_get($executionPlan->metadata, 'brief_id')))
+        ->count();
+    $contentBriefCount = $brandGrowthExecutionRecommendations
+        ->filter(fn ($executionPlan): bool => filled(data_get($executionPlan->metadata, 'brief_id')))
+        ->count();
+    $draftReadyBriefCount = $brandGrowthBriefs
+        ->filter(fn ($brief): bool => in_array((string) $brief->status, ['draft', 'approved'], true) && blank(data_get($brief->client_refs, 'draft_id')))
+        ->count();
+    $contentDraftCount = $brandGrowthBriefs
+        ->filter(fn ($brief): bool => filled(data_get($brief->client_refs, 'draft_id')))
+        ->count();
+    $executionRecommendationsNeedingApprovalCount = $brandGrowthExecutionRecommendations
+        ->filter(fn ($executionPlan): bool => ! in_array((string) $executionPlan->status, ['approved', 'planned'], true) && blank(data_get($executionPlan->metadata, 'brief_id')))
+        ->count();
+    $promotedOpportunitiesMissingExecutionRecommendationCount = $promotedFindingOpportunities
+        ->filter(fn ($opportunity): bool => collect($opportunity->activeExecutionPlans ?? [])->isEmpty())
         ->count();
     $stateClass = [
         'pending' => 'border-amber-200 bg-amber-50 text-amber-900',
@@ -31,6 +69,8 @@
     $findingChangeStates = collect(data_get($planDiff, 'findings.states', []));
     $audienceChangeStates = collect(data_get($planDiff, 'audiences.states', []));
     $versionChangeSummary = data_get($planDiff, 'summary', []);
+    $isCurrentApprovedBaseline = $status === 'approved' && (string) ($currentApprovedPlanId ?? '') === (string) $plan->id;
+    $isSupersededBaseline = $status === 'superseded' && filled($plan->approved_at);
 @endphp
 
 @section('pageHeader')
@@ -55,6 +95,50 @@
             </button>
         </form>
     @endcan
+    @can('promote', $plan)
+        @if ($promotablePlanItemCount > 0)
+            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
+                @csrf
+                <button class="pl-btn-primary" type="submit">
+                    <i data-lucide="rocket" class="h-4 w-4"></i>
+                    <span>Promote approved</span>
+                </button>
+            </form>
+        @endif
+    @endcan
+    @can('planExecution', $plan)
+        @if ($promotedOpportunitiesMissingExecutionRecommendationCount > 0)
+            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.execution-recommendations.create', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
+                @csrf
+                <button class="pl-btn-primary" type="submit">
+                    <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                    <span>Create recommendations</span>
+                </button>
+            </form>
+        @endif
+    @endcan
+    @can('createBriefs', $plan)
+        @if ($briefableExecutionRecommendationCount > 0)
+            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.content-briefs.create', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
+                @csrf
+                <button class="pl-btn-primary" type="submit">
+                    <i data-lucide="file-text" class="h-4 w-4"></i>
+                    <span>Create briefs</span>
+                </button>
+            </form>
+        @endif
+    @endcan
+    @can('createDrafts', $plan)
+        @if ($draftReadyBriefCount > 0)
+            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.drafts.create', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
+                @csrf
+                <button class="pl-btn-primary" type="submit">
+                    <i data-lucide="file-pen-line" class="h-4 w-4"></i>
+                    <span>Create drafts</span>
+                </button>
+            </form>
+        @endif
+    @endcan
     @if ($status !== 'approved')
         <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.approve', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}">
             @csrf
@@ -69,8 +153,8 @@
 @section('metricSection')
         <x-metric-section>
         <x-metric-card label="Confidence" :value="number_format((float) $plan->confidence_score, 1)" helper="average analyzer confidence" />
-        <x-metric-card label="Findings" :value="$plan->findings->count()" :helper="$approvedFindingCount.' approved'" />
-        <x-metric-card label="Audiences" :value="$plan->audienceProposals->count()" :helper="$approvedAudienceCount.' approved'" />
+        <x-metric-card label="Findings" :value="$plan->findings->count()" :helper="$approvedFindingCount.' approved · '.$approvedUnpromotedFindingCount.' ready'" />
+        <x-metric-card label="Audiences" :value="$plan->audienceProposals->count()" :helper="$approvedAudienceCount.' approved · '.$approvedUnpromotedAudienceCount.' ready'" />
         <x-metric-card label="Missing data" :value="count((array) $plan->missing_information)" helper="unresolved inputs" />
     </x-metric-section>
 @endsection
@@ -92,6 +176,11 @@
                 <div class="min-w-0">
                     <div class="flex flex-wrap gap-2">
                         <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', $status) }}</span>
+                        @if ($isCurrentApprovedBaseline)
+                            <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800">current baseline</span>
+                        @elseif ($isSupersededBaseline)
+                            <span class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700">superseded baseline</span>
+                        @endif
                         <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ str_replace('_', ' ', $plan->planning_horizon) }}</span>
                         <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ $plan->source_data_cutoff_at?->toDayDateTimeString() }}</span>
                         @if ($plan->clientSite)
@@ -293,6 +382,10 @@
                                 $reviewState = $finding->review_state?->value ?? $finding->review_state;
                                 $findingType = $finding->type?->value ?? $finding->type;
                                 $findingChangeState = $findingChangeStates->get((string) $finding->dedupe_hash);
+                                $findingExecutionPlan = $finding->opportunity ? $finding->opportunity->activeExecutionPlans->first() : null;
+                                $findingBriefId = $findingExecutionPlan ? data_get($findingExecutionPlan->metadata, 'brief_id') : null;
+                                $findingBrief = $findingBriefId ? $brandGrowthBriefs->get((string) $findingBriefId) : null;
+                                $findingDraftId = $findingBrief ? data_get($findingBrief->client_refs, 'draft_id') : null;
                             @endphp
                             <article class="p-5">
                                 <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -347,6 +440,24 @@
                                             <i data-lucide="arrow-up-right" class="h-4 w-4"></i>
                                             <span>Open opportunity</span>
                                         </a>
+                                        @if ($findingExecutionPlan)
+                                            <a href="{{ route('app.opportunities.execution-recommendations.show', ['plan' => $findingExecutionPlan->id, 'workspace_id' => $workspace->id]) }}" class="pl-btn-ghost">
+                                                <i data-lucide="clipboard-check" class="h-4 w-4"></i>
+                                                <span>Open recommendation</span>
+                                            </a>
+                                        @endif
+                                        @if ($findingBriefId)
+                                            <a href="{{ route('app.content.workspace.show', ['brief' => $findingBriefId, 'workspace_id' => $workspace->id]) }}" class="pl-btn-ghost">
+                                                <i data-lucide="file-text" class="h-4 w-4"></i>
+                                                <span>Open brief</span>
+                                            </a>
+                                        @endif
+                                        @if ($findingDraftId)
+                                            <a href="{{ route('app.drafts.show', ['draft' => $findingDraftId, 'workspace_id' => $workspace->id]) }}" class="pl-btn-ghost">
+                                                <i data-lucide="file-pen-line" class="h-4 w-4"></i>
+                                                <span>Open draft</span>
+                                            </a>
+                                        @endif
                                     @else
                                         <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-findings.promote', ['finding' => $finding->id, 'workspace_id' => $workspace->id]) }}">
                                             @csrf
@@ -427,6 +538,73 @@
             </main>
 
             <aside class="space-y-6">
+                <section class="rounded-lg border border-border bg-surface p-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <h2 class="text-sm font-semibold text-textPrimary">Execution Readiness</h2>
+                        <span class="rounded-full border border-border bg-background px-2.5 py-1 text-xs text-textSecondary">{{ $promotablePlanItemCount }} promote · {{ $promotedOpportunitiesMissingExecutionRecommendationCount }} plan · {{ $briefableExecutionRecommendationCount }} brief · {{ $draftReadyBriefCount }} draft</span>
+                    </div>
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-textSecondary">
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Findings ready <span class="block text-base font-semibold text-textPrimary">{{ $approvedUnpromotedFindingCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Audiences ready <span class="block text-base font-semibold text-textPrimary">{{ $approvedUnpromotedAudienceCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Opportunities <span class="block text-base font-semibold text-textPrimary">{{ $promotedOpportunityCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Personas <span class="block text-base font-semibold text-textPrimary">{{ $promotedAudienceCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Recommendations <span class="block text-base font-semibold text-textPrimary">{{ $executionRecommendationCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Needs plan <span class="block text-base font-semibold text-textPrimary">{{ $promotedOpportunitiesMissingExecutionRecommendationCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Brief-ready <span class="block text-base font-semibold text-textPrimary">{{ $briefableExecutionRecommendationCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Briefs <span class="block text-base font-semibold text-textPrimary">{{ $contentBriefCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Draft-ready <span class="block text-base font-semibold text-textPrimary">{{ $draftReadyBriefCount }}</span></div>
+                        <div class="rounded-md border border-border bg-background px-3 py-2">Drafts <span class="block text-base font-semibold text-textPrimary">{{ $contentDraftCount }}</span></div>
+                    </div>
+                    @can('promote', $plan)
+                        @if ($promotablePlanItemCount > 0)
+                            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}" class="mt-3">
+                                @csrf
+                                <button class="pl-btn-primary w-full justify-center" type="submit">
+                                    <i data-lucide="rocket" class="h-4 w-4"></i>
+                                    <span>Promote approved</span>
+                                </button>
+                            </form>
+                        @endif
+                    @endcan
+                    @can('planExecution', $plan)
+                        @if ($promotedOpportunitiesMissingExecutionRecommendationCount > 0)
+                            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.execution-recommendations.create', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}" class="mt-3">
+                                @csrf
+                                <button class="pl-btn-primary w-full justify-center" type="submit">
+                                    <i data-lucide="clipboard-list" class="h-4 w-4"></i>
+                                    <span>Create recommendations</span>
+                                </button>
+                            </form>
+                        @endif
+                    @endcan
+                    @can('createBriefs', $plan)
+                        @if ($briefableExecutionRecommendationCount > 0)
+                            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.content-briefs.create', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}" class="mt-3">
+                                @csrf
+                                <button class="pl-btn-primary w-full justify-center" type="submit">
+                                    <i data-lucide="file-text" class="h-4 w-4"></i>
+                                    <span>Create briefs</span>
+                                </button>
+                            </form>
+                        @elseif ($executionRecommendationsNeedingApprovalCount > 0)
+                            <p class="mt-3 rounded-md border border-border bg-background px-3 py-2 text-xs text-textSecondary">
+                                Approve execution recommendations before creating briefs.
+                            </p>
+                        @endif
+                    @endcan
+                    @can('createDrafts', $plan)
+                        @if ($draftReadyBriefCount > 0)
+                            <form method="POST" action="{{ route('app.agentic-marketing.brand-growth-plans.drafts.create', ['plan' => $plan->id, 'workspace_id' => $workspace->id]) }}" class="mt-3">
+                                @csrf
+                                <button class="pl-btn-primary w-full justify-center" type="submit">
+                                    <i data-lucide="file-pen-line" class="h-4 w-4"></i>
+                                    <span>Create drafts</span>
+                                </button>
+                            </form>
+                        @endif
+                    @endcan
+                </section>
+
                 <section class="rounded-lg border border-border bg-surface p-4">
                     <h2 class="text-sm font-semibold text-textPrimary">Recommended Audiences</h2>
                     <div class="mt-3 space-y-3">

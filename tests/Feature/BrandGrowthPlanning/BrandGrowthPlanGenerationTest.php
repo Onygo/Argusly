@@ -1,17 +1,27 @@
 <?php
 
 use App\Enums\BrandGrowthPlanReviewState;
+use App\Enums\BrandGrowthPlanStatus;
 use App\Enums\OpportunitySignalSource;
 use App\Http\Middleware\EnsureBillingOnboardingCompleted;
 use App\Models\BrandGrowthAudienceProposal;
 use App\Models\BrandGrowthPlan;
 use App\Models\BrandGrowthPlanFinding;
+use App\Models\Brief;
 use App\Models\ClientSite;
 use App\Models\CompanyIntelligenceProfile;
 use App\Models\Content;
+use App\Models\Draft;
 use App\Models\LlmTrackingQuery;
+use App\Models\MonitoredPage;
+use App\Models\MonitoredSource;
 use App\Models\Opportunity;
+use App\Models\OpportunityExecutionPlan;
 use App\Models\Organization;
+use App\Models\PageBrandMatch;
+use App\Models\PageCompetitorMatch;
+use App\Models\PageGeoObservation;
+use App\Models\PageSerpObservation;
 use App\Models\Persona;
 use App\Models\SignalDetection;
 use App\Models\SiteCompetitor;
@@ -160,6 +170,46 @@ it('increments versions and supersedes older unapproved drafts', function (): vo
         ->and($second->supersedes_plan_id)->toBe($first->id);
 });
 
+it('keeps one approved Brand Growth Plan baseline per workspace', function (): void {
+    $context = brandGrowthContext('baseline');
+    $generator = app(BrandGrowthPlanGenerator::class);
+
+    $first = $generator->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'First approved baseline',
+    ]);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.approve', ['plan' => $first->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $second = $generator->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'Second approved baseline',
+    ]);
+
+    expect($first->refresh()->status)->toBe(BrandGrowthPlanStatus::APPROVED)
+        ->and($second->status)->toBe(BrandGrowthPlanStatus::DRAFT);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.approve', ['plan' => $second->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect($first->refresh()->status)->toBe(BrandGrowthPlanStatus::SUPERSEDED)
+        ->and($second->refresh()->status)->toBe(BrandGrowthPlanStatus::APPROVED)
+        ->and(BrandGrowthPlan::query()->where('workspace_id', $context['workspace']->id)->where('status', BrandGrowthPlanStatus::APPROVED->value)->count())->toBe(1);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.agentic-marketing.brand-growth-plans.show', ['plan' => $first->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertOk()
+        ->assertSee('superseded baseline');
+
+    $this->actingAs($context['user'])
+        ->get(route('app.agentic-marketing.brand-growth-plans.show', ['plan' => $second->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertOk()
+        ->assertSee('current baseline');
+});
+
 it('shows only plans for the current user workspace', function (): void {
     $own = brandGrowthContext('own');
     $other = brandGrowthContext('other');
@@ -235,6 +285,211 @@ it('promotes approved inferred audiences into canonical personas without duplica
     expect($persona->status)->toBe(Persona::STATUS_APPROVED)
         ->and($persona->source_type)->toBe('brand_growth_plan')
         ->and(data_get($persona->profile_data, 'brand_growth.audience_proposal_id'))->toBe((string) $proposal->id);
+});
+
+it('promotes approved plan findings and audiences in bulk without duplicates', function (): void {
+    $context = brandGrowthContext('bulk-promote');
+    $plan = app(BrandGrowthPlanGenerator::class)->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'Bulk promote reviewed strategic plan items',
+    ]);
+    $findings = $plan->findings()->limit(2)->get();
+    $proposal = $plan->audienceProposals()->firstOrFail();
+
+    expect($findings)->toHaveCount(2);
+
+    $findings->each(fn (BrandGrowthPlanFinding $finding) => $finding->forceFill([
+        'review_state' => BrandGrowthPlanReviewState::APPROVED->value,
+        'reviewed_by' => $context['user']->id,
+        'reviewed_at' => now(),
+    ])->save());
+    $proposal->forceFill([
+        'review_state' => BrandGrowthPlanReviewState::APPROVED->value,
+        'reviewed_by' => $context['user']->id,
+        'reviewed_at' => now(),
+    ])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $findings->each(fn (BrandGrowthPlanFinding $finding) => expect($finding->refresh()->opportunity_id)->not->toBeNull());
+    expect($proposal->refresh()->persona_id)->not->toBeNull();
+
+    $opportunityCount = Opportunity::query()->where('workspace_id', $context['workspace']->id)->count();
+    $personaCount = Persona::query()->where('organization_id', $context['organization']->id)->count();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(Opportunity::query()->where('workspace_id', $context['workspace']->id)->count())->toBe($opportunityCount)
+        ->and(Persona::query()->where('organization_id', $context['organization']->id)->count())->toBe($personaCount);
+});
+
+it('creates execution recommendations for promoted brand growth opportunities without duplicates', function (): void {
+    $context = brandGrowthContext('execution-recommendations');
+    $plan = app(BrandGrowthPlanGenerator::class)->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'Turn approved Brand Growth findings into execution recommendations',
+    ]);
+    $finding = $plan->findings()->firstOrFail();
+
+    $finding->forceFill([
+        'review_state' => BrandGrowthPlanReviewState::APPROVED->value,
+        'reviewed_by' => $context['user']->id,
+        'reviewed_at' => now(),
+    ])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $opportunity = Opportunity::query()->whereKey($finding->refresh()->opportunity_id)->firstOrFail();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.execution-recommendations.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $executionPlan = OpportunityExecutionPlan::query()
+        ->where('workspace_id', $context['workspace']->id)
+        ->where('opportunity_id', $opportunity->id)
+        ->firstOrFail();
+
+    expect($opportunity->refresh()->status->value)->toBe('reviewing')
+        ->and($executionPlan->status)->toBe(OpportunityExecutionPlan::STATUS_DRAFT)
+        ->and(data_get($executionPlan->metadata, 'brand_growth_planning.brand_growth_plan_id'))->toBe((string) $plan->id)
+        ->and(data_get($executionPlan->metadata, 'brand_growth_planning.brand_growth_plan_finding_ids'))->toContain((string) $finding->id)
+        ->and(data_get($executionPlan->source_evidence, 'brand_growth_plan.findings.0.id'))->toBe((string) $finding->id);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.execution-recommendations.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(OpportunityExecutionPlan::query()
+        ->where('workspace_id', $context['workspace']->id)
+        ->where('opportunity_id', $opportunity->id)
+        ->count())->toBe(1);
+});
+
+it('creates content briefs from approved brand growth execution recommendations without duplicates', function (): void {
+    $context = brandGrowthContext('content-briefs');
+    $plan = app(BrandGrowthPlanGenerator::class)->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'Turn Brand Growth execution recommendations into content briefs',
+    ]);
+    $finding = $plan->findings()->firstOrFail();
+
+    $finding->forceFill([
+        'review_state' => BrandGrowthPlanReviewState::APPROVED->value,
+        'reviewed_by' => $context['user']->id,
+        'reviewed_at' => now(),
+    ])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.execution-recommendations.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect();
+
+    $executionPlan = OpportunityExecutionPlan::query()
+        ->where('workspace_id', $context['workspace']->id)
+        ->where('opportunity_id', $finding->refresh()->opportunity_id)
+        ->firstOrFail();
+
+    $executionPlan->forceFill(['status' => OpportunityExecutionPlan::STATUS_APPROVED])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.content-briefs.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $brief = Brief::query()->where('source', 'opportunity_execution_plan')->firstOrFail();
+    $executionPlan->refresh();
+
+    expect($brief->client_refs['execution_plan_id'])->toBe((string) $executionPlan->id)
+        ->and($brief->client_refs['brand_growth_plan_id'])->toBe((string) $plan->id)
+        ->and($brief->client_refs['brand_growth_plan_finding_ids'])->toContain((string) $finding->id)
+        ->and(data_get($brief->client_refs, 'brand_growth_plan.findings.0.id'))->toBe((string) $finding->id)
+        ->and(data_get($executionPlan->metadata, 'brief_id'))->toBe((string) $brief->id);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.content-briefs.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(Brief::query()->where('source', 'opportunity_execution_plan')->count())->toBe(1);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.agentic-marketing.brand-growth-plans.show', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertOk()
+        ->assertSee('Open brief');
+});
+
+it('creates first drafts from brand growth content briefs without duplicates', function (): void {
+    $context = brandGrowthContext('first-drafts');
+    $plan = app(BrandGrowthPlanGenerator::class)->generate($context['workspace'], $context['user'], [
+        'business_objective' => 'Turn Brand Growth briefs into governed first drafts',
+    ]);
+    $finding = $plan->findings()->firstOrFail();
+
+    $finding->forceFill([
+        'review_state' => BrandGrowthPlanReviewState::APPROVED->value,
+        'reviewed_by' => $context['user']->id,
+        'reviewed_at' => now(),
+    ])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.promote-approved', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.execution-recommendations.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect();
+
+    $executionPlan = OpportunityExecutionPlan::query()
+        ->where('workspace_id', $context['workspace']->id)
+        ->where('opportunity_id', $finding->refresh()->opportunity_id)
+        ->firstOrFail();
+
+    $executionPlan->forceFill(['status' => OpportunityExecutionPlan::STATUS_APPROVED])->save();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.content-briefs.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect();
+
+    $brief = Brief::query()->where('source', 'opportunity_execution_plan')->firstOrFail();
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.drafts.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    $draft = Draft::query()->where('brief_id', $brief->id)->firstOrFail();
+    $brief->refresh();
+
+    expect($draft->status)->toBe('draft')
+        ->and($draft->meta['source_context']['brief_id'])->toBe((string) $brief->id)
+        ->and($draft->meta['source_context']['brand_growth_plan_id'])->toBe((string) $plan->id)
+        ->and($draft->meta['source_context']['brand_growth_plan_finding_ids'])->toContain((string) $finding->id)
+        ->and(data_get($draft->meta, 'source_context.brand_growth_plan.findings.0.id'))->toBe((string) $finding->id)
+        ->and($brief->client_refs['draft_id'])->toBe((string) $draft->id);
+
+    $this->actingAs($context['user'])
+        ->post(route('app.agentic-marketing.brand-growth-plans.drafts.create', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertRedirect()
+        ->assertSessionHas('status');
+
+    expect(Draft::query()->where('brief_id', $brief->id)->count())->toBe(1);
+
+    $this->actingAs($context['user'])
+        ->get(route('app.agentic-marketing.brand-growth-plans.show', ['plan' => $plan->id, 'workspace_id' => $context['workspace']->id]))
+        ->assertOk()
+        ->assertSee('Open draft');
 });
 
 it('shows version changes against the superseded plan', function (): void {
@@ -343,6 +598,163 @@ it('shows version changes against the superseded plan', function (): void {
         ->assertSee('updated in v2');
 });
 
+it('uses Page Intelligence observations as evidence for strategic findings', function (): void {
+    $context = brandGrowthContext('page-intelligence-evidence');
+    $workspace = $context['workspace'];
+    $site = $context['site'];
+    $query = LlmTrackingQuery::query()->where('workspace_id', $workspace->id)->firstOrFail();
+    $competitor = SiteCompetitor::query()->where('workspace_id', $workspace->id)->firstOrFail();
+
+    $source = MonitoredSource::query()->create([
+        'organization_id' => $context['organization']->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'source_type' => 'serp',
+        'name' => 'Strategic SERP source',
+        'base_url' => $site->base_url,
+        'domain' => parse_url($site->base_url, PHP_URL_HOST),
+        'status' => MonitoredSource::STATUS_ACTIVE,
+        'trust_level' => 3,
+        'authority_score' => 60,
+        'polling_frequency' => 'weekly',
+        'crawl_policy_json' => [],
+        'fetch_config_json' => [],
+        'discovery_config_json' => [],
+        'metadata_json' => ['test' => true],
+        'failure_count' => 0,
+    ]);
+    $pageUrl = $site->base_url.'/ai-visibility-proof';
+    $page = MonitoredPage::query()->create([
+        'organization_id' => $context['organization']->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'monitored_source_id' => $source->id,
+        'canonical_url' => $pageUrl,
+        'canonical_url_hash' => hash('sha256', $pageUrl),
+        'first_seen_url' => $pageUrl,
+        'first_seen_url_hash' => hash('sha256', $pageUrl),
+        'final_url' => $pageUrl,
+        'final_url_hash' => hash('sha256', $pageUrl),
+        'domain' => parse_url($pageUrl, PHP_URL_HOST),
+        'path' => '/ai-visibility-proof',
+        'source_type' => 'serp',
+        'page_type' => 'article',
+        'content_type' => 'text/html',
+        'publisher_name' => 'Argusly',
+        'language_current' => 'en',
+        'title_current' => 'AI visibility proof',
+        'first_seen_at' => now()->subDays(2),
+        'last_seen_at' => now()->subDay(),
+        'last_fetched_at' => now()->subDay(),
+        'last_changed_at' => now()->subDay(),
+        'crawl_status' => MonitoredPage::CRAWL_STATUS_FETCHED,
+        'indexability_status' => 'indexable',
+        'dedupe_key' => hash('sha256', 'page-intelligence-evidence'),
+        'metadata_json' => ['test' => true],
+    ]);
+
+    $serpObservation = PageSerpObservation::query()->create([
+        'organization_id' => $context['organization']->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'monitored_page_id' => $page->id,
+        'query' => 'best ai visibility platform',
+        'query_hash' => hash('sha256', 'best ai visibility platform'),
+        'locale' => 'en_US',
+        'country' => 'US',
+        'device' => 'desktop',
+        'search_engine' => 'google',
+        'observed_at' => now(),
+        'result_type' => 'organic',
+        'position' => 18,
+        'absolute_position' => 18,
+        'page_url' => $pageUrl,
+        'page_url_hash' => hash('sha256', $pageUrl),
+        'domain' => parse_url($pageUrl, PHP_URL_HOST),
+        'title' => 'AI visibility proof',
+        'snippet' => 'Weak SERP visibility despite strategic relevance.',
+        'serp_features_json' => [],
+        'competitor_presence_json' => [['domain' => $competitor->domain]],
+        'search_volume' => 900,
+        'keyword_intent' => 'commercial',
+        'click_potential' => 0.18,
+        'visibility_score' => 22,
+        'breakdown_json' => ['test' => true],
+        'raw_payload_json' => ['test' => true],
+        'provider_key' => 'test',
+        'metadata_json' => ['test' => true],
+    ]);
+    $geoObservation = PageGeoObservation::query()->create([
+        'organization_id' => $context['organization']->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'monitored_page_id' => $page->id,
+        'llm_tracking_query_id' => $query->id,
+        'query' => 'Best agentic brand growth platform',
+        'query_hash' => hash('sha256', 'best agentic brand growth platform'),
+        'answer_engine' => 'chatgpt',
+        'provider' => 'openai',
+        'model' => 'gpt-5-mini',
+        'locale' => 'en',
+        'observed_at' => now(),
+        'cited_domain' => $competitor->domain,
+        'citation_count' => 2,
+        'mentioned_brands_json' => [],
+        'mentioned_competitors_json' => [['domain' => $competitor->domain]],
+        'client_cited' => false,
+        'competitors_cited' => true,
+        'brand_mentioned' => false,
+        'sentiment' => 'neutral',
+        'topic_ownership_score' => 0.22,
+        'consistency_score' => 0.30,
+        'geo_visibility_score' => 18,
+        'breakdown_json' => ['test' => true],
+        'answer_summary' => 'Competitor is cited, Argusly is absent.',
+        'raw_payload_json' => ['test' => true],
+        'retention_policy' => 'summary_only',
+        'metadata_json' => ['test' => true],
+    ]);
+    $competitorMatch = PageCompetitorMatch::query()->create([
+        'organization_id' => $context['organization']->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'monitored_page_id' => $page->id,
+        'site_competitor_id' => $competitor->id,
+        'match_type' => 'topic_overlap',
+        'match_score' => 0.91,
+        'evidence_json' => ['topic' => 'AI visibility'],
+        'observed_at' => now(),
+    ]);
+    $brandMatch = PageBrandMatch::query()->create([
+        'organization_id' => $context['organization']->id,
+        'workspace_id' => $workspace->id,
+        'client_site_id' => $site->id,
+        'monitored_page_id' => $page->id,
+        'brand_key' => 'argusly',
+        'brand_name' => 'Argusly',
+        'match_type' => 'brand_alignment',
+        'match_score' => 0.31,
+        'evidence_json' => ['missing' => 'proof language'],
+        'observed_at' => now(),
+    ]);
+
+    $plan = app(BrandGrowthPlanGenerator::class)->generate($workspace, $context['user'], [
+        'business_objective' => 'Use page intelligence as strategic evidence',
+    ]);
+
+    $titles = $plan->findings->pluck('title')->all();
+
+    expect($titles)->toContain('Observed SERP visibility is weak for priority page queries')
+        ->and($titles)->toContain('AI answers cite competitors without citing the brand')
+        ->and($titles)->toContain('Observed pages overlap strongly with competitor themes')
+        ->and($titles)->toContain('Observed pages show weak brand-to-page alignment')
+        ->and(data_get($plan->context_snapshot, 'available_sources.page_intelligence'))->toBeTrue()
+        ->and(data_get($plan->context_snapshot, 'source_reference_index.page_serp_observation_ids'))->toContain((string) $serpObservation->id)
+        ->and(data_get($plan->context_snapshot, 'source_reference_index.page_geo_observation_ids'))->toContain((string) $geoObservation->id)
+        ->and(data_get($plan->context_snapshot, 'source_reference_index.page_competitor_match_ids'))->toContain((string) $competitorMatch->id)
+        ->and(data_get($plan->context_snapshot, 'source_reference_index.page_brand_match_ids'))->toContain((string) $brandMatch->id);
+});
+
 it('regenerates a draft from an existing brand growth plan', function (): void {
     $context = brandGrowthContext('regenerate');
     $plan = app(BrandGrowthPlanGenerator::class)->generate($context['workspace'], $context['user'], [
@@ -372,6 +784,7 @@ it('includes Brand Growth Planning rows in diagnostics', function (): void {
 
     $this->artisan('argusly:diagnostics', ['--workspace' => $context['workspace']->id])
         ->expectsOutputToContain('brand_growth_planning.plans.total')
+        ->expectsOutputToContain('brand_growth_planning.plans.approved_conflicts')
         ->expectsOutputToContain('brand_growth_planning.findings.pending_review')
         ->expectsOutputToContain('brand_growth_planning.audiences.pending_review')
         ->assertExitCode(0);
